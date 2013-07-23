@@ -1,6 +1,6 @@
 """Some utility functions"""
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Eric Larson <larsoner@uw.edu>
 #
 # License: BSD (3-clause)
 
