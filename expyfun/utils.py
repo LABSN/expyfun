@@ -78,7 +78,7 @@ class deprecated(object):
 
     >>> from expyfun.utils import deprecated
     >>> deprecated() # doctest: +ELLIPSIS
-    <expfun.utils.deprecated object at ...>
+    <expyfun.utils.deprecated object at ...>
 
     >>> @deprecated()
     ... def some_function(): pass
