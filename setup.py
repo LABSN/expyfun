@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2011 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Copyright (C) 2013 Dan McCloy <drmccloy@uw.edu>
+#    Re-used based on mne-python code.
 
 import os
 import expyfun
@@ -46,7 +47,8 @@ if __name__ == "__main__":
                        'Operating System :: Unix',
                        'Operating System :: MacOS'],
           platforms='any',
-          packages=['expyfun', 'mne.tests'],
+          packages=['expyfun', 'expyfun.tests'],
           package_data={},
-          scripts=[]
+          scripts=[])
+
 
