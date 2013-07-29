@@ -84,7 +84,7 @@ def test_logging():
 
 
 def test_config():
-    """Test mne-python config file support"""
+    """Test expyfun config file support"""
     key = '_EXPYFUN_CONFIG_TESTING'
     value = '123456'
     old_val = os.getenv(key, None)
