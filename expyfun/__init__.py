@@ -9,6 +9,7 @@ from .utils import set_log_level, set_log_file, verbose, set_config, \
 
 from .experiment_controller import ExperimentController
 from .eyelink_controller import EyelinkController
+from .create_system_config import create_system_config
 
 # initialize logging
 set_log_level(None, False)
