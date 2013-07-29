@@ -23,30 +23,30 @@ def _check_TDT():
 
 
 def _check_type():
-    tdtType = raw_input('Which TDT model number (e.g., RM1, RP2, etc.)? ')
-    if tdtType in ['RA16', 'RL2', 'RM1', 'RM2', 'RP2', 'RV8', 'RX5', 'RX6',
-                   'RX7', 'RX8', 'RX9', 'RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6']:
-        return tdtType
+    tdt_type = raw_input('Which TDT model number (e.g., RM1, RP2, etc.)? ')
+    if tdt_type in ['RA16', 'RL2', 'RM1', 'RM2', 'RP2', 'RV8', 'RX5', 'RX6',
+                    'RX7', 'RX8', 'RX9', 'RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6']:
+        return tdt_type
     else:
         return False
 
 
 def _check_interface():
-    tdtInterface = raw_input('How is TDT connected? Enter 1 for USB or '
-                             '0 for Gigabit: ')
-    if tdtInterface == '1':
+    tdt_interface = raw_input('How is TDT connected? Enter 1 for USB or '
+                              '0 for Gigabit: ')
+    if tdt_interface == '1':
         return 'USB'
-    elif tdtInterface == '0':
+    elif tdt_interface == '0':
         return 'GB'
     else:
         return None
 
 
 def _check_resp_dev():
-    responseDevice = raw_input('Enter 1 for keyboard or 0 for buttonbox: ')
-    if responseDevice == '1':
+    response_device = raw_input('Enter 1 for keyboard or 0 for buttonbox: ')
+    if response_device == '1':
         return 'keyboard'
-    elif responseDevice == '0':
+    elif response_device == '0':
         return 'buttonbox'
     else:
         return None
