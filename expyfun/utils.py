@@ -305,7 +305,10 @@ def get_config_path():
 
 # List the known configuration values
 known_config_types = [
-    'EXPYFUN_SOUND_TYPE',
+    'RESPONSE_DEVICE',
+    'AUDIO_CONTROLLER',
+    'TDT_INTERFACE',
+    'TDT_CIRCUIT_PATH'
     ]
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed
