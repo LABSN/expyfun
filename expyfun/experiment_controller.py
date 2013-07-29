@@ -1,11 +1,14 @@
 import logging
 from functools import partial
 
+from .utils import verbose
+
 logger = logging.getLogger('expyfun')
 
 
 class ExperimentController(object):
-    def __init__(self, sound_type=None):
+    @verbose
+    def __init__(self, sound_type=None, verbose=None):
         """Interface for hardware control
 
         Parameters
@@ -26,6 +29,7 @@ class ExperimentController(object):
         # some things
         self._fp_function = None
         self._fs = 24414
+        logger.info('Initialization complete')
 
     def load_buffer(self, data):
         """XXX ADD DOCSTRING
