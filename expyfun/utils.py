@@ -308,7 +308,8 @@ known_config_types = [
     'RESPONSE_DEVICE',
     'AUDIO_CONTROLLER',
     'TDT_INTERFACE',
-    'TDT_CIRCUIT_PATH'
+    'TDT_CIRCUIT_PATH',
+    'WINDOW_SIZE'
     ]
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed
