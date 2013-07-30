@@ -1,0 +1,7 @@
+include *.rst
+include expyfun/__init__.py
+# recursive-include doc *
+recursive-include examples *.py
+recursive-include examples *.txt
+recursive-include expyfun *.py
+recursive-exclude expyfun/tests/data *
