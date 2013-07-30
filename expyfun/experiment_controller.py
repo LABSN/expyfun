@@ -53,14 +53,14 @@ class ExperimentController(object):
             self.tdt = TDTObject(self.audio_controller,
                                  get_config('TDT_CIRCUIT'),
                                  get_config('TDT_INTERFACE'))
-            self._fs = self.tdt.GetSFreq()
+            self._fs = self.tdt.fs()
         
         # placeholder for extra actions to do on flip-and-play
         self._fp_function = None
         
         logger.info('Initialization complete')
 
-    def load_buffer(self, data, buffer_name=None):
+    def load_buffer(self, data, offset=0, buffer_name=None):
         """
         Method for loading audio data into the audio buffer.
 
@@ -86,7 +86,7 @@ class ExperimentController(object):
         logger.info('Loading buffers with {} samples of data'.format(data.size))
         if not self.tdt is None:
             # load data into TDT buffer
-            buffer_loaded = self.tdt.WriteTagV(buffer_name, 0, data)
+            buffer_loaded = self.tdt.write_buffer(buffer_name, offset, data)
         else:
             # TODO: add code to load data into psychopy buffer
             buffer_loaded = 0
@@ -114,29 +114,38 @@ class ExperimentController(object):
         logger.info('Clearing buffers')
         if not self.tdt is None:
             # clear data in TDT buffer
-            buffer_cleared = self.tdt.ZeroTag(buffer_name)
+            buffer_cleared = self.tdt.clear_buffer(buffer_name)
         else:
             # TODO: add code to clear data from psychopy buffer
             buffer_cleared = 0
         return buffer_cleared
 
     def _play(self):
+        """
+        XXX ADD DOCSTRING
+        """
         # XXX should add a way to detect which triggers are which rather than
         # hard-coding
         logger.debug('playing')
-        self.tdt.SoftTrg(1)
+        self.tdt.trigger(1)
 
     def _stop(self):
+        """
+        XXX ADD DOCSTRING
+        """
         # XXX should add a way to detect which triggers are which rather than
         # hard-coding
         logger.debug('stopping')
-        self.tdt.SoftTrg(2)
+        self.tdt.trigger(2)
 
     def _reset(self):
+        """
+        XXX ADD DOCSTRING
+        """
         # XXX should add a way to detect which triggers are which rather than
         # hard-coding
         logger.debug('resetting')
-        self.tdt.SoftTrg(5)
+        self.tdt.trigger(5)
 
     def stop_reset(self):
         """
@@ -159,9 +168,9 @@ class ExperimentController(object):
             # send stop triggers and halt circuit
             # XXX should add a way to detect which triggers are which rather
             # than hard-coding
-            self.tdt.SoftTrg(4) # kill noise
+            self.tdt.trigger(4) # kill noise
             self.stop_reset()
-            self.tdt.Halt()
+            self.tdt.halt_circuit()
 
     def __enter__(self):
         # wrap to init? may want to do some low-level stuff to make sure the
@@ -171,6 +180,9 @@ class ExperimentController(object):
         return self
 
     def flip_and_play(self):
+        """
+        XXX ADD DOCSTRING
+        """
         # XXX flip screen
         # XXX play buffer
         logger.info('Flipping and playing audio')
@@ -178,6 +190,9 @@ class ExperimentController(object):
             self._fp_function()
 
     def call_on_flip_and_play(self, function, *args, **kwargs):
+        """
+        XXX ADD DOCSTRING
+        """
         if function is not None:
             self._fp_function = partial(function, *args, **kwargs)
         else:
@@ -228,8 +243,8 @@ class TDTObject(object):
                                                 DevNum=1)
         """
         # MID-LEVEL APPROACH
-        self.rpcox = connect_rpcox(name=self.audio_controller,
-                                   interface=self.tdt_interface,
+        self.rpcox = connect_rpcox(name=tdt_type,
+                                   interface=interface,
                                    device_id=1, address=None)
         if not self.rpcox is None:
             logger.info('RPcoX connection established.')
@@ -238,33 +253,35 @@ class TDTObject(object):
 
         """
         # May need to implement zBUS for devices other than RM1
-        self.zbus = connect_zbus(interface=self.tdt_interface)
+        self.zbus = connect_zbus(interface=interface)
         if not self.zbus is None:
             logger.info('zBUS connection established.')
         else:
             raise ExperimentError('Problem initializing zBUS.')
         """
 
-        if self.rpcox.LoadCOF(self.circuit):
+        if self.rpcox.LoadCOF(circuit):
             logger.info('Circuit loaded.')
         else:
             try:
                 if self.rpcox.ClearCOF(): 
                     logger.info('Circuit cleared.')
                 time.sleep(0.25)
-                if self.rpcox.LoadCOF(self.circuit): 
+                if self.rpcox.LoadCOF(circuit): 
                     logger.info('Circuit loaded.')
             except:
                 raise ExperimentError('Problem loading circuit.')
 
-        print('Circuit {} loaded to {} via {}.'.format(self.circuit,
-                    self.audio_controller, self.tdt_interface))
+        print('Circuit {} loaded to {} via {}.'.format(circuit,
+                    tdt_type, interface))
 
-        if self.tdt.Run(): logger.info('Circuit running.')
-        else: raise ExperimentError('Problem starting circuit.')
+        if self.rpcox.Run(): 
+            logger.info('Circuit running.')
+        else: 
+            raise ExperimentError('Problem starting circuit.')
 
         time.sleep(0.25)
-        self._fs = self.tdt.GetSFreq()
+        self._fs = self.fs()
         
     def trigger(self, trigger_number):
         """
@@ -284,8 +301,32 @@ class TDTObject(object):
         -----
         Blah blah blah.
         """
-        self.SoftTrg(trigger_number)
+        self.rpcox.SoftTrg(trigger_number)
+        
+    def fs(self):
+        """
+        Wrapper for "GetSFreq()"
+        """
+        self.rpcox.GetSFreq()
+        
+    def write_buffer(self, data, offset, buffer_name):
+        """
+        Wrapper for "WriteTagV()"
+        """
+        # TODO: check to make sure data is properly formatted / correct dtype
+        self.rpcox.WriteTagV(buffer_name, offset, data)
 
+    def clear_buffer(self, buffer_name):
+        """
+        Wrapper for "ZeroTag()"
+        """
+        self.rpcox.ZeroTag(buffer_name)
+        
+    def halt_circuit(self):
+        """
+        Wrapper for "Halt()"
+        """
+        self.rpcox.Halt()
 
 class ExperimentError(Exception):
     """ 
