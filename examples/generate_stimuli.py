@@ -3,29 +3,36 @@ from scipy.io import savemat, wavfile
 from expyfun.experiment_controller import get_tdt_rates
 
 
-def generate_stimuli(num_freqs=2, stim_dur=0.5, min_freq=500.0,
-                     max_freq=4000.0, save_as='dict', fs=None, rms=0.01):
-    """Make some sine waves and save in various formats.
+def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
+                     max_freq=4000.0, fs=None, rms=0.01, save_as='mat'):
+    """Make some sine waves and save in various formats. Optimized for saving
+    as MAT files, but can also save directly as WAV files, or can return a
+    python dictionary with sinewave data as values.
 
     Parameters
     ----------
-    num_freqs : int | 2
-        Number of equally-spaced freqencies at which to generate tones.
+    num_trials : int | 10
+        Number of trials you want in your experiment. Ignored if save_as is
+        not 'mat'.
+    num_freqs : int | 4
+        Number of frequencies (equally-spaced on a log2-scale) at which to
+        generate tones.
     stim_dur : float | 0.5
         Duration of the tones in seconds.
     min_freq : float | 250
         Frequency of the lowest tone in Hertz.
     max_freq : float | 250
         Frequency of the highest tone in Hertz.
-    save_as : str | 'dict'
-        Format in which to return the sinewaves. 'dict' returns sinewave arrays
-        as values in a python dictionary; 'mat' saves them as a MAT file; 'wav'
-        saves them as WAV files at a sampling frequency 'fs'.
     fs : float | None
         Sampling frequency of resulting sinewaves.  Defaults to 24414.0625 (a
         standard rate for TDTs) if no value is specified.
     rms : float | 0.01
         RMS amplitude to which all sinwaves will be scaled
+    save_as : str | 'mat'
+        Format in which to return the sinewaves. 'dict' returns sinewave arrays
+        as values in a python dictionary; 'wav' saves them as WAV files at
+        sampling frequency 'fs'; 'mat' saves them as a MAT file along with
+        related variables 'fs', 'freqs', 'trial_order', and 'rms'.
     """
 
     if fs is None:
@@ -53,7 +60,11 @@ def generate_stimuli(num_freqs=2, stim_dur=0.5, min_freq=500.0,
     # collect into dictionary & save
     wav_dict = {n: w for (n, w) in zip(names, wavs)}
     if save_as == 'mat':
-        wav_dict.update({'freqs': freqs, 'orig_rms': rms, 'fs': fs})
+        num_reps = num_trials / num_freqs + 1
+        trials = np.tile(range(num_freqs), num_reps)
+        trial_order = np.random.permutation(trials[0:num_trials])
+        wav_dict.update({'trial_order': trial_order, 'freqs': freqs, 'fs': fs,
+                         'rms': rms})
         savemat('equally_spaced_sinewaves.mat', wav_dict, oned_as='row')
     elif save_as == 'wav':
         for n in names:
