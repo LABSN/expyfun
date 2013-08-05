@@ -1,160 +1,248 @@
-from expyfun import ExperimentController, set_log_level
+from expyfun import ExperimentController, utils#, set_log_level
 import numpy as np
 from scipy import io as sio
+from psychopy import visual, core, data, event, sound, gui
+from psychopy.constants import *
 
-set_log_level('DEBUG')
+#set_log_level('DEBUG')
+
+# set configuration
+utils.set_config('WINDOW_SIZE', '1920,1080')
+utils.set_config('SCREEN_NUM', '0')
 
 noise_amp = 45  # dB for background noise
 stim_amp = 75  # dB for stimuli
 min_resp_time = 0.1
 max_resp_time = 1.0
-feedback_dur = 2.0
+feedback_dur = 1.5
+isi = 0.2
+running_total = 0
 
-# generate some stimuli
-# generate_stimuli(4, save_as='mat')
+core.checkPygletDuringWait = False
 
-# load some stimuli (see generate_stimuli.py)
+# generate_stimuli()
+
+# load stimuli (from a call to generate_stimuli() from generate_stimuli.py)
 stims = sio.loadmat('equally_spaced_sinewaves.mat')
-orig_rms = stims['rms']
-freqs = stims['freqs']
-fs = stims['fs']
-trial_order = stims['trial_order']
+orig_rms = stims['rms'].reshape(-1).tolist()
+freqs = stims['freqs'].reshape(-1).tolist()
+fs = stims['fs'].reshape(-1).tolist()
+trial_order = stims['trial_order'].reshape(-1).tolist()
 num_trials = len(trial_order)
 num_freqs = len(freqs)
+# print orig_rms, freqs, fs, trial_order, num_trials, num_freqs
 
 if num_freqs > 8:
     raise ExperimentController.ExperimentError('Too many frequencies / '
-                                               'not enough buttons.')
+                                            'not enough buttons.')
 
-# keep only the sinusoid data
+# keep only the sinusoid data, convert dictionary to list of arrays, make stereo
 wavs = {k: stims[k] for k in stims if k not in ('rms', 'fs', 'freqs',
-                                                'trial_order')}
-# response, correct?, time
-responses = np.zeros(num_trials, 3)
-# screen flip, audio start, and when responses stopped being listened for
-timestamps = np.zeros(num_trials, 3)
+                                                'trial_order', '__header__',
+                                                '__globals__', '__version__')}
+wavs = [np.asarray(np.column_stack((val.T, val.T)), order='C') for key, val in
+        sorted(wavs.items())]
 
 # instructions
-instructions = ('You will hear tones at {0} different frequencies. Your job is to'
-                'press the button corresponding to that frequency. Please press'
-                'each button to hear its corresponding tone.'.format(len(freqs)))
+instructions = ('You will hear tones at {0} different frequencies. Your job is '
+                'to press the button corresponding to that frequency. Please '
+                'press buttons 1-{0} now to hear each tone.').format(num_freqs)
 
-with ExperimentController('testExp', 'RM1', 'keyboard', stim_ampl=75,
-                          noise_ampl=45) as ec:
-    with open(ec.exp_info['exp_name'] + '_output.tab', 'w') as f:
-        f.write('some stuff')  # TODO: output headers
-        # TODO: define flip and play function to take timestamps
-        #ec.call_on_flip_and_play()
-        for t in range(num_trials):
-            # load the data
-            ec.load_buffer(wavs[wavs.keys()[t]])
-            # flip the screen and play the sound
-            ec.flip_and_play()
-            # TODO: wait for button press, get data
-            f.write('some data')  # TODO: save data
-print 'Done!'
+instr_finished = ('Okay, now press any of those buttons to start the real '
+                'thing.')
 
 
+with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
+                        noise_amp=45) as ec:
+    # define usable buttons / keys
+    live_keys = map(str, [x + 1 for x in range(num_freqs)])
+    not_yet_pressed = live_keys[:]
+
+    # # # # # # # # # # # # # #
+    # run instructions block  #
+    # # # # # # # # # # # # # #
+    ec.init_trial()
+    continue_trial = True
+
+    # show instructions until all buttons have been pressed at least once
+    while continue_trial:
+        # TODO: wrap this block as ec.init_trial() ?
+        ec.t = ec.trial_clock.getTime()
+        ec.f = ec.f + 1
+        if ec.t >= 0.0 and ec.button_handler.status == NOT_STARTED:
+            ec.button_handler.tStart = ec.t
+            ec.button_handler.frameNStart = ec.f
+            ec.button_handler.status = STARTED
+            ec.button_handler.clock.reset()
+            event.clearEvents()
+
+        if ec.button_handler.status == STARTED:
+            pressed = event.getKeys(live_keys)
+            for p in pressed:
+                # normally this would be preloaded outside the while loop:
+                ec.load_buffer(wavs[int(p) - 1])
+                # normally this would come in its own block below
+                ec.flip_and_play()
+                ec.wait_secs(len(wavs[int(p) - 1]) / ec.fs)
+                try:
+                    del not_yet_pressed[not_yet_pressed.index(p)]
+                except ValueError:
+                    pass
+                if len(not_yet_pressed) == 0:
+                    ec.clear_buffer()
+                    continue_trial = False
+
+        # show screen prompt
+        if ec.t >= 0.0 and ec.text_stim.status == NOT_STARTED:
+            ec.screen_prompt(instructions)
+
+        # try to end trial, but check if we're really done
+        if not continue_trial:
+            break
+        continue_trial = False
+        for comp in ec.trial_components:
+            if hasattr(comp, 'status') and comp.status != FINISHED:
+                continue_trial = True
+                break  # at least one trial component not finished
+
+        # check for force-quit
+        if event.getKeys(['escape']):
+            core.quit()
+
+        # screen flip
+        if continue_trial:
+            ec.win.flip()
+
+    # instructions trial is over
+    ec.clear_screen()
+    ec.wait_secs(isi)
+
+    # # # # # # # # # # # # # # # # # # #
+    # show instructions finished screen #
+    # # # # # # # # # # # # # # # # # # #
+    ec.init_trial()
+    continue_trial = True
+
+    while continue_trial:
+        # TODO: wrap this block as ec.init_trial() ?
+        ec.t = ec.trial_clock.getTime()
+        ec.f = ec.f + 1
+        if ec.t >= 0.0 and ec.button_handler.status == NOT_STARTED:
+            ec.button_handler.tStart = ec.t
+            ec.button_handler.frameNStart = ec.f
+            ec.button_handler.status = STARTED
+            ec.button_handler.clock.reset()
+            event.clearEvents()
+
+        if ec.button_handler.status == STARTED:
+            pressed = event.getKeys(live_keys)
+            if len(pressed) > 0:
+                continue_trial = False
+
+        # show text if necessary
+        if ec.t >= 0.0 and ec.text_stim.status == NOT_STARTED:
+            ec.screen_prompt(instr_finished)
+
+        # try to end trial, but check if we're really done
+        if not continue_trial:
+            break
+        continue_trial = False
+        for comp in ec.trial_components:
+            if hasattr(comp, 'status') and comp.status != FINISHED:
+                continue_trial = True
+                break  # at least one trial component not finished
+
+        # check for force-quit
+        if event.getKeys(['escape']):
+            core.quit()
+
+        # screen flip
+        if continue_trial:
+            ec.win.flip()
+
+    # instr_finished trial is over
+    ec.clear_screen()
+    ec.wait_secs(0.5)
 
 
+    # # # # # # # # # # #
+    # run trials block  #
+    # # # # # # # # # # #
+    ec.screen_prompt('OK, here we go!')
+    ec.wait_secs(feedback_dur)
+    ec.clear_screen()
+    ec.wait_secs(isi)
 
-""" MOVE THIS TO generate_stimuli.py
+    for n in range(num_trials):
+        ec.init_trial()
+        ec.load_buffer(wavs[trial_order[n]])
+        continue_trial = True
 
-    % Before starting trials, let's give some instructions
-    instructions = sprintf(['Welcome to the experiment!\n\nYou will hear ' ...
-        'tones at %i different frequencies. Your job is to press the button ' ...
-        'corresponding to that frequency.\n\nPlease press a button to hear ' ...
-        'each tone and see its corresponding button number. (Hint: they go ' ...
-        'in ascending order!)'],nFreqs);
-    ScreenPrompt(instructions, display, TDT);
-    WaitSecs(0.5);
+        while continue_trial:
+            # TODO: wrap this block as ec.init_trial() ?
+            ec.t = ec.trial_clock.getTime()
+            ec.f = ec.f + 1
+            if ec.t >= 0.0 and ec.button_handler.status == NOT_STARTED:
+                ec.button_handler.tStart = ec.t
+                ec.button_handler.frameNStart = ec.f
+                ec.button_handler.status = STARTED
+                ec.button_handler.clock.reset()
+                event.clearEvents()
 
-    % Now let's play each tone with the corresponding button number,
-    % separated temporally by one second
-    showNumberDur = 0.4;
-    interToneInterval = 1.0;
-    tPrevious = 0;
-    for fi = 1:nFreqs
-        % It is ABSOLUTELY CRITICAL to scale the stimuli correctly. Hearing
-        % damage can occur if this is done incorrectly!
-    	waveData = stimScaler * wavs{fi};
-        AudioController('loadBuffer', TDT, waveData);
-        DrawFormattedText(display.windowPtr, num2str(fi), 'center', 'center', display.scrWhite, 80, 0, 0, 2 );
-        tFlip = Screen('Flip', display.windowPtr, tPrevious + interToneInterval);
-        tPrevious = tFlip;
-        AudioController('start', TDT)
-        tFlip = Screen('Flip', display.windowPtr, tFlip + showNumberDur);
-        % Wait until auditory stimulus is done playing
-        WaitSecs(tFlip + length(waveData) / fs - GetSecs());
-        AudioController('stopReset', TDT);
-    end
+            # start audio playback
+            if ec.t >= 0.0 and ec.audio.status == NOT_STARTED:
+                ec.flip_and_play()
 
-    instructions = sprintf(['Now you''re ready for the experiment. ' ...
-        'Press the response button corresponding to each tone as quickly ' ...
-        'as possible after it is played. Press 1 or 2 to begin.']);
-    ScreenPrompt(instructions, display, TDT);
-    WaitSecs(1);
+            if ec.button_handler.status == STARTED:
+                pressed = event.getKeys(live_keys)
+                if len(pressed) > 0:
+                    if ec.button_handler.keys == []:  # this was the first press
+                        ec.button_handler.keys = pressed[0]  # only keep first press
+                        ec.button_handler.rt = ec.button_handler.clock.getTime()
+                        continue_trial = False  # any response ends the trial
 
-    for trialNum = 1:nTrials
-        % Let's draw a fixation dot that spans 1 degree of visual angle
-        fixWidth = round(ceil(deg2pix(display,1)));
-        fixBox = vector(display.center.'*[1 1] + [-1 1; -1 1] * fixWidth/2);
-        Screen('FillOval', display.windowPtr, display.scrWhite, fixBox);
-        Screen('Flip', display.windowPtr);
+            # try to end trial, but check if we're really done
+            if not continue_trial:
+                break
+            continue_trial = False
+            for comp in ec.trial_components:
+                if hasattr(comp, 'status') and comp.status != FINISHED:
+                    continue_trial = True
+                    break  # at least one trial component not finished
 
-        % Make sure we don't go too quickly from trial to trial
-        WaitSecs(1.0);
-        % Figure out the correct stimulus to run
-		ii = trialOrder(trialNum);
+            # check for force-quit
+            if event.getKeys(['escape']):
+                core.quit()
 
-		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		%  Load sound stimuli into TDT  %
-		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		waveData = stimScaler * wavs{ii};
-		% Ensure any previous stimuli are cleared before loading new one
-		AudioController('clearBuffer', TDT);
-		AudioController('loadBuffer', TDT, waveData);
+            # screen flip
+            if continue_trial:
+                ec.win.flip()
 
-		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		%  Cue Frame and audio playback start  %
-		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   	    Screen('FillOval', display.windowPtr, display.scrWhite, fixBox);
-		tTrialStart = Screen('Flip', display.windowPtr);
-		tSound = AudioController('start', TDT);
+        # trial is over
+        if len(ec.button_handler.keys) == 0:
+            ec.data_handler.addData('button_presses', None)
+        else:
+            ec.data_handler.addData('button_presses', ec.button_handler.keys)
+            ec.data_handler.addData('reaction_times', ec.button_handler.rt)
+        ec.data_handler.nextEntry()
+        # some feedback
+        if int(pressed[0]) == trial_order[n] + 1:
+            running_total = running_total + 1
+            ec.screen_prompt('Correct! Your reaction time was '
+                             '{}'.format(np.round(ec.button_handler.rt, 3)))
+        else:
+            ec.screen_prompt('You pressed {0}, the correct answer was '
+                            '{1}.'.format(pressed[0], trial_order[n] + 1))
+        ec.wait_secs(feedback_dur)
+        ec.clear_screen()
+        ec.wait_secs(isi)
 
-		%%%%%%%%%%%%%%%
-		%  Responses  %
-		%%%%%%%%%%%%%%%
-        [num, pressTime] = waitForButtonPress(TDT,1:nFreqs,minRespTime,maxRespTime);
-        respList(trialNum,:) = [num, pressTime];
-		AudioController('stopReset', TDT);
 
-		%%%%%%%%%%%%%
-		%  Feedback %
-		%%%%%%%%%%%%%
-        WaitSecs(0.5);
-        correctness(trialNum) = ii == num;
-        if correctness(trialNum)
-            feedback = 'Correct!';
-        elseif ~isnan(num)
-            feedback = sprintf(['Incorrect -- you pressed %i and the '...
-                'correct response was %i.'], num, ii);
-        else
-            feedback = 'Response was too slow, try to be faster!';
-        end
-        ScreenPrompt(feedback,display,TDT,1:nFreqs,feedbackDur);
-		tDone = GetSecs();
-
-        % Save the data in raw form after every trial!
-		timeVecs(:,trialNum) = [tTrialStart tSound tDone];
-		temp = datestr(clock);
-		temp(temp==' ' | temp==':')='_';
-		timeStopped = temp;
-		save(saveFile,'respList','trialOrder','freqs','trialNum','timeStopped','timeVecs','correctness');
-		quitCheck;
-    end
-    fprintf('Performance was %0.2f%%.\n',100*mean(correctness));
-	cleanupError(TDT);
-catch err
-	cleanupError(TDT,err);
-end
+    # # # # # # # # # #
+    # end experiment  #
+    # # # # # # # # # #
+    ec.screen_prompt('All done! You got {0} correct out of {1} '
+                    'trials.'.format(running_total, num_trials))
+    ec.wait_secs(feedback_dur)
+    ec.clear_screen()
+    core.quit()
