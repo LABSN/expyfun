@@ -1,15 +1,13 @@
-from expyfun import ExperimentController, utils#, set_log_level
+from os import path as op
 import numpy as np
 from scipy import io as sio
-from psychopy import visual, core, data, event, sound, gui
-from psychopy.constants import *
+from psychopy import core, event
+from psychopy.constants import NOT_STARTED, STARTED, FINISHED
 
-#set_log_level('DEBUG')
+from expyfun import ExperimentController
+from generate_stimuli import generate_stimuli
 
 # set configuration
-utils.set_config('WINDOW_SIZE', '1920,1080')
-utils.set_config('SCREEN_NUM', '0')
-
 noise_amp = 45  # dB for background noise
 stim_amp = 75  # dB for stimuli
 min_resp_time = 0.1
@@ -18,25 +16,27 @@ feedback_dur = 1.5
 isi = 0.2
 running_total = 0
 
-core.checkPygletDuringWait = False
+# if the stimuli have not been made, let's make them in examples dir
+stimulus_dir = op.split(__file__)[0]
+stimulus_file = op.join(stimulus_dir, 'equally_spaced_sinewaves.mat')
+if not op.isfile(stimulus_file):
+    generate_stimuli(output_dir=stimulus_dir)
 
-# generate_stimuli()
+core.checkPygletDuringWait = False
 
 # load stimuli (from a call to generate_stimuli() from generate_stimuli.py)
 stims = sio.loadmat('equally_spaced_sinewaves.mat')
-orig_rms = stims['rms'].reshape(-1).tolist()
-freqs = stims['freqs'].reshape(-1).tolist()
-fs = stims['fs'].reshape(-1).tolist()
-trial_order = stims['trial_order'].reshape(-1).tolist()
+orig_rms = stims['rms'][0]
+freqs = stims['freqs'][0]
+fs = stims['fs'][0][0]
+trial_order = stims['trial_order'][0]
 num_trials = len(trial_order)
 num_freqs = len(freqs)
-# print orig_rms, freqs, fs, trial_order, num_trials, num_freqs
 
 if num_freqs > 8:
-    raise ExperimentController.ExperimentError('Too many frequencies / '
-                                            'not enough buttons.')
+    raise RuntimeError('Too many frequencies, not enough buttons.')
 
-# keep only the sinusoid data, convert dictionary to list of arrays, make stereo
+# keep only sinusoid data, convert dictionary to list of arrays, make stereo
 wavs = {k: stims[k] for k in stims if k not in ('rms', 'fs', 'freqs',
                                                 'trial_order', '__header__',
                                                 '__globals__', '__version__')}
@@ -44,16 +44,16 @@ wavs = [np.asarray(np.column_stack((val.T, val.T)), order='C') for key, val in
         sorted(wavs.items())]
 
 # instructions
-instructions = ('You will hear tones at {0} different frequencies. Your job is '
-                'to press the button corresponding to that frequency. Please '
+instructions = ('You will hear tones at {0} different frequencies. Your job is'
+                ' to press the button corresponding to that frequency. Please '
                 'press buttons 1-{0} now to hear each tone.').format(num_freqs)
 
 instr_finished = ('Okay, now press any of those buttons to start the real '
-                'thing.')
+                  'thing.')
 
 
 with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
-                        noise_amp=45) as ec:
+                          noise_amp=45) as ec:
     # define usable buttons / keys
     live_keys = map(str, [x + 1 for x in range(num_freqs)])
     not_yet_pressed = live_keys[:]
@@ -164,7 +164,6 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
     ec.clear_screen()
     ec.wait_secs(0.5)
 
-
     # # # # # # # # # # #
     # run trials block  #
     # # # # # # # # # # #
@@ -196,9 +195,10 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
             if ec.button_handler.status == STARTED:
                 pressed = event.getKeys(live_keys)
                 if len(pressed) > 0:
-                    if ec.button_handler.keys == []:  # this was the first press
-                        ec.button_handler.keys = pressed[0]  # only keep first press
-                        ec.button_handler.rt = ec.button_handler.clock.getTime()
+                    if ec.button_handler.keys == []:  # this was first press
+                        ec.button_handler.keys = pressed[0]  # only keep first
+                        ec.button_handler.rt = \
+                            ec.button_handler.clock.getTime()
                         continue_trial = False  # any response ends the trial
 
             # try to end trial, but check if we're really done
@@ -232,17 +232,16 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
                              '{}'.format(np.round(ec.button_handler.rt, 3)))
         else:
             ec.screen_prompt('You pressed {0}, the correct answer was '
-                            '{1}.'.format(pressed[0], trial_order[n] + 1))
+                             '{1}.'.format(pressed[0], trial_order[n] + 1))
         ec.wait_secs(feedback_dur)
         ec.clear_screen()
         ec.wait_secs(isi)
-
 
     # # # # # # # # # #
     # end experiment  #
     # # # # # # # # # #
     ec.screen_prompt('All done! You got {0} correct out of {1} '
-                    'trials.'.format(running_total, num_trials))
+                     'trials.'.format(running_total, num_trials))
     ec.wait_secs(feedback_dur)
     ec.clear_screen()
     core.quit()

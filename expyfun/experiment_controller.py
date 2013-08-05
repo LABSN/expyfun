@@ -4,19 +4,18 @@
 import time
 import numpy as np
 import platform
-# import os
-from os.path import sep
+import os
+from os import path as op
 from functools import partial
 if platform.platform == 'Windows':
     from tdt.util import connect_rpcox, connect_zbus
 else:
     connect_rpcox = None
     connect_zbus = None
-from psychopy import visual, core, data, event, logging, sound, gui
-from psychopy.constants import *
+from psychopy import visual, core, data, event, sound, gui
+from psychopy import logging as psylog
+from psychopy.constants import FINISHED, NOT_STARTED
 from .utils import get_config, verbose
-
-# log_file = logging.getLogger('expyfun')
 
 
 class ExperimentController(object):
@@ -43,6 +42,13 @@ class ExperimentController(object):
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be
         created.
+    window_size : list | array | None
+        Window size to use. If list or array, it must have two elements.
+        If None, the default will be read from the system config,
+        falling back to [1920, 1080] if no system config is found.
+    screen_num : int | None
+        Screen to use. If None, the default will be read from the system
+        config, falling back to 0 if no system config is found.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -54,12 +60,16 @@ class ExperimentController(object):
     Notes
     -----
     TODO: add eye tracker and EEG
+    TODO: Deal with fullscreen=True in psychopy init, if we want less than
+          fullscreen windows, it won't allow it currently (making window_size
+          pointless)...
     """
 
     @verbose
     def __init__(self, exp_name, audio_controller=None, response_device=None,
                  stim_rms=0.01, stim_amp=65, noise_amp=-np.Inf,
-                 output_dir='rawData', verbose=None):
+                 output_dir='rawData', window_size=None, screen_num=None,
+                 verbose=None):
 
         self._stim_amp = stim_amp
         self._noise_amp = noise_amp
@@ -82,10 +92,13 @@ class ExperimentController(object):
             core.quit()  # user pressed cancel
 
         # initialize log file
-        basename = root_dir + sep + output_dir + sep + '{0}_{1}'.format(
-            self.exp_info['participant'], self.exp_info['date'])
-        _lf = logging.LogFile(basename + '.log', level=logging.INFO)
-        logging.console.setLevel(logging.WARNING)
+        if not op.isdir(op.join(root_dir, output_dir)):
+            os.mkdir(op.join(root_dir, output_dir))
+        basename = op.join(root_dir, output_dir,
+                           '{0}_{1}'.format(self.exp_info['participant'],
+                                            self.exp_info['date']))
+        psylog.LogFile(basename + '.log', level=psylog.INFO)
+        psylog.console.setLevel(psylog.WARNING)
 
         """
         # initialize output folder for raw data
@@ -114,14 +127,14 @@ class ExperimentController(object):
         else:
             self.audio_controller = audio_controller
         if self.audio_controller == 'psychopy':
-            logging.info('Expyfun: Initializing PsychoPy audio')
+            psylog.info('Expyfun: Initializing PsychoPy audio')
             self.tdt = None
             self._fs = 22050  # TODO: maybe should be user-configurable
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self.audio.setVolume(1)  # TODO: check this w/r/t stim_scaler
             self.trial_components.append(self.audio)
         else:
-            logging.info('Expyfun: Setting up TDT')
+            psylog.info('Expyfun: Setting up TDT')
             self.tdt = TDTObject(self.audio_controller,
                                  get_config('TDT_CIRCUIT'),
                                  get_config('TDT_INTERFACE'))
@@ -135,10 +148,13 @@ class ExperimentController(object):
         self._fp_function = None
 
         # create visual window
-        logging.info('Expyfun: Setting up screen')
-        self.win = visual.Window(size=get_config('WINDOW_SIZE').split(','),
-                                 fullscr=True, monitor='',
-                                 screen=int(get_config('SCREEN_NUM')),
+        psylog.info('Expyfun: Setting up screen')
+        if window_size is None:
+            window_size = get_config('WINDOW_SIZE', '1920,1080').split(',')
+        if screen_num is None:
+            screen_num = int(get_config('SCREEN_NUM', '0'))
+        self.win = visual.Window(size=window_size, fullscr=True, monitor='',
+                                 screen=screen_num,
                                  allowGUI=False, allowStencil=False,
                                  color=bkgd_color, colorSpace='rgb')
 
@@ -168,7 +184,7 @@ class ExperimentController(object):
         self.trial_components.append(self.text_stim)
         #self.trial_components.append(self.shape_stim)
 
-        logging.info('Expyfun: Initialization complete')
+        psylog.info('Expyfun: Initialization complete')
 
     def screen_prompt(self, text):
         """Wrapper for PsychoPy's visual.TextStim.SetText() method.
@@ -256,7 +272,7 @@ class ExperimentController(object):
             Name of the TDT buffer to target. Ignored if audio_controller is
             'psychopy'.
         """
-        logging.info('Expyfun: Loading {} samples to buffer'.format(data.size))
+        psylog.info('Expyfun: Loading {} samples to buffer'.format(data.size))
         if self.audio_controller == 'psychopy':
             self.audio.setSound(np.asarray(data, order='C'))
             self.trial_components.append(self.audio)
@@ -273,7 +289,7 @@ class ExperimentController(object):
             Name of the TDT buffer to target. Ignored if audio_controller is
             'psychopy'.
         """
-        logging.info('Expyfun: Clearing buffer')
+        psylog.info('Expyfun: Clearing buffer')
         if not self.tdt is None:
             self.tdt.clear_buffer(buffer_name)
         else:
@@ -282,7 +298,7 @@ class ExperimentController(object):
     def stop_reset(self):
         """Stop audio buffer playback and reset cursor to beginning of buffer.
         """
-        logging.info('Expyfun: Stopping and resetting audio playback')
+        psylog.info('Expyfun: Stopping and resetting audio playback')
         self._stop()
         self._reset()
 
@@ -294,7 +310,7 @@ class ExperimentController(object):
     def flip_and_play(self):
         """Flip screen and immediately begin playing audio.
         """
-        logging.info('Expyfun: Flipping screen and playing audio')
+        psylog.info('Expyfun: Flipping screen and playing audio')
         self._flip()
         self._play(self.t, self.f)
         if self._fp_function is not None:
@@ -326,7 +342,7 @@ class ExperimentController(object):
     def _play(self, time, frame):
         """Play the audio buffer.
         """
-        logging.debug('Expyfun: playing audio')
+        psylog.debug('Expyfun: playing audio')
         if not self.tdt is None:
             # TODO: detect which triggers are which rather than hard-coding
             self.tdt.trigger(1)
@@ -338,7 +354,7 @@ class ExperimentController(object):
     def _stop(self):
         """Stop audio buffer playback.
         """
-        logging.debug('Stopping audio')
+        psylog.debug('Stopping audio')
         if not self.tdt is None:
             # TODO: detect which triggers are which rather than hard-coding
             self.tdt.trigger(2)
@@ -348,7 +364,7 @@ class ExperimentController(object):
     def _reset(self):
         """Reset audio buffer to beginning.
         """
-        logging.debug('Expyfun: Resetting audio')
+        psylog.debug('Expyfun: Resetting audio')
         if not self.tdt is None:
             # TODO: detect which triggers are which rather than hard-coding
             self.tdt.trigger(5)
@@ -359,7 +375,7 @@ class ExperimentController(object):
     def __enter__(self):
         # (for use with "with" syntax) wrap to init? may want to do some
         # low-level stuff to make sure the connection is working?
-        logging.debug('Expyfun: Entering')
+        psylog.debug('Expyfun: Entering')
         return self
 
     def __exit__(self, type, value, traceback):
@@ -369,7 +385,7 @@ class ExperimentController(object):
         type, value and traceback will be None when called by self.close()
         """
         # stop the TDT circuit, etc.  (for use with "with" syntax)
-        logging.debug('Expyfun: Exiting cleanly')
+        psylog.debug('Expyfun: Exiting cleanly')
         if not self.tdt is None:
             # TODO: detect which triggers are which rather than hard-coding
             self.tdt.trigger(4)  # kill noise
@@ -434,35 +450,35 @@ class TDTObject(object):
             self.rpcox = connect_rpcox(name=tdt_type, interface=interface,
                                        device_id=1, address=None)
             if not self.rpcox is None:
-                logging.info('Expyfun: RPcoX connection established')
+                psylog.info('Expyfun: RPcoX connection established')
             else:
                 raise ExperimentError('Problem initializing RPcoX.')
             """
             # start zBUS (may be needed for devices other than RM1)
             self.zbus = connect_zbus(interface=interface)
             if not self.zbus is None:
-                logging.info('Expyfun: zBUS connection established')
+                psylog.info('Expyfun: zBUS connection established')
             else:
                 raise ExperimentError('Problem initializing zBUS.')
             """
             # load circuit
             if self.rpcox.LoadCOF(circuit):
-                logging.info('Expyfun: TDT circuit loaded')
+                psylog.info('Expyfun: TDT circuit loaded')
             else:
-                logging.debug('Expyfun: Problem loading circuit. Clearing...')
+                psylog.debug('Expyfun: Problem loading circuit. Clearing...')
                 try:
                     if self.rpcox.ClearCOF():
-                        logging.debug('Expyfun: TDT circuit cleared')
+                        psylog.debug('Expyfun: TDT circuit cleared')
                     time.sleep(0.25)
                     if self.rpcox.LoadCOF(circuit):
-                        logging.info('Expyfun: TDT circuit loaded')
+                        psylog.info('Expyfun: TDT circuit loaded')
                 except:
                     raise ExperimentError('Expyfun: Problem loading circuit.')
-            logging.info('Expyfun: Circuit {0} loaded to {1} via '
-                         '{2}.'.format(circuit, tdt_type, interface))
+            psylog.info('Expyfun: Circuit {0} loaded to {1} via '
+                        '{2}.'.format(circuit, tdt_type, interface))
             # run circuit
             if self.rpcox.Run():
-                logging.info('Expyfun: TDT circuit running')
+                psylog.info('Expyfun: TDT circuit running')
             else:
                 raise ExperimentError('Expyfun: Problem starting TDT circuit.')
             time.sleep(0.25)
