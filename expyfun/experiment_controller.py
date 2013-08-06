@@ -181,7 +181,36 @@ class ExperimentController(object):
 
         psylog.info('Expyfun: Initialization complete')
 
-    def screen_prompt(self, text):
+    def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None):
+        """Display text and (optionally) wait for user continuation
+
+        Parameters
+        ----------
+        text : str
+            The text to display. It will automatically wrap lines.
+        max_wait : float
+            The maximum amount of time to wait before returning. Can be np.inf
+            to wait until the user responds.
+        min_wait : float
+            The minimum amount of time to wait before returning. Useful for
+            avoiding subjects missing instructions.
+        live_keys : list | None
+            The acceptable list of buttons to use to advance the trial. If
+            None, any button will be accepted.
+
+        Returns
+        -------
+        val : str | None
+            The button that was pressed. Will be None if the function timed
+            out before the subject responded.
+        time : float
+            The timestamp.
+        """
+        self._show_text(text)
+        self.wait_secs(min_wait)
+        return self.wait_buttons(live_keys, max_wait=max_wait)
+
+    def _show_text(self, text):
         """Wrapper for PsychoPy's visual.TextStim.SetText() method.
 
         Parameters
@@ -241,6 +270,12 @@ class ExperimentController(object):
             self.button_handler.keys = pressed
             self.button_handler.rt = self.button_handler.clock.getTime()
             return pressed
+
+    def wait_buttons(self, live_keys=None, max_wait=np.inf):
+        """XXX add docstring
+        """
+        return event.waitKeys(maxWait=max_wait, keyList=live_keys,
+                              timeStamped=True)
 
     def save_button_presses(self):
         """Wrapper for PsychoPy's ExperimentHandler methods.
