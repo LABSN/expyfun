@@ -310,7 +310,7 @@ known_config_types = [
     'TDT_INTERFACE',
     'TDT_CIRCUIT_PATH',
     'WINDOW_SIZE',
-    'SCREEN_NUM'
+	'SCREEN_NUM'
     ]
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed
