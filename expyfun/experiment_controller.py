@@ -82,6 +82,7 @@ class ExperimentController(object):
         # some parameters...
         bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
         root_dir = './'
+        core.checkPygletDuringWait = False
 
         # dictionary for experiment metadata
         self.exp_info = {'participant': 'foo', 'session': '001',
@@ -448,10 +449,6 @@ class TDTObject(object):
         -------
         tdt_obj : instance of a TDTObject.
             The object containing all relevant info about the TDT in use.
-
-        Notes
-        -----
-        Blah blah blah.
         """
         self.circuit = circuit
         self.tdt_type = tdt_type

@@ -22,8 +22,6 @@ stimulus_file = op.join(stimulus_dir, 'equally_spaced_sinewaves.mat')
 if not op.isfile(stimulus_file):
     generate_stimuli(output_dir=stimulus_dir)
 
-core.checkPygletDuringWait = False
-
 # load stimuli (from a call to generate_stimuli() from generate_stimuli.py)
 stims = sio.loadmat('equally_spaced_sinewaves.mat')
 orig_rms = stims['rms'][0]
@@ -36,12 +34,9 @@ num_freqs = len(freqs)
 if num_freqs > 8:
     raise RuntimeError('Too many frequencies, not enough buttons.')
 
-# keep only sinusoid data, convert dictionary to list of arrays, make stereo
-wavs = {k: stims[k] for k in stims if k not in ('rms', 'fs', 'freqs',
-                                                'trial_order', '__header__',
-                                                '__globals__', '__version__')}
-wavs = [np.asarray(np.column_stack((val.T, val.T)), order='C') for key, val in
-        sorted(wavs.items())]
+# keep only sinusoids, make stereo, order low to high, convert to list of arrays
+wavs = {k: np.c_[stims[k], stims[k]] for k in stims if 'stim_' in k}
+wavs = [v for k, v in sorted(wavs.items())]
 
 # instructions
 instructions = ('You will hear tones at {0} different frequencies. Your job is'
@@ -64,24 +59,21 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
     ec.init_trial()
     ec.screen_prompt(instructions)
     # show instructions until all buttons have been pressed at least once
-    while ec.continue_trial:
+    #while ec.continue_trial:
+    while len(not_yet_pressed) > 0:
         pressed = ec.get_buttons(live_keys)
         for p in pressed:
             ec.load_buffer(wavs[int(p) - 1])
-            # TODO: check whether buffer is done loading before playing
             ec.flip_and_play()
             ec.wait_secs(len(wavs[int(p) - 1]) / ec.fs)
-            try:
-                del not_yet_pressed[not_yet_pressed.index(p)]
-            except ValueError:
-                pass
-            if len(not_yet_pressed) == 0:
-                ec.clear_buffer()
-                ec.continue_trial = False
-        if not ec.continue_trial:
-            ec.end_trial()
-            break
-        ec.check_force_quit()
+            if p in not_yet_pressed:
+                not_yet_pressed.pop(p)
+    ec.clear_buffer()
+    ec.continue_trial = False
+    if not ec.continue_trial:
+        ec.end_trial()
+        break
+    ec.check_force_quit()
     ec.clear_screen()
     ec.wait_secs(isi)
 

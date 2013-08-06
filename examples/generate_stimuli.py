@@ -66,8 +66,9 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
 
     # strings for the filenames / dictionary keys
     freq_names = map(str, [int(f) for f in freqs])
-    index_names = map(str, range(num_freqs))
-    names = ['f' + n + '_' + f for (n, f) in zip(index_names, freq_names)]
+    #index_names = map(str, range(num_freqs))
+    #names = ['f' + n + '_' + f for (n, f) in zip(index_names, freq_names)]
+    names = ['stim_' + str(n) + '_' + str(f) for (n, f) in enumerate(freq_names)]
 
     # generate sinewaves & RMS normalize
     wavs = [np.sin(2 * np.pi * f * t) for f in freqs]
