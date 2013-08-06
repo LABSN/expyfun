@@ -14,7 +14,7 @@ else:
     connect_zbus = None
 from psychopy import visual, core, data, event, sound, gui
 from psychopy import logging as psylog
-from psychopy.constants import FINISHED, NOT_STARTED
+from psychopy.constants import FINISHED, STARTED, NOT_STARTED
 from .utils import get_config, verbose
 
 
@@ -49,6 +49,8 @@ class ExperimentController(object):
     screen_num : int | None
         Screen to use. If None, the default will be read from the system
         config, falling back to 0 if no system config is found.
+    force_quit : str | None
+        Keyboard key to utilize as an experiment force-quit button.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -69,10 +71,11 @@ class ExperimentController(object):
     def __init__(self, exp_name, audio_controller=None, response_device=None,
                  stim_rms=0.01, stim_amp=65, noise_amp=-np.Inf,
                  output_dir='rawData', window_size=None, screen_num=None,
-                 verbose=None):
+                 force_quit=['escape'], verbose=None):
 
         self._stim_amp = stim_amp
         self._noise_amp = noise_amp
+        self._force_quit = force_quit
         self.t = None  # timestamp
         self.f = None  # frame_number
 
@@ -99,14 +102,6 @@ class ExperimentController(object):
                                             self.exp_info['date']))
         psylog.LogFile(basename + '.log', level=psylog.INFO)
         psylog.console.setLevel(psylog.WARNING)
-
-        """
-        # initialize output folder for raw data
-        if not os.path.isdir(output_dir):
-            os.makedirs(output_dir)
-        output_file = self.exp_info['exp_name'] + '_output.csv'
-        self.exp_info['output_file'] = os.path.join(output_dir, output_file)
-        """
 
         # clocks
         self.master_clock = core.Clock()
@@ -219,16 +214,50 @@ class ExperimentController(object):
         for comp in self.trial_components:
             if hasattr(comp, 'status'):
                 comp.status = NOT_STARTED
+        self.continue_trial = True
 
-    """
     def end_trial(self):
-        " ""Some housekeeping at the end of each trial.
-        " ""
+        """Some housekeeping at the end of each trial.
+        """
+        self.continue_trial = False
         for comp in self.trial_components:
             if hasattr(comp, 'status') and comp.status != FINISHED:
-                self.continue_trial = False
+                self.continue_trial = True
                 break  # at least one trial component still running
-    """
+
+    def get_buttons(self, live_keys=[]):
+        """
+        """
+        self.t = self.trial_clock.getTime()
+        self.f = self.f + 1
+        if self.t >= 0.0 and self.button_handler.status == NOT_STARTED:
+            self.button_handler.tStart = self.t
+            self.button_handler.frameNStart = self.f
+            self.button_handler.status = STARTED
+            self.button_handler.clock.reset()
+            event.clearEvents()
+        if self.button_handler.status == STARTED:
+            pressed = event.getKeys(live_keys)
+            self.button_handler.keys = pressed
+            self.button_handler.rt = self.button_handler.clock.getTime()
+            return pressed
+
+    def save_button_presses(self):
+        """Wrapper for PsychoPy's ExperimentHandler methods.
+        """
+        if len(self.button_handler.keys) == 0:
+            self.data_handler.addData('button_presses', None)
+        else:
+            self.data_handler.addData('reaction_times', self.button_handler.rt)
+            self.data_handler.addData('button_presses',
+                                      self.button_handler.keys)
+        self.data_handler.nextEntry()
+
+    def check_force_quit(self):
+        """Wrapper for PsychoPy core.quit()
+        """
+        if event.getKeys(self._force_quit):
+            core.quit()
 
     def wait_secs(self, secs):
         """Wait a specified number of seconds.
@@ -257,7 +286,6 @@ class ExperimentController(object):
             core.wait(sec)
         This will preserve terminal-window focus during command line usage.
         """
-        #time.sleep(secs)
         core.wait(secs, hogCPUperiod=secs)
 
     def load_buffer(self, data, offset=0, buffer_name=None):
@@ -391,10 +419,7 @@ class ExperimentController(object):
             self.tdt.trigger(4)  # kill noise
             self.stop_reset()
             self.tdt.halt_circuit()
-        else:
-            # TODO: psychopy exit method
-            pass
-            #raise NotImplementedError()
+        core.quit()
 
     @property
     def fs(self):

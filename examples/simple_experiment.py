@@ -53,7 +53,7 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
 
 
 with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
-                          noise_amp=45) as ec:
+                        noise_amp=45) as ec:
     # define usable buttons / keys
     live_keys = map(str, [x + 1 for x in range(num_freqs)])
     not_yet_pressed = live_keys[:]
@@ -62,58 +62,26 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
     # run instructions block  #
     # # # # # # # # # # # # # #
     ec.init_trial()
-    continue_trial = True
-
+    ec.screen_prompt(instructions)
     # show instructions until all buttons have been pressed at least once
-    while continue_trial:
-        # TODO: wrap this block as ec.init_trial() ?
-        ec.t = ec.trial_clock.getTime()
-        ec.f = ec.f + 1
-        if ec.t >= 0.0 and ec.button_handler.status == NOT_STARTED:
-            ec.button_handler.tStart = ec.t
-            ec.button_handler.frameNStart = ec.f
-            ec.button_handler.status = STARTED
-            ec.button_handler.clock.reset()
-            event.clearEvents()
-
-        if ec.button_handler.status == STARTED:
-            pressed = event.getKeys(live_keys)
-            for p in pressed:
-                # normally this would be preloaded outside the while loop:
-                ec.load_buffer(wavs[int(p) - 1])
-                # normally this would come in its own block below
-                ec.flip_and_play()
-                ec.wait_secs(len(wavs[int(p) - 1]) / ec.fs)
-                try:
-                    del not_yet_pressed[not_yet_pressed.index(p)]
-                except ValueError:
-                    pass
-                if len(not_yet_pressed) == 0:
-                    ec.clear_buffer()
-                    continue_trial = False
-
-        # show screen prompt
-        if ec.t >= 0.0 and ec.text_stim.status == NOT_STARTED:
-            ec.screen_prompt(instructions)
-
-        # try to end trial, but check if we're really done
-        if not continue_trial:
+    while ec.continue_trial:
+        pressed = ec.get_buttons(live_keys)
+        for p in pressed:
+            ec.load_buffer(wavs[int(p) - 1])
+            # TODO: check whether buffer is done loading before playing
+            ec.flip_and_play()
+            ec.wait_secs(len(wavs[int(p) - 1]) / ec.fs)
+            try:
+                del not_yet_pressed[not_yet_pressed.index(p)]
+            except ValueError:
+                pass
+            if len(not_yet_pressed) == 0:
+                ec.clear_buffer()
+                ec.continue_trial = False
+        if not ec.continue_trial:
+            ec.end_trial()
             break
-        continue_trial = False
-        for comp in ec.trial_components:
-            if hasattr(comp, 'status') and comp.status != FINISHED:
-                continue_trial = True
-                break  # at least one trial component not finished
-
-        # check for force-quit
-        if event.getKeys(['escape']):
-            core.quit()
-
-        # screen flip
-        if continue_trial:
-            ec.win.flip()
-
-    # instructions trial is over
+        ec.check_force_quit()
     ec.clear_screen()
     ec.wait_secs(isi)
 
@@ -121,48 +89,17 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
     # show instructions finished screen #
     # # # # # # # # # # # # # # # # # # #
     ec.init_trial()
-    continue_trial = True
-
-    while continue_trial:
-        # TODO: wrap this block as ec.init_trial() ?
-        ec.t = ec.trial_clock.getTime()
-        ec.f = ec.f + 1
-        if ec.t >= 0.0 and ec.button_handler.status == NOT_STARTED:
-            ec.button_handler.tStart = ec.t
-            ec.button_handler.frameNStart = ec.f
-            ec.button_handler.status = STARTED
-            ec.button_handler.clock.reset()
-            event.clearEvents()
-
-        if ec.button_handler.status == STARTED:
-            pressed = event.getKeys(live_keys)
-            if len(pressed) > 0:
-                continue_trial = False
-
-        # show text if necessary
-        if ec.t >= 0.0 and ec.text_stim.status == NOT_STARTED:
-            ec.screen_prompt(instr_finished)
-
-        # try to end trial, but check if we're really done
-        if not continue_trial:
+    ec.screen_prompt(instr_finished)
+    while ec.continue_trial:
+        pressed = ec.get_buttons(live_keys)
+        if len(pressed) > 0:
+            ec.continue_trial = False
+        if not ec.continue_trial:
+            ec.end_trial()
             break
-        continue_trial = False
-        for comp in ec.trial_components:
-            if hasattr(comp, 'status') and comp.status != FINISHED:
-                continue_trial = True
-                break  # at least one trial component not finished
-
-        # check for force-quit
-        if event.getKeys(['escape']):
-            core.quit()
-
-        # screen flip
-        if continue_trial:
-            ec.win.flip()
-
-    # instr_finished trial is over
+        ec.check_force_quit()
     ec.clear_screen()
-    ec.wait_secs(0.5)
+    ec.wait_secs(isi)
 
     # # # # # # # # # # #
     # run trials block  #
@@ -175,56 +112,20 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
     for n in range(num_trials):
         ec.init_trial()
         ec.load_buffer(wavs[trial_order[n]])
-        continue_trial = True
+        # TODO: check whether buffer is done loading before playing
+        ec.flip_and_play()
 
-        while continue_trial:
-            # TODO: wrap this block as ec.init_trial() ?
-            ec.t = ec.trial_clock.getTime()
-            ec.f = ec.f + 1
-            if ec.t >= 0.0 and ec.button_handler.status == NOT_STARTED:
-                ec.button_handler.tStart = ec.t
-                ec.button_handler.frameNStart = ec.f
-                ec.button_handler.status = STARTED
-                ec.button_handler.clock.reset()
-                event.clearEvents()
-
-            # start audio playback
-            if ec.t >= 0.0 and ec.audio.status == NOT_STARTED:
-                ec.flip_and_play()
-
-            if ec.button_handler.status == STARTED:
-                pressed = event.getKeys(live_keys)
-                if len(pressed) > 0:
-                    if ec.button_handler.keys == []:  # this was first press
-                        ec.button_handler.keys = pressed[0]  # only keep first
-                        ec.button_handler.rt = \
-                            ec.button_handler.clock.getTime()
-                        continue_trial = False  # any response ends the trial
-
-            # try to end trial, but check if we're really done
-            if not continue_trial:
+        while ec.continue_trial:
+            pressed = ec.get_buttons(live_keys)
+            if len(pressed) > 0:
+                ec.continue_trial = False  # any response ends the trial
+            if not ec.continue_trial:
+                ec.end_trial()
                 break
-            continue_trial = False
-            for comp in ec.trial_components:
-                if hasattr(comp, 'status') and comp.status != FINISHED:
-                    continue_trial = True
-                    break  # at least one trial component not finished
-
-            # check for force-quit
-            if event.getKeys(['escape']):
-                core.quit()
-
-            # screen flip
-            if continue_trial:
-                ec.win.flip()
-
-        # trial is over
-        if len(ec.button_handler.keys) == 0:
-            ec.data_handler.addData('button_presses', None)
-        else:
-            ec.data_handler.addData('button_presses', ec.button_handler.keys)
-            ec.data_handler.addData('reaction_times', ec.button_handler.rt)
-        ec.data_handler.nextEntry()
+            #else:
+                #ec._flip()
+            ec.check_force_quit()
+        ec.save_button_presses()
         # some feedback
         if int(pressed[0]) == trial_order[n] + 1:
             running_total = running_total + 1
@@ -244,4 +145,3 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
                      'trials.'.format(running_total, num_trials))
     ec.wait_secs(feedback_dur)
     ec.clear_screen()
-    core.quit()
