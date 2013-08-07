@@ -14,7 +14,7 @@ else:
     connect_zbus = None
 from psychopy import visual, core, data, event, sound, gui
 from psychopy import logging as psylog
-from psychopy.constants import FINISHED, STARTED, NOT_STARTED
+from psychopy.constants import FINISHED, NOT_STARTED
 from .utils import get_config, verbose
 
 
@@ -49,7 +49,7 @@ class ExperimentController(object):
     screen_num : int | None
         Screen to use. If None, the default will be read from the system
         config, falling back to 0 if no system config is found.
-    force_quit : str | None
+    force_quit : list | None
         Keyboard key to utilize as an experiment force-quit button.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
@@ -62,27 +62,23 @@ class ExperimentController(object):
     Notes
     -----
     TODO: add eye tracker and EEG
-    TODO: Deal with fullscreen=True in psychopy init, if we want less than
-          fullscreen windows, it won't allow it currently (making window_size
-          pointless)...
     """
 
     @verbose
     def __init__(self, exp_name, audio_controller=None, response_device=None,
                  stim_rms=0.01, stim_amp=65, noise_amp=-np.Inf,
                  output_dir='rawData', window_size=None, screen_num=None,
-                 force_quit=['escape'], verbose=None):
+                 full_screen=True, force_quit=['escape'], verbose=None):
 
         self._stim_amp = stim_amp
         self._noise_amp = noise_amp
+        if force_quit is None:
+            force_quit = []
         self._force_quit = force_quit
-        self.t = None  # timestamp
-        self.f = None  # frame_number
 
         # some parameters...
         bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
         root_dir = './'
-        core.checkPygletDuringWait = False
 
         # dictionary for experiment metadata
         self.exp_info = {'participant': 'foo', 'session': '001',
@@ -149,10 +145,11 @@ class ExperimentController(object):
             window_size = get_config('WINDOW_SIZE', '1920,1080').split(',')
         if screen_num is None:
             screen_num = int(get_config('SCREEN_NUM', '0'))
-        self.win = visual.Window(size=window_size, fullscr=True, monitor='',
-                                 screen=screen_num,
-                                 allowGUI=False, allowStencil=False,
-                                 color=bkgd_color, colorSpace='rgb')
+        self.win = visual.Window(size=window_size, fullscr=full_screen,
+                                 monitor='', screen=screen_num,
+                                 winType='pyglet', allowGUI=False,
+                                 allowStencil=False, color=bkgd_color,
+                                 colorSpace='rgb')
 
         # basic components
         self.data_handler = data.ExperimentHandler(name=exp_name, version='',
@@ -163,7 +160,7 @@ class ExperimentController(object):
                                                    saveWideText=True,
                                                    dataFileName=basename)
         self.text_stim = visual.TextStim(win=self.win, text='', pos=[0, 0],
-                                         height=0.1, wrapWidth=0.8,
+                                         height=0.1, wrapWidth=0.9,
                                          units='norm', color=[1, 1, 1],
                                          colorSpace='rgb', opacity=1.0,
                                          contrast=1.0, name='myTextStim',
@@ -180,24 +177,26 @@ class ExperimentController(object):
         self.trial_components.append(self.text_stim)
         #self.trial_components.append(self.shape_stim)
 
+        self.master_clock.reset()
         psylog.info('Expyfun: Initialization complete')
 
-    def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None):
+    def screen_prompt(self, text, min_wait=0, max_wait=np.inf, live_keys=[]):
         """Display text and (optionally) wait for user continuation
 
         Parameters
         ----------
         text : str
             The text to display. It will automatically wrap lines.
-        max_wait : float
-            The maximum amount of time to wait before returning. Can be np.inf
-            to wait until the user responds.
         min_wait : float
             The minimum amount of time to wait before returning. Useful for
             avoiding subjects missing instructions.
+        max_wait : float
+            The maximum amount of time to wait before returning. Can be np.inf
+            to wait until the user responds.
         live_keys : list | None
-            The acceptable list of buttons to use to advance the trial. If
-            None, any button will be accepted.
+            The acceptable list of buttons or keys to use to advance the trial.
+            If an empty list, all buttons / keys will be accepted.  If None,
+            the prompt displays until max_wait seconds have passed.
 
         Returns
         -------
@@ -207,12 +206,24 @@ class ExperimentController(object):
         time : float
             The timestamp.
         """
-        self._show_text(text)
-        self.wait_secs(min_wait)
-        return self.wait_buttons(live_keys, max_wait=max_wait)
+        if np.isinf(max_wait) and live_keys is None:
+            psylog.warn('You have asked for max_wait=inf with live_keys=None. '
+                        'That will stall the experiment forever. I assume you '
+                        'meant live_keys=[] (accepts any button press) and am '
+                        'overriding your choice.')
+            live_keys = []
+        self.screen_text(text)
+        if live_keys is None:
+            self.wait_secs(max_wait)
+            return (None, max_wait)
+        else:
+            self.wait_secs(min_wait)
+            return self.get_press(max_wait=max_wait - min_wait,
+                                  live_keys=live_keys)
 
-    def _show_text(self, text):
-        """Wrapper for PsychoPy's visual.TextStim.SetText() method.
+    def screen_text(self, text):
+        """Show some text on the screen. Wrapper for PsychoPy's
+        visual.TextStim.SetText() method.
 
         Parameters
         ----------
@@ -235,67 +246,143 @@ class ExperimentController(object):
         self._flip()
 
     def init_trial(self):
-        """Some housekeeping at the beginning of each trial.
+        """Reset trial clock, clear keyboard buffer, reset trial components to
+        default status.
         """
         self.t = 0.0
         self.f = -1
         self.trial_clock.reset()
         self.button_handler.keys = []
+        self.button_handler.rt = []
         for comp in self.trial_components:
             if hasattr(comp, 'status'):
                 comp.status = NOT_STARTED
-        self.continue_trial = True
 
-    def end_trial(self):
-        """Some housekeeping at the end of each trial.
-        """
-        self.continue_trial = False
-        for comp in self.trial_components:
-            if hasattr(comp, 'status') and comp.status != FINISHED:
-                self.continue_trial = True
-                break  # at least one trial component still running
-
-    def get_buttons(self, live_keys=[]):
+    def add_data_line(self, data_dict):
         """
         """
-        self.t = self.trial_clock.getTime()
-        self.f = self.f + 1
-        if self.t >= 0.0 and self.button_handler.status == NOT_STARTED:
-            self.button_handler.tStart = self.t
-            self.button_handler.frameNStart = self.f
-            self.button_handler.status = STARTED
-            self.button_handler.clock.reset()
-            event.clearEvents()
-        if self.button_handler.status == STARTED:
-            pressed = event.getKeys(live_keys)
-            self.button_handler.keys = pressed
-            self.button_handler.rt = self.button_handler.clock.getTime()
-            return pressed
-
-    def wait_buttons(self, live_keys=None, max_wait=np.inf):
-        """XXX add docstring
-        """
-        return event.waitKeys(maxWait=max_wait, keyList=live_keys,
-                              timeStamped=True)
-
-    def save_button_presses(self):
-        """Wrapper for PsychoPy's ExperimentHandler methods.
-        """
-        if len(self.button_handler.keys) == 0:
-            self.data_handler.addData('button_presses', None)
-        else:
-            self.data_handler.addData('reaction_times', self.button_handler.rt)
-            self.data_handler.addData('button_presses',
-                                      self.button_handler.keys)
+        for key, value in data_dict.items():
+            self.data_handler.addData(key, value)
         self.data_handler.nextEntry()
 
-    def check_force_quit(self):
-        """Wrapper for PsychoPy core.quit()
+    def get_press(self, max_wait=np.inf, min_wait=0.0, live_keys=[]):
+        """Returns only the first button pressed after min_wait.
+
+        Parameters
+        ----------
+        max_wait : float
+            Duration after which control is returned if no key is pressed.
+        min_wait : float
+            Duration for which to ignore keypresses.
+        live_keys : list | None
+            List of strings indicating acceptable keys or buttons. Other data
+            types are automatically cast as strings.
+
+        Returns
+        -------
+        Tuple (str, float) indicating the first key pressed and its timestamp.
+        If no acceptable key is pressed between min_wait and max_wait, returns
+        ([], None).
         """
-        if event.getKeys(self._force_quit):
+        if self.response_device == 'keyboard':
+            live_keys = map(str, live_keys)  # accept ints
+            if len(self._force_quit):
+                live_keys = live_keys + self._force_quit
+            self.button_handler.keys = []
+            self.button_handler.rt = []
+            self.button_handler.clock.reset()
+            self.wait_secs(min_wait)
+            event.clearEvents('keyboard')
+            pressed = []
+            while (not len(pressed) and
+                   self.button_handler.clock.getTime() < max_wait):
+                pressed = event.getKeys(keyList=live_keys,
+                                        timeStamped=self.button_handler.clock)
+            if len(pressed):
+                result = pressed[0]
+                self._check_force_quit(result)
+            else:
+                result = ([], None)
+            self.button_handler.keys = result[0]
+            self.button_handler.rt = result[1]
+            self.data_handler.addData('button_presses',
+                                      self.button_handler.keys)
+            self.data_handler.addData('reaction_times',
+                                      self.button_handler.rt)
+            self.data_handler.nextEntry()
+            return result
+        else:
+            raise NotImplementedError()
+            # TODO: check the proper tag name for our circuit
+            # TODO: is there a way to detect proper tag name automatically?
+            # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
+
+    def get_presses(self, max_wait, min_wait=0.0, live_keys=[]):
+        """Returns all button presses between min_wait and max_wait.
+
+        Parameters
+        ----------
+        max_wait : float
+            Duration after which control is returned.
+        min_wait : float
+            Duration for which to ignore keypresses.
+        live_keys : list | None
+            List of strings indicating acceptable keys or buttons. Other data
+            types are automatically cast as strings.
+
+        Returns
+        -------
+        List of tuples (str, float) indicating which keys were pressed and
+        their timestamps.
+        """
+        assert min_wait < max_wait
+        if self.response_device == 'keyboard':
+            live_keys = map(str, live_keys)  # accept ints
+            if len(self._force_quit):
+                live_keys = live_keys + self._force_quit
+            self.button_handler.keys = []
+            self.button_handler.rt = []
+            self.button_handler.clock.reset()
+            self.wait_secs(min_wait)
+            event.clearEvents('keyboard')
+            pressed = []
+            while self.button_handler.clock.getTime() < max_wait:
+                pass
+            pressed = event.getKeys(keyList=live_keys,
+                                    timeStamped=self.button_handler.clock)
+            if len(pressed):
+                result = pressed
+                self._check_force_quit([k for (k, t) in pressed])
+            else:
+                result = [([], None)]
+            for (key, timestamp) in result:
+                self.button_handler.keys = key
+                self.button_handler.rt = timestamp
+                self.data_handler.addData('button_presses',
+                                          self.button_handler.keys)
+                self.data_handler.addData('reaction_times',
+                                          self.button_handler.rt)
+                #self.data_handler.addData('trial', trial_num)
+                self.data_handler.nextEntry()
+            return result
+        else:
+            raise NotImplementedError()
+            # TODO: check the proper tag name for our circuit
+            # TODO: is there a way to detect proper tag name automatically?
+            # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
+
+    def _check_force_quit(self, keys):
+        """Compare key buffer to list of force-quit keys and quit if matched.
+
+        Parameters
+        ----------
+        keys : str | list
+            List of keypresses to check against self._force_quit.
+        """
+        if self._force_quit in keys:
             core.quit()
 
-    def wait_secs(self, secs):
+    def wait_secs(self, secs, hog_cpu_time=0.2):
         """Wait a specified number of seconds.
 
         Parameters
@@ -322,7 +409,9 @@ class ExperimentController(object):
             core.wait(sec)
         This will preserve terminal-window focus during command line usage.
         """
-        core.wait(secs, hogCPUperiod=secs)
+        if secs < 0.2 or secs < hog_cpu_time:
+            hog_cpu_time = secs
+        core.wait(secs, hogCPUperiod=hog_cpu_time)
 
     def load_buffer(self, data, offset=0, buffer_name=None):
         """Load audio data into the audio buffer.
@@ -339,7 +428,9 @@ class ExperimentController(object):
         psylog.info('Expyfun: Loading {} samples to buffer'.format(data.size))
         if self.audio_controller == 'psychopy':
             self.audio.setSound(np.asarray(data, order='C'))
-            self.trial_components.append(self.audio)
+            # TODO: check PsychoPy output w/r/t stim scaler
+            #self.audio.setSound(np.asarray(data * self._stim_scaler,
+            #                               order='C'))
         else:
             self.tdt.write_buffer(buffer_name, offset,
                                   data * self._stim_scaler)
@@ -354,7 +445,7 @@ class ExperimentController(object):
             'psychopy'.
         """
         psylog.info('Expyfun: Clearing buffer')
-        if not self.tdt is None:
+        if self.tdt is not None:
             self.tdt.clear_buffer(buffer_name)
         else:
             self.audio.setSound(np.zeros((1, 2)))
@@ -363,20 +454,33 @@ class ExperimentController(object):
         """Stop audio buffer playback and reset cursor to beginning of buffer.
         """
         psylog.info('Expyfun: Stopping and resetting audio playback')
-        self._stop()
-        self._reset()
+        if self.tdt is not None:
+            self._stop_tdt()
+            self._reset_tdt()
+        else:
+            # PsychoPy doesn't cleanly support playing from middle, so no
+            # rewind necessary
+            self.audio.stop()
 
     def close(self):
         """Close all connections in experiment controller.
         """
         self.__exit__(None, None, None)
 
-    def flip_and_play(self):
+    def flip_and_play(self, clock=None):
         """Flip screen and immediately begin playing audio.
+
+        Parameters
+        ----------
+        clock : Instance of psychopy.core.Clock()
+            Defaults to using self.trial_clock, but could be specified as
+            self.master_clock or any other PsychoPy clock object.
         """
         psylog.info('Expyfun: Flipping screen and playing audio')
+        if clock is None:
+            clock = self.trial_clock
         self._flip()
-        self._play(self.t, self.f)
+        self._play(clock)
         if self._fp_function is not None:
             self._fp_function()
 
@@ -403,38 +507,31 @@ class ExperimentController(object):
         """
         self.win.flip()
 
-    def _play(self, time, frame):
+    def _play(self, clock):
         """Play the audio buffer.
         """
         psylog.debug('Expyfun: playing audio')
-        if not self.tdt is None:
+        if self.tdt is not None:
             # TODO: detect which triggers are which rather than hard-coding
             self.tdt.trigger(1)
         else:
-            self.audio.tStart = time
-            self.audio.frameNStart = frame
+            self.audio.tStart = clock.getTime()
+            #self.audio.frameNStart = self.f
             self.audio.play()
 
-    def _stop(self):
-        """Stop audio buffer playback.
+    def _stop_tdt(self):
+        """Stop TDT ring buffer playback.
         """
         psylog.debug('Stopping audio')
-        if not self.tdt is None:
-            # TODO: detect which triggers are which rather than hard-coding
-            self.tdt.trigger(2)
-        else:
-            self.audio.stop()
+        # TODO: detect which triggers are which rather than hard-coding
+        self.tdt.trigger(2)
 
-    def _reset(self):
-        """Reset audio buffer to beginning.
+    def _reset_tdt(self):
+        """Reset TDT audio buffer to beginning.
         """
         psylog.debug('Expyfun: Resetting audio')
-        if not self.tdt is None:
-            # TODO: detect which triggers are which rather than hard-coding
-            self.tdt.trigger(5)
-        else:
-            # psychopy defaults to play sounds from beginning
-            pass
+        # TODO: detect which triggers are which rather than hard-coding
+        self.tdt.trigger(5)
 
     def __enter__(self):
         # (for use with "with" syntax) wrap to init? may want to do some
@@ -442,20 +539,27 @@ class ExperimentController(object):
         psylog.debug('Expyfun: Entering')
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, err_type, value, traceback):
         """
         Notes
         -----
-        type, value and traceback will be None when called by self.close()
+        err_type, value and traceback will be None when called by self.close()
         """
         # stop the TDT circuit, etc.  (for use with "with" syntax)
         psylog.debug('Expyfun: Exiting cleanly')
-        if not self.tdt is None:
+        if self.tdt is not None:
             # TODO: detect which triggers are which rather than hard-coding
             self.tdt.trigger(4)  # kill noise
             self.stop_reset()
             self.tdt.halt_circuit()
-        core.quit()
+        try:
+            core.quit()
+        except SystemExit:
+            pass
+        except Exception as e:
+            print e
+        if any([x is not None for x in (err_type, value, traceback)]):
+            raise err_type, value, traceback
 
     @property
     def fs(self):
@@ -488,7 +592,6 @@ class TDTObject(object):
         self.circuit = circuit
         self.tdt_type = tdt_type
         self.interface = interface
-        self.status = None
 
         # initialize RPcoX connection
         """

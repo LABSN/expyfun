@@ -21,8 +21,6 @@ stimulus_file = op.join(stimulus_dir, 'equally_spaced_sinewaves.mat')
 if not op.isfile(stimulus_file):
     generate_stimuli(output_dir=stimulus_dir)
 
-core.checkPygletDuringWait = False
-
 # load stimuli (from a call to generate_stimuli() from generate_stimuli.py)
 stims = sio.loadmat('equally_spaced_sinewaves.mat')
 orig_rms = stims['rms'][0]
@@ -36,11 +34,8 @@ if num_freqs > 8:
     raise RuntimeError('Too many frequencies, not enough buttons.')
 
 # keep only sinusoid data, convert dictionary to list of arrays, make stereo
-wavs = {k: stims[k] for k in stims if k not in ('rms', 'fs', 'freqs',
-                                                'trial_order', '__header__',
-                                                '__globals__', '__version__')}
-wavs = [np.asarray(np.column_stack((val.T, val.T)), order='C') for key, val in
-        sorted(wavs.items())]
+wavs = {k: np.c_[stims[k], stims[k]] for k in stims if 'stim_' in k}
+wavs = [v for k, v in sorted(wavs.items())]
 
 # instructions
 instructions = ('You will hear tones at {0} different frequencies. Your job is'
@@ -49,7 +44,6 @@ instructions = ('You will hear tones at {0} different frequencies. Your job is'
 
 instr_finished = ('Okay, now press any of those buttons to start the real '
                   'thing.')
-
 
 with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
                           noise_amp=45) as ec:
@@ -62,14 +56,16 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
     ec.screen_prompt(instructions, max_wait=0)
     while len(not_yet_pressed) > 0:
         print 'hello'
-        pressed = ec.wait_buttons(live_keys)
+        pressed = ec.get_buttons(live_keys)  
+        # don't need to use wait_buttons here because the waiting is
+        # encoded by the while loop
         for p in pressed:
             p = int(p)
             ec.load_buffer(wavs[p - 1])
             ec.flip_and_play()
             ec.wait_secs(len(wavs[p - 1]) / ec.fs)
             if p in not_yet_pressed:
-                not_yet_pressed.pop(not_yet_pressed.index(int(p)))
+                not_yet_pressed.pop(not_yet_pressed.index(p))
     ec.clear_buffer()
     ec.clear_screen()
     ec.wait_secs(isi)
@@ -103,7 +99,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', stim_amp=75,
         ec.screen_prompt(text, max_wait=feedback_dur)
         ec.clear_screen()
         ec.wait_secs(isi)
-
+        
     # # # # # # # # # #
     # end experiment  #
     # # # # # # # # # #
