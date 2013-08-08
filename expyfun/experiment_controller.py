@@ -1,21 +1,16 @@
 """TODO: add docstring
 """
 # import logging
-import time
 import numpy as np
-import platform
 import os
 from os import path as op
 from functools import partial
-if platform.platform == 'Windows':
-    from tdt.util import connect_rpcox, connect_zbus
-else:
-    connect_rpcox = None
-    connect_zbus = None
 from psychopy import visual, core, data, event, sound, gui
 from psychopy import logging as psylog
 #from psychopy.constants import FINISHED, STARTED, NOT_STARTED
+
 from .utils import get_config, verbose
+from .tdt import TDT
 
 
 class ExperimentController(object):
@@ -49,8 +44,11 @@ class ExperimentController(object):
     screen_num : int | None
         Screen to use. If None, the default will be read from the system
         config, falling back to 0 if no system config is found.
-    force_quit : list | None
+    force_quit : list
         Keyboard key to utilize as an experiment force-quit button.
+        Can be a zero-element list for no force quit support.
+    participant : str | None
+        If None, a GUI will be used to acquire this information.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -68,12 +66,11 @@ class ExperimentController(object):
     def __init__(self, exp_name, audio_controller=None, response_device=None,
                  stim_rms=0.01, stim_amp=65, noise_amp=-np.Inf,
                  output_dir='rawData', window_size=None, screen_num=None,
-                 full_screen=True, force_quit=['escape'], verbose=None):
+                 full_screen=True, force_quit=['escape'], participant=None,
+                 session=None, verbose=None):
 
         self._stim_amp = stim_amp
         self._noise_amp = noise_amp
-        if force_quit is None:
-            force_quit = []
         self._force_quit = force_quit
 
         # some parameters...
@@ -84,19 +81,29 @@ class ExperimentController(object):
         self.exp_info = {'participant': 'foo', 'session': '001',
                          'exp_name': exp_name, 'date': data.getDateStr()}
 
-        # session start dialog
-        session_dialog = gui.DlgFromDict(dictionary=self.exp_info,
-                                         fixed=['exp_name', 'date'],
-                                         title=exp_name)
-        if session_dialog.OK is False:
-            core.quit()  # user pressed cancel
+        # session start dialog, if necessary
+        fixed_list = ['exp_name', 'date']
+        maybe_dict = dict(participant=participant, session=session)
+        for key, value in maybe_dict.iteritems():
+            if value is not None:
+                if not isinstance(value, basestring):
+                    raise TypeError(value + ' must be a string or None')
+                self.exp_info[key] = value
+                fixed_list += [key]
+
+        if len(fixed_list) < 4:
+            session_dialog = gui.DlgFromDict(dictionary=self.exp_info,
+                                             fixed=fixed_list,
+                                             title=exp_name)
+            if session_dialog.OK is False:
+                self.close()  # user pressed cancel
 
         # initialize log file
         if not op.isdir(op.join(root_dir, output_dir)):
             os.mkdir(op.join(root_dir, output_dir))
-        basename = op.join(root_dir, output_dir,
-                           '{0}_{1}'.format(self.exp_info['participant'],
-                                            self.exp_info['date']))
+        basename = op.join(root_dir, output_dir, '%s_%s'
+                           % (self.exp_info['participant'],
+                              self.exp_info['date']))
         psylog.LogFile(basename + '.log', level=psylog.INFO)
         psylog.console.setLevel(psylog.WARNING)
 
@@ -109,27 +116,27 @@ class ExperimentController(object):
 
         # response device
         if response_device is None:
-            self.response_device = get_config('RESPONSE_DEVICE')
+            self.response_device = get_config('RESPONSE_DEVICE', 'keyboard')
         else:
             self.response_device = response_device
 
         # audio setup
         if audio_controller is None:
-            self.audio_controller = get_config('AUDIO_CONTROLLER')
+            self.audio_controller = get_config('AUDIO_CONTROLLER', 'psychopy')
         else:
             self.audio_controller = audio_controller
         if self.audio_controller == 'psychopy':
             psylog.info('Expyfun: Initializing PsychoPy audio')
             self.tdt = None
-            self._fs = 22050  # TODO: maybe should be user-configurable
+            self._fs = 44100  # TODO: maybe should be user-configurable
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self.audio.setVolume(1)  # TODO: check this w/r/t stim_scaler
             self.trial_components.append(self.audio)
         else:
             psylog.info('Expyfun: Setting up TDT')
-            self.tdt = TDTObject(self.audio_controller,
-                                 get_config('TDT_CIRCUIT'),
-                                 get_config('TDT_INTERFACE'))
+            self.tdt = TDT(self.audio_controller,
+                           get_config('TDT_CIRCUIT', 'RP2'),
+                           get_config('TDT_INTERFACE', 'USB'))
             self._fs = self.tdt.fs
 
         # scaling factor to ensure uniform intensity across output devices
@@ -180,6 +187,14 @@ class ExperimentController(object):
         self.master_clock.reset()
         psylog.info('Expyfun: Initialization complete')
 
+    def __repr__(self):
+        """Return a useful string representation of the experiment
+        """
+        string = ('<ExperimentController "%s": %s (%s)>'
+                  % (self.exp_info['exp_name'], self.exp_info['participant'],
+                     self.exp_info['session']))
+        return string
+
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=[]):
         """Display text and (optionally) wait for user continuation
 
@@ -207,11 +222,9 @@ class ExperimentController(object):
             The timestamp.
         """
         if np.isinf(max_wait) and live_keys is None:
-            psylog.warn('You have asked for max_wait=inf with live_keys=None. '
-                        'That will stall the experiment forever. I assume you '
-                        'meant live_keys=[] (accepts any button press) and am '
-                        'overriding your choice.')
-            live_keys = []
+            raise ValueError('You have asked for max_wait=inf with '
+                             'live_keys=None, this will stall the experiment '
+                             'forever.')
         self.screen_text(text)
         if live_keys is None:
             self.wait_secs(max_wait)
@@ -229,8 +242,6 @@ class ExperimentController(object):
         ----------
         text : str
             The text to be rendered
-        Parameters
-        ----------
         clock : Instance of psychopy.core.Clock()
             Defaults to using self.trial_clock, but could be specified as
             self.master_clock or any other PsychoPy clock object.
@@ -384,7 +395,7 @@ class ExperimentController(object):
             List of keypresses to check against self._force_quit.
         """
         if self._force_quit in keys:
-            core.quit()
+            self.close()
 
     def wait_secs(self, secs, hog_cpu_time=0.2):
         """Wait a specified number of seconds.
@@ -393,6 +404,8 @@ class ExperimentController(object):
         ----------
         secs : float
             Number of seconds to wait.
+        hog_cpu_time : float
+            Amount of CPU time to hog. See Notes.
 
         Notes
         -----
@@ -429,7 +442,7 @@ class ExperimentController(object):
             Name of the TDT buffer to target. Ignored if audio_controller is
             'psychopy'.
         """
-        psylog.info('Expyfun: Loading {} samples to buffer'.format(data.size))
+        psylog.info('Expyfun: Loading %d samples to buffer' % data.size)
         if self.audio_controller == 'psychopy':
             self.audio.setSound(np.asarray(data, order='C'))
             # TODO: check PsychoPy output w/r/t stim scaler
@@ -572,154 +585,17 @@ class ExperimentController(object):
         return self._fs
 
 
-class TDTObject(object):
-    """ TODO: add docstring
-    """
-    def __init__(self, tdt_type, circuit, interface):
-        """Interface for audio output.
-
-        Parameters
-        ----------
-        tdt_type : str
-            String name of the TDT model (e.g., 'RM1', 'RP2', etc).
-        circuit : str
-            Path to the TDT circuit.
-        interface : {'USB','GB'}
-            Type of interface between computer and TDT (USB or Gigabit).
-
-        Returns
-        -------
-        tdt_obj : instance of a TDTObject.
-            The object containing all relevant info about the TDT in use.
-        """
-        self.circuit = circuit
-        self.tdt_type = tdt_type
-        self.interface = interface
-
-        # initialize RPcoX connection
-        """
-        # HIGH-LEVEL APPROACH
-        # (fails often, possibly due to inappropriate zBUS call in DSPCircuit)
-        import tdt
-        self.rpcox = tdt.DSPCircuit(circuit, tdt_type, interface=interface)
-        self.rpcox.start()
-
-        # LOW-LEVEL APPROACH (works reliably, but no device abstraction)
-        self.rpcox = tdt.actxobjects.RPcoX()
-        self.connection = self.rpcox.ConnectRM1(IntName=interface, DevNum=1)
-        """
-        # MID-LEVEL APPROACH
-        if not connect_rpcox is None:
-            self.rpcox = connect_rpcox(name=tdt_type, interface=interface,
-                                       device_id=1, address=None)
-            if not self.rpcox is None:
-                psylog.info('Expyfun: RPcoX connection established')
-            else:
-                raise ExperimentError('Problem initializing RPcoX.')
-            """
-            # start zBUS (may be needed for devices other than RM1)
-            self.zbus = connect_zbus(interface=interface)
-            if not self.zbus is None:
-                psylog.info('Expyfun: zBUS connection established')
-            else:
-                raise ExperimentError('Problem initializing zBUS.')
-            """
-            # load circuit
-            if self.rpcox.LoadCOF(circuit):
-                psylog.info('Expyfun: TDT circuit loaded')
-            else:
-                psylog.debug('Expyfun: Problem loading circuit. Clearing...')
-                try:
-                    if self.rpcox.ClearCOF():
-                        psylog.debug('Expyfun: TDT circuit cleared')
-                    time.sleep(0.25)
-                    if self.rpcox.LoadCOF(circuit):
-                        psylog.info('Expyfun: TDT circuit loaded')
-                except:
-                    raise ExperimentError('Expyfun: Problem loading circuit.')
-            psylog.info('Expyfun: Circuit {0} loaded to {1} via '
-                        '{2}.'.format(circuit, tdt_type, interface))
-            # run circuit
-            if self.rpcox.Run():
-                psylog.info('Expyfun: TDT circuit running')
-            else:
-                raise ExperimentError('Expyfun: Problem starting TDT circuit.')
-            time.sleep(0.25)
-
-    @property
-    def fs(self):
-        """Playback frequency of the audio (samples / second).
-
-        Notes
-        -----
-        When using PsychoPy for audio, fs is potentially user-settable, but
-        defaults to 22050 Hz.  When using TDT for audio, fs is read from the
-        TDT circuit.
-        """
-        return np.float(self.rpcox.GetSFreq())
-
-    def trigger(self, trigger_number):
-        """Wrapper for tdt.util.RPcoX.SoftTrg()
-
-        Parameters
-        ----------
-        trigger_number : int
-            Trigger number to send to TDT.
-
-        Returns
-        -------
-        trigger_sent : {0,1}
-            Boolean integer indicating success or failure of buffer clear.
-        """
-        self.rpcox.SoftTrg(trigger_number)
-
-    def write_buffer(self, data, offset, buffer_name):
-        """Wrapper for tdt.util.RPcoX.WriteTagV()
-        """
-        # TODO: check to make sure data is properly formatted / correct dtype
-        # check dimensions of array
-        # cast as np.float32 with order='C'
-        self.rpcox.WriteTagV(buffer_name, offset, data)
-
-    def clear_buffer(self, buffer_name):
-        """Wrapper for tdt.util.RPcoX.ZeroTag()
-        """
-        self.rpcox.ZeroTag(buffer_name)
-
-    def halt_circuit(self):
-        """Wrapper for tdt.util.RPcoX.Halt()
-        """
-        self.rpcox.Halt()
-
-
-def _get_stim_scaler(audio_controller, stim_amp, stim_rms):
-    exponent = (-(_get_tdt_rms(audio_controller) - stim_amp) / 20) / stim_rms
-    return np.power(10, exponent)
-
-
-def _get_tdt_rms(tdt_type):
-    if tdt_type is 'RM1':
+def _get_rms(audio_controller):
+    if audio_controller is 'RM1':
         return 108  # this is approx; knob is not detented
-    elif tdt_type is 'RP2':
+    elif audio_controller is 'RP2':
         return 108
-    elif tdt_type is 'RZ6':
+    elif audio_controller is 'RZ6':
         return 114
     else:
         return 90  # for untested models or internal sound cards
 
 
-def get_tdt_rates():
-    return {'6k': 6103.515625, '12k': 12207.03125, '25k': 24414.0625,
-            '50k': 48828.125, '100k': 97656.25, '200k': 195312.5}
-
-
-class ExperimentError(Exception):
-    """
-    Exceptions unique to the ExperimentController class and its derivatives.
-
-    Attributes:
-        msg -- explanation of the error.
-    """
-
-    def __init__(self, msg):
-        self.msg = msg
+def _get_stim_scaler(audio_controller, stim_amp, stim_rms):
+    exponent = (-(_get_rms(audio_controller) - stim_amp) / 20) / stim_rms
+    return np.power(10, exponent)
