@@ -13,7 +13,7 @@ noise_amp = 45  # dB for background noise
 stim_amp = 75  # dB for stimuli
 min_resp_time = 0.1
 max_resp_time = 2.0
-feedback_dur = 1.5
+feedback_dur = 0.5
 isi = 0.2
 running_total = 0
 
@@ -58,6 +58,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     ec.init_trial() # resets trial clock, clears keyboard buffer, etc
     ec.screen_text(instructions)
     # show instructions until all buttons have been pressed at least once
+    ec.add_data_line({'stim_num': 'training'})
     while len(not_yet_pressed) > 0:
         (pressed, timestamp) = ec.get_press(live_keys=live_keys)
         for p in pressed:
@@ -73,6 +74,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     ec.wait_secs(isi)
 
     # show instructions finished screen
+    ec.add_data_line({'stim_num': 'prompt'})
     ec.screen_prompt(instr_finished, live_keys=live_keys)
     ec.clear_screen()
     ec.wait_secs(isi)
@@ -85,13 +87,13 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     mass_trial = trial_order[int(len(trial_order) / 2):]
     # run half the trials 
     for stim_num in single_trials:
-        ec.init_trial()
+        ec.add_data_line({'stim_num': stim_num})
         ec.clear_buffer()
         ec.load_buffer(wavs[stim_num])
+        ec.init_trial()
         ec.flip_and_play()
         (pressed, timestamp) = ec.get_press(max_resp_time, min_resp_time,
                                             live_keys)
-        ec.add_data_line({'stim_num': stim_num})
         ec.stop_reset()  # will stop stim playback as soon as response logged
         # some feedback
         if int(pressed) == stim_num + 1:
@@ -101,27 +103,32 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
         else:
             message = ('You pressed {0}, the correct answer was '
                        '{1}.').format(pressed, stim_num + 1)
-        ec.screen_prompt(message, max_wait=feedback_dur, live_keys=live_keys)
+        ec.screen_prompt(message, max_wait=feedback_dur)  # live_keys=live_keys)
         ec.clear_screen()
         ec.wait_secs(isi)
 
     # run mass trial
-    pause = np.zeros((ec.fs / 4, 2))
-    mass_stim = np.row_stack((wavs[stim_num] for stim_num in mass_trial))
+    pause = np.zeros((int(ec.fs / 4), 2))
+    stims = [np.row_stack((wavs[stim], pause)) for stim in mass_trial]
+    mass_stim = np.row_stack((stims[stim_num] for stim_num in mass_trial))
     ec.screen_prompt('Now you will hear {0} tones in a row. After they stop, '
                      'you will have {1} seconds to push the buttons in order '
                      'that the tones played in. Press one of the buttons to '
                      'begin.'.format(len(mass_trial), max_resp_time), 
-                                     live_keys=live_keys)
+                      live_keys=live_keys)
     ec.clear_screen()
-    ec.init_trial()
     ec.clear_buffer()
     ec.load_buffer(mass_stim)
+    ec.add_data_line({'stim_num': mass_trial})
+    ec.init_trial()
     ec.flip_and_play()
+    ec.wait_secs(len(mass_stim) / ec.fs)
+    ec.screen_text('Go!')
     presses = ec.get_presses(max_resp_time, min_resp_time, live_keys)
     print presses
 
     # end experiment
+    ec.add_data_line({'stim_num': 'prompt'})
     ec.screen_prompt('All done! You got {0} correct out of {1} trials. Press '
                     '{2} to close.'.format(running_total, num_trials, 
                                             ec._force_quit[0]))

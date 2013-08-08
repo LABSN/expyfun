@@ -14,7 +14,7 @@ else:
     connect_zbus = None
 from psychopy import visual, core, data, event, sound, gui
 from psychopy import logging as psylog
-from psychopy.constants import FINISHED, NOT_STARTED
+#from psychopy.constants import FINISHED, STARTED, NOT_STARTED
 from .utils import get_config, verbose
 
 
@@ -180,19 +180,19 @@ class ExperimentController(object):
         self.master_clock.reset()
         psylog.info('Expyfun: Initialization complete')
 
-    def screen_prompt(self, text, min_wait=0, max_wait=np.inf, live_keys=[]):
+    def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=[]):
         """Display text and (optionally) wait for user continuation
 
         Parameters
         ----------
         text : str
             The text to display. It will automatically wrap lines.
-        min_wait : float
-            The minimum amount of time to wait before returning. Useful for
-            avoiding subjects missing instructions.
         max_wait : float
             The maximum amount of time to wait before returning. Can be np.inf
             to wait until the user responds.
+        min_wait : float
+            The minimum amount of time to wait before returning. Useful for
+            avoiding subjects missing instructions.
         live_keys : list | None
             The acceptable list of buttons or keys to use to advance the trial.
             If an empty list, all buttons / keys will be accepted.  If None,
@@ -221,7 +221,7 @@ class ExperimentController(object):
             return self.get_press(max_wait=max_wait - min_wait,
                                   live_keys=live_keys)
 
-    def screen_text(self, text):
+    def screen_text(self, text, clock=None):
         """Show some text on the screen. Wrapper for PsychoPy's
         visual.TextStim.SetText() method.
 
@@ -229,17 +229,23 @@ class ExperimentController(object):
         ----------
         text : str
             The text to be rendered
+        Parameters
+        ----------
+        clock : Instance of psychopy.core.Clock()
+            Defaults to using self.trial_clock, but could be specified as
+            self.master_clock or any other PsychoPy clock object.
         """
+        if clock is None:
+            clock = self.trial_clock
         self.text_stim.setText(text)
-        self.text_stim.tStart = self.t
-        self.text_stim.frameNStart = self.f
+        self.text_stim.tStart = clock.getTime()
         self.text_stim.setAutoDraw(True)
         self._flip()
 
     def clear_screen(self):
         """Remove all visual stimuli from the screen.
         """
-        self.text_stim.status = FINISHED
+        #self.text_stim.status = FINISHED
         for comp in self.trial_components:
             if hasattr(comp, 'setAutoDraw'):
                 comp.setAutoDraw(False)
@@ -249,14 +255,12 @@ class ExperimentController(object):
         """Reset trial clock, clear keyboard buffer, reset trial components to
         default status.
         """
-        self.t = 0.0
-        self.f = -1
         self.trial_clock.reset()
         self.button_handler.keys = []
         self.button_handler.rt = []
-        for comp in self.trial_components:
-            if hasattr(comp, 'status'):
-                comp.status = NOT_STARTED
+        #for comp in self.trial_components:
+        #    if hasattr(comp, 'status'):
+        #        comp.status = NOT_STARTED
 
     def add_data_line(self, data_dict):
         """
@@ -409,7 +413,7 @@ class ExperimentController(object):
             core.wait(sec)
         This will preserve terminal-window focus during command line usage.
         """
-        if secs < 0.2 or secs < hog_cpu_time:
+        if any([secs < 0.2, secs < hog_cpu_time]):
             hog_cpu_time = secs
         core.wait(secs, hogCPUperiod=hog_cpu_time)
 
@@ -516,7 +520,6 @@ class ExperimentController(object):
             self.tdt.trigger(1)
         else:
             self.audio.tStart = clock.getTime()
-            #self.audio.frameNStart = self.f
             self.audio.play()
 
     def _stop_tdt(self):
