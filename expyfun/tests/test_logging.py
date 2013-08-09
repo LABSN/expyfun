@@ -4,30 +4,32 @@ import os.path as op
 import os
 import warnings
 
-from expyfun.utils import (set_log_level, set_log_file, _TempDir,
-                           get_config, set_config, deprecated)
+from expyfun.utils import (_TempDir, get_config, set_config, deprecated,
+                           set_log_file, set_log_level)
 from expyfun import ExperimentController
 
 base_dir = op.join(op.dirname(__file__), 'data')
+fname_log = op.join(base_dir, 'test-ec.log')
 tempdir = _TempDir()
 test_name = op.join(tempdir, 'test.log')
 
 
-def clean_lines(lines):
-    # Function to scrub filenames for checking logging output (in test_logging)
-    return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+def compare_logs(fname_1, fname_2):
+    """Helper to read, parse, and compare logs
+    """
 
 
-def test_logging():
+def old_logging():  # rename once fixed
     """Test logging (to file)
     """
-    old_log_file = open(fname_log, 'r')
-    old_lines = clean_lines(old_log_file.readlines())
-    old_log_file.close()
+    # Made a correct output example, saved it to test-ec.log to compare
+    with open(fname_log, 'r') as old_log_file:
+        old_lines = old_log_file.readlines()
 
     if op.isfile(test_name):
         os.remove(test_name)
-    # test it one way (printing default off)
+
+    # XXX test it with printing default off
     set_log_file(test_name)
     set_log_level('WARNING')
     # should NOT print
