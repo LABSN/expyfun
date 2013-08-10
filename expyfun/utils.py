@@ -307,6 +307,7 @@ def get_config_path():
 known_config_types = [
     'RESPONSE_DEVICE',
     'AUDIO_CONTROLLER',
+    'TDT_MODEL',
     'TDT_INTERFACE',
     'TDT_CIRCUIT_PATH',
     'WINDOW_SIZE',

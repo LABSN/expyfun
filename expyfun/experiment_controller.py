@@ -20,12 +20,16 @@ class ExperimentController(object):
     ----------
     exp_name : str
         Name of the experiment.
-    audio_controller : str | None
-        Can be 'psychopy' or a TDT model (e.g., 'RM1' or 'RP2'). If None,
-        the type will be read from the system configuration file.
+    audio_controller : str | dict | None
+        If audio_controller is None, the type will be read from the system
+        configuration file. If a string, can be 'psychopy' or 'tdt', and the
+        remaining audio parameters will be read from the machine configuration
+        file. If a dict, must include a key 'TYPE' that is either 'psychopy'
+        or 'tdt'; the dict can contain other parameters specific to the TDT
+        (see documentation for expyfun.TDT).
     response_device : str | None
         Can be 'keyboard' or 'buttonbox'.  If None, the type will be read
-        from the system configuration file.
+        from the machine configuration file.
     stim_rms : float
         The RMS amplitude that the stimuli were generated at (strongly
         recommended to be 0.01).
@@ -44,10 +48,14 @@ class ExperimentController(object):
     screen_num : int | None
         Screen to use. If None, the default will be read from the system
         config, falling back to 0 if no system config is found.
+    full_screen : bool
+        Should the experiment window be fullscreen?
     force_quit : list
-        Keyboard key to utilize as an experiment force-quit button.
+        Keyboard key(s) to utilize as an experiment force-quit button.
         Can be a zero-element list for no force quit support.
     participant : str | None
+        If None, a GUI will be used to acquire this information.
+    session : str | None
         If None, a GUI will be used to acquire this information.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
@@ -64,34 +72,33 @@ class ExperimentController(object):
 
     @verbose
     def __init__(self, exp_name, audio_controller=None, response_device=None,
-                 stim_rms=0.01, stim_amp=65, noise_amp=-np.Inf,
+                 stim_rms=0.01, stim_fs=44100, stim_amp=65, noise_amp=-np.Inf,
                  output_dir='rawData', window_size=None, screen_num=None,
-                 full_screen=True, force_quit=['escape'], participant=None,
-                 session=None, verbose=None):
+                 full_screen=True, force_quit=['escape', 'lctrl', 'rctrl'],
+                 participant=None, session=None, verbose=None):
 
+        # self._stim_fs = stim_fs
         self._stim_amp = stim_amp
         self._noise_amp = noise_amp
         self._force_quit = force_quit
 
-        # some parameters...
+        # some hardcoded parameters...
         bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
         root_dir = './'
 
         # dictionary for experiment metadata
-        self.exp_info = {'participant': 'foo', 'session': '001',
+        self.exp_info = {'participant': participant, 'session': session,
                          'exp_name': exp_name, 'date': data.getDateStr()}
 
         # session start dialog, if necessary
-        fixed_list = ['exp_name', 'date']
-        maybe_dict = dict(participant=participant, session=session)
-        for key, value in maybe_dict.iteritems():
-            if value is not None:
+        fixed_list = ['exp_name', 'date']  # things not user-editable in GUI
+        for key, value in self.exp_info.iteritems():
+            if key not in fixed_list and value is not None:
                 if not isinstance(value, basestring):
                     raise TypeError(value + ' must be a string or None')
-                self.exp_info[key] = value
                 fixed_list += [key]
 
-        if len(fixed_list) < 4:
+        if len(fixed_list) < len(self.exp_info):
             session_dialog = gui.DlgFromDict(dictionary=self.exp_info,
                                              fixed=fixed_list,
                                              title=exp_name)
@@ -122,22 +129,33 @@ class ExperimentController(object):
 
         # audio setup
         if audio_controller is None:
-            self.audio_controller = get_config('AUDIO_CONTROLLER', 'psychopy')
+            self.audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
+                                                        'psychopy')}
+        elif isinstance(audio_controller, basestring):
+            if audio_controller.lower() in ['psychopy', 'tdt']:
+                audio_controller = {'TYPE': audio_controller.lower()}
+            else:
+                raise ValueError('audio_controller must be \'psychopy\' or '
+                                 '\'tdt\' (or a dict including \'TYPE\':'
+                                 ' \'psychopy\' or \'TYPE\': \'tdt\').')
         else:
-            self.audio_controller = audio_controller
-        if self.audio_controller == 'psychopy':
+            raise TypeError('audio_controller must be a str or dict.')
+
+        self.audio_controller = audio_controller['TYPE'].lower()
+        if self.audio_controller == 'tdt':
+            psylog.info('Expyfun: Setting up TDT')
+            self.tdt = TDT(audio_controller)
+            self._fs = self.tdt.fs
+        elif self.audio_controller == 'psychopy':
             psylog.info('Expyfun: Initializing PsychoPy audio')
             self.tdt = None
-            self._fs = 44100  # TODO: maybe should be user-configurable
+            self._fs = 44100  # TODO: should we allow user config here?
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self.audio.setVolume(1)  # TODO: check this w/r/t stim_scaler
-            self.trial_components.append(self.audio)
+            self.trial_components.append(self.audio)  # TODO: necessary?
         else:
-            psylog.info('Expyfun: Setting up TDT')
-            self.tdt = TDT(self.audio_controller,
-                           get_config('TDT_CIRCUIT', 'RP2'),
-                           get_config('TDT_INTERFACE', 'USB'))
-            self._fs = self.tdt.fs
+            raise ValueError('audio_controller[\'controller\'] must be '
+                             '\'PsychoPy\' or \'TDT\'.')
 
         # scaling factor to ensure uniform intensity across output devices
         self._stim_scaler = _get_stim_scaler(self.audio_controller, stim_amp,
@@ -190,9 +208,11 @@ class ExperimentController(object):
     def __repr__(self):
         """Return a useful string representation of the experiment
         """
-        string = ('<ExperimentController "%s": %s (%s)>'
-                  % (self.exp_info['exp_name'], self.exp_info['participant'],
-                     self.exp_info['session']))
+        string = ('<ExperimentController ({3}): "{0}" {1} ({2})>'
+                  ''.format(self.exp_info['exp_name'],
+                            self.exp_info['participant'],
+                            self.exp_info['session'],
+                            self.audio_controller['TYPE']))
         return string
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=[]):
@@ -362,9 +382,8 @@ class ExperimentController(object):
             event.clearEvents('keyboard')
             pressed = []
             while self.button_handler.clock.getTime() < max_wait:
-                pass
-            pressed = event.getKeys(keyList=live_keys,
-                                    timeStamped=self.button_handler.clock)
+                pressed += event.getKeys(keyList=live_keys,
+                                         timeStamped=self.button_handler.clock)
             if len(pressed):
                 result = pressed
                 self._check_force_quit([k for (k, t) in pressed])
@@ -500,6 +519,7 @@ class ExperimentController(object):
         self._play(clock)
         if self._fp_function is not None:
             self._fp_function()
+        # TODO: note psychopy's self.win.callOnFlip(someFunction)
 
     def call_on_flip_and_play(self, function, *args, **kwargs):
         """Locus for additional functions to be executed on flip and play.

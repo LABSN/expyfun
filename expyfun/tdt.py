@@ -7,31 +7,42 @@ else:
     connect_rpcox = None
     connect_zbus = None
 from psychopy import logging as psylog
+from .utils import get_config
 
 
 class TDT(object):
     """ TODO: add docstring
     """
-    def __init__(self, tdt_type, circuit, interface):
+    def __init__(self, tdt_params):
         """Interface for audio output.
 
         Parameters
         ----------
-        tdt_type : str
-            String name of the TDT model (e.g., 'RM1', 'RP2', etc).
-        circuit : str
-            Path to the TDT circuit.
-        interface : {'USB','GB'}
-            Type of interface between computer and TDT (USB or Gigabit).
+        tdt_params : dict | None
+            A dictionary containing keys:
+            'TYPE' (this should always be 'tdt');
+            'TDT_MODEL' (String name of the TDT model ('RM1', 'RP2', etc));
+            'TDT_CIRCUIT_PATH' (Path to the TDT circuit); and
+            'TDT_INTERFACE' (Type of connection, either 'USB' or 'GB').
 
         Returns
         -------
         tdt_obj : instance of a TDTObject.
             The object containing all relevant info about the TDT in use.
         """
-        self.circuit = circuit
-        self.tdt_type = tdt_type
-        self.interface = interface
+        # validate / populate parameters
+        # TODO: add test for this
+        legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE']
+        if tdt_params is None:
+            tdt_params = {'TYPE': 'tdt'}
+        if not isinstance(tdt_params, dict):
+            raise TypeError('tdt_params must be a dictionary.')
+        for k in legal_keys:
+            if k not in tdt_params.keys() and k != 'TYPE':
+                tdt_params[k] = get_config(k)
+        for k in tdt_params.keys():
+            if k not in legal_keys:
+                raise KeyError('Unrecognized key in tdt_params: {0}'.format(k))
 
         # initialize RPcoX connection
         """
@@ -47,7 +58,8 @@ class TDT(object):
         """
         # MID-LEVEL APPROACH
         if not connect_rpcox is None:
-            self.rpcox = connect_rpcox(name=tdt_type, interface=interface,
+            self.rpcox = connect_rpcox(name=self.tdt_type,
+                                       interface=self.interface,
                                        device_id=1, address=None)
             if not self.rpcox is None:
                 psylog.info('Expyfun: RPcoX connection established')
@@ -62,7 +74,7 @@ class TDT(object):
                 raise ExperimentError('Problem initializing zBUS.')
             """
             # load circuit
-            if self.rpcox.LoadCOF(circuit):
+            if self.rpcox.LoadCOF(self.circuit):
                 psylog.info('Expyfun: TDT circuit loaded')
             else:
                 psylog.debug('Expyfun: Problem loading circuit. Clearing...')
@@ -70,12 +82,12 @@ class TDT(object):
                     if self.rpcox.ClearCOF():
                         psylog.debug('Expyfun: TDT circuit cleared')
                     time.sleep(0.25)
-                    if self.rpcox.LoadCOF(circuit):
+                    if self.rpcox.LoadCOF(self.circuit):
                         psylog.info('Expyfun: TDT circuit loaded')
                 except:
                     raise IOError('Expyfun: Problem loading circuit.')
-            psylog.info('Expyfun: Circuit {0} loaded to {1} via '
-                        '{2}.'.format(circuit, tdt_type, interface))
+            psylog.info('Expyfun: Circuit {0} loaded to {1} via {2}.'
+                        ''.format(self.circuit, self.tdt_type, self.interface))
             # run circuit
             if self.rpcox.Run():
                 psylog.info('Expyfun: TDT circuit running')
@@ -110,7 +122,7 @@ class TDT(object):
         """
         self.rpcox.SoftTrg(trigger_number)
 
-    def write_buffer(self, data, offset, buffer_name):
+    def write_buffer(self, data, buffer_name, offset=0):
         """Wrapper for tdt.util.RPcoX.WriteTagV()
         """
         # TODO: check to make sure data is properly formatted / correct dtype
