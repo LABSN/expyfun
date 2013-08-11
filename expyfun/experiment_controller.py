@@ -216,7 +216,7 @@ class ExperimentController(object):
                   ''.format(self.exp_info['exp_name'],
                             self.exp_info['participant'],
                             self.exp_info['session'],
-                            self.audio_controller['TYPE']))
+                            self.audio_controller))
         return string
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=[]):
