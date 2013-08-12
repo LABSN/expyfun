@@ -36,7 +36,7 @@ nosetests.xml
 .pydevproject
 
 # WAV files
-.wav
+*.wav
 
 # Due to examples
 examples/rawData
