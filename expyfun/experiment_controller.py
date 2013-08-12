@@ -129,7 +129,7 @@ class ExperimentController(object):
 
         # audio setup
         if audio_controller is None:
-            self.audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
+            audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
                                                         'psychopy')}
         elif isinstance(audio_controller, basestring):
             if audio_controller.lower() in ['psychopy', 'tdt']:
@@ -149,7 +149,11 @@ class ExperimentController(object):
         elif self.audio_controller == 'psychopy':
             psylog.info('Expyfun: Initializing PsychoPy audio')
             self.tdt = None
-            self._fs = 44100  # TODO: should we allow user config here?
+            self._fs = 44100
+            if sound.Sound is None:
+                raise ImportError('PsychoPy sound could not be initialized. '
+                                  'Ensure you have the pygame package properly'
+                                  ' installed.')
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self.audio.setVolume(1)  # TODO: check this w/r/t stim_scaler
             self.trial_components.append(self.audio)  # TODO: necessary?
@@ -212,7 +216,7 @@ class ExperimentController(object):
                   ''.format(self.exp_info['exp_name'],
                             self.exp_info['participant'],
                             self.exp_info['session'],
-                            self.audio_controller['TYPE']))
+                            self.audio_controller))
         return string
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=[]):

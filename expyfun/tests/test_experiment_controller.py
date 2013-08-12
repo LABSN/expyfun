@@ -32,10 +32,10 @@ def test_experiment_init():
     ec.load_buffer(np.zeros((100, 2)))
     ec.stop_reset()
     ec.call_on_flip_and_play(None)
-    print ec.fs
+    print ec.fs  # test fs support
     ec.flip_and_play()
     ec.wait_secs(0.01)
-    ec.call_on_flip_and_play(dummy_print, 'hello')
+    ec.call_on_flip_and_play(dummy_print, 'called on flip and play')
     ec.flip_and_play()
     #ec.load_buffer(np.zeros((1, 100))) XXX FAILS WITHOUT INFORMATIVE MESSAGE
     # test __repr__
