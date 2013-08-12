@@ -44,6 +44,10 @@ class TDT(object):
             if k not in legal_keys:
                 raise KeyError('Unrecognized key in tdt_params: {0}'.format(k))
 
+        self._model = tdt_params['TDT_MODEL']
+        self._circuit = tdt_params['TDT_CIRCUIT_PATH']
+        self._interface = tdt_params['TDT_INTERFACE']
+
         # initialize RPcoX connection
         """
         # HIGH-LEVEL APPROACH
@@ -58,7 +62,7 @@ class TDT(object):
         """
         # MID-LEVEL APPROACH
         if not connect_rpcox is None:
-            self.rpcox = connect_rpcox(name=self.tdt_type,
+            self.rpcox = connect_rpcox(name=self.model,
                                        interface=self.interface,
                                        device_id=1, address=None)
             if not self.rpcox is None:
@@ -87,7 +91,7 @@ class TDT(object):
                 except:
                     raise IOError('Expyfun: Problem loading circuit.')
             psylog.info('Expyfun: Circuit {0} loaded to {1} via {2}.'
-                        ''.format(self.circuit, self.tdt_type, self.interface))
+                        ''.format(self.circuit, self.model, self.interface))
             # run circuit
             if self.rpcox.Run():
                 psylog.info('Expyfun: TDT circuit running')
@@ -101,11 +105,27 @@ class TDT(object):
 
         Notes
         -----
-        When using PsychoPy for audio, fs is potentially user-settable, but
-        defaults to 22050 Hz.  When using TDT for audio, fs is read from the
-        TDT circuit.
+        When using TDT for audio, fs is read from the TDT circuit definition.
         """
         return np.float(self.rpcox.GetSFreq())
+
+    @property
+    def model(self):
+        """String representation of TDT model name ('RM1', 'RP2', etc).
+        """
+        return self._model
+
+    @property
+    def circuit(self):
+        """TDT circuit path.
+        """
+        return self._circuit
+
+    @property
+    def interface(self):
+        """String representation of TDT interface ('USB' or 'GB').
+        """
+        return self._interface
 
     def trigger(self, trigger_number):
         """Wrapper for tdt.util.RPcoX.SoftTrg()
@@ -114,12 +134,8 @@ class TDT(object):
         ----------
         trigger_number : int
             Trigger number to send to TDT.
-
-        Returns
-        -------
-        trigger_sent : {0,1}
-            Boolean integer indicating success or failure of buffer clear.
         """
+        # TODO: do we want to return the 0 or 1 passed by SoftTrg() ?
         self.rpcox.SoftTrg(trigger_number)
 
     def write_buffer(self, data, buffer_name, offset=0):

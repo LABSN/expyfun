@@ -129,8 +129,8 @@ class ExperimentController(object):
 
         # audio setup
         if audio_controller is None:
-            self.audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
-                                                        'psychopy')}
+            audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
+                                                   'psychopy')}
         elif isinstance(audio_controller, basestring):
             if audio_controller.lower() in ['psychopy', 'tdt']:
                 audio_controller = {'TYPE': audio_controller.lower()}
@@ -141,24 +141,25 @@ class ExperimentController(object):
         else:
             raise TypeError('audio_controller must be a str or dict.')
 
-        self.audio_controller = audio_controller['TYPE'].lower()
-        if self.audio_controller == 'tdt':
+        self.audio_type = audio_controller['TYPE'].lower()
+        if self.audio_type == 'tdt':
             psylog.info('Expyfun: Setting up TDT')
             self.tdt = TDT(audio_controller)
+            self.audio_type = self.tdt.model
             self._fs = self.tdt.fs
-        elif self.audio_controller == 'psychopy':
+        elif self.audio_type == 'psychopy':
             psylog.info('Expyfun: Initializing PsychoPy audio')
             self.tdt = None
-            self._fs = 44100  # TODO: should we allow user config here?
+            self._fs = 44100
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self.audio.setVolume(1)  # TODO: check this w/r/t stim_scaler
-            self.trial_components.append(self.audio)  # TODO: necessary?
+            #self.trial_components.append(self.audio)  # TODO: necessary?
         else:
-            raise ValueError('audio_controller[\'controller\'] must be '
-                             '\'PsychoPy\' or \'TDT\'.')
+            raise ValueError('audio_controller[\'TYPE\'] must be '
+                             '\'psychopy\' or \'tdt\'.')
 
         # scaling factor to ensure uniform intensity across output devices
-        self._stim_scaler = _get_stim_scaler(self.audio_controller, stim_amp,
+        self._stim_scaler = _get_stim_scaler(self.audio_type, stim_amp,
                                              stim_rms)
 
         # placeholder for extra actions to do on flip-and-play
@@ -212,7 +213,7 @@ class ExperimentController(object):
                   ''.format(self.exp_info['exp_name'],
                             self.exp_info['participant'],
                             self.exp_info['session'],
-                            self.audio_controller['TYPE']))
+                            self.audio_type))
         return string
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=[]):
@@ -462,14 +463,14 @@ class ExperimentController(object):
             'psychopy'.
         """
         psylog.info('Expyfun: Loading %d samples to buffer' % data.size)
-        if self.audio_controller == 'psychopy':
+        if self.tdt is not None:
+            self.tdt.write_buffer(buffer_name, offset,
+                                  data * self._stim_scaler)
+        else:
             self.audio.setSound(np.asarray(data, order='C'))
             # TODO: check PsychoPy output w/r/t stim scaler
             #self.audio.setSound(np.asarray(data * self._stim_scaler,
             #                               order='C'))
-        else:
-            self.tdt.write_buffer(buffer_name, offset,
-                                  data * self._stim_scaler)
 
     def clear_buffer(self, buffer_name=None):
         """Clear audio data from the audio buffer.
@@ -528,6 +529,7 @@ class ExperimentController(object):
             self._fp_function = partial(function, *args, **kwargs)
         else:
             self._fp_function = None
+        # TODO: note psychopy's self.win.callOnFlip(someFunction)
 
     def set_noise_amp(self, new_amp):
         """TODO: add docstring
@@ -570,8 +572,6 @@ class ExperimentController(object):
         self.tdt.trigger(5)
 
     def __enter__(self):
-        # (for use with "with" syntax) wrap to init? may want to do some
-        # low-level stuff to make sure the connection is working?
         psylog.debug('Expyfun: Entering')
         return self
 
@@ -581,7 +581,6 @@ class ExperimentController(object):
         -----
         err_type, value and traceback will be None when called by self.close()
         """
-        # stop the TDT circuit, etc.  (for use with "with" syntax)
         psylog.debug('Expyfun: Exiting cleanly')
         if self.tdt is not None:
             # TODO: detect which triggers are which rather than hard-coding
@@ -601,19 +600,23 @@ class ExperimentController(object):
     def fs(self):
         """Playback frequency of the audio controller (samples / second).
         """
-        # do it this way so people can't set it
-        return self._fs
+        return self._fs  # not user-settable
 
 
 def _get_rms(audio_controller):
-    if audio_controller is 'RM1':
+    if audio_controller == 'RM1':
         return 108  # this is approx; knob is not detented
-    elif audio_controller is 'RP2':
+    elif audio_controller == 'RP2':
         return 108
-    elif audio_controller is 'RZ6':
+    elif audio_controller == 'RZ6':
         return 114
+    elif audio_controller == 'psychopy':
+        return 90  # TODO: this value not yet calibrated, may vary by system
     else:
-        return 90  # for untested models or internal sound cards
+        psylog.WARN('Unknown audio controller: stim scaler may not work '
+                    'correctly. You may want to remove your headphones if this'
+                    ' is the first run of your experiment.')
+        return 90  # for untested TDT models
 
 
 def _get_stim_scaler(audio_controller, stim_amp, stim_rms):
