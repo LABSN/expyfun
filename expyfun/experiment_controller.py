@@ -151,6 +151,10 @@ class ExperimentController(object):
             psylog.info('Expyfun: Initializing PsychoPy audio')
             self.tdt = None
             self._fs = 44100
+            if sound.Sound is None:
+                raise ImportError('PsychoPy sound could not be initialized. '
+                                  'Ensure you have the pygame package properly'
+                                  ' installed.')
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self.audio.setVolume(1)  # TODO: check this w/r/t stim_scaler
             #self.trial_components.append(self.audio)  # TODO: necessary?
