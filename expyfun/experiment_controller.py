@@ -138,7 +138,7 @@ class ExperimentController(object):
                 raise ValueError('audio_controller must be \'psychopy\' or '
                                  '\'tdt\' (or a dict including \'TYPE\':'
                                  ' \'psychopy\' or \'TYPE\': \'tdt\').')
-        else:
+        elif not isinstance(audio_controller, dict):
             raise TypeError('audio_controller must be a str or dict.')
 
         self.audio_type = audio_controller['TYPE'].lower()
@@ -156,7 +156,7 @@ class ExperimentController(object):
                                   'Ensure you have the pygame package properly'
                                   ' installed.')
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
-            self.audio.setVolume(1)  # TODO: check this w/r/t stim_scaler
+            self.audio.setVolume(1.0)  # 0 to 1
             #self.trial_components.append(self.audio)  # TODO: necessary?
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
@@ -288,8 +288,7 @@ class ExperimentController(object):
         self._flip()
 
     def init_trial(self):
-        """Reset trial clock, clear keyboard buffer, reset trial components to
-        default status.
+        """Reset trial clock, clear stored keypresses and reaction times.
         """
         self.trial_clock.reset()
         self.button_handler.keys = []
@@ -299,7 +298,13 @@ class ExperimentController(object):
         #        comp.status = NOT_STARTED
 
     def add_data_line(self, data_dict):
-        """
+        """Add a line of data to the output CSV.
+
+        Parameters
+        ----------
+        data_dict : dict
+            Key(s) of data_dict determine the column heading of the CSV under
+            which the value(s) will be written.
         """
         for key, value in data_dict.items():
             self.data_handler.addData(key, value)
@@ -466,15 +471,24 @@ class ExperimentController(object):
             Name of the TDT buffer to target. Ignored if audio_controller is
             'psychopy'.
         """
-        psylog.info('Expyfun: Loading %d samples to buffer' % data.size)
+        psylog.info('Expyfun: Loading {} samples to buffer'.format(data.size))
         if self.tdt is not None:
             self.tdt.write_buffer(buffer_name, offset,
                                   data * self._stim_scaler)
         else:
-            self.audio.setSound(np.asarray(data, order='C'))
-            # TODO: check PsychoPy output w/r/t stim scaler
-            #self.audio.setSound(np.asarray(data * self._stim_scaler,
-            #                               order='C'))
+            if len(data.shape) > 2:
+                raise ValueError('Sound data has more than two dimensions.')
+            elif len(data.shape) == 2:
+                if data.shape[1] > 2:
+                    raise ValueError('Sound data has more than two channels.')
+                #elif data.shape[1] == 2:
+                #    data = data[:, 0]
+                elif data.shape[1] == 1:
+                    data = data[:, 0]
+
+            self.audio = sound.Sound(np.asarray(data, order='C'),
+                                     sampleRate=self._fs)
+            self.audio.setVolume(1.0)  # TODO: check this w/r/t stim_scaler
 
     def clear_buffer(self, buffer_name=None):
         """Clear audio data from the audio buffer.
@@ -506,6 +520,7 @@ class ExperimentController(object):
     def close(self):
         """Close all connections in experiment controller.
         """
+        self.win.close()
         self.__exit__(None, None, None)
 
     def flip_and_play(self, clock=None):
