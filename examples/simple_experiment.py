@@ -1,4 +1,3 @@
-from __future__ import division
 from os import path as op
 import numpy as np
 from scipy import io as sio
@@ -64,7 +63,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
             p = int(p)
             ec.load_buffer(wavs[p - 1])
             ec.flip_and_play()
-            ec.wait_secs(len(wavs[p - 1]) / ec.fs)
+            ec.wait_secs(len(wavs[p - 1]) / float(ec.fs))
             ec.stop_reset()
             if p in not_yet_pressed:
                 not_yet_pressed.pop(not_yet_pressed.index(p))
@@ -107,7 +106,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
         ec.wait_secs(isi)
 
     # add 250 ms pause between stims
-    pause = np.zeros((int(ec.fs / 4), 2))
+    pause = np.zeros((int(ec.fs) / 4, 2))
     stims = [np.row_stack((wavs[stim], pause)) for stim in mass_trial]
     # run mass trial
     mass_stim = np.row_stack((stims[stim_num] for stim_num in mass_trial))
@@ -122,7 +121,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     ec.add_data_line({'stim_num': mass_trial})
     ec.init_trial()
     ec.flip_and_play()
-    ec.wait_secs(len(mass_stim) / ec.fs)
+    ec.wait_secs(len(mass_stim) / float(ec.fs))
     ec.screen_text('Go!')
     presses = ec.get_presses(max_resp_time, min_resp_time, live_keys)
     print presses

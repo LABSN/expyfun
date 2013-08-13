@@ -411,3 +411,9 @@ def set_config(key, value):
         os.mkdir(directory)
     with open(config_path, 'w') as fid:
         json.dump(config, fid, sort_keys=True, indent=0)
+
+
+def _check_pyglet_version():
+    """Check pyglet version.
+    """
+    pass

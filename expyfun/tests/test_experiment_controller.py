@@ -32,6 +32,7 @@ def test_experiment_init():
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
                               participant='foo', session='01')
+	# migrate this to a separate test file, add button presses etc
     """
     ec = ExperimentController(*std_args, **std_kwargs)
     ec.init_trial()

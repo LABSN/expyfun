@@ -58,10 +58,10 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
     if fs is None:
         fs = get_tdt_rates()['25k']
 
-    t = np.arange(np.round(stim_dur * fs)) / fs
+    t = np.arange(np.round(stim_dur * float(fs))) / float(fs)
 
     # frequencies equally spaced on a log-2 scale
-    freqs = min_freq * np.logspace(0, np.log2(max_freq / min_freq), num_freqs,
+    freqs = min_freq * np.logspace(0, np.log2(float(max_freq) / float(min_freq)), num_freqs,
                                    endpoint=True, base=2)
 
     # strings for the filenames / dictionary keys
