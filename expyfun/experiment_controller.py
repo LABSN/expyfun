@@ -1,15 +1,18 @@
-"""TODO: add docstring
-"""
-# import logging
+"""Tools for controlling experiment execution"""
+
+# Authors: Dan McCloy <drmccloy@uw.edu>
+#          Eric Larson <larsoner@uw.edu>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 import os
 from os import path as op
 from functools import partial
 from psychopy import visual, core, data, event, sound, gui
 from psychopy import logging as psylog
-#from psychopy.constants import FINISHED, STARTED, NOT_STARTED
 
-from .utils import get_config, verbose
+from .utils import get_config, verbose_dec
 from .tdt import TDT
 
 
@@ -52,7 +55,8 @@ class ExperimentController(object):
         Should the experiment window be fullscreen?
     force_quit : list
         Keyboard key(s) to utilize as an experiment force-quit button.
-        Can be a zero-element list for no force quit support.
+        Can be a zero-element list for no force quit support. If None, defaults
+        to ['escape', 'lctrl', 'rctrl']
     participant : str | None
         If None, a GUI will be used to acquire this information.
     session : str | None
@@ -64,27 +68,26 @@ class ExperimentController(object):
     -------
     exp_controller : instance of ExperimentController
         The experiment control interface.
-
-    Notes
-    -----
-    TODO: add eye tracker and EEG
     """
 
-    @verbose
+    @verbose_dec
     def __init__(self, exp_name, audio_controller=None, response_device=None,
                  stim_rms=0.01, stim_fs=44100, stim_amp=65, noise_amp=-np.Inf,
                  output_dir='rawData', window_size=None, screen_num=None,
-                 full_screen=True, force_quit=['escape', 'lctrl', 'rctrl'],
-                 participant=None, session=None, verbose=None):
+                 full_screen=True, force_quit=None, participant=None,
+                 session=None, verbose=None):
 
         # self._stim_fs = stim_fs
         self._stim_amp = stim_amp
         self._noise_amp = noise_amp
         self._force_quit = force_quit
 
+        if force_quit is None:
+            force_quit = ['escape', 'lctrl', 'rctrl']
+
         # some hardcoded parameters...
         bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
-        root_dir = './'
+        root_dir = os.getcwd()
 
         # dictionary for experiment metadata
         self.exp_info = {'participant': participant, 'session': session,
@@ -157,7 +160,6 @@ class ExperimentController(object):
                                   ' installed.')
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self.audio.setVolume(1.0)  # 0 to 1
-            #self.trial_components.append(self.audio)  # TODO: necessary?
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
                              '\'psychopy\' or \'tdt\'.')
@@ -220,7 +222,7 @@ class ExperimentController(object):
                             self.audio_type))
         return string
 
-    def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=[]):
+    def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -252,10 +254,10 @@ class ExperimentController(object):
                              'forever.')
         self.screen_text(text)
         if live_keys is None:
-            self.wait_secs(max_wait)
+            wait_secs(max_wait)
             return (None, max_wait)
         else:
-            self.wait_secs(min_wait)
+            wait_secs(min_wait)
             return self.get_press(max_wait=max_wait - min_wait,
                                   live_keys=live_keys)
 
@@ -276,7 +278,7 @@ class ExperimentController(object):
         self.text_stim.setText(text)
         self.text_stim.tStart = clock.getTime()
         self.text_stim.setAutoDraw(True)
-        self._flip()
+        self.win.flip()
 
     def clear_screen(self):
         """Remove all visual stimuli from the screen.
@@ -285,7 +287,7 @@ class ExperimentController(object):
         for comp in self.trial_components:
             if hasattr(comp, 'setAutoDraw'):
                 comp.setAutoDraw(False)
-        self._flip()
+        self.win.flip()
 
     def init_trial(self):
         """Reset trial clock, clear stored keypresses and reaction times.
@@ -310,7 +312,7 @@ class ExperimentController(object):
             self.data_handler.addData(key, value)
         self.data_handler.nextEntry()
 
-    def get_press(self, max_wait=np.inf, min_wait=0.0, live_keys=[]):
+    def get_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None):
         """Returns only the first button pressed after min_wait.
 
         Parameters
@@ -330,13 +332,13 @@ class ExperimentController(object):
         ([], None).
         """
         if self.response_device == 'keyboard':
-            live_keys = map(str, live_keys)  # accept ints
+            live_keys = [str(x) for x in live_keys]  # accept ints
             if len(self._force_quit):
                 live_keys = live_keys + self._force_quit
             self.button_handler.keys = []
             self.button_handler.rt = []
             self.button_handler.clock.reset()
-            self.wait_secs(min_wait)
+            wait_secs(min_wait)
             event.clearEvents('keyboard')
             pressed = []
             while (not len(pressed) and
@@ -359,10 +361,9 @@ class ExperimentController(object):
         else:
             raise NotImplementedError()
             # TODO: check the proper tag name for our circuit
-            # TODO: is there a way to detect proper tag name automatically?
             # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
 
-    def get_presses(self, max_wait, min_wait=0.0, live_keys=[]):
+    def get_presses(self, max_wait, min_wait=0.0, live_keys=None):
         """Returns all button presses between min_wait and max_wait.
 
         Parameters
@@ -382,13 +383,13 @@ class ExperimentController(object):
         """
         assert min_wait < max_wait
         if self.response_device == 'keyboard':
-            live_keys = map(str, live_keys)  # accept ints
+            live_keys = [str(x) for x in live_keys]  # accept ints
             if len(self._force_quit):
                 live_keys = live_keys + self._force_quit
             self.button_handler.keys = []
             self.button_handler.rt = []
             self.button_handler.clock.reset()
-            self.wait_secs(min_wait)
+            wait_secs(min_wait)
             event.clearEvents('keyboard')
             pressed = []
             while self.button_handler.clock.getTime() < max_wait:
@@ -396,7 +397,7 @@ class ExperimentController(object):
                                          timeStamped=self.button_handler.clock)
             if len(pressed):
                 result = pressed
-                self._check_force_quit([k for (k, t) in pressed])
+                self._check_force_quit([key for (key, _) in pressed])
             else:
                 result = [([], None)]
             for (key, timestamp) in result:
@@ -412,7 +413,6 @@ class ExperimentController(object):
         else:
             raise NotImplementedError()
             # TODO: check the proper tag name for our circuit
-            # TODO: is there a way to detect proper tag name automatically?
             # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
 
     def _check_force_quit(self, keys):
@@ -425,39 +425,6 @@ class ExperimentController(object):
         """
         if self._force_quit in keys:
             self.close()
-
-    def wait_secs(self, secs, hog_cpu_time=0.2):
-        """Wait a specified number of seconds.
-
-        Parameters
-        ----------
-        secs : float
-            Number of seconds to wait.
-        hog_cpu_time : float
-            Amount of CPU time to hog. See Notes.
-
-        Notes
-        -----
-        From the PsychoPy documentation:
-        If secs=10 and hogCPU=0.2 then for 9.8s python's time.sleep function
-        will be used, which is not especially precise, but allows the cpu to
-        perform housekeeping. In the final hogCPUperiod the more precise method
-        of constantly polling the clock is used for greater precision.
-
-        If you want to obtain key-presses during the wait, be sure to use
-        pyglet and to hogCPU for the entire time, and then call
-        psychopy.event.getKeys() after calling wait().
-
-        If you want to suppress checking for pyglet events during the wait, do
-        this once:
-            core.checkPygletDuringWait = False
-        and from then on you can do:
-            core.wait(sec)
-        This will preserve terminal-window focus during command line usage.
-        """
-        if any([secs < 0.2, secs < hog_cpu_time]):
-            hog_cpu_time = secs
-        core.wait(secs, hogCPUperiod=hog_cpu_time)
 
     def load_buffer(self, data, offset=0, buffer_name=None):
         """Load audio data into the audio buffer.
@@ -535,11 +502,10 @@ class ExperimentController(object):
         psylog.info('Expyfun: Flipping screen and playing audio')
         if clock is None:
             clock = self.trial_clock
-        self._flip()
-        self._play(clock)
+        self.win.callOnFlip(self._play, clock)
         if self._fp_function is not None:
-            self._fp_function()
-        # TODO: note psychopy's self.win.callOnFlip(someFunction)
+            self.win.callOnFlip(self._fp_function)
+        self.win.flip()
 
     def call_on_flip_and_play(self, function, *args, **kwargs):
         """Locus for additional functions to be executed on flip and play.
@@ -548,29 +514,23 @@ class ExperimentController(object):
             self._fp_function = partial(function, *args, **kwargs)
         else:
             self._fp_function = None
-        # TODO: note psychopy's self.win.callOnFlip(someFunction)
 
     def set_noise_amp(self, new_amp):
-        """TODO: add docstring
+        """Set the amplitude of stationary background noise.
         """
         self._noise_amp = new_amp
 
     def set_stim_amp(self, new_amp):
-        """TODO: add docstring
+        """Set the amplitude of the stimuli.
         """
         self._stim_amp = new_amp
-
-    def _flip(self):
-        """Flip the screen buffer.
-        """
-        self.win.flip()
 
     def _play(self, clock):
         """Play the audio buffer.
         """
         psylog.debug('Expyfun: playing audio')
         if self.tdt is not None:
-            # TODO: detect which triggers are which rather than hard-coding
+            # TODO: self.tdt.play()
             self.tdt.trigger(1)
         else:
             self.audio.tStart = clock.getTime()
@@ -580,14 +540,14 @@ class ExperimentController(object):
         """Stop TDT ring buffer playback.
         """
         psylog.debug('Stopping audio')
-        # TODO: detect which triggers are which rather than hard-coding
+        # TODO: self.tdt.stop()
         self.tdt.trigger(2)
 
     def _reset_tdt(self):
         """Reset TDT audio buffer to beginning.
         """
         psylog.debug('Expyfun: Resetting audio')
-        # TODO: detect which triggers are which rather than hard-coding
+        # TODO: self.tdt.reset()
         self.tdt.trigger(5)
 
     def __enter__(self):
@@ -602,7 +562,7 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: Exiting cleanly')
         if self.tdt is not None:
-            # TODO: detect which triggers are which rather than hard-coding
+            # TODO: self.tdt.stop_noise()
             self.tdt.trigger(4)  # kill noise
             self.stop_reset()
             self.tdt.halt_circuit()
@@ -610,8 +570,8 @@ class ExperimentController(object):
             core.quit()
         except SystemExit:
             pass
-        except Exception as e:
-            print e
+        except Exception as exc:
+            print exc
         if any([x is not None for x in (err_type, value, traceback)]):
             raise err_type, value, traceback
 
@@ -622,7 +582,43 @@ class ExperimentController(object):
         return self._fs  # not user-settable
 
 
+def wait_secs(secs, hog_cpu_time=0.2):
+    """Wait a specified number of seconds.
+
+    Parameters
+    ----------
+    secs : float
+        Number of seconds to wait.
+    hog_cpu_time : float
+        Amount of CPU time to hog. See Notes.
+
+    Notes
+    -----
+    From the PsychoPy documentation:
+    If secs=10 and hogCPU=0.2 then for 9.8s python's time.sleep function
+    will be used, which is not especially precise, but allows the cpu to
+    perform housekeeping. In the final hogCPUperiod the more precise method
+    of constantly polling the clock is used for greater precision.
+
+    If you want to obtain key-presses during the wait, be sure to use
+    pyglet and to hogCPU for the entire time, and then call
+    psychopy.event.getKeys() after calling wait().
+
+    If you want to suppress checking for pyglet events during the wait, do
+    this once:
+        core.checkPygletDuringWait = False
+    and from then on you can do:
+        core.wait(sec)
+    This will preserve terminal-window focus during command line usage.
+    """
+    if any([secs < 0.2, secs < hog_cpu_time]):
+        hog_cpu_time = secs
+    core.wait(secs, hogCPUperiod=hog_cpu_time)
+
+
 def _get_rms(audio_controller):
+    """Selects device-specific amplitude to ensure equivalence across devices.
+    """
     if audio_controller == 'RM1':
         return 108  # this is approx; knob is not detented
     elif audio_controller == 'RP2':
@@ -632,12 +628,14 @@ def _get_rms(audio_controller):
     elif audio_controller == 'psychopy':
         return 90  # TODO: this value not yet calibrated, may vary by system
     else:
-        psylog.WARN('Unknown audio controller: stim scaler may not work '
+        psylog.warn('Unknown audio controller: stim scaler may not work '
                     'correctly. You may want to remove your headphones if this'
                     ' is the first run of your experiment.')
         return 90  # for untested TDT models
 
 
 def _get_stim_scaler(audio_controller, stim_amp, stim_rms):
+    """Calculates coefficient ensuring stim ampl equivalence across devices.
+    """
     exponent = (-(_get_rms(audio_controller) - stim_amp) / 20) / stim_rms
     return np.power(10, exponent)

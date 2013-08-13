@@ -150,7 +150,7 @@ class deprecated(object):
         return newdoc
 
 
-def verbose(function):
+def verbose_dec(function):
     """Decorator to allow functions to override default log level
 
     Do not call this function directly to set the global verbosity level,
