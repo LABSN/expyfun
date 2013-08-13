@@ -378,6 +378,7 @@ def _check_pyglet_version(raise_error=False):
     is_usable = (LooseVersion(pyglet.version) >= LooseVersion('1.2')
                  or platform.system() != 'Linux')
     if raise_error is True and is_usable is False:
-        raise ImportError('On Linux, you must run at least Pyglet version '
-                          '1.2, and you are running %s' % pyglet.version)
+        raise ImportError('On Linux, you must run at least Pyglet '
+                          'version 1.2, and you are running '
+                          '{0}'.format(pyglet.version))
     return is_usable
