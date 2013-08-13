@@ -5,7 +5,7 @@
 # License: BSD (3-clause)
 
 import warnings
-import logging
+from psychopy import logging as psylog
 import os
 import os.path as op
 from functools import wraps
@@ -15,8 +15,9 @@ import tempfile
 from shutil import rmtree
 import atexit
 import json
-
-logger = logging.getLogger('expyfun')
+from distutils.version import LooseVersion
+import pyglet
+import platform
 
 
 ###############################################################################
@@ -223,59 +224,17 @@ def set_log_level(verbose=None, return_old_level=False):
             verbose = 'WARNING'
     if isinstance(verbose, basestring):
         verbose = verbose.upper()
-        logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
-                             WARNING=logging.WARNING, ERROR=logging.ERROR,
-                             CRITICAL=logging.CRITICAL)
+        logging_types = dict(DEBUG=psylog.DEBUG, INFO=psylog.INFO,
+                             WARNING=psylog.WARNING, ERROR=psylog.ERROR,
+                             CRITICAL=psylog.CRITICAL)
         if not verbose in logging_types:
             raise ValueError('verbose must be of a valid type')
         verbose = logging_types[verbose]
-    logger = logging.getLogger('expyfun')
+
+    logger = psylog.console
     old_verbose = logger.level
     logger.setLevel(verbose)
     return (old_verbose if return_old_level else None)
-
-
-def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
-    """Convenience function for setting the log to print to a file
-
-    Parameters
-    ----------
-    fname : str, or None
-        Filename of the log to print to. If None, stdout is used.
-        To suppress log outputs, use set_log_level('WARN').
-    output_format : str
-        Format of the output messages. See the following for examples:
-            http://docs.python.org/dev/howto/logging.html
-        e.g., "%(asctime)s - %(levelname)s - %(message)s".
-    overwrite : bool, or None
-        Overwrite the log file (if it exists). Otherwise, statements
-        will be appended to the log (default). None is the same as False,
-        but additionally raises a warning to notify the user that log
-        entries will be appended.
-    """
-    logger = logging.getLogger('expyfun')
-    handlers = logger.handlers
-    for h in handlers:
-        if isinstance(h, logging.FileHandler):
-            h.close()
-        logger.removeHandler(h)
-    if fname is not None:
-        if op.isfile(fname) and overwrite is None:
-            warnings.warn('Log entries will be appended to the file. Use '
-                          'overwrite=False to avoid this message in the '
-                          'future.')
-        mode = 'w' if overwrite is True else 'a'
-        lh = logging.FileHandler(fname, mode=mode)
-    else:
-        """ we should just be able to do:
-                lh = logging.StreamHandler(sys.stdout)
-            but because doctests uses some magic on stdout, we have to do this:
-        """
-        lh = logging.StreamHandler(WrapStdOut())
-
-    lh.setFormatter(logging.Formatter(output_format))
-    # actually add the stream handler
-    logger.addHandler(lh)
 
 
 ###############################################################################
@@ -413,7 +372,12 @@ def set_config(key, value):
         json.dump(config, fid, sort_keys=True, indent=0)
 
 
-def _check_pyglet_version():
-    """Check pyglet version.
+def _check_pyglet_version(raise_error=False):
+    """Check pyglet version, return True if usable.
     """
-    pass
+    is_usable = (LooseVersion(pyglet.version) >= LooseVersion('1.2')
+                 or platform.system() != 'Linux')
+    if raise_error is True and is_usable is False:
+        raise ImportError('On Linux, you must run at least Pyglet version '
+                          '1.2, and you are running %s' % pyglet.version)
+    return is_usable
