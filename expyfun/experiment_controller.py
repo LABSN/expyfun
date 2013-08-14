@@ -635,6 +635,17 @@ class ExperimentController(object):
         if len(keys):
             self.close()
 
+    def toggle_cursor(self, visibility):
+        """Toggle cursor visibility
+
+        Parameters
+        ----------
+        visibility : bool
+            If True, show; if False, hide.
+        """
+        self.win.setMouseVisible(visibility)
+
+
 ################################ AUDIO METHODS ###############################
     def start_noise(self):
         """Start the background masker noise.

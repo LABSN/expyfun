@@ -6,15 +6,17 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import datetime
+from distutils.version import LooseVersion
 from os import path as op
 import time
+from psychopy import logging as psylog
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink
 except ImportError:
     pylink = None
 from .utils import get_config, verbose_dec
-from .eyelink_calibration import _run_calibration
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
@@ -28,22 +30,27 @@ class EyelinkController(object):
         If 'default', the default value will be read from EXPYFUN_EYELINK.
         If None, dummy (simulation) mode will be used. If str, should be
         the network location of eyelink (e.g., "100.0.0.1").
+    ec : instance of ExperimentController | None
+        ExperimentController instance to interface with. Necessary for
+        doing calibrations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
     Returns
     -------
-    exp_controller : instance of ExperimentController
-        The experiment control interface.
+    el_controller : instance of EyelinkController
+        The Eyelink control interface.
     """
     @verbose_dec
-    def __init__(self, link='default'):
+    def __init__(self, ec=None, link='default'):
         if pylink is None:
             raise ImportError('Could not import pylink, please ensure it '
                               'is installed correctly')
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
+        self._ec = ec
         self.eyelink = pylink.EyeLink(link)
+        self._is_dummy_mode = self.eyelink.getDummyMode()
         self._file_list = []
         self.el_setup()
 
@@ -80,9 +87,9 @@ class EyelinkController(object):
         self.command('sample_rate = {0}'.format(fs))
 
         # retrieve tracker version and tracker software version
-        v, s = self.eyelink.getTrackerVersion()
-        vsn = regexp(v, '\d', 'match')
-        print 'Running experiment on a ''%s'' tracker.\n' % vs  # XXX
+        v = self.eyelink.getTrackerVersion()
+        psylog.info('Running experiment on a ''{0}'' tracker.'.format(v))
+        v = LooseVersion(v).version
 
         # set EDF file contents
         fef = 'LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT'
@@ -90,7 +97,7 @@ class EyelinkController(object):
         lef = ('LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,'
                'FIXUPDATE,INPUT')
         lsd = 'LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT'
-        if v == 3 and int(vsn[1]) == 4:
+        if len(v) > 1 and v[0] == 3 and v[1] == 4:
             # remote mode possible add HTARGET ( head target)
             fsd = fsd + ',HTARGET'
             # set link data (used for gaze cursor)
@@ -139,9 +146,16 @@ class EyelinkController(object):
         return self.eyelink.sendCommand(cmd)
 
     def start(self):
-        """Start Eyelink recording"""
+        """Start Eyelink recording
+
+        Notes
+        -----
+        Filenames are saved by HHMMSS format, DO NOT start and stop
+        recordings anywhere near once per second.
+        """
         self.eyelink.startRecording()
-        file_name = 'EL_{0}'.format(datestr(now, 'HHMMSS'))
+        file_name = datetime.datetime.now().strftime('%H%M%S')
+        # make absolutely sure we don't break this
         if len(file_name) > 8:
             raise RuntimeError('filename ("{0}") is too long!\n'
                                'Must be < 8 chars'.format(file_name))
@@ -205,9 +219,9 @@ class EyelinkController(object):
             self.close()
         for remote_name in self._file_list:
             fname = op.join(self.output_dir, '{1}.edf'.format(remote_name))
-            status = self.eyelink.receiveDataFile(remote_name, fname))
-            print ('saving Eyelink file: {0}\tstatus: {1}'
-                   ''.format(fname, status))  # XXX
+            status = self.eyelink.receiveDataFile(remote_name, fname)
+            psylog.info('saving Eyelink file: {0}\tstatus: {1}'
+                        ''.format(fname, status))
 
     def close(self):
         """Close file and shutdown Eyelink"""
@@ -216,24 +230,41 @@ class EyelinkController(object):
             self.eyelink.closeDataFile()
         self.eyelink.close()
 
-    def wait_for_fix(self, fix_pos, tol=15):
+    def wait_for_fix(self, fix_pos, fix_time=1e-4, tol=15, max_wait=np.inf):
         """Wait for gaze to settle within a defined region
 
         Parameters
         ----------
         fix_pos : tuple (length 2)
             The screen position (in pixels) required.
+        fix_time : float
+            Amount of time required to call a fixation.
         tol : int
             The tolerance (in pixels) to consider the target hit.
+        max_wait : float
+            Maximum time to wait (seconds) before returning.
 
         Returns
         -------
-        successful : bool
+        fix_success : bool
             Whether or not the subject successfully fixated.
         """
-        raise NotImplementedError
+        self._toggle_dummy_cursor(True)
+        # initialize eye position to be outside of target
+        fix_success = False
 
-    def hold_Fix(el, fix_pos, hold_duration, tol=15):
+        # sample eye position for el.fix_hold seconds
+        time_out = time.time() + max_wait
+        while time.time() < time_out and not fix_success:
+            # sample eye position
+            eye_pos = self.get_eye_position()
+            if _within_distance(eye_pos, fix_pos, tol):
+                fix_success = True
+
+        self._toggle_dummy_cursor(False)
+        return fix_success
+
+    def hold_Fix(self, el, fix_pos, hold_duration, tol=15):
         """Require the user to maintain gaze
 
         Parameters
@@ -250,17 +281,102 @@ class EyelinkController(object):
         successful : bool
             Whether or not the subject successfully fixated.
         """
-        raise NotImplementedError
+        # sample eye position for el.fix_hold seconds
+        self._toggle_debug_cursor(True)
+        stop_time = time.time() + hold_duration
+        fix_success = True
+        while time.time() < stop_time:
+            # sample eye position
+            eye_pos = self.get_eye_position()
+            if not _within_distance(eye_pos, fix_pos, tol):
+                fix_success = False
+        self._toggle_dummy_cursor(False)
+        return fix_success
 
-    def custom_calibration(self, coords):
-        """Use a custom calibration sequence
+    def custom_calibration(self, params=None):
+        """Set Eyetracker to use a custom calibration sequence
 
         Parameters
         ----------
-        coords : array
-            Nx2 array of target screen coordinates ([x, y] in columns).
+        params : dict | None
+            Type of calibration to use. Must have entries 'type' (must be
+            'HV5') and h_pix, v_pix for total span in both directions. If
+            h_pix and v_pix are not defined, 2/3 of the screen will be used.
+            If params is None, a simple HV5 calibration will be used.
         """
-        coords = np.asanyarray(coords)
-        if not len(coords.shape) == 2 or coords.shape[1] != 2:
-            raise ValueError('coords must be a 2D array with 2 columns')
-        raise NotImplementedError
+        if params is None:
+            params = dict(type='HV5')
+        if ~isinstance(params, dict):
+            raise TypeError('parameters must be a dict')
+        if 'type' not in params:
+            raise KeyError('"type" must be an entry in parameters')
+        allowed_types = ['HV5']
+        if not params['type'] in allowed_types:
+            raise ValueError('params["type"] cannot be "{0}", but must be '
+                             ' one of {1}'.format(params['type'],
+                                                  allowed_types))
+
+        if params['type'] == 'HV5':
+            if not 'h_pix' in params:
+                h_pix = self._display_res[0] * 2. / 3.
+            else:
+                h_pix = params['h_pix']
+            if not 'v_pix' in params:
+                v_pix = self._display_res[1] * 2. / 3.
+            else:
+                v_pix = params['v_pix']
+            # make the locations
+            mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
+            offsets = mat * np.array([h_pix / 2., v_pix / 2.])
+            coords = (self._display_center + offsets).ravel()
+
+        n_samples = len(coords) / 2
+        targs = (' '.join('%d,%d' * n_samples)) % coords
+        seq = ','.join(range(n_samples + 1))
+        self.command('calibration_type = {0}'.format(params['type']))
+        self.command('generate_default_targets = NO')
+        self.command('calibration_samples = {0}'.format(n_samples))
+        self.command('calibration_sequence = ' + seq)
+        self.command('calibration_targets = ' + targs)
+        self.command('validation_samples = {0}'.format(n_samples))
+        self.command('validation_sequence = ' + seq)
+        self.command('validation_targets = ' + targs)
+
+    def get_eye_position(self):
+        if not self._is_dummy_mode:
+            sample = self.eyelink.getNewestSample()
+            left_eye_pos = sample.getLeftEye()
+            right_eye_pos = sample.getRightEye()
+            if all(left_eye_pos != -32768) and all(right_eye_pos != -32768):
+                eye_pos = [-32768, -32768]
+            elif self.eye_used == 'LEFT_EYE':
+                if all(left_eye_pos == -32768):
+                    # use right eye instead
+                    eye_pos = right_eye_pos
+                else:
+                    eye_pos = left_eye_pos
+            elif self.eye_used == 'RIGHT_EYE':
+                if all(right_eye_pos == -32768):
+                    # use left eye instead
+                    eye_pos = left_eye_pos
+                else:
+                    eye_pos = right_eye_pos
+            else:
+                eye_pos = -32768
+        else:
+            # use mouse
+            self.ec.get_cursor_position()
+        return eye_pos
+
+    def _toggle_dummy_cursor(self, show):
+        """Show the cursor for dummy mode"""
+        if self._is_dummy_mode:
+            self.ec.toggle_cursor(show, type='Crosshair')
+
+
+def _within_distance(pos_1, pos_2, radius):
+    return np.sum((pos_1 - pos_2) ** 2) <= radius ** 2
+
+
+def _run_calibration(el):
+    raise NotImplementedError
