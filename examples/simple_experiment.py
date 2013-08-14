@@ -1,3 +1,17 @@
+"""
+=======================
+Run a simple experiment
+=======================
+
+This example demonstrates much of the basic functionality built into
+the ExperimentController class.
+"""
+# Author: Dan McCloy <drmccloy@uw.edu>
+#
+# License: BSD (3-clause)
+
+print __doc__
+
 from os import path as op
 import numpy as np
 from scipy import io as sio

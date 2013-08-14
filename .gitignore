@@ -1,5 +1,6 @@
 *.py[cod]
 *.mat
+*.edf
 
 # C extensions
 *.so

@@ -255,11 +255,16 @@ class ExperimentController(object):
         #self.shape_stim = visual.ShapeStim()
         #self._screen_objects.append(self.shape_stim)
 
-        # set up timing
-        self._master_clock = core.MonotonicClock()
-        self._listen_time = None
-        self._time_correction = None
-        self._time_correction = self._get_time_correction()
+        # other basic components
+        self.mouse_handler = event.Mouse(visible=False, win=self.win)
+        self._button_handler = event.BuilderKeyResponse()
+        self._data_handler = data.ExperimentHandler(name=exp_name, version='',
+                                                    extraInfo=self._exp_info,
+                                                    runtimeInfo=None,
+                                                    originPath=None,
+                                                    savePickle=True,
+                                                    saveWideText=True,
+                                                    dataFileName=basename)
 
         # finish initialization
         psylog.info('Expyfun: Initialization complete')

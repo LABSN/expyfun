@@ -8,6 +8,7 @@
 import numpy as np
 import datetime
 from distutils.version import LooseVersion
+import os
 from os import path as op
 import time
 from psychopy import logging as psylog
@@ -26,13 +27,17 @@ class EyelinkController(object):
 
     Parameters
     ----------
+    ec : instance of ExperimentController | None
+        ExperimentController instance to interface with. Necessary for
+        doing calibrations.
     link : str | None
         If 'default', the default value will be read from EXPYFUN_EYELINK.
         If None, dummy (simulation) mode will be used. If str, should be
         the network location of eyelink (e.g., "100.0.0.1").
-    ec : instance of ExperimentController | None
-        ExperimentController instance to interface with. Necessary for
-        doing calibrations.
+    output_dir : str | None
+        Directory to store the output files in. If None, will use CWD.
+    fs : int
+        Sample rate to use. Must be one of [250, 500, 1000, 2000].
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -42,19 +47,27 @@ class EyelinkController(object):
         The Eyelink control interface.
     """
     @verbose_dec
-    def __init__(self, ec=None, link='default'):
+    def __init__(self, ec=None, output_dir=None, link='default', fs=1000):
         if pylink is None:
             raise ImportError('Could not import pylink, please ensure it '
                               'is installed correctly')
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
+        if output_dir is None:
+            output_dir = os.getcwd()
+        if not isinstance(output_dir, basestring):
+            raise TypeError('output_dir must be a string')
+        if not op.isdir(output_dir):
+            os.mkdir(output_dir)
+        self.output_dir = output_dir
         self._ec = ec
         self.eyelink = pylink.EyeLink(link)
         self._is_dummy_mode = self.eyelink.getDummyMode()
         self._file_list = []
-        self.el_setup()
+        self._display_res = self._ec.win.size.copy()
+        self.setup(fs)
 
-    def setup(self, res, fs=1000):
+    def setup(self, fs=1000):
         """Start up Eyelink
 
         Executes automatically on init, and needs to be run after
@@ -62,8 +75,6 @@ class EyelinkController(object):
 
         Parameters
         ----------
-        res : tuple (length 2)
-            The screen resolution used.
         fs : int
             The sample rate to use.
         """
@@ -71,12 +82,13 @@ class EyelinkController(object):
         self.command('add_file_preamble_text "Recorded by EyelinkController"')
 
         # map the gaze positions from the tracker to screen pixel positions
+        res = self._display_res
         res_str = '0 0 {0} {1}'.format(res[0] - 1, res[1] - 1)
         self.command('screen_pixel_coords = ' + res_str)
         self.message('DISPLAY_COORDS ' + res_str)
 
         # set calibration parameters
-        self.set_calibration()
+        self.custom_calibration()
 
         # set parser (conservative saccade thresholds)
         self.command('saccade_velocity_threshold  =  35')
@@ -87,7 +99,7 @@ class EyelinkController(object):
         self.command('sample_rate = {0}'.format(fs))
 
         # retrieve tracker version and tracker software version
-        v = self.eyelink.getTrackerVersion()
+        v = str(self.eyelink.getTrackerVersion())
         psylog.info('Running experiment on a ''{0}'' tracker.'.format(v))
         v = LooseVersion(v).version
 
@@ -153,20 +165,20 @@ class EyelinkController(object):
         Filenames are saved by HHMMSS format, DO NOT start and stop
         recordings anywhere near once per second.
         """
-        self.eyelink.startRecording()
+        self.eyelink.startRecording(1, 1, 1, 1)
         file_name = datetime.datetime.now().strftime('%H%M%S')
         # make absolutely sure we don't break this
         if len(file_name) > 8:
             raise RuntimeError('filename ("{0}") is too long!\n'
                                'Must be < 8 chars'.format(file_name))
         self.eyelink.openDataFile(file_name)
-        self._file_names += [file_name]
+        self._file_list += [file_name]
 
     def stop(self):
         """Stop Eyelink recording"""
         if self.eyelink.isConnected():
             self.eyelink.stopRecording()
-            self.eyelink.closeFile()
+            self.eyelink.closeDataFile()
 
     def calibrate(self, start=True):
         """Calibrate the eyetracker
@@ -203,7 +215,7 @@ class EyelinkController(object):
         """
         if not isinstance(msg, str):
             raise TypeError('message must be a string')
-        self.message(msg)
+        self.eyelink.sendMessage(msg)
         self.command('record_status_message "{0}"'.format(msg))
 
     def save(self, close=True):
@@ -218,7 +230,7 @@ class EyelinkController(object):
         if close is True:
             self.close()
         for remote_name in self._file_list:
-            fname = op.join(self.output_dir, '{1}.edf'.format(remote_name))
+            fname = op.join(self.output_dir, '{0}.edf'.format(remote_name))
             status = self.eyelink.receiveDataFile(remote_name, fname)
             psylog.info('saving Eyelink file: {0}\tstatus: {1}'
                         ''.format(fname, status))
@@ -264,7 +276,7 @@ class EyelinkController(object):
         self._toggle_dummy_cursor(False)
         return fix_success
 
-    def hold_Fix(self, el, fix_pos, hold_duration, tol=15):
+    def hold_Fix(self, fix_pos, hold_duration, tol=15):
         """Require the user to maintain gaze
 
         Parameters
@@ -282,7 +294,7 @@ class EyelinkController(object):
             Whether or not the subject successfully fixated.
         """
         # sample eye position for el.fix_hold seconds
-        self._toggle_debug_cursor(True)
+        self._toggle_dummy_cursor(True)
         stop_time = time.time() + hold_duration
         fix_success = True
         while time.time() < stop_time:
@@ -306,7 +318,7 @@ class EyelinkController(object):
         """
         if params is None:
             params = dict(type='HV5')
-        if ~isinstance(params, dict):
+        if not isinstance(params, dict):
             raise TypeError('parameters must be a dict')
         if 'type' not in params:
             raise KeyError('"type" must be an entry in parameters')
@@ -328,11 +340,11 @@ class EyelinkController(object):
             # make the locations
             mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
             offsets = mat * np.array([h_pix / 2., v_pix / 2.])
-            coords = (self._display_center + offsets).ravel()
+            coords = (self._display_res / 2. + offsets)
 
-        n_samples = len(coords) / 2
-        targs = (' '.join('%d,%d' * n_samples)) % coords
-        seq = ','.join(range(n_samples + 1))
+        n_samples = coords.shape[0]
+        targs = ' '.join(['{0},{1}'.format(*c) for c in coords])
+        seq = ','.join([str(x) for x in range(n_samples + 1)])
         self.command('calibration_type = {0}'.format(params['type']))
         self.command('generate_default_targets = NO')
         self.command('calibration_samples = {0}'.format(n_samples))
@@ -364,14 +376,14 @@ class EyelinkController(object):
             else:
                 eye_pos = -32768
         else:
-            # use mouse
-            self.ec.get_cursor_position()
+            # use mouse, referenced to lower left
+            eye_pos = self._ec.get_mouse_position() + (self._display_res / 2.)
         return eye_pos
 
-    def _toggle_dummy_cursor(self, show):
+    def _toggle_dummy_cursor(self, visibility):
         """Show the cursor for dummy mode"""
         if self._is_dummy_mode:
-            self.ec.toggle_cursor(show, type='Crosshair')
+            self._ec.toggle_cursor(visibility)
 
 
 def _within_distance(pos_1, pos_2, radius):
