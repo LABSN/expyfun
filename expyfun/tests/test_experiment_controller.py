@@ -2,10 +2,10 @@ import numpy as np
 from nose.tools import assert_raises
 
 from expyfun import ExperimentController, wait_secs
-from expyfun.utils import _TempDir
+from expyfun.utils import _TempDir, interactive_test
 
 temp_dir = _TempDir()
-std_args = ['test']
+std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01')
 
@@ -17,23 +17,19 @@ def dummy_print(string):
 def test_experiment_init():
     """Test experiment methods
     """
-    assert_raises(TypeError, ExperimentController, audio_controller=1, 
+    assert_raises(TypeError, ExperimentController, audio_controller=1,
                   *std_args, **std_kwargs)
-    assert_raises(ValueError, ExperimentController, audio_controller='foo', 
+
+    assert_raises(ValueError, ExperimentController, audio_controller='foo',
                   *std_args, **std_kwargs)
+
     assert_raises(ValueError, ExperimentController,
                   audio_controller=dict(TYPE='foo'), *std_args, **std_kwargs)
-    assert_raises(TypeError, ExperimentController, *std_args, participant='foo',
-                  session=1, output_dir=temp_dir, full_screen=False, 
+
+    assert_raises(TypeError, ExperimentController, *std_args, session=1,
+                  participant='foo', output_dir=temp_dir, full_screen=False,
                   window_size=(1, 1))
-    """
-    # this one passes, but causes the screen to go black during the test
-    ec = ExperimentController(*std_args, audio_controller='psychopy', 
-                              response_device='keyboard', window_size=None,
-                              output_dir=temp_dir, full_screen=False,
-                              participant='foo', session='01')
-	# migrate this to a separate test file, add button presses etc
-    """
+
     ec = ExperimentController(*std_args, **std_kwargs)
     ec.init_trial()
     ec.add_data_line(dict(me='hello'))
@@ -60,6 +56,21 @@ def test_experiment_init():
     # test __repr__
     assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     ec.close()
+
+
+@interactive_test
+def test_button_presses_and_window_size():
+    """Test window_size=None and button press capture (press 1 thrice)
+    """
+    ec = ExperimentController(*std_args, audio_controller='psychopy',
+                              response_device='keyboard', window_size=None,
+                              output_dir=temp_dir, full_screen=False,
+                              participant='foo', session='01')
+    ec.screen_text('press 1 thrice')
+    pressed = []
+    while len(pressed) < 3:
+        pressed.append(ec.get_press(live_keys=['1'])[0])
+    assert pressed == ['1', '1', '1']
 
 
 def test_with_support():
