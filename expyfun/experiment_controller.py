@@ -12,7 +12,7 @@ from functools import partial
 from psychopy import visual, core, data, event, sound, gui
 from psychopy import logging as psylog
 
-from .utils import get_config, verbose_dec
+from .utils import get_config, verbose_dec, _check_pyglet_version
 from .tdt import TDT
 
 
@@ -85,6 +85,9 @@ class ExperimentController(object):
         if force_quit is None:
             force_quit = ['escape', 'lctrl', 'rctrl']
 
+        # Check Pyglet version for safety
+        _check_pyglet_version(raise_error=True)
+
         # some hardcoded parameters...
         bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
         root_dir = os.getcwd()
@@ -114,8 +117,8 @@ class ExperimentController(object):
         basename = op.join(root_dir, output_dir, '%s_%s'
                            % (self.exp_info['participant'],
                               self.exp_info['date']))
-        psylog.LogFile(basename + '.log', level=psylog.INFO)
-        psylog.console.setLevel(psylog.WARNING)
+        self._log_file = basename + '.log'
+        psylog.LogFile(self._log_file, level=psylog.INFO)
 
         # clocks
         self.master_clock = core.Clock()
@@ -211,6 +214,10 @@ class ExperimentController(object):
 
         self.master_clock.reset()
         psylog.info('Expyfun: Initialization complete')
+        psylog.info('Expyfun: Subject: {0}'
+                    ''.format(self.exp_info['participant']))
+        psylog.info('Expyfun: Session: {0}'
+                    ''.format(self.exp_info['session']))
 
     def __repr__(self):
         """Return a useful string representation of the experiment
