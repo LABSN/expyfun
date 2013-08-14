@@ -1,7 +1,7 @@
 import numpy as np
 from nose.tools import assert_raises
 
-from expyfun import ExperimentController
+from expyfun import ExperimentController, wait_secs
 from expyfun.utils import _TempDir
 
 temp_dir = _TempDir()
@@ -53,7 +53,7 @@ def test_experiment_init():
     ec.call_on_flip_and_play(None)
     print ec.fs  # test fs support
     ec.flip_and_play()
-    ec.wait_secs(0.01)
+    wait_secs(0.01)
     ec.call_on_flip_and_play(dummy_print, 'called on flip and play')
     ec.flip_and_play()
     assert_raises(ValueError, ec.load_buffer, np.zeros((1, 100)))
