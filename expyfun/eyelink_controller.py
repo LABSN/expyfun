@@ -11,6 +11,7 @@ try:
 except ImportError:
     pylink = None
 from .utils import get_config, verbose_dec
+from .eyelink_calibration import _run_calibraton
 
 
 class EyelinkController(object):
@@ -38,30 +39,132 @@ class EyelinkController(object):
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
         self.eyelink = pylink.EyeLink(link)
+        self._file_list = []
         self.el_setup()
 
-    def setup(self):
+    def setup(self, res, fs=1000):
         """Start up Eyelink
 
         Executes automatically on init, and needs to be run after
         el_save() if more eye tracking is desired.
+
+        XXX
         """
-        raise NotImplementedError
+        # Add comments
+        self.command('add_file_preamble_text "Recorded by EyelinkController"')
+
+        # map the gaze positions from the tracker to screen pixel positions
+        res_str = '0 0 {0} {1}'.format(res[0] - 1, res[1] - 1)
+        self.command('screen_pixel_coords = ' + res_str)
+        self.message('DISPLAY_COORDS ' + res_str)
+
+        # set calibration parameters
+        self.set_calibration()
+
+        # set parser (conservative saccade thresholds)
+        self.command('saccade_velocity_threshold  =  35')
+        self.command('saccade_acceleration_threshold  =  9500')
+
+        if fs not in [250, 500, 1000, 2000]:
+            raise ValueError('fs must be 250, 500, 1000, or 2000')
+        self.command('sample_rate = {0}'.format(fs))
+
+        # retrieve tracker version and tracker software version
+        v, s = self.eyelink.getTrackerVersion()
+        vsn = regexp(v, '\d', 'match')
+        print 'Running experiment on a ''%s'' tracker.\n' % vs  # XXX
+
+        # set EDF file contents
+        fef = 'LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT'
+        fsd = 'LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT'
+        lef = ('LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,'
+               'FIXUPDATE,INPUT')
+        lsd = 'LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT'
+        if v == 3 and int(vsn[1]) == 4:
+            # remote mode possible add HTARGET ( head target)
+            fsd = fsd + ',HTARGET'
+            # set link data (used for gaze cursor)
+            lsd = lsd + ',HTARGET'
+        self.command('file_event_filter = ' + fef)
+        self.command('file_sample_data  = ' + fsd)
+        self.command('link_event_filter = ' + lef)
+        self.command('link_sample_data  = ' + lsd)
+
+        # Ensure that we get areas
+        self.command('pupil_size_diameter = NO')
+
+        # calibration/drift cordisp.rection target
+        self.command('button_function 5 "accept_target_fixation"')
+
+        # record a few samples before we actually start displaying
+        # otherwise you may lose a few msec of data
+        time.sleep(0.1)
+        self._file_list = []
+
+    def eye_used(self):
+        """Return the eye used 'left' or 'right'
+
+        Returns
+        -------
+        eye : str
+            'left' or 'right'.
+        """
+        return self.eyelink.eyeAvailable()
+
+    def command(self, cmd):
+        """Send Eyelink a command
+
+        Parameters
+        ----------
+        cmd : str
+            The command to send.
+
+        Returns
+        -------
+        unknown
+            The output of the command.
+        """
+        return self.eyelink.command(cmd)
 
     def start(self):
         """Start Eyelink recording"""
         self.eyelink.startRecording()
+        file_name = 'EL_{0}'.format(datestr(now, 'HHMMSS'))
+        if len(file_name) > 8:
+            raise RuntimeError('filename ("{0}") is too long!\n'
+                               'Must be < 8 chars'.format(file_name))
+        self.eyelink.openfile(file_name)
+        self._file_names += [file_name]
 
     def stop(self):
         """Stop Eyelink recording"""
-        self.eyelink.stopRecording()
+        if self.eyelink.isConnected():
+            self.eyelink.stopRecording()
+            self.eyelink.closeFile()
 
-    def calibrate(self):
+    def calibrate(self, start=True):
         """Calibrate the eyetracker
-        """
-        raise NotImplementedError
 
-    def send_message(self, message):
+        Parameters
+        ----------
+        start : bool
+            If True, the recording will be started as soon as calibration
+            is complete.
+
+        Notes
+        -----
+        When calibrate is called, the stop() method is automatically
+        executed before calibration begins.
+        """
+        # stop the recording
+        self.stop()
+        # enter Eyetracker camera setup mode, calibration and validation
+        _run_calibration(self)
+        # open file to record
+        if start is True:
+            self.start()
+
+    def message(self, message):
         """Send message to eyelink
 
         For TRIALIDs, it is suggested to use "TRIALID # # #", i.e.,
@@ -69,7 +172,7 @@ class EyelinkController(object):
 
         Parameters
         ----------
-        message : str
+        msg : str
             The message to stamp.
         """
         if not isinstance(message, str):
@@ -77,8 +180,23 @@ class EyelinkController(object):
         self.eyelink.message(message)
         self.eyelink.command('record_status_message "{0}"'.format(message))
 
-    def save(self):
-        """Save data and shutdown Eyelink"""
+    def save(self, close=True):
+        """Save data
+
+        Parameters
+        ----------
+        close : bool
+            If True, the close() method will be called to shut down the
+            Eyelink before transferring data.
+        """
+        if close is True:
+            self.close()
+        for fname in self._file_list:
+            file_name = '{1}.edf'.format(fname)
+            status = self.eyelink.receiveFile(fname,
+                                              op.join(self.output_dir, fname))
+		print ('saving Eyelink file: {0}\tstatus: {1}'
+                  '.format(fname, status)')  # XXX
 
     def close(self):
         """Close file and shutdown Eyelink"""
