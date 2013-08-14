@@ -71,6 +71,8 @@ def test_button_presses_and_window_size():
     while len(pressed) < 3:
         pressed.append(ec.get_press(live_keys=['1'])[0])
     assert pressed == ['1', '1', '1']
+    ec.win.close()
+    del ec
 
 
 def test_with_support():
