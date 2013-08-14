@@ -18,6 +18,7 @@ import json
 from distutils.version import LooseVersion
 import pyglet
 import platform
+from numpy.testing.decorators import skipif
 
 
 ###############################################################################
@@ -270,7 +271,8 @@ known_config_types = [
     'TDT_INTERFACE',
     'TDT_CIRCUIT_PATH',
     'WINDOW_SIZE',
-	'SCREEN_NUM'
+    'SCREEN_NUM',
+    'EXPYFUN_INTERACTIVE_TESTING'
     ]
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed
@@ -357,7 +359,7 @@ def set_config(key, value):
             config = json.load(fid)
     else:
         config = dict()
-        logger.info('Attempting to create new expyfun configuration '
+        psylog.info('Attempting to create new expyfun configuration '
                     'file:\n%s' % config_path)
     if value is None:
         config.pop(key, None)
@@ -382,3 +384,8 @@ def _check_pyglet_version(raise_error=False):
                           'version 1.2, and you are running '
                           '{0}'.format(pyglet.version))
     return is_usable
+
+
+interactive_test = skipif(get_config('EXPYFUN_INTERACTIVE_TESTING', 'False') !=
+                          'True', 'Interactive testing disabled.')
+
