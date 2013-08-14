@@ -5,13 +5,18 @@
 #
 # License: BSD (3-clause)
 
+import numpy as np
+from os import path as op
+import time
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink
 except ImportError:
     pylink = None
 from .utils import get_config, verbose_dec
-from .eyelink_calibration import _run_calibraton
+from .eyelink_calibration import _run_calibration
+
+eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
 
 class EyelinkController(object):
@@ -48,7 +53,12 @@ class EyelinkController(object):
         Executes automatically on init, and needs to be run after
         el_save() if more eye tracking is desired.
 
-        XXX
+        Parameters
+        ----------
+        res : tuple (length 2)
+            The screen resolution used.
+        fs : int
+            The sample rate to use.
         """
         # Add comments
         self.command('add_file_preamble_text "Recorded by EyelinkController"')
@@ -109,7 +119,9 @@ class EyelinkController(object):
         eye : str
             'left' or 'right'.
         """
-        return self.eyelink.eyeAvailable()
+        eu = self.eyelink.eyeAvailable()
+        eu = eye_list[eu] if eu >= 0 else None
+        return eu
 
     def command(self, cmd):
         """Send Eyelink a command
@@ -124,7 +136,7 @@ class EyelinkController(object):
         unknown
             The output of the command.
         """
-        return self.eyelink.command(cmd)
+        return self.eyelink.sendCommand(cmd)
 
     def start(self):
         """Start Eyelink recording"""
@@ -133,7 +145,7 @@ class EyelinkController(object):
         if len(file_name) > 8:
             raise RuntimeError('filename ("{0}") is too long!\n'
                                'Must be < 8 chars'.format(file_name))
-        self.eyelink.openfile(file_name)
+        self.eyelink.openDataFile(file_name)
         self._file_names += [file_name]
 
     def stop(self):
@@ -164,7 +176,7 @@ class EyelinkController(object):
         if start is True:
             self.start()
 
-    def message(self, message):
+    def message(self, msg):
         """Send message to eyelink
 
         For TRIALIDs, it is suggested to use "TRIALID # # #", i.e.,
@@ -175,10 +187,10 @@ class EyelinkController(object):
         msg : str
             The message to stamp.
         """
-        if not isinstance(message, str):
+        if not isinstance(msg, str):
             raise TypeError('message must be a string')
-        self.eyelink.message(message)
-        self.eyelink.command('record_status_message "{0}"'.format(message))
+        self.message(msg)
+        self.command('record_status_message "{0}"'.format(msg))
 
     def save(self, close=True):
         """Save data
@@ -191,19 +203,18 @@ class EyelinkController(object):
         """
         if close is True:
             self.close()
-        for fname in self._file_list:
-            file_name = '{1}.edf'.format(fname)
-            status = self.eyelink.receiveFile(fname,
-                                              op.join(self.output_dir, fname))
-		print ('saving Eyelink file: {0}\tstatus: {1}'
-                  '.format(fname, status)')  # XXX
+        for remote_name in self._file_list:
+            fname = op.join(self.output_dir, '{1}.edf'.format(remote_name))
+            status = self.eyelink.receiveDataFile(remote_name, fname))
+            print ('saving Eyelink file: {0}\tstatus: {1}'
+                   ''.format(fname, status))  # XXX
 
     def close(self):
         """Close file and shutdown Eyelink"""
         if self.eyelink.isConnected():
             self.eyelink.stopRecording()
-            self.eyelink.closeFile()
-        self.eyelink.shutdown()
+            self.eyelink.closeDataFile()
+        self.eyelink.close()
 
     def wait_for_fix(self, fix_pos, tol=15):
         """Wait for gaze to settle within a defined region
@@ -241,12 +252,15 @@ class EyelinkController(object):
         """
         raise NotImplementedError
 
-    def custom_calibration(coordinates):
+    def custom_calibration(self, coords):
         """Use a custom calibration sequence
 
         Parameters
         ----------
-        coordinates : array
+        coords : array
             Nx2 array of target screen coordinates ([x, y] in columns).
         """
+        coords = np.asanyarray(coords)
+        if not len(coords.shape) == 2 or coords.shape[1] != 2:
+            raise ValueError('coords must be a 2D array with 2 columns')
         raise NotImplementedError
