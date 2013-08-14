@@ -1,4 +1,5 @@
 *.py[cod]
+*.mat
 
 # C extensions
 *.so
@@ -33,3 +34,9 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# WAV files
+*.wav
+
+# Due to examples
+examples/rawData
