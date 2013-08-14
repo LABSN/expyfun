@@ -339,9 +339,10 @@ class ExperimentController(object):
         ([], None).
         """
         if self.response_device == 'keyboard':
-            live_keys = [str(x) for x in live_keys]  # accept ints
-            if len(self._force_quit):
-                live_keys = live_keys + self._force_quit
+            if live_keys is not None:
+                live_keys = [str(x) for x in live_keys]  # accept ints
+                if len(self._force_quit) and len(live_keys):
+                    live_keys = live_keys + self._force_quit
             self.button_handler.keys = []
             self.button_handler.rt = []
             self.button_handler.clock.reset()
