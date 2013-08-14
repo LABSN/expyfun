@@ -11,7 +11,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 
 
 @requires_pylink
-def test_eyelink_init():
+def test_eyelink_methods():
     """Test basic eyelink methods
     """
     ec = ExperimentController(*std_args, **std_kwargs)
