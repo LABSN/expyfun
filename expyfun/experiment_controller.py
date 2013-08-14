@@ -339,10 +339,7 @@ class ExperimentController(object):
         ([], None).
         """
         if self.response_device == 'keyboard':
-            if live_keys is not None:
-                live_keys = [str(x) for x in live_keys]  # accept ints
-                if len(self._force_quit) and len(live_keys):
-                    live_keys = live_keys + self._force_quit
+            live_keys = _add_escape_keys(live_keys, self._force_quit)
             self.button_handler.keys = []
             self.button_handler.rt = []
             self.button_handler.clock.reset()
@@ -391,9 +388,7 @@ class ExperimentController(object):
         """
         assert min_wait < max_wait
         if self.response_device == 'keyboard':
-            live_keys = [str(x) for x in live_keys]  # accept ints
-            if len(self._force_quit):
-                live_keys = live_keys + self._force_quit
+            live_keys = _add_escape_keys(live_keys, self._force_quit)
             self.button_handler.keys = []
             self.button_handler.rt = []
             self.button_handler.clock.reset()
@@ -647,3 +642,12 @@ def _get_stim_scaler(audio_controller, stim_amp, stim_rms):
     """
     exponent = (-(_get_rms(audio_controller) - stim_amp) / 20) / stim_rms
     return np.power(10, exponent)
+
+def _add_escape_keys(live_keys, _force_quit):
+    """Helper to add force quit key
+    """
+    if live_keys is not None:
+        live_keys = [str(x) for x in live_keys]  # accept ints
+        if len(_force_quit) and len(live_keys):
+            live_keys = live_keys + _force_quit
+    return live_keys
