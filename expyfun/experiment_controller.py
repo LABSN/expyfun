@@ -77,13 +77,13 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  session=None, verbose=None):
 
+        if force_quit is None:
+            force_quit = ['escape', 'lctrl', 'rctrl']
+
         # self._stim_fs = stim_fs
         self._stim_amp = stim_amp
         self._noise_amp = noise_amp
         self._force_quit = force_quit
-
-        if force_quit is None:
-            force_quit = ['escape', 'lctrl', 'rctrl']
 
         # Check Pyglet version for safety
         _check_pyglet_version(raise_error=True)
@@ -124,8 +124,8 @@ class ExperimentController(object):
         self.master_clock = core.Clock()
         self.trial_clock = core.Clock()
 
-        # list of trial components
-        self.trial_components = []
+        # list of entities to draw / clear from the visual window
+        self.screen_objects = []
 
         # response device
         if response_device is None:
@@ -154,7 +154,7 @@ class ExperimentController(object):
             self.audio_type = self.tdt.model
             self._fs = self.tdt.fs
         elif self.audio_type == 'psychopy':
-            psylog.info('Expyfun: Initializing PsychoPy audio')
+            psylog.info('Expyfun: Setting up PsychoPy audio')
             self.tdt = None
             self._fs = 44100
             if sound.Sound is None:
@@ -185,17 +185,8 @@ class ExperimentController(object):
                                  winType='pyglet', allowGUI=False,
                                  allowStencil=False, color=bkgd_color,
                                  colorSpace='rgb')
-
-        # basic components
-        self.data_handler = data.ExperimentHandler(name=exp_name, version='',
-                                                   extraInfo=self.exp_info,
-                                                   runtimeInfo=None,
-                                                   originPath=None,
-                                                   savePickle=True,
-                                                   saveWideText=True,
-                                                   dataFileName=basename)
         self.text_stim = visual.TextStim(win=self.win, text='', pos=[0, 0],
-                                         height=0.1, wrapWidth=0.9,
+                                         height=0.1, wrapWidth=1.2,
                                          units='norm', color=[1, 1, 1],
                                          colorSpace='rgb', opacity=1.0,
                                          contrast=1.0, name='myTextStim',
@@ -204,20 +195,26 @@ class ExperimentController(object):
                                          alignVert='center', bold=False,
                                          italic=False, font='Arial',
                                          fontFiles=[], antialias=True)
-        self.button_handler = event.BuilderKeyResponse()
+        self.screen_objects.append(self.text_stim)
         #self.shape_stim = visual.ShapeStim()
+        #self.screen_objects.append(self.shape_stim)
 
-        # append to list of trial components
-        self.trial_components.append(self.button_handler)
-        self.trial_components.append(self.text_stim)
-        #self.trial_components.append(self.shape_stim)
+        # other basic components
+        self.button_handler = event.BuilderKeyResponse()
+        self.data_handler = data.ExperimentHandler(name=exp_name, version='',
+                                                   extraInfo=self.exp_info,
+                                                   runtimeInfo=None,
+                                                   originPath=None,
+                                                   savePickle=True,
+                                                   saveWideText=True,
+                                                   dataFileName=basename)
 
-        self.master_clock.reset()
         psylog.info('Expyfun: Initialization complete')
         psylog.info('Expyfun: Subject: {0}'
                     ''.format(self.exp_info['participant']))
         psylog.info('Expyfun: Session: {0}'
                     ''.format(self.exp_info['session']))
+        self.master_clock.reset()
 
     def __repr__(self):
         """Return a useful string representation of the experiment
@@ -249,11 +246,10 @@ class ExperimentController(object):
 
         Returns
         -------
-        val : str | None
-            The button that was pressed. Will be None if the function timed
-            out before the subject responded.
-        time : float
-            The timestamp.
+        pressed : tuple
+            A tuple (str, float) indicating the first key pressed and its
+            timestamp. If no acceptable key is pressed between min_wait and
+            max_wait, returns ([], max_wait).
         """
         if np.isinf(max_wait) and live_keys is None:
             raise ValueError('You have asked for max_wait=inf with '
@@ -264,13 +260,10 @@ class ExperimentController(object):
             wait_secs(max_wait)
             return (None, max_wait)
         else:
-            wait_secs(min_wait)
-            return self.get_press(max_wait=max_wait - min_wait,
-                                  live_keys=live_keys)
+            return self.get_press(max_wait, min_wait, live_keys)
 
     def screen_text(self, text, clock=None):
-        """Show some text on the screen. Wrapper for PsychoPy's
-        visual.TextStim.SetText() method.
+        """Show some text on the screen.
 
         Parameters
         ----------
@@ -291,7 +284,7 @@ class ExperimentController(object):
         """Remove all visual stimuli from the screen.
         """
         #self.text_stim.status = FINISHED
-        for comp in self.trial_components:
+        for comp in self.screen_objects:
             if hasattr(comp, 'setAutoDraw'):
                 comp.setAutoDraw(False)
         self.win.flip()
@@ -302,9 +295,6 @@ class ExperimentController(object):
         self.trial_clock.reset()
         self.button_handler.keys = []
         self.button_handler.rt = []
-        #for comp in self.trial_components:
-        #    if hasattr(comp, 'status'):
-        #        comp.status = NOT_STARTED
 
     def add_data_line(self, data_dict):
         """Add a line of data to the output CSV.
@@ -334,9 +324,10 @@ class ExperimentController(object):
 
         Returns
         -------
-        Tuple (str, float) indicating the first key pressed and its timestamp.
-        If no acceptable key is pressed between min_wait and max_wait, returns
-        ([], None).
+        pressed : tuple
+            A tuple (str, float) indicating the first key pressed and its
+            timestamp. If no acceptable key is pressed between min_wait and
+            max_wait, returns ([], None).
         """
         if self.response_device == 'keyboard':
             live_keys = _add_escape_keys(live_keys, self._force_quit)
@@ -383,8 +374,10 @@ class ExperimentController(object):
 
         Returns
         -------
-        List of tuples (str, float) indicating which keys were pressed and
-        their timestamps.
+        presses : list
+            A list of tuples (str, float) indicating the key(s) pressed and
+            their timestamp(s). If no acceptable keys were pressed between
+            min_wait and max_wait, returns the one-item list [([], None)].
         """
         assert min_wait < max_wait
         if self.response_device == 'keyboard':
@@ -490,7 +483,6 @@ class ExperimentController(object):
     def close(self):
         """Close all connections in experiment controller.
         """
-        self.win.close()
         self.__exit__(None, None, None)
 
     def flip_and_play(self, clock=None):
@@ -564,6 +556,7 @@ class ExperimentController(object):
         err_type, value and traceback will be None when called by self.close()
         """
         psylog.debug('Expyfun: Exiting cleanly')
+        self.win.close()
         if self.tdt is not None:
             # TODO: self.tdt.stop_noise()
             self.tdt.trigger(4)  # kill noise
@@ -643,11 +636,13 @@ def _get_stim_scaler(audio_controller, stim_amp, stim_rms):
     exponent = (-(_get_rms(audio_controller) - stim_amp) / 20) / stim_rms
     return np.power(10, exponent)
 
+
 def _add_escape_keys(live_keys, _force_quit):
-    """Helper to add force quit key
+    """Helper to add force quit keys to button press listener.
     """
     if live_keys is not None:
-        live_keys = [str(x) for x in live_keys]  # accept ints
-        if len(_force_quit) and len(live_keys):
+        if len(live_keys):
+            live_keys = [str(x) for x in live_keys]  # accept ints
+        if len(_force_quit):
             live_keys = live_keys + _force_quit
     return live_keys
