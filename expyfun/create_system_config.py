@@ -7,7 +7,7 @@ Created on Mon Jul 29 11:28:06 2013
 
 import logging
 
-from .utils import set_config, verbose
+from .utils import set_config, verbose_dec
 
 logger = logging.getLogger('expyfun')
 
@@ -52,7 +52,7 @@ def _check_resp_dev():
         return None
 
 
-@verbose
+@verbose_dec
 def create_system_config(verbose=None):
     """Initialize system settings
 
