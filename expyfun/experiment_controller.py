@@ -356,11 +356,10 @@ class ExperimentController(object):
             return result
         else:
             raise NotImplementedError()
-            # TODO: check the proper tag name for our circuit
-            # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
+            # TODO: self.tdt.get_first_press(max_wait, min_wait, live_keys)
 
     def get_presses(self, max_wait, min_wait=0.0, live_keys=None):
-        """Returns all button presses between min_wait and max_wait.
+        """Get button presses between min_wait and max_wait.
 
         Parameters
         ----------
@@ -408,8 +407,7 @@ class ExperimentController(object):
             return result
         else:
             raise NotImplementedError()
-            # TODO: check the proper tag name for our circuit
-            # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
+            # TODO: self.tdt.get_presses()
 
     def _check_force_quit(self, keys):
         """Compare key buffer to list of force-quit keys and quit if matched.
@@ -473,8 +471,8 @@ class ExperimentController(object):
         """
         psylog.info('Expyfun: Stopping and resetting audio playback')
         if self.tdt is not None:
-            self._stop_tdt()
-            self._reset_tdt()
+            self.tdt.stop()
+            self.tdt.reset()
         else:
             # PsychoPy doesn't cleanly support playing from middle, so no
             # rewind necessary
@@ -525,25 +523,10 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: playing audio')
         if self.tdt is not None:
-            # TODO: self.tdt.play()
-            self.tdt.trigger(1)
+            self.tdt.play()
         else:
             self.audio.tStart = clock.getTime()
             self.audio.play()
-
-    def _stop_tdt(self):
-        """Stop TDT ring buffer playback.
-        """
-        psylog.debug('Stopping audio')
-        # TODO: self.tdt.stop()
-        self.tdt.trigger(2)
-
-    def _reset_tdt(self):
-        """Reset TDT audio buffer to beginning.
-        """
-        psylog.debug('Expyfun: Resetting audio')
-        # TODO: self.tdt.reset()
-        self.tdt.trigger(5)
 
     def __enter__(self):
         psylog.debug('Expyfun: Entering')
@@ -558,8 +541,7 @@ class ExperimentController(object):
         psylog.debug('Expyfun: Exiting cleanly')
         self.win.close()
         if self.tdt is not None:
-            # TODO: self.tdt.stop_noise()
-            self.tdt.trigger(4)  # kill noise
+            self.tdt.stop_noise()
             self.stop_reset()
             self.tdt.halt_circuit()
         try:

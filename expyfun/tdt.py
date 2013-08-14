@@ -127,7 +127,7 @@ class TDT(object):
         """
         return self._interface
 
-    def trigger(self, trigger_number):
+    def _trigger(self, trigger_number):
         """Wrapper for tdt.util.RPcoX.SoftTrg()
 
         Parameters
@@ -144,17 +144,120 @@ class TDT(object):
         # TODO: check to make sure data is properly formatted / correct dtype
         # check dimensions of array
         # cast as np.float32 with order='C'
+        # handle left/right channels
         self.rpcox.WriteTagV(buffer_name, offset, data)
 
     def clear_buffer(self, buffer_name):
         """Wrapper for tdt.util.RPcoX.ZeroTag()
         """
+        # TODO: handle left/right channels
         self.rpcox.ZeroTag(buffer_name)
 
     def halt_circuit(self):
         """Wrapper for tdt.util.RPcoX.Halt()
         """
         self.rpcox.Halt()
+
+    def play(self):
+        """Send the soft trigger to start the ring buffer playback.
+        """
+        psylog.debug('Expyfun: Starting TDT ring buffer')
+        self._trigger(1)
+
+    def stop(self):
+        """Send the soft trigger to stop the ring buffer playback.
+        """
+        psylog.debug('Stopping TDT audio')
+        self._trigger(2)
+
+    def play_noise(self):
+        """Send the soft trigger to start the noise generator.
+        """
+        psylog.debug('Expyfun: Starting TDT noise')
+        self._trigger(3)
+
+    def stop_noise(self):
+        """Send the soft trigger to stop the noise generator.
+        """
+        psylog.debug('Expyfun: Stopping TDT noise')
+        self._trigger(4)
+
+    def reset(self):
+        """Send the soft trigger to reset the ring buffer.
+        """
+        psylog.debug('Expyfun: Resetting TDT ring buffer')
+        self._trigger(5)
+
+    def get_first_press(self, max_wait, min_wait, live_buttons):
+        """Returns only the first button pressed after min_wait.
+
+        Parameters
+        ----------
+        max_wait : float
+            Duration after which control is returned.
+        min_wait : float
+            Duration for which to ignore keypresses.
+        live_keys : list | None
+            List of strings indicating acceptable keys or buttons. Other data
+            types are automatically cast as strings.
+
+        Returns
+        -------
+        presses : list
+            A list of tuples (str, float) indicating the key(s) pressed and
+            their timestamp(s). If no acceptable keys were pressed between
+            min_wait and max_wait, returns the one-item list [([], None)].
+        """
+        raise NotImplementedError()
+        # TODO: implement
+
+    def get_presses(self, max_wait, min_wait, live_buttons):
+        """Get presses from min_wait to max_wait, from buttons in live_buttons.
+
+        Parameters
+        ----------
+        max_wait : float
+            Duration after which control is returned.
+        min_wait : float
+            Duration for which to ignore keypresses.
+        live_keys : list | None
+            List of strings indicating acceptable keys or buttons. Other data
+            types are automatically cast as strings.
+
+        Returns
+        -------
+        presses : list
+            A list of tuples (str, float) indicating the key(s) pressed and
+            their timestamp(s). If no acceptable keys were pressed between
+            min_wait and max_wait, returns the one-item list [([], None)].
+        """
+        raise NotImplementedError()
+        # TODO: implement
+        """
+        press_count = self.tdt.rpcox.GetTagVal('pressind')
+        # Name, nOS, nWords, SrcType, DstType, nChans
+        press_times = self.tdt.rpcox.ReadTagVEX('presstimes', 1,
+                                                press_count, 'I32', 'F64',
+                                                1) / float(self.fs)
+        press_vals = np.ones_like(press_times)
+        return zip(press_times, press_vals)
+        """
+        #MATLAB getPresses.m
+        #WaitSecs(respWindow);
+        #pressCount = invoke(TDT.RP, 'GetTagVal', 'pressind');
+        #pressTimes = invoke(TDT.RP, 'ReadTagVEX', 'presstimes', 1, pressCount, 'I32', 'F64', 1)/TDT.fs;
+        #pressVals = ones(size(pressTimes)); % TDT circuit should be upgraded to log all presses, rather than just 1-button
+        #pressTimes = pressTimes - tSound;
+        #pressTimes([false; diff(pressTimes)<0.1]) = []; % De-bounce presses
+        #pressTimes = pressTimes((pressTimes >= 0) & (pressTimes <= respWindow));
+
+        #MATLAB ReturnButtonNum.m
+        #resp_num = buttonbox2num( invoke(TDT.RP, 'GetTagVal', 'currentbboxval') );
+
+        #MATLAB buttonBox2Num.m
+        #unique_button_codes = 2.^(0:7);
+        #resp_num = find(unique_button_codes == button_box_code);
+        #else resp_num = -1; % double press or no press
 
 
 def get_tdt_rates():
