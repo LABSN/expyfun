@@ -18,7 +18,7 @@ try:
 except ImportError:
     pylink = None
 from .utils import get_config, verbose_dec
-
+from .eyelink_core_graphics_pyglet import EyeLinkCoreGraphicsPyglet
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
 
