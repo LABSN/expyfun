@@ -68,6 +68,11 @@ class ExperimentController(object):
     -------
     exp_controller : instance of ExperimentController
         The experiment control interface.
+
+    Notes
+    -----
+    When debugging, it's useful to use the flush_logs() method to get
+    information (based on the level of verbosity) printed to the console.
     """
 
     @verbose_dec
@@ -214,6 +219,7 @@ class ExperimentController(object):
                     ''.format(self.exp_info['participant']))
         psylog.info('Expyfun: Session: {0}'
                     ''.format(self.exp_info['session']))
+        self.flush_logs()
         self.master_clock.reset()
 
     def __repr__(self):
@@ -556,6 +562,12 @@ class ExperimentController(object):
         """Set the amplitude of the stimuli.
         """
         self._stim_amp = new_amp
+
+    def flush_logs(self):
+        """Flush logs (useful for debugging)
+        """
+        # pyflakes won't like this, but it's better here than outside class
+        psylog.flush()
 
     def _play(self, clock):
         """Play the audio buffer.
