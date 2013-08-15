@@ -309,7 +309,24 @@ class ExperimentController(object):
             self.data_handler.addData(key, value)
         self.data_handler.nextEntry()
 
-    def get_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None):
+    def wait_secs(self, *args, **kwargs):
+        """Wait a specified number of seconds.
+
+        Parameters
+        ----------
+        secs : float
+            Number of seconds to wait.
+        hog_cpu_time : float
+            Amount of CPU time to hog. See Notes.
+
+        Notes
+        -----
+        See the wait_secs() function.
+        """
+        wait_secs(*args, **kwargs)
+
+    def get_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
+                  timestamp=True):
         """Returns only the first button pressed after min_wait.
 
         Parameters
@@ -321,14 +338,18 @@ class ExperimentController(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are automatically cast as strings.
+        timestamp : bool
+            Whether the keypresses should be timestamped.
 
         Returns
         -------
-        pressed : tuple
-            A tuple (str, float) indicating the first key pressed and its
-            timestamp. If no acceptable key is pressed between min_wait and
-            max_wait, returns ([], None).
+        pressed : tuple | str | list
+            If timestamp==True, returns a tuple (str, float) indicating the
+            first key pressed and its timestamp. If timestamp==False, returns
+            a string indicating the first key pressed. If no acceptable key is
+            pressed between min_wait and max_wait, returns [].
         """
+        assert min_wait < max_wait
         if self.response_device == 'keyboard':
             live_keys = _add_escape_keys(live_keys, self._force_quit)
             self.button_handler.keys = []
@@ -339,27 +360,33 @@ class ExperimentController(object):
             pressed = []
             while (not len(pressed) and
                    self.button_handler.clock.getTime() < max_wait):
-                pressed = event.getKeys(keyList=live_keys,
-                                        timeStamped=self.button_handler.clock)
+                if timestamp:
+                    pressed = event.getKeys(keyList=live_keys,
+                                            timeStamped=self.button_handler.clock)
+                else:
+                    pressed = event.getKeys(keyList=live_keys,
+                                            timeStamped=False)
             if len(pressed):
-                result = pressed[0]
-                self._check_force_quit(result)
-            else:
-                result = ([], None)
-            self.button_handler.keys = result[0]
-            self.button_handler.rt = result[1]
-            self.data_handler.addData('button_presses',
-                                      self.button_handler.keys)
-            self.data_handler.addData('reaction_times',
-                                      self.button_handler.rt)
-            self.data_handler.nextEntry()
-            return result
+                pressed = pressed[0]
+                self._check_force_quit(pressed)
+	        if len(pressed) and timestamp:
+	            self.button_handler.keys = pressed[0]
+	            self.button_handler.rt = pressed[1]
+	            self.data_handler.addData('reaction_times',
+	                                      self.button_handler.rt)
+	        else:
+	            self.button_handler.keys = pressed
+	        self.data_handler.addData('button_presses',
+	                                  self.button_handler.keys)
+	        self.data_handler.nextEntry()
+            return pressed
         else:
             raise NotImplementedError()
             # TODO: check the proper tag name for our circuit
             # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
 
-    def get_presses(self, max_wait, min_wait=0.0, live_keys=None):
+    def get_presses(self, max_wait, min_wait=0.0, live_keys=None,
+                    timestamp=True):
         """Returns all button presses between min_wait and max_wait.
 
         Parameters
@@ -371,13 +398,16 @@ class ExperimentController(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are automatically cast as strings.
+        timestamp : bool
+            Whether the keypresses should be timestamped.
 
         Returns
         -------
-        presses : list
-            A list of tuples (str, float) indicating the key(s) pressed and
-            their timestamp(s). If no acceptable keys were pressed between
-            min_wait and max_wait, returns the one-item list [([], None)].
+		presses : list
+            If timestamp==False, returns a list of strings indicating which
+            keys were pressed. Otherwise, returns a list of tuples
+            (str, float) of keys and their timestamps. If no keys are pressed,
+            returns [].
         """
         assert min_wait < max_wait
         if self.response_device == 'keyboard':
@@ -385,27 +415,34 @@ class ExperimentController(object):
             self.button_handler.keys = []
             self.button_handler.rt = []
             self.button_handler.clock.reset()
+            pressed = []
             wait_secs(min_wait)
             event.clearEvents('keyboard')
-            pressed = []
             while self.button_handler.clock.getTime() < max_wait:
-                pressed += event.getKeys(keyList=live_keys,
-                                         timeStamped=self.button_handler.clock)
+                if timestamp:
+                    pressed += event.getKeys(keyList=live_keys,
+                                             timeStamped=self.button_handler.clock)
+                else:
+                    pressed += event.getKeys(keyList=live_keys,
+                                             timeStamped=False)
             if len(pressed):
-                result = pressed
-                self._check_force_quit([key for (key, _) in pressed])
-            else:
-                result = [([], None)]
-            for (key, timestamp) in result:
-                self.button_handler.keys = key
-                self.button_handler.rt = timestamp
+                if timestamp:
+                    self._check_force_quit([key for (key, _) in pressed])
+                else:
+                    self._check_force_quit(pressed)
+            for p in pressed:
+                if timestamp:
+                    self.button_handler.keys = p[0]
+                    self.button_handler.rt = p[1]
+                    self.data_handler.addData('reaction_times',
+                                              self.button_handler.rt)
+                else:
+                    self.button_handler.keys = p
                 self.data_handler.addData('button_presses',
                                           self.button_handler.keys)
-                self.data_handler.addData('reaction_times',
-                                          self.button_handler.rt)
                 #self.data_handler.addData('trial', trial_num)
                 self.data_handler.nextEntry()
-            return result
+            return pressed
         else:
             raise NotImplementedError()
             # TODO: check the proper tag name for our circuit
@@ -641,8 +678,8 @@ def _add_escape_keys(live_keys, _force_quit):
     """Helper to add force quit keys to button press listener.
     """
     if live_keys is not None:
-        if len(live_keys):
-            live_keys = [str(x) for x in live_keys]  # accept ints
-        if len(_force_quit):
+        live_keys = [str(x) for x in live_keys]  # accept ints
+    if _force_quit is not None:
+        if len(_force_quit) and len(live_keys):
             live_keys = live_keys + _force_quit
     return live_keys
