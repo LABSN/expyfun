@@ -40,3 +40,11 @@ nosetests.xml
 
 # Due to examples
 examples/rawData
+rawData
+
+doc/_build/
+doc/build/
+doc/auto_examples/
+doc/modules/generated/
+doc/source/generated/
+

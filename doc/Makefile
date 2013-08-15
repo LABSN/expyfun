@@ -1,4 +1,4 @@
-kefile for Sphinx documentation
+# Makefile for Sphinx documentation
 #
 
 # You can set these variables from the command line.
@@ -30,9 +30,6 @@ clean:
 	-rm -rf build/*
 	-rm -rf source/auto_examples
 	-rm -rf source/generated
-	-rm -rf *.stc
-	-rm -rf *.fif
-	-rm -rf *.nii.gz
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
@@ -59,22 +56,6 @@ htmlhelp:
 	@echo
 	@echo "Build finished; now you can run HTML Help Workshop with the" \
 	      ".hhp project file in build/htmlhelp."
-
-qthelp:
-	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) build/qthelp
-	@echo
-	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
-	      ".qhcp project file in build/qthelp, like this:"
-	@echo "# qcollectiongenerator build/qthelp/MNE.qhcp"
-	@echo "To view the help file:"
-	@echo "# assistant -collectionFile build/qthelp/MNE.qhc"
-
-latex:
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) build/latex
-	@echo
-	@echo "Build finished; the LaTeX files are in build/latex."
-	@echo "Run \`make all-pdf' or \`make all-ps' in that directory to" \
-	      "run these through (pdf)latex."
 
 changes:
 	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) build/changes
