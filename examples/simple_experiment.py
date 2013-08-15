@@ -26,7 +26,7 @@ orig_rms = stims['rms'][0]
 freqs = stims['freqs'][0]
 fs = stims['fs'][0][0]
 trial_order = stims['trial_order'][0]
-num_trials = len(trial_order) / 2 + 1  # 1/2 of stims presented as mass trial
+num_trials = len(trial_order)
 num_freqs = len(freqs)
 
 if num_freqs > 8:
@@ -46,7 +46,7 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
 with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
                           window_size=[800, 600], full_screen=False,
                           stim_amp=75, noise_amp=45, participant='foo',
-                          session='001') as ec:
+                          session='001', verbose=False) as ec:
     ec.set_noise_amp(45)
     ec.set_stim_amp(75)
     # define usable buttons / keys
@@ -85,7 +85,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     mass_trial = trial_order[int(len(trial_order) / 2):]
     # run half the trials
     for stim_num in single_trials:
-        ec.add_data_line({'stim_num': stim_num})
+        ec.add_data_line({'stim_num': stim_num + 1})  # 0-indexing
         ec.clear_buffer()
         ec.load_buffer(wavs[stim_num])
         ec.init_trial()
@@ -109,7 +109,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     pause = np.zeros((int(ec.fs) / 4, 2))
     stims = [np.row_stack((wavs[stim], pause)) for stim in mass_trial]
     # run mass trial
-    mass_stim = np.row_stack((stims[stim_num] for stim_num in mass_trial))
+    mass_stim = np.row_stack((stims[n] for n in range(len(stims))))
     ec.screen_prompt('Now you will hear {0} tones in a row. After they stop, '
                      'you will have {1} seconds to push the buttons in the '
                      'order that the tones played in. Press one of the buttons'
@@ -118,23 +118,23 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     ec.clear_screen()
     ec.clear_buffer()
     ec.load_buffer(mass_stim)
-    ec.add_data_line({'stim_num': mass_trial})
+    ec.add_data_line({'stim_num': [x + 1 for x in mass_trial]})  # 0-indexing
     ec.init_trial()
     ec.flip_and_play()
     ec.wait_secs(len(mass_stim) / float(ec.fs))
     ec.screen_text('Go!')
-    presses = ec.get_presses(max_resp_time, min_resp_time, live_keys)
-    print presses
-    correct = [presses[n] == map(str, mass_trial)[n] for n in
-               range(len(mass_trial))]
-    if all(correct):
-        running_total += 1
+    pressed = ec.get_presses(max_resp_time, min_resp_time, live_keys, False)
+    answers = [str(x + 1) for x in mass_trial]
+    print pressed
+    print answers
+    correct = [pressed[n] == answers[n] for n in range(len(pressed))]
+    running_total += sum(correct)
     ec.screen_prompt('You got {} out of {} correct.'.format(sum(correct),
-                     len(correct)), max_wait=feedback_dur)
+                     len(answers)), max_wait=feedback_dur)
 
     # end experiment
     ec.add_data_line({'stim_num': 'prompt'})
-    ec.screen_prompt('All done! You got {0} correct out of {1} trials. Press '
-                     '{2} to close.'.format(running_total, num_trials,
-                                            ec._force_quit[0]))
+    ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '
+                     '"escape" to close.'.format(running_total, num_trials), 
+                     live_keys=['escape'])
     ec.clear_screen()
