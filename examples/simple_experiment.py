@@ -69,6 +69,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
                 not_yet_pressed.pop(not_yet_pressed.index(p))
     ec.clear_buffer()
     ec.clear_screen()
+    ec.flush_logs()  # let's print the logs thus far (useful for debugging)
     ec.wait_secs(isi)
 
     # show instructions finished screen
