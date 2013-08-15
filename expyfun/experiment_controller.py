@@ -679,7 +679,7 @@ def _add_escape_keys(live_keys, _force_quit):
     """
     if live_keys is not None:
         live_keys = [str(x) for x in live_keys]  # accept ints
-    if _force_quit is not None:
-        if len(_force_quit) and len(live_keys):
-            live_keys = live_keys + _force_quit
+        if _force_quit is not None:
+            if len(_force_quit) and len(live_keys):
+                live_keys = live_keys + _force_quit
     return live_keys

@@ -127,10 +127,10 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     answers = [str(x + 1) for x in mass_trial]
     print pressed
     print answers
-    correct = [pressed[n] == answers[n] for n in range(len(answers))]
+    correct = [pressed[n] == answers[n] for n in range(len(pressed))]
     running_total += sum(correct)
     ec.screen_prompt('You got {} out of {} correct.'.format(sum(correct),
-                     len(correct)), max_wait=feedback_dur)
+                     len(answers)), max_wait=feedback_dur)
 
     # end experiment
     ec.add_data_line({'stim_num': 'prompt'})
