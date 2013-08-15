@@ -136,6 +136,6 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     # end experiment
     ec.add_data_line({'stim_num': 'prompt'})
     ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '
-                     '"escape" to close.'.format(running_total, num_trials), 
+                     '"escape" to close.'.format(running_total, num_trials),
                      live_keys=['escape'])
     ec.clear_screen()
