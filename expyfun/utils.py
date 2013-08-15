@@ -264,16 +264,16 @@ def get_config_path():
 
 
 # List the known configuration values
-known_config_types = [
-    'RESPONSE_DEVICE',
-    'AUDIO_CONTROLLER',
-    'TDT_MODEL',
-    'TDT_INTERFACE',
-    'TDT_CIRCUIT_PATH',
-    'WINDOW_SIZE',
-    'SCREEN_NUM',
-    'EXPYFUN_INTERACTIVE_TESTING'
-    ]
+known_config_types = ['RESPONSE_DEVICE',
+                      'AUDIO_CONTROLLER',
+                      'TDT_MODEL',
+                      'TDT_INTERFACE',
+                      'TDT_CIRCUIT_PATH',
+                      'WINDOW_SIZE',
+                      'SCREEN_NUM',
+                      'EXPYFUN_INTERACTIVE_TESTING'
+                      'EXPYFUN_LOGGING_LEVEL'
+                      ]
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed
 known_config_wildcards = []
