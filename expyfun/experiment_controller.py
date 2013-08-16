@@ -5,14 +5,15 @@
 #
 # License: BSD (3-clause)
 
+import platform
 import numpy as np
 import os
 from os import path as op
 from functools import partial
-from psychopy import visual, core, data, event, sound, gui
+from psychopy import visual, core, data, event, sound, gui, parallel
 from psychopy import logging as psylog
 
-from .utils import get_config, verbose_dec, _check_pyglet_version
+from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
 from .tdt import TDT
 
 
@@ -61,6 +62,11 @@ class ExperimentController(object):
         If None, a GUI will be used to acquire this information.
     session : str | None
         If None, a GUI will be used to acquire this information.
+    trigger_controller : str | None
+        If None, the type will be read from the system configuration file.
+        If a string, must be 'dummy', 'parallel', or 'tdt'. Note that by
+        default the mode is 'dummy', since setting up the parallel port
+        can be a pain.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -80,7 +86,7 @@ class ExperimentController(object):
                  stim_rms=0.01, stim_fs=44100, stim_amp=65, noise_amp=-np.Inf,
                  output_dir='rawData', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
-                 session=None, verbose=None):
+                 trigger_controller=None, session=None, verbose=None):
 
         if force_quit is None:
             force_quit = ['escape', 'lctrl', 'rctrl']
@@ -175,6 +181,19 @@ class ExperimentController(object):
         # scaling factor to ensure uniform intensity across output devices
         self._stim_scaler = _get_stim_scaler(self.audio_type, stim_amp,
                                              stim_rms)
+
+        if trigger_controller is None:
+            trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
+        if trigger_controller == 'tdt':
+            self._trigger_handler = self.tdt
+        elif trigger_controller == 'parallel':
+            self._trigger_handler = _psych_parallel()
+        elif trigger_controller == 'dummy':
+            self._trigger_handler = _psych_parallel(dummy_mode=True)
+        else:
+            raise ValueError('trigger_controller must be either "parallel", '
+                             '"dummy", or "tdt", not '
+                             '{0}'.format(trigger_controller))
 
         # placeholder for extra actions to do on flip-and-play
         self._fp_function = None
@@ -542,6 +561,7 @@ class ExperimentController(object):
             clock = self.trial_clock
         self.win.callOnFlip(self._play, clock)
         if self._fp_function is not None:
+            # PP automatically appends calls
             self.win.callOnFlip(self._fp_function)
         self.win.flip()
 
@@ -563,6 +583,30 @@ class ExperimentController(object):
         """
         self._stim_amp = new_amp
 
+    def stamp_triggers(self, trigger_list, delay=0.03):
+        """Stamp experiment ID triggers
+
+        Parameters
+        ----------
+        trigger_list : list
+            List of numbers to stamp.
+        delay : float
+            Delay to use between sequential triggers.
+
+        Notes
+        -----
+        Depending on how EC was initialized, stamping could be done
+        using different pieces of hardware (e.g., parallel port or TDT).
+        Also note that it is critical that the input is a list, and
+        that all elements are integers. No input checking is done to
+        ensure responsiveness.
+
+        Also note that control will not be returned to the script until
+        the stamping is complete.
+        """
+        self._trigger_handler.stamp_triggers(trigger_list, delay)
+        psylog.exp('Stamped: ' + str(trigger_list))
+
     def flush_logs(self):
         """Flush logs (useful for debugging)
         """
@@ -579,6 +623,7 @@ class ExperimentController(object):
         else:
             self.audio.tStart = clock.getTime()
             self.audio.play()
+            self.stamp_triggers([1])
 
     def _stop_tdt(self):
         """Stop TDT ring buffer playback.
@@ -627,38 +672,73 @@ class ExperimentController(object):
         return self._fs  # not user-settable
 
 
-def wait_secs(secs, hog_cpu_time=0.2):
-    """Wait a specified number of seconds.
+class _psych_parallel(object):
+    """Parallel port and dummy triggering support
 
     Parameters
     ----------
-    secs : float
-        Number of seconds to wait.
-    hog_cpu_time : float
-        Amount of CPU time to hog. See Notes.
+    dummy_mode : bool
+        If True, then just pass through stamping calls.
+    high_duration : float
+        Amount of time (seconds) to leave the trigger high whenever
+        sending a trigger.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see expyfun.verbose).
 
     Notes
     -----
-    From the PsychoPy documentation:
-    If secs=10 and hogCPU=0.2 then for 9.8s python's time.sleep function
-    will be used, which is not especially precise, but allows the cpu to
-    perform housekeeping. In the final hogCPUperiod the more precise method
-    of constantly polling the clock is used for greater precision.
+    On Linux, this may require some combination of the following:
 
-    If you want to obtain key-presses during the wait, be sure to use
-    pyglet and to hogCPU for the entire time, and then call
-    psychopy.event.getKeys() after calling wait().
-
-    If you want to suppress checking for pyglet events during the wait, do
-    this once:
-        core.checkPygletDuringWait = False
-    and from then on you can do:
-        core.wait(sec)
-    This will preserve terminal-window focus during command line usage.
+    1. ``sudo modprobe ppdev``
+    2. ``sudo mknod /dev/parport0 c 99 0 -m 666``
+    3. Add user to ``lp`` group (``/etc/group``)
     """
-    if any([secs < 0.2, secs < hog_cpu_time]):
-        hog_cpu_time = secs
-    core.wait(secs, hogCPUperiod=hog_cpu_time)
+    @verbose_dec
+    def __init__(self, dummy_mode=True, high_duration=0.01, verbose=None):
+        if dummy_mode is True:
+            self.parallel = None
+            self.stamp_triggers = self._dummy_triggers
+            psylog.info('Initializing dummy triggering mode')
+        else:
+            self.stamp_triggers = self._stamp_triggers
+            # Psychopy has some legacy methods (e.g., parallel.setData()),
+            # but we triage here to save time when time-critical stamping
+            # may be used
+            if platform.system() == 'Linux':
+                try:
+                    import parallel as _p
+                    assert _p
+                except ImportError:
+                    raise ImportError('must have module "parallel" installed '
+                                      'to use parallel triggering on Linux')
+                else:
+                    self.parallel = parallel.PParallelLinux()
+            else:
+                raise NotImplementedError
+
+            psylog.info('Initializing psychopy parallel port triggering')
+        self.high_duration = high_duration
+
+    def _dummy_triggers(self, triggers, delay):
+        pass
+
+    def _stamp_triggers(self, triggers, delay):
+        """Stamp a list of triggers with a given inter-trigger delay
+
+        Parameters
+        ----------
+        triggers : list
+            No input checking is done, so ensure triggers is a list,
+            with each entry an integer with fewer than 8 bits (max 255).
+        delay : float
+            The inter-trigger delay.
+        """
+        for ti, trig in enumerate(triggers):
+            self.parallel.setData(int(trig))
+            wait_secs(self.high_duration)
+            self.parallel.setData(0)
+            if ti < len(triggers):
+                wait_secs(delay - self.high_duration)
 
 
 def _get_rms(audio_controller):

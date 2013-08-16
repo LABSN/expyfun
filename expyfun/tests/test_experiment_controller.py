@@ -14,8 +14,15 @@ def dummy_print(string):
     print string
 
 
+def test_stamping():
+    """Test EC stamping support"""
+    ec = ExperimentController(*std_args, **std_kwargs)
+    ec.stamp_triggers([1, 2])
+    ec.close()
+
+
 def test_experiment_init():
-    """Test experiment methods
+    """Test EC methods
     """
     assert_raises(TypeError, ExperimentController, audio_controller=1,
                   *std_args, **std_kwargs)
@@ -60,7 +67,7 @@ def test_experiment_init():
 
 @interactive_test
 def test_button_presses_and_window_size():
-    """Test window_size=None and button press capture (press 1 thrice)
+    """Test EC window_size=None and button press capture (press 1 thrice)
     """
     ec = ExperimentController(*std_args, audio_controller='psychopy',
                               response_device='keyboard', window_size=None,
@@ -76,7 +83,7 @@ def test_button_presses_and_window_size():
 
 
 def test_with_support():
-    """Test experiment 'with' statement support
+    """Test EC 'with' statement support
     """
     with ExperimentController(*std_args, **std_kwargs) as ec:
         print ec
