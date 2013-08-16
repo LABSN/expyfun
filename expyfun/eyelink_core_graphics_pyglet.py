@@ -8,6 +8,7 @@ import ctypes
 import math
 import sys
 import array
+from psychopy import logging as psylog
 
 from pyglet.gl import (gl, glBegin, glColor4f, glBindTexture, glClearColor,
                        glDeleteTextures, glDisable, glEnable, glEnd,
@@ -23,7 +24,6 @@ from pyglet.gl import (gl, glBegin, glColor4f, glBindTexture, glClearColor,
                        GL_TEXTURE_MAG_FILTER, GL_TEXTURE_RECTANGLE_ARB,
                        GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE, GLU_FILL)
 
-# use tab instead of escape: pyglet exits when esc is pressed.
 key_trans_list = [[pyglet.window.key.F1, pylink.F1_KEY],
                   [pyglet.window.key.F2, pylink.F2_KEY],
                   [pyglet.window.key.F3, pylink.F3_KEY],
@@ -42,13 +42,13 @@ key_trans_list = [[pyglet.window.key.F1, pylink.F1_KEY],
                   [pyglet.window.key.RIGHT, pylink.CURS_RIGHT],
                   [pyglet.window.key.BACKSPACE, '\b'],
                   [pyglet.window.key.RETURN, pylink.ENTER_KEY],
-                  [pyglet.window.key.TAB, pylink.ESC_KEY],
+                  [pyglet.window.key.ESCAPE, pylink.ESC_KEY],
                   ]
 
 
-class EyeLinkCoreGraphicsPyglet(pylink.EyeLinkCustomDisplay):
-    def __init__(self, screen, window):
-        self.size = (screen.width, screen.height)
+class CalibratePyglet(pylink.EyeLinkCustomDisplay):
+    def __init__(self, window):
+        self.size = (window.width, window.height)
         self.window = window
         self.keys = []
 
@@ -89,9 +89,13 @@ class EyeLinkCoreGraphicsPyglet(pylink.EyeLinkCustomDisplay):
         glGenTextures(1, ctypes.byref(self.texid))
 
         def on_key_press(symbol, modifiers):
+            psylog.debug('Keypress: {0}'.format(symbol))
+            psylog.flush()
             self.translate_key_message((symbol, modifiers))
 
         def on_mouse_press(x, y, button, modifiers):
+            psylog.debug('Mouse: ({0}, {1})'.format(x, y))
+            psylog.flush()
             self.state = 1
 
         def on_mouse_motion(x, y, dx, dy):

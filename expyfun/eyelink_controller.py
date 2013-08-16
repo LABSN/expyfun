@@ -18,7 +18,7 @@ try:
 except ImportError:
     pylink = None
 from .utils import get_config, verbose_dec
-from .eyelink_core_graphics_pyglet import EyeLinkCoreGraphicsPyglet
+from .eyelink_core_graphics_pyglet import CalibratePyglet
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
 
@@ -62,10 +62,13 @@ class EyelinkController(object):
         self.output_dir = output_dir
         self._ec = ec
         self.eyelink = pylink.EyeLink(link)
-        self._is_dummy_mode = self.eyelink.getDummyMode()
         self._file_list = []
         self._display_res = self._ec.win.size.copy()
         self.setup(fs)
+
+    @property
+    def _is_dummy_mode(self):
+        return self.eyelink.getDummyMode()
 
     def setup(self, fs=1000):
         """Start up Eyelink
@@ -197,7 +200,14 @@ class EyelinkController(object):
         # stop the recording
         self.stop()
         # enter Eyetracker camera setup mode, calibration and validation
-        _run_calibration(self)
+        #if not self._is_dummy_mode:
+        self._ec.clear_screen()
+        genv = CalibratePyglet(self._ec.win.winHandle)
+        pylink.openGraphicsEx(genv)
+        genv.setup_event_handlers()
+        self.eyelink.doTrackerSetup()
+        genv.release_event_handlers()
+        self._ec.clear_screen()
         # open file to record
         if start is True:
             self.start()
@@ -388,7 +398,3 @@ class EyelinkController(object):
 
 def _within_distance(pos_1, pos_2, radius):
     return np.sum((pos_1 - pos_2) ** 2) <= radius ** 2
-
-
-def _run_calibration(el):
-    raise NotImplementedError
