@@ -26,17 +26,6 @@ except ImportError:
     has_pylink = False
 else:
     has_pylink = True
-    try:
-        test_eyelink = pylink.EyeLink(None)
-    except RuntimeError:
-        has_pylink = False
-        warnings.warn('pylink found, but could not be initialized. Only one '
-                      'instance of python can import and connect using pylink'
-                      'at a time')
-    else:
-        test_eyelink.close()
-        del test_eyelink
-        has_pylink = True
 
 
 ###############################################################################

@@ -256,8 +256,8 @@ class ExperimentController(object):
         #self._screen_objects.append(self.shape_stim)
 
         # other basic components
-        self.mouse_handler = event.Mouse(visible=False, win=self.win)
         self._button_handler = event.BuilderKeyResponse()
+        self._mouse_handler = event.Mouse(visible=False, win=self._win)
         self._data_handler = data.ExperimentHandler(name=exp_name, version='',
                                                     extraInfo=self._exp_info,
                                                     runtimeInfo=None,
@@ -648,7 +648,7 @@ class ExperimentController(object):
         visibility : bool
             If True, show; if False, hide.
         """
-        self.win.setMouseVisible(visibility)
+        self._win.setMouseVisible(visibility)
 
 
 ################################ AUDIO METHODS ###############################
