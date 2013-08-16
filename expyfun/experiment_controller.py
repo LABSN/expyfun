@@ -358,7 +358,7 @@ class ExperimentController(object):
         wait_secs(*args, **kwargs)
 
     def get_key_buffer(self):
-        """TODO: docstring
+        """Get the entire keyboard / button box buffer.
         """
         if self._response_device == 'keyboard':
             return event.getKeys(timeStamped=False)

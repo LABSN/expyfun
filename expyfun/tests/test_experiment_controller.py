@@ -92,7 +92,7 @@ def test_button_presses_and_window_size():
     while len(pressed) < 3:
         pressed.append(ec.get_first_press(live_keys=['1'])[0])
     assert pressed == ['1', '1']
-    ec.screen_prompt('press 1 thrice', live_keys=['1'])
+    pressed = ec.screen_prompt('press 1 thrice', live_keys=['1'])
     assert pressed == ['1']
     ec.win.close()
     del ec
