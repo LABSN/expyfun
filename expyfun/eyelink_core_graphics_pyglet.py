@@ -1,4 +1,7 @@
-import pylink
+try:
+    import pylink
+except ImportError:
+    pylink = None
 import pyglet
 
 import ctypes
