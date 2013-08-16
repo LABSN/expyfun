@@ -19,6 +19,7 @@ from distutils.version import LooseVersion
 import pyglet
 import platform
 from numpy.testing.decorators import skipif
+from psychopy import core
 
 
 ###############################################################################
@@ -389,3 +390,36 @@ def _check_pyglet_version(raise_error=False):
 interactive_test = skipif(get_config('EXPYFUN_INTERACTIVE_TESTING', 'False') !=
                           'True', 'Interactive testing disabled.')
 
+
+def wait_secs(secs, hog_cpu_time=0.2):
+    """Wait a specified number of seconds.
+
+    Parameters
+    ----------
+    secs : float
+        Number of seconds to wait.
+    hog_cpu_time : float
+        Amount of CPU time to hog. See Notes.
+
+    Notes
+    -----
+    From the PsychoPy documentation:
+    If secs=10 and hogCPU=0.2 then for 9.8s python's time.sleep function
+    will be used, which is not especially precise, but allows the cpu to
+    perform housekeeping. In the final hogCPUperiod the more precise method
+    of constantly polling the clock is used for greater precision.
+
+    If you want to obtain key-presses during the wait, be sure to use
+    pyglet and to hogCPU for the entire time, and then call
+    psychopy.event.getKeys() after calling wait().
+
+    If you want to suppress checking for pyglet events during the wait, do
+    this once:
+        core.checkPygletDuringWait = False
+    and from then on you can do:
+        core.wait(sec)
+    This will preserve terminal-window focus during command line usage.
+    """
+    if any([secs < 0.2, secs < hog_cpu_time]):
+        hog_cpu_time = secs
+    core.wait(secs, hogCPUperiod=hog_cpu_time)
