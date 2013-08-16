@@ -104,19 +104,19 @@ class ExperimentController(object):
         root_dir = os.getcwd()
 
         # dictionary for experiment metadata
-        self.exp_info = {'participant': participant, 'session': session,
-                         'exp_name': exp_name, 'date': data.getDateStr()}
+        self._exp_info = {'participant': participant, 'session': session,
+                          'exp_name': exp_name, 'date': data.getDateStr()}
 
         # session start dialog, if necessary
         fixed_list = ['exp_name', 'date']  # things not user-editable in GUI
-        for key, value in self.exp_info.iteritems():
+        for key, value in self._exp_info.iteritems():
             if key not in fixed_list and value is not None:
                 if not isinstance(value, basestring):
                     raise TypeError(value + ' must be a string or None')
                 fixed_list += [key]
 
-        if len(fixed_list) < len(self.exp_info):
-            session_dialog = gui.DlgFromDict(dictionary=self.exp_info,
+        if len(fixed_list) < len(self._exp_info):
+            session_dialog = gui.DlgFromDict(dictionary=self._exp_info,
                                              fixed=fixed_list,
                                              title=exp_name)
             if session_dialog.OK is False:
@@ -126,8 +126,8 @@ class ExperimentController(object):
         if not op.isdir(op.join(root_dir, output_dir)):
             os.mkdir(op.join(root_dir, output_dir))
         basename = op.join(root_dir, output_dir, '%s_%s'
-                           % (self.exp_info['participant'],
-                              self.exp_info['date']))
+                           % (self._exp_info['participant'],
+                              self._exp_info['date']))
         self._log_file = basename + '.log'
         psylog.LogFile(self._log_file, level=psylog.INFO)
 
@@ -136,13 +136,13 @@ class ExperimentController(object):
         self.trial_clock = core.Clock()
 
         # list of entities to draw / clear from the visual window
-        self.screen_objects = []
+        self._screen_objects = []
 
         # response device
         if response_device is None:
-            self.response_device = get_config('RESPONSE_DEVICE', 'keyboard')
+            self._response_device = get_config('RESPONSE_DEVICE', 'keyboard')
         else:
-            self.response_device = response_device
+            self._response_device = response_device
 
         # audio setup
         if audio_controller is None:
@@ -158,13 +158,13 @@ class ExperimentController(object):
         elif not isinstance(audio_controller, dict):
             raise TypeError('audio_controller must be a str or dict.')
 
-        self.audio_type = audio_controller['TYPE'].lower()
-        if self.audio_type == 'tdt':
+        self._audio_type = audio_controller['TYPE'].lower()
+        if self._audio_type == 'tdt':
             psylog.info('Expyfun: Setting up TDT')
             self.tdt = TDT(audio_controller)
-            self.audio_type = self.tdt.model
+            self._audio_type = self.tdt.model
             self._fs = self.tdt.fs
-        elif self.audio_type == 'psychopy':
+        elif self._audio_type == 'psychopy':
             psylog.info('Expyfun: Setting up PsychoPy audio')
             self.tdt = None
             self._fs = 44100
@@ -179,7 +179,7 @@ class ExperimentController(object):
                              '\'psychopy\' or \'tdt\'.')
 
         # scaling factor to ensure uniform intensity across output devices
-        self._stim_scaler = _get_stim_scaler(self.audio_type, stim_amp,
+        self._stim_scaler = _get_stim_scaler(self._audio_type, stim_amp,
                                              stim_rms)
 
         if trigger_controller is None:
@@ -204,40 +204,40 @@ class ExperimentController(object):
             window_size = get_config('WINDOW_SIZE', '1920,1080').split(',')
         if screen_num is None:
             screen_num = int(get_config('SCREEN_NUM', '0'))
-        self.win = visual.Window(size=window_size, fullscr=full_screen,
-                                 monitor='', screen=screen_num,
-                                 winType='pyglet', allowGUI=False,
-                                 allowStencil=False, color=bkgd_color,
-                                 colorSpace='rgb')
-        self.text_stim = visual.TextStim(win=self.win, text='', pos=[0, 0],
-                                         height=0.1, wrapWidth=1.2,
-                                         units='norm', color=[1, 1, 1],
-                                         colorSpace='rgb', opacity=1.0,
-                                         contrast=1.0, name='myTextStim',
-                                         ori=0, depth=0, flipHoriz=False,
-                                         flipVert=False, alignHoriz='center',
-                                         alignVert='center', bold=False,
-                                         italic=False, font='Arial',
-                                         fontFiles=[], antialias=True)
-        self.screen_objects.append(self.text_stim)
+        self._win = visual.Window(size=window_size, fullscr=full_screen,
+                                  monitor='', screen=screen_num,
+                                  winType='pyglet', allowGUI=False,
+                                  allowStencil=False, color=bkgd_color,
+                                  colorSpace='rgb')
+        self._text_stim = visual.TextStim(win=self._win, text='', pos=[0, 0],
+                                          height=0.1, wrapWidth=1.2,
+                                          units='norm', color=[1, 1, 1],
+                                          colorSpace='rgb', opacity=1.0,
+                                          contrast=1.0, name='myTextStim',
+                                          ori=0, depth=0, flipHoriz=False,
+                                          flipVert=False, alignHoriz='center',
+                                          alignVert='center', bold=False,
+                                          italic=False, font='Arial',
+                                          fontFiles=[], antialias=True)
+        self._screen_objects.append(self._text_stim)
         #self.shape_stim = visual.ShapeStim()
-        #self.screen_objects.append(self.shape_stim)
+        #self._screen_objects.append(self.shape_stim)
 
         # other basic components
-        self.button_handler = event.BuilderKeyResponse()
-        self.data_handler = data.ExperimentHandler(name=exp_name, version='',
-                                                   extraInfo=self.exp_info,
-                                                   runtimeInfo=None,
-                                                   originPath=None,
-                                                   savePickle=True,
-                                                   saveWideText=True,
-                                                   dataFileName=basename)
+        self._button_handler = event.BuilderKeyResponse()
+        self._data_handler = data.ExperimentHandler(name=exp_name, version='',
+                                                    extraInfo=self._exp_info,
+                                                    runtimeInfo=None,
+                                                    originPath=None,
+                                                    savePickle=True,
+                                                    saveWideText=True,
+                                                    dataFileName=basename)
 
         psylog.info('Expyfun: Initialization complete')
         psylog.info('Expyfun: Subject: {0}'
-                    ''.format(self.exp_info['participant']))
+                    ''.format(self._exp_info['participant']))
         psylog.info('Expyfun: Session: {0}'
-                    ''.format(self.exp_info['session']))
+                    ''.format(self._exp_info['session']))
         self.flush_logs()
         self.master_clock.reset()
 
@@ -245,10 +245,10 @@ class ExperimentController(object):
         """Return a useful string representation of the experiment
         """
         string = ('<ExperimentController ({3}): "{0}" {1} ({2})>'
-                  ''.format(self.exp_info['exp_name'],
-                            self.exp_info['participant'],
-                            self.exp_info['session'],
-                            self.audio_type))
+                  ''.format(self._exp_info['exp_name'],
+                            self._exp_info['participant'],
+                            self._exp_info['session'],
+                            self._audio_type))
         return string
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None):
@@ -300,26 +300,26 @@ class ExperimentController(object):
         """
         if clock is None:
             clock = self.trial_clock
-        self.text_stim.setText(text)
-        self.text_stim.tStart = clock.getTime()
-        self.text_stim.setAutoDraw(True)
-        self.win.flip()
+        self._text_stim.setText(text)
+        self._text_stim.tStart = clock.getTime()
+        self._text_stim.setAutoDraw(True)
+        self._win.flip()
 
     def clear_screen(self):
         """Remove all visual stimuli from the screen.
         """
-        #self.text_stim.status = FINISHED
-        for comp in self.screen_objects:
+        #self._text_stim.status = FINISHED
+        for comp in self._screen_objects:
             if hasattr(comp, 'setAutoDraw'):
                 comp.setAutoDraw(False)
-        self.win.flip()
+        self._win.flip()
 
     def init_trial(self):
         """Reset trial clock, clear stored keypresses and reaction times.
         """
         self.trial_clock.reset()
-        self.button_handler.keys = []
-        self.button_handler.rt = []
+        self._button_handler.keys = []
+        self._button_handler.rt = []
 
     def add_data_line(self, data_dict):
         """Add a line of data to the output CSV.
@@ -331,8 +331,8 @@ class ExperimentController(object):
             which the value(s) will be written.
         """
         for key, value in data_dict.items():
-            self.data_handler.addData(key, value)
-        self.data_handler.nextEntry()
+            self._data_handler.addData(key, value)
+        self._data_handler.nextEntry()
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
@@ -375,19 +375,19 @@ class ExperimentController(object):
             pressed between min_wait and max_wait, returns [].
         """
         assert min_wait < max_wait
-        if self.response_device == 'keyboard':
+        if self._response_device == 'keyboard':
             live_keys = _add_escape_keys(live_keys, self._force_quit)
-            self.button_handler.keys = []
-            self.button_handler.rt = []
-            self.button_handler.clock.reset()
+            self._button_handler.keys = []
+            self._button_handler.rt = []
+            self._button_handler.clock.reset()
             wait_secs(min_wait)
             event.clearEvents('keyboard')
             pressed = []
             while (not len(pressed) and
-                   self.button_handler.clock.getTime() < max_wait):
+                   self._button_handler.clock.getTime() < max_wait):
                 if timestamp:
                     pressed = event.getKeys(keyList=live_keys,
-                                            timeStamped=self.button_handler.clock)
+                                            timeStamped=self._button_handler.clock)
                 else:
                     pressed = event.getKeys(keyList=live_keys,
                                             timeStamped=False)
@@ -395,20 +395,19 @@ class ExperimentController(object):
                 pressed = pressed[0]
                 self._check_force_quit(pressed)
 	        if len(pressed) and timestamp:
-	            self.button_handler.keys = pressed[0]
-	            self.button_handler.rt = pressed[1]
-	            self.data_handler.addData('reaction_times',
-	                                      self.button_handler.rt)
+	            self._button_handler.keys = pressed[0]
+	            self._button_handler.rt = pressed[1]
+	            self._data_handler.addData('reaction_times',
+	                                       self._button_handler.rt)
 	        else:
-	            self.button_handler.keys = pressed
-	        self.data_handler.addData('button_presses',
-	                                  self.button_handler.keys)
-	        self.data_handler.nextEntry()
+	            self._button_handler.keys = pressed
+	        self._data_handler.addData('button_presses',
+	                                   self._button_handler.keys)
+	        self._data_handler.nextEntry()
             return pressed
         else:
             raise NotImplementedError()
-            # TODO: check the proper tag name for our circuit
-            # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
+            # TODO: self.tdt.get_first_press(max_wait, min_wait, live_keys)
 
     def get_presses(self, max_wait, min_wait=0.0, live_keys=None,
                     timestamp=True):
@@ -435,18 +434,18 @@ class ExperimentController(object):
             returns [].
         """
         assert min_wait < max_wait
-        if self.response_device == 'keyboard':
+        if self._response_device == 'keyboard':
             live_keys = _add_escape_keys(live_keys, self._force_quit)
-            self.button_handler.keys = []
-            self.button_handler.rt = []
-            self.button_handler.clock.reset()
+            self._button_handler.keys = []
+            self._button_handler.rt = []
+            self._button_handler.clock.reset()
             pressed = []
             wait_secs(min_wait)
             event.clearEvents('keyboard')
-            while self.button_handler.clock.getTime() < max_wait:
+            while self._button_handler.clock.getTime() < max_wait:
                 if timestamp:
                     pressed += event.getKeys(keyList=live_keys,
-                                             timeStamped=self.button_handler.clock)
+                                             timeStamped=self._button_handler.clock)
                 else:
                     pressed += event.getKeys(keyList=live_keys,
                                              timeStamped=False)
@@ -457,21 +456,20 @@ class ExperimentController(object):
                     self._check_force_quit(pressed)
             for p in pressed:
                 if timestamp:
-                    self.button_handler.keys = p[0]
-                    self.button_handler.rt = p[1]
-                    self.data_handler.addData('reaction_times',
-                                              self.button_handler.rt)
+                    self._button_handler.keys = p[0]
+                    self._button_handler.rt = p[1]
+                    self._data_handler.addData('reaction_times',
+                                               self._button_handler.rt)
                 else:
-                    self.button_handler.keys = p
-                self.data_handler.addData('button_presses',
-                                          self.button_handler.keys)
-                #self.data_handler.addData('trial', trial_num)
-                self.data_handler.nextEntry()
+                    self._button_handler.keys = p
+                self._data_handler.addData('button_presses',
+                                           self._button_handler.keys)
+                #self._data_handler.addData('trial', trial_num)
+                self._data_handler.nextEntry()
             return pressed
         else:
             raise NotImplementedError()
-            # TODO: check the proper tag name for our circuit
-            # self.tdt.rpcox.GetTagVal('ButtonBoxTagName')
+            # TODO: self.tdt.get_presses()
 
     def _check_force_quit(self, keys):
         """Compare key buffer to list of force-quit keys and quit if matched.
@@ -530,7 +528,7 @@ class ExperimentController(object):
         else:
             self.audio.setSound(np.zeros((1, 2)))
 
-    def stop_reset(self):
+    def stop(self):
         """Stop audio buffer playback and reset cursor to beginning of buffer.
         """
         psylog.info('Expyfun: Stopping and resetting audio playback')
@@ -559,11 +557,11 @@ class ExperimentController(object):
         psylog.info('Expyfun: Flipping screen and playing audio')
         if clock is None:
             clock = self.trial_clock
-        self.win.callOnFlip(self._play, clock)
+        self._win.callOnFlip(self._play, clock)
         if self._fp_function is not None:
             # PP automatically appends calls
-            self.win.callOnFlip(self._fp_function)
-        self.win.flip()
+            self._win.callOnFlip(self._fp_function)
+        self._win.flip()
 
     def call_on_flip_and_play(self, function, *args, **kwargs):
         """Locus for additional functions to be executed on flip and play.
@@ -635,10 +633,10 @@ class ExperimentController(object):
         err_type, value and traceback will be None when called by self.close()
         """
         psylog.debug('Expyfun: Exiting cleanly')
-        self.win.close()
+        self._win.close()
         if self.tdt is not None:
             self.tdt.stop_noise()
-            self.stop_reset()
+            self.stop()
             self.tdt.halt_circuit()
         try:
             core.quit()

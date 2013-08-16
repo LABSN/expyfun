@@ -52,7 +52,7 @@ def test_experiment_init():
     ec.load_buffer(np.zeros((100,)))
     ec.load_buffer(np.zeros((100, 1)))
     ec.load_buffer(np.zeros((100, 2)))
-    ec.stop_reset()
+    ec.stop()
     ec.call_on_flip_and_play(None)
     print ec.fs  # test fs support
     ec.flip_and_play()
