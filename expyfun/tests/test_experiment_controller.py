@@ -37,21 +37,35 @@ def test_experiment_init():
                   participant='foo', output_dir=temp_dir, full_screen=False,
                   window_size=(1, 1))
 
+    assert_raises(ValueError, ExperimentController, *std_args,
+                  trigger_controller='foo', **std_kwargs)
+
     ec = ExperimentController(*std_args, **std_kwargs)
     ec.init_trial()
+    ec.wait_secs(0.01)
     ec.add_data_line(dict(me='hello'))
     ec.screen_prompt('test', 0.01, 0)
     ec.screen_prompt('test', 0.01, 0, None)
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, None)
     ec.clear_screen()
-    ec.get_press(0.01)
-    ec.get_presses(0.01)
+    assert ec.get_first_press(0.01) == []
+    assert ec.get_first_press(0.01, timestamp=False) == []
+    assert ec.get_presses(0.01) == []
+    assert ec.get_presses(0.01, timestamp=False) == []
+    assert ec.get_key_buffer() == []
     ec.clear_buffer()
     ec.set_noise_amp(0)
     ec.set_stim_amp(20)
+    ec.load_buffer([0, 0, 0, 0, 0, 0])
+    assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
     ec.load_buffer(np.zeros((100,)))
     ec.load_buffer(np.zeros((100, 1)))
     ec.load_buffer(np.zeros((100, 2)))
+    ec.load_buffer(np.zeros((1, 100)))
+    ec.load_buffer(np.zeros((2, 100)))
+    assert_raises(ValueError, ec.load_buffer, np.zeros((100, 3)))
+    assert_raises(ValueError, ec.load_buffer, np.zeros((3, 100)))
+    assert_raises(ValueError, ec.load_buffer, np.zeros((1, 1, 1)))
     ec.stop()
     ec.call_on_flip_and_play(None)
     print ec.fs  # test fs support
@@ -59,10 +73,10 @@ def test_experiment_init():
     wait_secs(0.01)
     ec.call_on_flip_and_play(dummy_print, 'called on flip and play')
     ec.flip_and_play()
-    assert_raises(ValueError, ec.load_buffer, np.zeros((1, 100)))
     # test __repr__
     assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     ec.close()
+    del ec
 
 
 @interactive_test
@@ -76,8 +90,10 @@ def test_button_presses_and_window_size():
     ec.screen_text('press 1 thrice')
     pressed = []
     while len(pressed) < 3:
-        pressed.append(ec.get_press(live_keys=['1'])[0])
-    assert pressed == ['1', '1', '1']
+        pressed.append(ec.get_first_press(live_keys=['1'])[0])
+    assert pressed == ['1', '1']
+    ec.screen_prompt('press 1 thrice', live_keys=['1'])
+    assert pressed == ['1']
     ec.win.close()
     del ec
 

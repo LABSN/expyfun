@@ -138,14 +138,17 @@ class TDT(object):
         # TODO: do we want to return the 0 or 1 passed by SoftTrg() ?
         self.rpcox.SoftTrg(trigger_number)
 
-    def write_buffer(self, data, buffer_name, offset=0):
-        """Wrapper for tdt.util.RPcoX.WriteTagV()
+    def load_buffer(self, data):
+        """Load audio samples into TDT buffer.
+
+        Parameters
+        ----------
+        data : np.array
+            Audio data as floats scaled to (-1,+1), formatted as an Nx2 numpy
+            array with dtype 'float32'.
         """
-        # TODO: check to make sure data is properly formatted / correct dtype
-        # check dimensions of array
-        # cast as np.float32 with order='C'
-        # handle left/right channels
-        self.rpcox.WriteTagV(buffer_name, offset, data)
+        self.rpcox.WriteTagV('datainleft', 0, data[:, 0])
+        self.rpcox.WriteTagV('datainright', 0, data[:, 1])
 
     def clear_buffer(self, buffer_name):
         """Wrapper for tdt.util.RPcoX.ZeroTag()
@@ -174,38 +177,40 @@ class TDT(object):
         """Wrapper for tdt.util.RPcoX.Halt()
         """
         self.rpcox.Halt()
+        psylog.debug('Expyfun: Halting TDT circuit')
 
     def play(self):
         """Send the soft trigger to start the ring buffer playback.
         """
-        psylog.debug('Expyfun: Starting TDT ring buffer')
         self._trigger(1)
+        psylog.debug('Expyfun: Starting TDT ring buffer')
 
     def stop(self):
         """Send the soft trigger to stop the ring buffer playback.
         """
-        psylog.debug('Stopping TDT audio')
         self._trigger(2)
+        psylog.debug('Stopping TDT audio')
 
     def play_noise(self):
         """Send the soft trigger to start the noise generator.
         """
-        psylog.debug('Expyfun: Starting TDT noise')
         self._trigger(3)
+        psylog.debug('Expyfun: Starting TDT noise')
 
     def stop_noise(self):
         """Send the soft trigger to stop the noise generator.
         """
-        psylog.debug('Expyfun: Stopping TDT noise')
         self._trigger(4)
+        psylog.debug('Expyfun: Stopping TDT noise')
 
     def reset(self):
         """Send the soft trigger to reset the ring buffer.
         """
-        psylog.debug('Expyfun: Resetting TDT ring buffer')
         self._trigger(5)
+        psylog.debug('Expyfun: Resetting TDT ring buffer')
 
-    def get_first_press(self, max_wait, min_wait, live_buttons):
+    def get_first_press(self, max_wait, min_wait, live_buttons,
+                        timestamp=True):
         """Returns only the first button pressed after min_wait.
 
         Parameters
@@ -217,10 +222,12 @@ class TDT(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are automatically cast as strings.
+        timestamp : bool
+            Whether the button presses should be timestamped.
 
         Returns
         -------
-        presses : list
+        pressed : list
             A list of tuples (str, float) indicating the key(s) pressed and
             their timestamp(s). If no acceptable keys were pressed between
             min_wait and max_wait, returns the one-item list [([], None)].
@@ -228,7 +235,12 @@ class TDT(object):
         raise NotImplementedError()
         # TODO: implement
 
-    def get_presses(self, max_wait, min_wait, live_buttons):
+    def get_key_buffer(self):
+        """TODO: docstring
+        """
+        self.tdt.rpcox.GetTagVal('currentbboxval')
+
+    def get_presses(self, max_wait, min_wait, live_buttons, timestamp=True):
         """Get presses from min_wait to max_wait, from buttons in live_buttons.
 
         Parameters
@@ -240,6 +252,8 @@ class TDT(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are automatically cast as strings.
+        timestamp : bool
+            Whether the button presses should be timestamped.
 
         Returns
         -------
@@ -248,33 +262,23 @@ class TDT(object):
             their timestamp(s). If no acceptable keys were pressed between
             min_wait and max_wait, returns the one-item list [([], None)].
         """
-        raise NotImplementedError()
-        # TODO: implement
-        """
         press_count = self.tdt.rpcox.GetTagVal('pressind')
         # Name, nOS, nWords, SrcType, DstType, nChans
         press_times = self.tdt.rpcox.ReadTagVEX('presstimes', 1,
                                                 press_count, 'I32', 'F64',
                                                 1) / float(self.fs)
         press_vals = np.ones_like(press_times)
+        # TODO: code as written only works for button #1.
+        # TODO: subtract tSound (time the sound started)
+        # TODO: de-bounce presses (see below)
         return zip(press_times, press_vals)
-        """
+
         #MATLAB getPresses.m
-        #WaitSecs(respWindow);
-        #pressCount = invoke(TDT.RP, 'GetTagVal', 'pressind');
-        #pressTimes = invoke(TDT.RP, 'ReadTagVEX', 'presstimes', 1, pressCount, 'I32', 'F64', 1)/TDT.fs;
-        #pressVals = ones(size(pressTimes)); % TDT circuit should be upgraded to log all presses, rather than just 1-button
+        #pressVals = ones(size(pressTimes));  % TDT circuit should be upgraded
+        #                      % to log all presses, rather than just 1-button
         #pressTimes = pressTimes - tSound;
         #pressTimes([false; diff(pressTimes)<0.1]) = []; % De-bounce presses
-        #pressTimes = pressTimes((pressTimes >= 0) & (pressTimes <= respWindow));
-
-        #MATLAB ReturnButtonNum.m
-        #resp_num = buttonbox2num( invoke(TDT.RP, 'GetTagVal', 'currentbboxval') );
-
-        #MATLAB buttonBox2Num.m
-        #unique_button_codes = 2.^(0:7);
-        #resp_num = find(unique_button_codes == button_box_code);
-        #else resp_num = -1; % double press or no press
+        #pressTimes=pressTimes((pressTimes >= 0) & (pressTimes <= respWindow));
 
 
 def get_tdt_rates():

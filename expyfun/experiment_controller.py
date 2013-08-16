@@ -91,7 +91,7 @@ class ExperimentController(object):
         if force_quit is None:
             force_quit = ['escape', 'lctrl', 'rctrl']
 
-        # self._stim_fs = stim_fs
+        self._stim_fs = stim_fs
         self._stim_amp = stim_amp
         self._noise_amp = noise_amp
         self._force_quit = force_quit
@@ -177,6 +177,13 @@ class ExperimentController(object):
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
                              '\'psychopy\' or \'tdt\'.')
+        if stim_fs != self._fs:
+            # TODO: add test for this in the test_logging script
+            psylog.warn('Mismatch between reported stim sample rate ({0}) and '
+                        'device sample rate ({1}). ExperimentController will '
+                        'resample for you, but that takes a non-trivial amount'
+                        ' of processing time and may compromise your '
+                        'experimental timing.'.format(stim_fs, self._fs))
 
         # scaling factor to ensure uniform intensity across output devices
         self._stim_scaler = _get_stim_scaler(self._audio_type, stim_amp,
@@ -285,7 +292,7 @@ class ExperimentController(object):
             wait_secs(max_wait)
             return (None, max_wait)
         else:
-            return self.get_press(max_wait, min_wait, live_keys)
+            return self.get_first_press(max_wait, min_wait, live_keys)
 
     def screen_text(self, text, clock=None):
         """Show some text on the screen.
@@ -350,8 +357,16 @@ class ExperimentController(object):
         """
         wait_secs(*args, **kwargs)
 
-    def get_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
-                  timestamp=True):
+    def get_key_buffer(self):
+        """TODO: docstring
+        """
+        if self._response_device == 'keyboard':
+            return event.getKeys(timeStamped=False)
+        else:
+            return self.tdt.get_key_buffer()
+
+    def get_first_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
+                        timestamp=True):
         """Returns only the first button pressed after min_wait.
 
         Parameters
@@ -387,27 +402,26 @@ class ExperimentController(object):
                    self._button_handler.clock.getTime() < max_wait):
                 if timestamp:
                     pressed = event.getKeys(keyList=live_keys,
-                                            timeStamped=self._button_handler.clock)
+                                        timeStamped=self._button_handler.clock)
                 else:
                     pressed = event.getKeys(keyList=live_keys,
                                             timeStamped=False)
             if len(pressed):
                 pressed = pressed[0]
                 self._check_force_quit(pressed)
-	        if len(pressed) and timestamp:
-	            self._button_handler.keys = pressed[0]
-	            self._button_handler.rt = pressed[1]
-	            self._data_handler.addData('reaction_times',
-	                                       self._button_handler.rt)
-	        else:
-	            self._button_handler.keys = pressed
-	        self._data_handler.addData('button_presses',
-	                                   self._button_handler.keys)
-	        self._data_handler.nextEntry()
+            if len(pressed) and timestamp:
+                self._button_handler.keys = pressed[0]
+                self._button_handler.rt = pressed[1]
+                self._data_handler.addData('reaction_times',
+                                           self._button_handler.rt)
+            else:
+                self._button_handler.keys = pressed
+                self._data_handler.addData('button_presses',
+                                           self._button_handler.keys)
+            self._data_handler.nextEntry()
             return pressed
         else:
-            raise NotImplementedError()
-            # TODO: self.tdt.get_first_press(max_wait, min_wait, live_keys)
+            self.tdt.get_first_press(max_wait, min_wait, live_keys, timestamp)
 
     def get_presses(self, max_wait, min_wait=0.0, live_keys=None,
                     timestamp=True):
@@ -427,7 +441,7 @@ class ExperimentController(object):
 
         Returns
         -------
-		presses : list
+        presses : list
             If timestamp==False, returns a list of strings indicating which
             keys were pressed. Otherwise, returns a list of tuples
             (str, float) of keys and their timestamps. If no keys are pressed,
@@ -445,7 +459,7 @@ class ExperimentController(object):
             while self._button_handler.clock.getTime() < max_wait:
                 if timestamp:
                     pressed += event.getKeys(keyList=live_keys,
-                                             timeStamped=self._button_handler.clock)
+                                     timeStamped=self._button_handler.clock)
                 else:
                     pressed += event.getKeys(keyList=live_keys,
                                              timeStamped=False)
@@ -468,8 +482,7 @@ class ExperimentController(object):
                 self._data_handler.nextEntry()
             return pressed
         else:
-            raise NotImplementedError()
-            # TODO: self.tdt.get_presses()
+            self.tdt.get_presses(max_wait, min_wait, live_keys, timestamp)
 
     def _check_force_quit(self, keys):
         """Compare key buffer to list of force-quit keys and quit if matched.
@@ -482,7 +495,7 @@ class ExperimentController(object):
         if self._force_quit in keys:
             self.close()
 
-    def load_buffer(self, data, offset=0, buffer_name=None):
+    def load_buffer(self, data):
         """Load audio data into the audio buffer.
 
         Parameters
@@ -490,27 +503,13 @@ class ExperimentController(object):
         data : np.array
             Audio data as floats scaled to (-1,+1), formatted as an Nx1 or Nx2
             numpy array with dtype float32.
-        buffer_name : str | None
-            Name of the TDT buffer to target. Ignored if audio_controller is
-            'psychopy'.
         """
+        data = self._validate_audio(data)
         psylog.info('Expyfun: Loading {} samples to buffer'.format(data.size))
         if self.tdt is not None:
-            self.tdt.write_buffer(buffer_name, offset,
-                                  data * self._stim_scaler)
+            self.tdt.load_buffer(data * self._stim_scaler)
         else:
-            if len(data.shape) > 2:
-                raise ValueError('Sound data has more than two dimensions.')
-            elif len(data.shape) == 2:
-                if data.shape[1] > 2:
-                    raise ValueError('Sound data has more than two channels.')
-                #elif data.shape[1] == 2:
-                #    data = data[:, 0]
-                elif data.shape[1] == 1:
-                    data = data[:, 0]
-
-            self.audio = sound.Sound(np.asarray(data, order='C'),
-                                     sampleRate=self._fs)
+            self.audio = sound.Sound(data, sampleRate=self._fs)
             self.audio.setVolume(1.0)  # TODO: check this w/r/t stim_scaler
 
     def clear_buffer(self, buffer_name=None):
@@ -621,6 +620,49 @@ class ExperimentController(object):
             self.audio.tStart = clock.getTime()
             self.audio.play()
             self.stamp_triggers([1])
+
+    def _validate_audio(self, data):
+        """Converts audio sample data to the required format.
+
+        Parameters
+        ----------
+        data : list | array
+            The audio samples.  Mono sounds will be converted to stereo.
+
+        Returns
+        -------
+        data : numpy.array(dtype='float32')
+            The audio samples.
+        """
+        # check data type
+        if type(data) is list:
+            data = np.asarray(data, dtype='float32', order='C')
+        elif data.dtype != 'float32':
+            data = np.float32(data)
+
+        # check values
+        if np.max(np.abs(data)) > 1:
+            raise ValueError('Sound data exceeds +/- 1.')
+            # data /= np.max(np.abs(data),axis=0)
+
+        # check sample rates
+        if self._stim_fs != self._fs:
+            # TODO: implement resampling
+            raise NotImplementedError()
+
+        # check dimensionality
+        if data.ndim == 1:
+            data = np.array((data, data)).T
+        elif data.ndim > 2:
+            raise ValueError('Sound data has more than two dimensions.')
+        elif 1 in data.shape:
+            data = data.ravel()
+            data = np.array((data, data)).T
+        elif 2 not in data.shape:
+            raise ValueError('Sound data has more than two channels.')
+        elif data.shape[0] == 2:
+            data = data.T
+        return data
 
     def __enter__(self):
         psylog.debug('Expyfun: Entering')
