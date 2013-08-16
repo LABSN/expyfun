@@ -7,7 +7,7 @@ else:
     connect_rpcox = None
     connect_zbus = None
 from psychopy import logging as psylog
-from .utils import get_config
+from .utils import get_config, wait_secs
 
 
 class TDT(object):
@@ -150,6 +150,23 @@ class TDT(object):
         """Wrapper for tdt.util.RPcoX.ZeroTag()
         """
         self.rpcox.ZeroTag(buffer_name)
+
+    def stamp_triggers(self, triggers, delay):
+        """Stamp a list of triggers with a given inter-trigger delay
+
+        Parameters
+        ----------
+        triggers : list
+            No input checking is done, so ensure triggers is a list,
+            with each entry an integer with fewer than 8 bits (max 255).
+        delay : float
+            The inter-trigger delay.
+        """
+        for ti, trig in enumerate(triggers):
+            self.rpcox.SetTagVal('trgname', trig)
+            self.trigger(6)
+            if ti < len(triggers):
+                wait_secs(delay)
 
     def halt_circuit(self):
         """Wrapper for tdt.util.RPcoX.Halt()
