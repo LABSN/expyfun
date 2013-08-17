@@ -495,21 +495,21 @@ class ExperimentController(object):
         if self._force_quit in keys:
             self.close()
 
-    def load_buffer(self, data):
+    def load_buffer(self, samples):
         """Load audio data into the audio buffer.
 
         Parameters
         ----------
-        data : np.array
+        samples : np.array
             Audio data as floats scaled to (-1,+1), formatted as an Nx1 or Nx2
             numpy array with dtype float32.
         """
-        data = self._validate_audio(data)
+        samples = self._validate_audio(samples)
         psylog.info('Expyfun: Loading {} samples to buffer'.format(data.size))
         if self.tdt is not None:
-            self.tdt.load_buffer(data * self._stim_scaler)
+            self.tdt.load_buffer(samples * self._stim_scaler)
         else:
-            self.audio = sound.Sound(data, sampleRate=self._fs)
+            self.audio = sound.Sound(samples, sampleRate=self._fs)
             self.audio.setVolume(1.0)  # TODO: check this w/r/t stim_scaler
 
     def clear_buffer(self, buffer_name=None):
@@ -621,29 +621,29 @@ class ExperimentController(object):
             self.audio.play()
             self.stamp_triggers([1])
 
-    def _validate_audio(self, data):
+    def _validate_audio(self, samples):
         """Converts audio sample data to the required format.
 
         Parameters
         ----------
-        data : list | array
+        samples : list | array
             The audio samples.  Mono sounds will be converted to stereo.
 
         Returns
         -------
-        data : numpy.array(dtype='float32')
+        samples : numpy.array(dtype='float32')
             The audio samples.
         """
         # check data type
-        if type(data) is list:
-            data = np.asarray(data, dtype='float32', order='C')
-        elif data.dtype != 'float32':
-            data = np.float32(data)
+        if type(samples) is list:
+            samples = np.asarray(samples, dtype='float32', order='C')
+        elif samples.dtype != 'float32':
+            samples = np.float32(samples)
 
         # check values
-        if np.max(np.abs(data)) > 1:
+        if np.max(np.abs(samples)) > 1:
             raise ValueError('Sound data exceeds +/- 1.')
-            # data /= np.max(np.abs(data),axis=0)
+            # samples /= np.max(np.abs(samples),axis=0)
 
         # check sample rates
         if self._stim_fs != self._fs:
@@ -651,18 +651,18 @@ class ExperimentController(object):
             raise NotImplementedError()
 
         # check dimensionality
-        if data.ndim == 1:
-            data = np.array((data, data)).T
-        elif data.ndim > 2:
+        if samples.ndim == 1:
+            samples = np.array((samples, samples)).T
+        elif samples.ndim > 2:
             raise ValueError('Sound data has more than two dimensions.')
-        elif 1 in data.shape:
-            data = data.ravel()
-            data = np.array((data, data)).T
-        elif 2 not in data.shape:
+        elif 1 in samples.shape:
+            samples = samples.ravel()
+            samples = np.array((samples, samples)).T
+        elif 2 not in samples.shape:
             raise ValueError('Sound data has more than two channels.')
-        elif data.shape[0] == 2:
-            data = data.T
-        return data
+        elif samples.shape[0] == 2:
+            samples = samples.T
+        return samples
 
     def __enter__(self):
         psylog.debug('Expyfun: Entering')
