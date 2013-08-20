@@ -10,12 +10,15 @@ import numpy as np
 import os
 from os import path as op
 from functools import partial
-from psychopy import visual, core, data, event, sound, gui, parallel
+from scipy.signal import resample, gaussian
+from psychopy import visual, core, data, event, sound, gui, parallel  # prefs
 from psychopy import logging as psylog
 
 from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
-from .tdt import TDT
+from .tdt_controller import TDTController
 
+# prefs.general['audioLib'] = ['pyo']
+# TODO: contact PsychoPy devs to get choice of audio backend
 
 class ExperimentController(object):
     """Interface for hardware control (audio, buttonbox, eye tracker, etc.)
@@ -30,16 +33,16 @@ class ExperimentController(object):
         remaining audio parameters will be read from the machine configuration
         file. If a dict, must include a key 'TYPE' that is either 'psychopy'
         or 'tdt'; the dict can contain other parameters specific to the TDT
-        (see documentation for expyfun.TDT).
+        (see documentation for expyfun.TDTController).
     response_device : str | None
         Can be 'keyboard' or 'buttonbox'.  If None, the type will be read
         from the machine configuration file.
     stim_rms : float
         The RMS amplitude that the stimuli were generated at (strongly
         recommended to be 0.01).
-    stim_amp : float
+    stim_db : float
         The desired dB SPL at which to play the stimuli.
-    noise_amp : float
+    noise_db : float
         The desired dB SPL at which to play the dichotic noise.
     output_dir : str | 'rawData'
         An absolute or relative path to a directory in which raw experiment
@@ -83,7 +86,7 @@ class ExperimentController(object):
 
     @verbose_dec
     def __init__(self, exp_name, audio_controller=None, response_device=None,
-                 stim_rms=0.01, stim_fs=44100, stim_amp=65, noise_amp=-np.Inf,
+                 stim_rms=0.01, stim_fs=44100, stim_db=65, noise_db=-np.Inf,
                  output_dir='rawData', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  trigger_controller=None, session=None, verbose=None):
@@ -92,8 +95,9 @@ class ExperimentController(object):
             force_quit = ['escape', 'lctrl', 'rctrl']
 
         self._stim_fs = stim_fs
-        self._stim_amp = stim_amp
-        self._noise_amp = noise_amp
+        self._stim_rms = stim_rms
+        self._stim_db = stim_db
+        self._noise_db = noise_db
         self._force_quit = force_quit
 
         # Check Pyglet version for safety
@@ -159,9 +163,14 @@ class ExperimentController(object):
             raise TypeError('audio_controller must be a str or dict.')
 
         self._audio_type = audio_controller['TYPE'].lower()
+
+        # scaling factor to ensure uniform intensity across output devices
+        self._stim_scaler = self._update_sound_scaler(self._stim_db, stim_rms)
+        self._noise_scaler = self._update_sound_scaler(self._noise_db, 0.01)
+
         if self._audio_type == 'tdt':
             psylog.info('Expyfun: Setting up TDT')
-            self.tdt = TDT(audio_controller)
+            self.tdt = TDTController(audio_controller)
             self._audio_type = self.tdt.model
             self._fs = self.tdt.fs
         elif self._audio_type == 'psychopy':
@@ -174,6 +183,12 @@ class ExperimentController(object):
                                   ' installed.')
             self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self.audio.setVolume(1.0)  # 0 to 1
+            _noise = np.random.normal(0, 0.01, self._fs * 5.0)  # 5 secs
+            self._noise_array = np.array((_noise, -1.0 * _noise)).T
+            self.noise = sound.Sound(self._noise_array * self._noise_scaler,
+                                     sampleRate=self._fs)
+            self.noise.setVolume(1.0)  # 0 to 1
+            psylog.info('PsychoPy audio backend is {}'.format(sound.audioLib))
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
                              '\'psychopy\' or \'tdt\'.')
@@ -184,10 +199,6 @@ class ExperimentController(object):
                         'resample for you, but that takes a non-trivial amount'
                         ' of processing time and may compromise your '
                         'experimental timing.'.format(stim_fs, self._fs))
-
-        # scaling factor to ensure uniform intensity across output devices
-        self._stim_scaler = _get_stim_scaler(self._audio_type, stim_amp,
-                                             stim_rms)
 
         if trigger_controller is None:
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
@@ -383,11 +394,11 @@ class ExperimentController(object):
 
         Returns
         -------
-        pressed : tuple | str | list
+        pressed : tuple | str | None
             If timestamp==True, returns a tuple (str, float) indicating the
             first key pressed and its timestamp. If timestamp==False, returns
             a string indicating the first key pressed. If no acceptable key is
-            pressed between min_wait and max_wait, returns [].
+            pressed between min_wait and max_wait, returns None or (None, None).
         """
         assert min_wait < max_wait
         if self._response_device == 'keyboard':
@@ -415,13 +426,18 @@ class ExperimentController(object):
                 self._data_handler.addData('reaction_times',
                                            self._button_handler.rt)
             else:
+                if timestamp:
+                    pressed = (None, None)
+                else:
+                    pressed = None
                 self._button_handler.keys = pressed
-                self._data_handler.addData('button_presses',
-                                           self._button_handler.keys)
+            self._data_handler.addData('button_presses',
+                                       self._button_handler.keys)
             self._data_handler.nextEntry()
             return pressed
         else:
-            self.tdt.get_first_press(max_wait, min_wait, live_keys, timestamp)
+            return self.tdt.get_first_press(max_wait, min_wait, live_keys,
+                                            timestamp)
 
     def get_presses(self, max_wait, min_wait=0.0, live_keys=None,
                     timestamp=True):
@@ -505,12 +521,14 @@ class ExperimentController(object):
             numpy array with dtype float32.
         """
         samples = self._validate_audio(samples)
-        psylog.info('Expyfun: Loading {} samples to buffer'.format(data.size))
+        psylog.info('Expyfun: Loading {} samples to buffer'
+                    ''.format(samples.size))
         if self.tdt is not None:
             self.tdt.load_buffer(samples * self._stim_scaler)
         else:
-            self.audio = sound.Sound(samples, sampleRate=self._fs)
-            self.audio.setVolume(1.0)  # TODO: check this w/r/t stim_scaler
+            self.audio = sound.Sound(samples * self._stim_scaler,
+                                     sampleRate=self._fs)
+            self.audio.setVolume(1.0)  # TODO: could implement stim_scaler here
 
     def clear_buffer(self, buffer_name=None):
         """Clear audio data from the audio buffer.
@@ -536,8 +554,28 @@ class ExperimentController(object):
             self.tdt.reset()
         else:
             # PsychoPy doesn't cleanly support playing from middle, so no
-            # rewind necessary
+            # rewind necessary (it happens automatically)
             self.audio.stop()
+
+    def start_noise(self):
+        """TODO: add docstring
+        """
+        if self.tdt is not None:
+            self.tdt.start_noise()
+        else:
+            #self.audio.start_noise()
+            self.noise._snd.play(loops=-1)
+            psylog.info('Started noise (PsychoPy)')
+
+    def stop_noise(self):
+        """TODO: add docstring
+        """
+        if self.tdt is not None:
+            self.tdt.stop_noise()
+        else:
+            #self.audio.stop_noise()
+            self.noise.stop()
+            psylog.info('Stopped noise (PsychoPy)')
 
     def close(self):
         """Close all connections in experiment controller.
@@ -570,15 +608,27 @@ class ExperimentController(object):
         else:
             self._fp_function = None
 
-    def set_noise_amp(self, new_amp):
+    def set_noise_db(self, new_db):
         """Set the amplitude of stationary background noise.
         """
-        self._noise_amp = new_amp
+        if self.tdt is not None:
+            self.tdt.set_noise_db(new_db)
+        else:
+            self._noise_scaler = self._update_sound_scaler(new_db, 0.01)
+            new_noise = sound.Sound(self._noise_array * self._noise_scaler,
+                                    sampleRate=self._fs)
+            self.noise.stop()
+            self.noise = new_noise
+            self.noise._snd.play(loops=-1)
+        self._noise_db = new_db
 
-    def set_stim_amp(self, new_amp):
+    def set_stim_db(self, new_db):
         """Set the amplitude of the stimuli.
         """
-        self._stim_amp = new_amp
+        #exponent = (-(_get_rms(audio_controller) - stim_db) / 20) / stim_rms
+        #return np.power(10, exponent)
+        self._stim_db = new_db
+        self._stim_scaler = self._update_sound_scaler(new_db, self._stim_rms)
 
     def stamp_triggers(self, trigger_list, delay=0.03):
         """Stamp experiment ID triggers
@@ -621,6 +671,17 @@ class ExperimentController(object):
             self.audio.play()
             self.stamp_triggers([1])
 
+    def _update_sound_scaler(self, desired_db, orig_rms):
+        """Calcs coefficient ensuring stim ampl equivalence across devices.
+        """
+        if self._audio_type == 'tdt':
+            ac = self.tdt.model
+        else:
+            ac = self._audio_type
+        exponent = (-(_get_dev_db(ac) - desired_db) / 20.0) / float(orig_rms)
+        print exponent, np.power(10, exponent)
+        return np.power(10, exponent)
+
     def _validate_audio(self, samples):
         """Converts audio sample data to the required format.
 
@@ -645,11 +706,6 @@ class ExperimentController(object):
             raise ValueError('Sound data exceeds +/- 1.')
             # samples /= np.max(np.abs(samples),axis=0)
 
-        # check sample rates
-        if self._stim_fs != self._fs:
-            # TODO: implement resampling
-            raise NotImplementedError()
-
         # check dimensionality
         if samples.ndim == 1:
             samples = np.array((samples, samples)).T
@@ -662,6 +718,12 @@ class ExperimentController(object):
             raise ValueError('Sound data has more than two channels.')
         elif samples.shape[0] == 2:
             samples = samples.T
+
+        # check sample rates
+        if self._stim_fs != self._fs:
+            num_samples = len(samples) * self._fs / float(self._stim_fs)
+            samples = resample(samples, num_samples)
+            # TODO: do we want to specify a particular window function here?
         return samples
 
     def __enter__(self):
@@ -765,7 +827,7 @@ class _psych_parallel(object):
                 wait_secs(delay - self.high_duration)
 
 
-def _get_rms(audio_controller):
+def _get_dev_db(audio_controller):
     """Selects device-specific amplitude to ensure equivalence across devices.
     """
     if audio_controller == 'RM1':
@@ -781,13 +843,6 @@ def _get_rms(audio_controller):
                     'correctly. You may want to remove your headphones if this'
                     ' is the first run of your experiment.')
         return 90  # for untested TDT models
-
-
-def _get_stim_scaler(audio_controller, stim_amp, stim_rms):
-    """Calculates coefficient ensuring stim ampl equivalence across devices.
-    """
-    exponent = (-(_get_rms(audio_controller) - stim_amp) / 20) / stim_rms
-    return np.power(10, exponent)
 
 
 def _add_escape_keys(live_keys, _force_quit):

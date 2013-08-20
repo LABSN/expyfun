@@ -45,10 +45,21 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
 
 with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
                           window_size=[800, 600], full_screen=False,
-                          stim_amp=75, noise_amp=45, participant='foo',
+                          stim_db=75, noise_db=45, participant='foo',
                           session='001', verbose=False) as ec:
-    ec.set_noise_amp(45)
-    ec.set_stim_amp(75)
+    ec.set_noise_db(45)
+    ec.set_stim_db(75)
+
+    ec.start_noise()
+    ec.wait_secs(3.0)
+    ec.set_noise_db(55)
+    ec.wait_secs(3.0)
+    ec.set_noise_db(65)
+    ec.wait_secs(3.0)
+    ec.set_noise_db(75)
+    ec.wait_secs(3.0)
+    ec.stop_noise()
+
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]
     not_yet_pressed = live_keys[:]
@@ -58,13 +69,13 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     # show instructions until all buttons have been pressed at least once
     ec.add_data_line({'stim_num': 'training'})
     while len(not_yet_pressed) > 0:
-        (pressed, timestamp) = ec.get_press(live_keys=live_keys)
+        pressed, timestamp = ec.get_first_press(live_keys=live_keys)
         for p in pressed:
             p = int(p)
             ec.load_buffer(wavs[p - 1])
             ec.flip_and_play()
             ec.wait_secs(len(wavs[p - 1]) / float(ec.fs))
-            ec.stop_reset()
+            ec.stop()
             if p in not_yet_pressed:
                 not_yet_pressed.pop(not_yet_pressed.index(p))
     ec.clear_buffer()
@@ -91,11 +102,13 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
         ec.load_buffer(wavs[stim_num])
         ec.init_trial()
         ec.flip_and_play()
-        (pressed, timestamp) = ec.get_press(max_resp_time, min_resp_time,
-                                            live_keys)
-        ec.stop_reset()  # will stop stim playback as soon as response logged
+        pressed, timestamp = ec.get_first_press(max_resp_time, min_resp_time,
+                                                live_keys)
+        ec.stop()  # will stop stim playback as soon as response logged
         # some feedback
-        if int(pressed) == stim_num + 1:
+        if pressed is None:
+            message = 'Too slow!'
+        elif int(pressed) == stim_num + 1:
             running_total += 1
             message = ('Correct! Your reaction time was '
                        '{}').format(round(timestamp, 3))
@@ -126,8 +139,6 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     ec.screen_text('Go!')
     pressed = ec.get_presses(max_resp_time, min_resp_time, live_keys, False)
     answers = [str(x + 1) for x in mass_trial]
-    print pressed
-    print answers
     correct = [pressed[n] == answers[n] for n in range(len(pressed))]
     running_total += sum(correct)
     ec.screen_prompt('You got {} out of {} correct.'.format(sum(correct),
