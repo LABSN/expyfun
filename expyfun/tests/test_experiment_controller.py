@@ -44,18 +44,18 @@ def test_experiment_init():
     ec.init_trial()
     ec.wait_secs(0.01)
     ec.add_data_line(dict(me='hello'))
-    ec.screen_prompt('test', 0.01, 0)
     ec.screen_prompt('test', 0.01, 0, None)
+    ec.screen_prompt('test', 0.01, 0, ['escape'])
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, None)
     ec.clear_screen()
-    assert ec.get_first_press(0.01) == []
-    assert ec.get_first_press(0.01, timestamp=False) == []
+    assert ec.get_first_press(0.01) == (None, None)
+    assert ec.get_first_press(0.01, timestamp=False) is None
     assert ec.get_presses(0.01) == []
     assert ec.get_presses(0.01, timestamp=False) == []
     assert ec.get_key_buffer() == []
     ec.clear_buffer()
-    ec.set_noise_amp(0)
-    ec.set_stim_amp(20)
+    ec.set_noise_db(0)
+    ec.set_stim_db(20)
     ec.load_buffer([0, 0, 0, 0, 0, 0])
     assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
     ec.load_buffer(np.zeros((100,)))

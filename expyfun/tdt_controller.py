@@ -191,7 +191,7 @@ class TDTController(object):
         self._trigger(2)
         psylog.debug('Stopping TDT audio')
 
-    def play_noise(self):
+    def start_noise(self):
         """Send the soft trigger to start the noise generator.
         """
         self._trigger(3)
@@ -202,6 +202,11 @@ class TDTController(object):
         """
         self._trigger(4)
         psylog.debug('Expyfun: Stopping TDT noise')
+
+    def set_noise_level(self, new_level):
+        """Set the amplitude of stationary background noise.
+        """
+        self.rpcox.SetTagVal('noiselev', new_level)
 
     def reset(self):
         """Send the soft trigger to reset the ring buffer.
