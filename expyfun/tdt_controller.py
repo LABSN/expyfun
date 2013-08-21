@@ -2,7 +2,6 @@ import time
 import numpy as np
 import platform
 from os import path as op
-import sys
 if 'Windows' in platform.platform():
     from tdt.util import connect_rpcox, connect_zbus
 else:
