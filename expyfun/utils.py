@@ -272,7 +272,7 @@ known_config_types = ['RESPONSE_DEVICE',
                       'TDT_CIRCUIT_PATH',
                       'WINDOW_SIZE',
                       'SCREEN_NUM',
-                      'EXPYFUN_INTERACTIVE_TESTING'
+                      'EXPYFUN_INTERACTIVE_TESTING',
                       'EXPYFUN_LOGGING_LEVEL'
                       ]
 
@@ -389,6 +389,9 @@ def _check_pyglet_version(raise_error=False):
 
 interactive_test = skipif(get_config('EXPYFUN_INTERACTIVE_TESTING', 'False') !=
                           'True', 'Interactive testing disabled.')
+
+tdt_test = skipif(get_config('AUDIO_CONTROLLER', 'psychopy') != 'tdt',
+                  'TDT not set in system config.')
 
 
 def wait_secs(secs, hog_cpu_time=0.2):

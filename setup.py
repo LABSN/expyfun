@@ -4,6 +4,7 @@
 #    Re-used based on mne-python code.
 
 import os
+from os import path as op
 import expyfun
 
 import setuptools  # we are using a setuptools namespace
@@ -48,7 +49,6 @@ if __name__ == "__main__":
                        'Operating System :: MacOS'],
           platforms='any',
           packages=['expyfun', 'expyfun.tests'],
-          package_data={},
+          package_data={'expyfun': [op.join('tdt-circuits','*.rcx'),
+                                    op.join('tests', 'data', '*')]},
           scripts=[])
-
-

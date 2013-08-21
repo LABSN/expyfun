@@ -6,6 +6,7 @@ from expyfun import ExperimentController
 from generate_stimuli import generate_stimuli
 
 # set configuration
+ac = 'psychopy'  # change to 'RM1' or 'RP2' for TDT use
 noise_amp = 45  # dB for background noise
 stim_amp = 75  # dB for stimuli
 min_resp_time = 0.1
@@ -32,23 +33,27 @@ num_freqs = len(freqs)
 if num_freqs > 8:
     raise RuntimeError('Too many frequencies, not enough buttons.')
 
-# keep only sinusoids, make stereo, order low - high, convert to list of arrays
+# keep only sinusoids, make stereo, order low-high, convert to list of arrays
 wavs = {k: np.r_[stims[k], stims[k]].T for k in stims if 'stim_' in k}
 wavs = [v for k, v in sorted(wavs.items())]
+
 # instructions
 instructions = ('You will hear tones at {0} different frequencies. Your job is'
                 ' to press the button corresponding to that frequency. Please '
                 'press buttons 1-{0} now to hear each tone.').format(num_freqs)
 
 instr_finished = ('Okay, now press any of those buttons to start the real '
-                  'thing.')
+                  'thing. There will be background noise.')
 
-with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
+# select audio controller
+if ac != 'psychopy':
+    ac = dict(TYPE='tdt', TDT_MODEL=ac)
+
+with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
                           window_size=[800, 600], full_screen=False,
-                          stim_amp=75, noise_amp=45, participant='foo',
-                          session='001', verbose=False) as ec:
-    ec.set_noise_amp(45)
-    ec.set_stim_amp(75)
+                          stim_db=65, noise_db=45, stim_fs=fs,
+                          participant='foo', session='001') as ec:
+
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]
     not_yet_pressed = live_keys[:]
@@ -58,13 +63,13 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     # show instructions until all buttons have been pressed at least once
     ec.add_data_line({'stim_num': 'training'})
     while len(not_yet_pressed) > 0:
-        (pressed, timestamp) = ec.get_press(live_keys=live_keys)
+        pressed, timestamp = ec.get_first_press(live_keys=live_keys)
         for p in pressed:
             p = int(p)
             ec.load_buffer(wavs[p - 1])
             ec.flip_and_play()
             ec.wait_secs(len(wavs[p - 1]) / float(ec.fs))
-            ec.stop_reset()
+            ec.stop()
             if p in not_yet_pressed:
                 not_yet_pressed.pop(not_yet_pressed.index(p))
     ec.clear_buffer()
@@ -78,6 +83,7 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     ec.clear_screen()
     ec.wait_secs(isi)
 
+    ec.call_on_flip_and_play(ec.start_noise())
     ec.screen_prompt('OK, here we go!', max_wait=feedback_dur, live_keys=None)
     ec.clear_screen()
     ec.wait_secs(isi)
@@ -91,11 +97,13 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
         ec.load_buffer(wavs[stim_num])
         ec.init_trial()
         ec.flip_and_play()
-        (pressed, timestamp) = ec.get_press(max_resp_time, min_resp_time,
-                                            live_keys)
-        ec.stop_reset()  # will stop stim playback as soon as response logged
+        pressed, timestamp = ec.get_first_press(max_resp_time, min_resp_time,
+                                                live_keys)
+        ec.stop()  # will stop stim playback as soon as response logged
         # some feedback
-        if int(pressed) == stim_num + 1:
+        if pressed is None:
+            message = 'Too slow!'
+        elif int(pressed) == stim_num + 1:
             running_total += 1
             message = ('Correct! Your reaction time was '
                        '{}').format(round(timestamp, 3))
@@ -126,10 +134,9 @@ with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
     ec.screen_text('Go!')
     pressed = ec.get_presses(max_resp_time, min_resp_time, live_keys, False)
     answers = [str(x + 1) for x in mass_trial]
-    print pressed
-    print answers
     correct = [pressed[n] == answers[n] for n in range(len(pressed))]
     running_total += sum(correct)
+    ec.call_on_flip_and_play(ec.stop_noise())
     ec.screen_prompt('You got {} out of {} correct.'.format(sum(correct),
                      len(answers)), max_wait=feedback_dur)
 
