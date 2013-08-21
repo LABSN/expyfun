@@ -62,7 +62,7 @@ def test_ec(ac=None):
 
     ec.init_trial()
     ec.wait_secs(0.01)
-    ec.add_data_line(dict(me='hello'))
+    ec.add_to_output(dict(me='hello'))
     ec.screen_prompt('test', 0.01, 0, None)
     ec.screen_prompt('test', 0.01, 0, ['escape'])
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, None)
