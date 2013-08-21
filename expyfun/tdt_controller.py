@@ -5,8 +5,7 @@ from os import path as op
 if 'Windows' in platform.platform():
     from tdt.util import connect_rpcox, connect_zbus
 else:
-    connect_rpcox = None
-    connect_zbus = None
+    connect_rpcox, connect_zbus = None, None
 from psychopy import logging as psylog
 from .utils import get_config, wait_secs
 
