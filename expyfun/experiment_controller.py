@@ -213,8 +213,8 @@ class ExperimentController(object):
         elif trigger_controller['type'] in ['parallel', 'dummy']:
             if 'address' not in trigger_controller['type']:
                 trigger_controller['address'] = get_config('TRIGGER_ADDRESS')
-            out = _psych_trigger(mode=trigger_controller['type'],
-                                 address=trigger_controller.get('address'))
+            out = _PsychTrigger(trigger_controller['type'],
+                                trigger_controller.get('address'))
             self._trigger_handler = out
         else:
             raise ValueError('trigger_controller type must be '
@@ -819,7 +819,7 @@ class ExperimentController(object):
         return self._noise_db  # not user-settable
 
 
-class _psych_trigger(object):
+class _PsychTrigger(object):
     """Parallel port and dummy triggering support
 
     Parameters
