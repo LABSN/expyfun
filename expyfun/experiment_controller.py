@@ -19,6 +19,7 @@ from .tdt_controller import TDTController
 
 # prefs.general['audioLib'] = ['pyo']
 # TODO: contact PsychoPy devs to get choice of audio backend
+# TODO: PsychoPy expose pygame "loops" argument
 
 
 class ExperimentController(object):
@@ -413,13 +414,14 @@ class ExperimentController(object):
             (or None if no acceptable key was pressed).
         """
         assert min_wait < max_wait
+        self._button_handler.keys = []
+        self._button_handler.rt = []
+        self._button_handler.clock.reset()
+        wait_secs(min_wait)
+        self._check_force_quit()
+        event.clearEvents('keyboard')
+
         if self._response_device == 'keyboard':
-            self._button_handler.keys = []
-            self._button_handler.rt = []
-            self._button_handler.clock.reset()
-            wait_secs(min_wait)
-            self._check_force_quit()
-            event.clearEvents('keyboard')
             live_keys = _add_escape_keys(live_keys, self._force_quit)
             pressed = []
             while (not len(pressed) and
@@ -437,25 +439,25 @@ class ExperimentController(object):
                     pressed = None
             else:
                 pressed = pressed[0]  # only keep first press if multiple
-            if timestamp:
-                self._check_force_quit(pressed[0])
-                self._button_handler.keys = pressed[0]
-                self._button_handler.rt = pressed[1]
-                self._data_handler.addData('button_presses',
-                                           self._button_handler.keys)
-                self._data_handler.addData('reaction_times',
-                                           self._button_handler.rt)
-            else:
-                self._check_force_quit(pressed)
-                self._button_handler.keys = pressed
-                self._data_handler.addData('button_presses',
-                                           self._button_handler.keys)
-            self._data_handler.nextEntry()
-            return pressed
         else:
-            # TODO: make keyboard escape keys active here
-            return self._tdt.get_first_press(max_wait, min_wait, live_keys,
-                                             timestamp)
+            pressed = self._tdt.get_first_press(max_wait, min_wait, live_keys,
+                                                timestamp)
+        # data handling
+        if timestamp:
+            self._check_force_quit(pressed[0])
+            self._button_handler.keys = pressed[0]
+            self._button_handler.rt = pressed[1]
+            self._data_handler.addData('button_presses',
+                                       self._button_handler.keys)
+            self._data_handler.addData('reaction_times',
+                                       self._button_handler.rt)
+        else:
+            self._check_force_quit(pressed)
+            self._button_handler.keys = pressed
+            self._data_handler.addData('button_presses',
+                                       self._button_handler.keys)
+        self._data_handler.nextEntry()
+        return pressed
 
     def get_presses(self, max_wait, min_wait=0.0, live_keys=None,
                     timestamp=True):
