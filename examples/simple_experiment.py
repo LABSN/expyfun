@@ -6,6 +6,7 @@ from expyfun import ExperimentController
 from generate_stimuli import generate_stimuli
 
 # set configuration
+ac = 'psychopy'  # change to 'RM1' or 'RP2' for TDT use
 noise_amp = 45  # dB for background noise
 stim_amp = 75  # dB for stimuli
 min_resp_time = 0.1
@@ -45,9 +46,8 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
                   'thing. There will be background noise.')
 
 # select audio controller
-ac = 'psychopy'
-#ac = dict(TYPE='tdt', TDT_MODEL='RM1', TDT_INTERFACE='USB',
-#          TDT_CIRCUIT_PATH='..\\tdt-circuits\\expCircuitF32.rcx')
+if ac != 'psychopy':
+    ac = dict(TYPE='tdt', TDT_MODEL=ac)
 
 with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
                           window_size=[800, 600], full_screen=False,
