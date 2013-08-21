@@ -338,9 +338,10 @@ class ExperimentController(object):
     def init_trial(self):
         """Reset trial clock, clear stored keypresses and reaction times.
         """
-        self.trial_clock.reset()
+        self.flush_logs()
         self._button_handler.keys = []
         self._button_handler.rt = []
+        self.trial_clock.reset()
 
     def add_data_line(self, data_dict):
         """Add a line of data to the output CSV.
@@ -353,7 +354,7 @@ class ExperimentController(object):
         """
         for key, value in data_dict.items():
             self._data_handler.addData(key, value)
-        #self._data_handler.nextEntry()
+        self._data_handler.nextEntry()
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
@@ -447,7 +448,7 @@ class ExperimentController(object):
         else:
             # TODO: make keyboard escape keys active here
             return self._tdt.get_first_press(max_wait, min_wait, live_keys,
-                                            timestamp)
+                                             timestamp)
 
     def get_presses(self, max_wait, min_wait=0.0, live_keys=None,
                     timestamp=True):
@@ -548,7 +549,7 @@ class ExperimentController(object):
             self._tdt.load_buffer(samples * self._stim_scaler)
         else:
             self._audio = sound.Sound(samples * self._stim_scaler,
-                                     sampleRate=self._fs)
+                                      sampleRate=self._fs)
             self._audio.setVolume(1.0)  # do not change: don't know if linear
 
     def clear_buffer(self):

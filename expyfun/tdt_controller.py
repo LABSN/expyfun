@@ -1,6 +1,8 @@
 import time
 import numpy as np
 import platform
+from os import path as op
+import sys
 if 'Windows' in platform.platform():
     from tdt.util import connect_rpcox, connect_zbus
 else:
@@ -45,7 +47,16 @@ class TDTController(object):
                 raise KeyError('Unrecognized key in tdt_params: {0}'.format(k))
 
         self._model = tdt_params['TDT_MODEL']
-        self._circuit = tdt_params['TDT_CIRCUIT_PATH']
+
+        if tdt_params['TDT_CIRCUIT_PATH'] is None:
+            cl = dict(RM1='RM1', RP2='RM1', RZ6='RZ6')
+            self._circuit = op.join(op.split(__file__)[0], 'tdt-circuits',
+                                    'expCircuitF32_' + cl[self._model] +
+                                    '.rcx')
+        else:
+            self._circuit = tdt_params['TDT_CIRCUIT_PATH']
+        if not op.isfile(self._circuit):
+            raise IOError('Could not find file {}'.format(self._circuit))
         self._interface = tdt_params['TDT_INTERFACE']
 
         # initialize RPcoX connection
