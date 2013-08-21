@@ -44,11 +44,15 @@ instructions = ('You will hear tones at {0} different frequencies. Your job is'
 instr_finished = ('Okay, now press any of those buttons to start the real '
                   'thing. There will be background noise.')
 
-with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
+# select audio controller
+ac = 'psychopy'
+#ac = dict(TYPE='tdt', TDT_MODEL='RM1', TDT_INTERFACE='USB',
+#          TDT_CIRCUIT_PATH='..\\tdt-circuits\\expCircuitF32.rcx')
+
+with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
                           window_size=[800, 600], full_screen=False,
                           stim_db=65, noise_db=45, stim_fs=fs,
-                          participant='foo', session='001',
-                          verbose=False) as ec:
+                          participant='foo', session='001') as ec:
 
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]

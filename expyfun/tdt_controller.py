@@ -61,18 +61,18 @@ class TDTController(object):
         self.connection = self.rpcox.ConnectRM1(IntName=interface, DevNum=1)
         """
         # MID-LEVEL APPROACH
-        if not connect_rpcox is None:
+        if connect_rpcox is not None:
             self.rpcox = connect_rpcox(name=self.model,
                                        interface=self.interface,
                                        device_id=1, address=None)
-            if not self.rpcox is None:
+            if self.rpcox is not None:
                 psylog.info('Expyfun: RPcoX connection established')
             else:
                 raise IOError('Problem initializing RPcoX.')
             """
             # start zBUS (may be needed for devices other than RM1)
             self.zbus = connect_zbus(interface=interface)
-            if not self.zbus is None:
+            if self.zbus is not None:
                 psylog.info('Expyfun: zBUS connection established')
             else:
                 raise ExperimentError('Problem initializing zBUS.')
@@ -150,11 +150,11 @@ class TDTController(object):
         self.rpcox.WriteTagV('datainleft', 0, data[:, 0])
         self.rpcox.WriteTagV('datainright', 0, data[:, 1])
 
-    def clear_buffer(self, buffer_name):
-        """Wrapper for tdt.util.RPcoX.ZeroTag()
+    def clear_buffer(self):
+        """Clear the TDT ring buffers.
         """
-        # TODO: handle left/right channels
-        self.rpcox.ZeroTag(buffer_name)
+        self.rpcox.ZeroTag('datainleft')
+        self.rpcox.ZeroTag('datainright')
 
     def stamp_triggers(self, triggers, delay):
         """Stamp a list of triggers with a given inter-trigger delay
@@ -273,7 +273,7 @@ class TDTController(object):
                                                 press_count, 'I32', 'F64',
                                                 1) / float(self.fs)
         press_vals = np.ones_like(press_times)
-        # TODO: code as written only works for button #1.
+        # TODO: only works for button #1 (direct translation of Zach's code)
         # TODO: subtract tSound (time the sound started)
         # TODO: de-bounce presses (see below)
         return zip(press_times, press_vals)
