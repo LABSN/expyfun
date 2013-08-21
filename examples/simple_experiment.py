@@ -32,9 +32,10 @@ num_freqs = len(freqs)
 if num_freqs > 8:
     raise RuntimeError('Too many frequencies, not enough buttons.')
 
-# keep only sinusoids, make stereo, order low - high, convert to list of arrays
+# keep only sinusoids, make stereo, order low-high, convert to list of arrays
 wavs = {k: np.r_[stims[k], stims[k]].T for k in stims if 'stim_' in k}
 wavs = [v for k, v in sorted(wavs.items())]
+
 # instructions
 instructions = ('You will hear tones at {0} different frequencies. Your job is'
                 ' to press the button corresponding to that frequency. Please '
@@ -45,8 +46,9 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
 
 with ExperimentController('testExp', 'psychopy', 'keyboard', screen_num=0,
                           window_size=[800, 600], full_screen=False,
-                          stim_db=65, noise_db=45, participant='foo',
-                          session='001', verbose=False) as ec:
+                          stim_db=65, noise_db=45, stim_fs=fs,
+                          participant='foo', session='001',
+                          verbose=False) as ec:
 
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]

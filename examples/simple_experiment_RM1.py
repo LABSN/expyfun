@@ -2,10 +2,10 @@ from os import path as op
 import numpy as np
 from scipy import io as sio
 
-from expyfun import ExperimentController, set_log_level
+from expyfun import ExperimentController  #, set_log_level
 from generate_stimuli import generate_stimuli
 
-set_log_level('DEBUG')
+# set_log_level('DEBUG')
 
 # set configuration
 noise_amp = 45  # dB for background noise
@@ -50,8 +50,9 @@ ac = dict(TYPE='tdt', TDT_MODEL='RM1', TDT_INTERFACE='USB',
 
 with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
                           window_size=[800, 600], full_screen=False,
-                          stim_db=65, noise_db=45, participant='foo',
-                          session='001') as ec:
+                          stim_db=65, noise_db=45, stim_fs=fs,
+                          participant='foo', session='001',
+                          verbose=False) as ec:
 
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]

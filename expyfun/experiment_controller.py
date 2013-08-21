@@ -118,7 +118,7 @@ class ExperimentController(object):
         for key, value in self._exp_info.iteritems():
             if key not in fixed_list and value is not None:
                 if not isinstance(value, basestring):
-                    raise TypeError(value + ' must be a string or None')
+                    raise TypeError('{} must be string or None'.format(value))
                 fixed_list += [key]
 
         if len(fixed_list) < len(self._exp_info):
@@ -150,7 +150,7 @@ class ExperimentController(object):
         else:
             self._response_device = response_device
 
-        # audio setup
+        # set audio type
         if audio_controller is None:
             audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
                                                    'psychopy')}
@@ -163,9 +163,9 @@ class ExperimentController(object):
                                  ' \'psychopy\' or \'TYPE\': \'tdt\').')
         elif not isinstance(audio_controller, dict):
             raise TypeError('audio_controller must be a str or dict.')
-
         self._audio_type = audio_controller['TYPE'].lower()
 
+        # initialize audio
         if self._audio_type == 'tdt':
             psylog.info('Expyfun: Setting up TDT')
             self.tdt = TDTController(audio_controller)
@@ -190,12 +190,11 @@ class ExperimentController(object):
             raise ValueError('audio_controller[\'TYPE\'] must be '
                              '\'psychopy\' or \'tdt\'.')
 
-        # scaling factor to ensure uniform intensity across output devices
+        # audio scaling factor; ensure uniform intensity across output devices
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
 
         if stim_fs != self._fs:
-            # TODO: add test for this in the test_logging script
             psylog.warn('Mismatch between reported stim sample rate ({0}) and '
                         'device sample rate ({1}). ExperimentController will '
                         'resample for you, but that takes a non-trivial amount'
@@ -271,7 +270,8 @@ class ExperimentController(object):
                             self._audio_type))
         return string
 
-    def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None):
+    def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
+                      timestamped=False):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -305,7 +305,8 @@ class ExperimentController(object):
             wait_secs(max_wait)
             return (None, max_wait)
         else:
-            return self.get_first_press(max_wait, min_wait, live_keys)
+            return self.get_first_press(max_wait, min_wait, live_keys,
+                                        timestamped)
 
     def screen_text(self, text, clock=None):
         """Show some text on the screen.
@@ -404,12 +405,13 @@ class ExperimentController(object):
         """
         assert min_wait < max_wait
         if self._response_device == 'keyboard':
-            live_keys = _add_escape_keys(live_keys, self._force_quit)
             self._button_handler.keys = []
             self._button_handler.rt = []
             self._button_handler.clock.reset()
             wait_secs(min_wait)
+            self._check_force_quit()
             event.clearEvents('keyboard')
+            live_keys = _add_escape_keys(live_keys, self._force_quit)
             pressed = []
             while (not len(pressed) and
                    self._button_handler.clock.getTime() < max_wait):
@@ -419,25 +421,28 @@ class ExperimentController(object):
                 else:
                     pressed = event.getKeys(keyList=live_keys,
                                             timeStamped=False)
-            if len(pressed):
-                pressed = pressed[0]
-                self._check_force_quit(pressed)
-            if len(pressed) and timestamp:
-                self._button_handler.keys = pressed[0]
-                self._button_handler.rt = pressed[1]
-                self._data_handler.addData('reaction_times',
-                                           self._button_handler.rt)
-            else:
+            if not len(pressed):
                 if timestamp:
                     pressed = (None, None)
                 else:
                     pressed = None
+            if timestamp:
+                self._check_force_quit(pressed[0])
+                self._button_handler.keys = pressed[0]
+                self._button_handler.rt = pressed[1]
+                self._data_handler.addData('button_presses',
+                                           self._button_handler.keys)
+                self._data_handler.addData('reaction_times',
+                                           self._button_handler.rt)
+            else:
+                self._check_force_quit(pressed)
                 self._button_handler.keys = pressed
-            self._data_handler.addData('button_presses',
-                                       self._button_handler.keys)
+                self._data_handler.addData('button_presses',
+                                           self._button_handler.keys)
             self._data_handler.nextEntry()
             return pressed
         else:
+            # TODO: make keyboard escape keys active here
             return self.tdt.get_first_press(max_wait, min_wait, live_keys,
                                             timestamp)
 
@@ -467,13 +472,14 @@ class ExperimentController(object):
         """
         assert min_wait < max_wait
         if self._response_device == 'keyboard':
-            live_keys = _add_escape_keys(live_keys, self._force_quit)
             self._button_handler.keys = []
             self._button_handler.rt = []
             self._button_handler.clock.reset()
-            pressed = []
             wait_secs(min_wait)
+            self._check_force_quit()
             event.clearEvents('keyboard')
+            live_keys = _add_escape_keys(live_keys, self._force_quit)
+            pressed = []
             while self._button_handler.clock.getTime() < max_wait:
                 if timestamp:
                     pressed += event.getKeys(keyList=live_keys,
@@ -500,17 +506,27 @@ class ExperimentController(object):
                 self._data_handler.nextEntry()
             return pressed
         else:
+            # TODO: make keyboard escape keys active here
             self.tdt.get_presses(max_wait, min_wait, live_keys, timestamp)
 
-    def _check_force_quit(self, keys):
+    def _check_force_quit(self, keys=None):
         """Compare key buffer to list of force-quit keys and quit if matched.
 
         Parameters
         ----------
-        keys : str | list
+        keys : str | list | None
             List of keypresses to check against self._force_quit.
         """
-        if self._force_quit in keys:
+        if keys is None:
+            keys = event.getKeys(self._force_quit, timeStamped=False)
+        elif type(keys) is str:
+            keys = [k for k in [keys] if k in self._force_quit]
+        elif type(keys) is list:
+            keys = [k for k in keys if k in self._force_quit]
+        else:
+            raise TypeError('Force quit checking requires a string or list of'
+                            ' strings, not a(n) {}.'.format(type(keys)))
+        if len(keys):
             self.close()
 
     def load_buffer(self, samples):
