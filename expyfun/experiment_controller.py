@@ -902,7 +902,7 @@ class _psych_trigger(object):
             del self.parallel
 
 
-def _get_rms(audio_controller):
+def _get_dev_db(audio_controller):
     """Selects device-specific amplitude to ensure equivalence across devices.
     """
     if audio_controller == 'RM1':
@@ -918,13 +918,6 @@ def _get_rms(audio_controller):
                     'correctly. You may want to remove your headphones if this'
                     ' is the first run of your experiment.')
         return 90  # for untested TDT models
-
-
-def _get_stim_scaler(audio_controller, stim_amp, stim_rms):
-    """Calculates coefficient ensuring stim ampl equivalence across devices.
-    """
-    exponent = (-(_get_rms(audio_controller) - stim_amp) / 20) / stim_rms
-    return np.power(10, exponent)
 
 
 def _add_escape_keys(live_keys, _force_quit):
