@@ -19,7 +19,6 @@ from .tdt_controller import TDTController
 
 # prefs.general['audioLib'] = ['pyo']
 # TODO: contact PsychoPy devs to get choice of audio backend
-# TODO: PsychoPy expose pygame "loops" argument
 
 
 class ExperimentController(object):
@@ -100,6 +99,8 @@ class ExperimentController(object):
         self._stim_rms = stim_rms
         self._stim_db = stim_db
         self._noise_db = noise_db
+        self._stim_scaler = None
+        self._noise_scaler = None
         self._force_quit = force_quit
 
         # Check Pyglet version for safety
@@ -343,7 +344,7 @@ class ExperimentController(object):
         self._button_handler.rt = []
         self.trial_clock.reset()
 
-    def add_data_line(self, data_dict):
+    def add_to_output(self, data_dict):
         """Add a line of data to the output CSV.
 
         Parameters
@@ -496,14 +497,14 @@ class ExperimentController(object):
                     self._check_force_quit([key for (key, _) in pressed])
                 else:
                     self._check_force_quit(pressed)
-            for p in pressed:
+            for key in pressed:
                 if timestamp:
-                    self._button_handler.keys = p[0]
-                    self._button_handler.rt = p[1]
+                    self._button_handler.keys = key[0]
+                    self._button_handler.rt = key[1]
                     self._data_handler.addData('reaction_times',
                                                self._button_handler.rt)
                 else:
-                    self._button_handler.keys = p
+                    self._button_handler.keys = key
                 self._data_handler.addData('button_presses',
                                            self._button_handler.keys)
                 #self._data_handler.addData('trial', trial_num)
@@ -701,10 +702,10 @@ class ExperimentController(object):
         """Calcs coefficient ensuring stim ampl equivalence across devices.
         """
         if self._audio_type == 'tdt':
-            ac = self._tdt.model
+            ac_type = self._tdt.model
         else:
-            ac = self._audio_type
-        exponent = (-(_get_dev_db(ac) - desired_db) / 20.0)
+            ac_type = self._audio_type
+        exponent = (-(_get_dev_db(ac_type) - desired_db) / 20.0)
         return (10 ** exponent) / float(orig_rms)
 
     def _validate_audio(self, samples):
@@ -718,11 +719,11 @@ class ExperimentController(object):
         Returns
         -------
         samples : numpy.array(dtype='float32')
-            The audio samples.
+            The correctly formatted audio samples.
         """
         # check data type
         if type(samples) is list:
-            samples = np.asarray(samples, dtype='float32', order='C')
+            samples = np.asarray(samples, dtype='float32')
         elif samples.dtype != 'float32':
             samples = np.float32(samples)
 
@@ -732,23 +733,29 @@ class ExperimentController(object):
             # samples /= np.max(np.abs(samples),axis=0)
 
         # check dimensionality
+        if samples.ndim > 2:
+            raise ValueError('Sound data has more than two dimensions.')
+
+        # check shape
+        if samples.ndim == 2 and min(samples.shape) > 2:
+            raise ValueError('Sound data has more than two channels.')
+        elif len(samples.shape) == 2 and samples.shape[0] == 2:
+            samples = samples.T
+
+        # resample if needed
+        if self._stim_fs != self._fs:
+            psylog.warn('Resampling {} seconds of audio'.format(len(samples)))
+            num_samples = len(samples) * self._fs / float(self._stim_fs)
+            samples = resample(samples, int(num_samples), window='boxcar')
+
+        # make stereo if not already
         if samples.ndim == 1:
             samples = np.array((samples, samples)).T
-        elif samples.ndim > 2:
-            raise ValueError('Sound data has more than two dimensions.')
         elif 1 in samples.shape:
             samples = samples.ravel()
             samples = np.array((samples, samples)).T
-        elif 2 not in samples.shape:
-            raise ValueError('Sound data has more than two channels.')
-        elif samples.shape[0] == 2:
-            samples = samples.T
 
-        # check sample rates
-        if self._stim_fs != self._fs:
-            num_samples = len(samples) * self._fs / float(self._stim_fs)
-            samples = resample(samples, int(num_samples), window='boxcar')
-        return samples
+        return np.ascontiguousarray(samples)
 
     def _halt(self):
         """Cleanup action for halting the running circuit on a TDT.
@@ -852,6 +859,8 @@ class _psych_parallel(object):
         self.high_duration = high_duration
 
     def _dummy_triggers(self, triggers, delay):
+        """For testing
+        """
         pass
 
     def _stamp_triggers(self, triggers, delay):
