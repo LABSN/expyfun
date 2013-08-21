@@ -100,7 +100,6 @@ class ExperimentController(object):
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
-        self._noise_scaler = None
         self._force_quit = force_quit
 
         # Check Pyglet version for safety
@@ -183,8 +182,9 @@ class ExperimentController(object):
                                   ' installed.')
             self._audio = sound.Sound(np.zeros((1, 2)), sampleRate=self._fs)
             self._audio.setVolume(1.0)  # do not change: don't know if linear
-            _noise = np.random.normal(0, 0.01, self._fs * 5.0)  # 5 secs
-            self._noise_array = np.array((_noise, -1.0 * _noise), order='F').T
+            _noise = np.random.normal(0, 0.01, self._fs * 15.0)  # 15 secs
+            self._noise_array = np.array(np.c_[_noise, -1.0 * _noise],
+                                         order='C')
             self._noise = sound.Sound(self._noise_array, sampleRate=self._fs)
             self._noise.setVolume(1.0)  # do not change: don't know if linear
         else:
