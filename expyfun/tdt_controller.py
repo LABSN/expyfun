@@ -5,8 +5,7 @@ from os import path as op
 if 'Windows' in platform.platform():
     from tdt.util import connect_rpcox, connect_zbus
 else:
-    connect_rpcox = None
-    connect_zbus = None
+    connect_rpcox, connect_zbus = None, None
 from psychopy import logging as psylog
 from .utils import get_config, wait_secs
 
@@ -56,13 +55,13 @@ class TDTController(object):
             self._circuit = tdt_params['TDT_CIRCUIT_PATH']
         if not op.isfile(self._circuit):
             raise IOError('Could not find file {}'.format(self._circuit))
+        if tdt_params['TDT_INTERFACE'] is None:
+            tdt_params['TDT_INTERFACE'] = 'USB'
         self._interface = tdt_params['TDT_INTERFACE']
 
         # initialize RPcoX connection
         """
-        # HIGH-LEVEL APPROACH
-        # (fails often, possibly due to inappropriate zBUS call in DSPCircuit)
-        import tdt
+        # HIGH-LEVEL APPROACH, fails possibly due to zBUS call in DSPCircuit
         self.rpcox = tdt.DSPCircuit(circuit, tdt_type, interface=interface)
         self.rpcox.start()
 
