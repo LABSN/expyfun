@@ -3,6 +3,7 @@ import numpy as np
 from scipy import io as sio
 
 from expyfun import ExperimentController
+from expyfun.utils import set_log_level
 from generate_stimuli import generate_stimuli
 
 # set configuration
@@ -14,6 +15,8 @@ max_resp_time = 2.0
 feedback_dur = 0.5
 isi = 0.2
 running_total = 0
+
+set_log_level('DEBUG')
 
 # if the stimuli have not been made, let's make them in examples dir
 stimulus_dir = op.split(__file__)[0]
@@ -89,7 +92,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
     ec.wait_secs(isi)
 
     single_trials = trial_order[range(int(len(trial_order) / 2))]
-    mass_trial = trial_order[int(len(trial_order) / 2):]
+    mass_trial_order = trial_order[int(len(trial_order) / 2):]
     # run the single-tone trials
     for stim_num in single_trials:
         ec.add_to_output({'stim_num': stim_num + 1})  # 0-indexing
@@ -100,6 +103,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
         pressed, timestamp = ec.get_first_press(max_resp_time, min_resp_time,
                                                 live_keys)
         ec.stop()  # will stop stim playback as soon as response logged
+
         # some feedback
         if pressed is None:
             message = 'Too slow!'
@@ -114,27 +118,27 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
         ec.clear_screen()
         ec.wait_secs(isi)
 
-    # create 100 ms pause to play between stims
+    # create 100 ms pause to play between stims and concatenate
     pause = np.zeros((int(ec.fs / 10), 2))
-    stims = [np.row_stack((wavs[stim], pause)) for stim in mass_trial]
-    # run mass trial
+    stims = [np.row_stack((wavs[stim], pause)) for stim in mass_trial_order]
     mass_stim = np.row_stack((stims[n] for n in range(len(stims))))
+    # run mass trial
     ec.screen_prompt('Now you will hear {0} tones in a row. After they stop, '
                      'wait for the "Go!" prompt, then you will have {1} '
                      'seconds to push the buttons in the order that the tones '
                      'played in. Press one of the buttons to begin.'
-                     ''.format(len(mass_trial), max_resp_time),
+                     ''.format(len(mass_trial_order), max_resp_time),
                      live_keys=live_keys)
     ec.clear_screen()
     ec.clear_buffer()
     ec.load_buffer(mass_stim)
-    ec.add_to_output({'stim_num': [x + 1 for x in mass_trial]})  # 0-indexing
+    ec.add_to_output({'stim_num': [x + 1 for x in mass_trial_order]})
     ec.init_trial()
     ec.flip_and_play()
     ec.wait_secs(len(mass_stim) / float(ec.fs))
     ec.screen_text('Go!')
     pressed = ec.get_presses(max_resp_time, min_resp_time, live_keys, False)
-    answers = [str(x + 1) for x in mass_trial]
+    answers = [str(x + 1) for x in mass_trial_order]
     correct = [pressed[n] == answers[n] for n in range(len(pressed))]
     running_total += sum(correct)
     ec.call_on_flip_and_play(ec.stop_noise())

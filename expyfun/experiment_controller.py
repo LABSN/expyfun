@@ -771,6 +771,8 @@ class ExperimentController(object):
         """
         if self._tdt is not None:
             self._tdt.halt_circuit()
+        else:
+            pass
 
     def __enter__(self):
         psylog.debug('Expyfun: Entering')
@@ -909,7 +911,7 @@ def _get_dev_db(audio_controller):
     """Selects device-specific amplitude to ensure equivalence across devices.
     """
     if audio_controller == 'RM1':
-        return 108  # this is approx; knob is not detented
+        return 108  # this is approx w/ knob @ 12 o'clock (knob not detented)
     elif audio_controller == 'RP2':
         return 108
     elif audio_controller == 'RZ6':
