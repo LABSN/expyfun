@@ -63,7 +63,7 @@ class EyelinkController(object):
         self._ec = ec
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
-        self._display_res = self._ec.win.size.copy()
+        self._display_res = self._ec._win.size.copy()
         self.setup(fs)
 
     @property
