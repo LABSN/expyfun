@@ -262,6 +262,7 @@ class ExperimentController(object):
                                   winType='pyglet', allowGUI=False,
                                   allowStencil=False, color=bkgd_color,
                                   colorSpace='rgb')
+
         self._text_stim = visual.TextStim(win=self._win, text='', pos=[0, 0],
                                           height=0.1, wrapWidth=1.2,
                                           units='norm', color=[1, 1, 1],
