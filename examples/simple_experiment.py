@@ -61,7 +61,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
     ec.init_trial()  # resets trial clock, clears keyboard buffer, etc
     ec.screen_text(instructions)
     # show instructions until all buttons have been pressed at least once
-    ec.add_data_line({'stim_num': 'training'})
+    ec.add_to_output({'stim_num': 'training'})
     while len(not_yet_pressed) > 0:
         pressed, timestamp = ec.get_first_press(live_keys=live_keys)
         for p in pressed:
@@ -78,7 +78,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
     ec.wait_secs(isi)
 
     # show instructions finished screen
-    ec.add_data_line({'stim_num': 'prompt'})
+    ec.add_to_output({'stim_num': 'prompt'})
     ec.screen_prompt(instr_finished, live_keys=live_keys)
     ec.clear_screen()
     ec.wait_secs(isi)
@@ -90,9 +90,9 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
 
     single_trials = trial_order[range(int(len(trial_order) / 2))]
     mass_trial = trial_order[int(len(trial_order) / 2):]
-    # run half the trials
+    # run the single-tone trials
     for stim_num in single_trials:
-        ec.add_data_line({'stim_num': stim_num + 1})  # 0-indexing
+        ec.add_to_output({'stim_num': stim_num + 1})  # 0-indexing
         ec.clear_buffer()
         ec.load_buffer(wavs[stim_num])
         ec.init_trial()
@@ -114,20 +114,21 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
         ec.clear_screen()
         ec.wait_secs(isi)
 
-    # add 250 ms pause between stims
-    pause = np.zeros((int(ec.fs) / 4, 2))
+    # create 100 ms pause to play between stims
+    pause = np.zeros((int(ec.fs / 10), 2))
     stims = [np.row_stack((wavs[stim], pause)) for stim in mass_trial]
     # run mass trial
     mass_stim = np.row_stack((stims[n] for n in range(len(stims))))
     ec.screen_prompt('Now you will hear {0} tones in a row. After they stop, '
-                     'you will have {1} seconds to push the buttons in the '
-                     'order that the tones played in. Press one of the buttons'
-                     ' to begin.'.format(len(mass_trial), max_resp_time),
+                     'wait for the "Go!" prompt, then you will have {1} '
+                     'seconds to push the buttons in the order that the tones '
+                     'played in. Press one of the buttons to begin.'
+                     ''.format(len(mass_trial), max_resp_time),
                      live_keys=live_keys)
     ec.clear_screen()
     ec.clear_buffer()
     ec.load_buffer(mass_stim)
-    ec.add_data_line({'stim_num': [x + 1 for x in mass_trial]})  # 0-indexing
+    ec.add_to_output({'stim_num': [x + 1 for x in mass_trial]})  # 0-indexing
     ec.init_trial()
     ec.flip_and_play()
     ec.wait_secs(len(mass_stim) / float(ec.fs))
@@ -141,8 +142,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
                      len(answers)), max_wait=feedback_dur)
 
     # end experiment
-    ec.add_data_line({'stim_num': 'prompt'})
+    ec.add_to_output({'stim_num': 'prompt'})
     ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '
                      '"escape" to close.'.format(running_total, num_trials),
                      live_keys=['escape'])
-    ec.clear_screen()

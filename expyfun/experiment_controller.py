@@ -362,7 +362,7 @@ class ExperimentController(object):
         """
         for key, value in data_dict.items():
             self._data_handler.addData(key, value)
-        self._data_handler.nextEntry()
+        #self._data_handler.nextEntry()
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
@@ -752,7 +752,8 @@ class ExperimentController(object):
 
         # resample if needed
         if self._stim_fs != self._fs:
-            psylog.warn('Resampling {} seconds of audio'.format(len(samples)))
+            psylog.warn('Resampling {} seconds of audio'
+                        ''.format(int(len(samples) / self._stim_fs)))
             num_samples = len(samples) * self._fs / float(self._stim_fs)
             samples = resample(samples, int(num_samples), window='boxcar')
 
