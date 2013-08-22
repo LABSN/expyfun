@@ -11,8 +11,7 @@ import os
 from os import path as op
 from functools import partial
 from scipy.signal import resample
-from psychopy import visual, core, event, sound, gui, parallel  # prefs
-from psychopy.data import getDateStr as date_str
+from psychopy import visual, core, data, event, sound, gui, parallel, monitors
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
 from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
@@ -90,7 +89,8 @@ class ExperimentController(object):
                  stim_rms=0.01, stim_fs=44100, stim_db=65, noise_db=45,
                  output_dir='rawData', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
-                 trigger_controller=None, session=None, verbose=None):
+                 monitor=None, trigger_controller=None, session=None,
+                 verbose=None):
 
         # Check Pyglet version for safety
         _check_pyglet_version(raise_error=True)
@@ -152,6 +152,27 @@ class ExperimentController(object):
         self._data_file = open(basename + '.tab', 'a')
         self._data_file.write('# ' + str(self._exp_info) + '\n')
         self._data_file.write('timestamp\tevent\tvalue\n')
+
+        if monitor is None:
+            monitor = dict()
+            monitor['SCREEN_WIDTH'] = float(get_config('SCREEN_WIDTH', '51.0'))
+            monitor['SCREEN_DISTANCE'] = float(get_config('SCREEN_DISTANCE',
+                                               '48.0'))
+            mon_size = get_config('SCREEN_SIZE_PIX', '1920,1080').split(',')
+            mon_size = [float(m) for m in mon_size]
+            monitor['SCREEN_SIZE_PIX'] = mon_size
+        else:
+            if not isinstance(monitor, dict):
+                raise TypeError('monitor must be a dict')
+            if not all([key in monitor for key in ['SCREEN_WIDTH',
+                                                   'SCREEN_DISTANCE',
+                                                   'SCREEN_SIZE_PIX']]):
+                raise KeyError('monitor must have keys "SCREEN_WIDTH", '
+                               '"SCREEN_DISTANCE", and "SCREEN_SIZE_PIX"')
+        mon_size = monitor['SCREEN_SIZE_PIX']
+        monitor = monitors.Monitor('custom', monitor['SCREEN_WIDTH'],
+                                   monitor['SCREEN_DISTANCE'])
+        monitor.setSizePix(mon_size)
 
         # set up response device
         if response_device is None:
@@ -237,7 +258,7 @@ class ExperimentController(object):
         if screen_num is None:
             screen_num = int(get_config('SCREEN_NUM', '0'))
         self._win = visual.Window(size=window_size, fullscr=full_screen,
-                                  monitor='', screen=screen_num,
+                                  monitor=monitor, screen=screen_num,
                                   winType='pyglet', allowGUI=False,
                                   allowStencil=False, color=bkgd_color,
                                   colorSpace='rgb')

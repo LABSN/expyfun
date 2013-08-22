@@ -11,15 +11,47 @@ from distutils.version import LooseVersion
 import os
 from os import path as op
 import time
+import Image
+from psychopy import visual
 from psychopy import logging as psylog
+import pyglet
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink
 except ImportError:
     pylink = None
 from .utils import get_config, verbose_dec
-from .eyelink_core_graphics_pyglet import CalibratePyglet
+
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
+
+key_trans_dict = {str(pyglet.window.key.F1): pylink.F1_KEY,
+                  str(pyglet.window.key.F2): pylink.F2_KEY,
+                  str(pyglet.window.key.F3): pylink.F3_KEY,
+                  str(pyglet.window.key.F4): pylink.F4_KEY,
+                  str(pyglet.window.key.F5): pylink.F5_KEY,
+                  str(pyglet.window.key.F6): pylink.F6_KEY,
+                  str(pyglet.window.key.F7): pylink.F7_KEY,
+                  str(pyglet.window.key.F8): pylink.F8_KEY,
+                  str(pyglet.window.key.F9): pylink.F9_KEY,
+                  str(pyglet.window.key.F10): pylink.F10_KEY,
+                  str(pyglet.window.key.PAGEUP): pylink.PAGE_UP,
+                  str(pyglet.window.key.PAGEDOWN): pylink.PAGE_DOWN,
+                  str(pyglet.window.key.UP): pylink.CURS_UP,
+                  str(pyglet.window.key.DOWN): pylink.CURS_DOWN,
+                  str(pyglet.window.key.LEFT): pylink.CURS_LEFT,
+                  str(pyglet.window.key.RIGHT): pylink.CURS_RIGHT,
+                  str(pyglet.window.key.BACKSPACE): '\b',
+                  str(pyglet.window.key.RETURN): pylink.ENTER_KEY,
+                  str(pyglet.window.key.ESCAPE): pylink.ESC_KEY,
+                  str(pyglet.window.key.NUM_ADD): pyglet.window.key.PLUS,
+                  str(pyglet.window.key.NUM_SUBTRACT): pyglet.window.key.MINUS,
+                  }
+
+color_dict = {str(pylink.CR_HAIR_COLOR): (1.0, 1.0, 1.0),
+              str(pylink.PUPIL_HAIR_COLOR): (1.0, 1.0, 1.0),
+              str(pylink.PUPIL_BOX_COLOR): (0.0, 1.0, 0.0),
+              str(pylink.SEARCH_LIMIT_BOX_COLOR): (1.0, 0.0, 0.0),
+              str(pylink.MOUSE_CURSOR_COLOR): (1.0, 0.0, 0.0)}
 
 
 class EyelinkController(object):
@@ -47,7 +79,8 @@ class EyelinkController(object):
         The Eyelink control interface.
     """
     @verbose_dec
-    def __init__(self, ec=None, output_dir=None, link='default', fs=1000):
+    def __init__(self, ec=None, output_dir=None, link='default', fs=1000,
+                 verbose=None):
         if pylink is None:
             raise ImportError('Could not import pylink, please ensure it '
                               'is installed correctly')
@@ -61,10 +94,18 @@ class EyelinkController(object):
             os.mkdir(output_dir)
         self.output_dir = output_dir
         self._ec = ec
+        psylog.info('EyeLink: Initializing on {}'.format(link))
+        ec.flush_logs()
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
-        self._display_res = self._ec._win.size.copy()
+        if self._ec is not None:
+            self._display_res = self._ec._win.size.copy()
+        else:
+            self._display_res = np.array([1920, 1200])
+        self._ec.flush_logs()
         self.setup(fs)
+        psylog.debug('EyeLink: Setup complete')
+        self._ec.flush_logs()
 
     @property
     def _is_dummy_mode(self):
@@ -74,19 +115,17 @@ class EyelinkController(object):
         """Start up Eyelink
 
         Executes automatically on init, and needs to be run after
-        el_save() if more eye tracking is desired.
+        el_save() if further eye tracking is desired.
 
         Parameters
         ----------
         fs : int
             The sample rate to use.
         """
-        # Add comments
-        self.command('add_file_preamble_text "Recorded by EyelinkController"')
-
         # map the gaze positions from the tracker to screen pixel positions
         res = self._display_res
         res_str = '0 0 {0} {1}'.format(res[0] - 1, res[1] - 1)
+        psylog.debug('EyeLink: Setting display coordinates and saccade levels')
         self.command('screen_pixel_coords = ' + res_str)
         self.message('DISPLAY_COORDS ' + res_str)
 
@@ -103,7 +142,8 @@ class EyelinkController(object):
 
         # retrieve tracker version and tracker software version
         v = str(self.eyelink.getTrackerVersion())
-        psylog.info('Running experiment on a ''{0}'' tracker.'.format(v))
+        psylog.info('Running experiment on a version ''{0}'' '
+                    'tracker.'.format(v))
         v = LooseVersion(v).version
 
         # set EDF file contents
@@ -117,6 +157,7 @@ class EyelinkController(object):
             fsd = fsd + ',HTARGET'
             # set link data (used for gaze cursor)
             lsd = lsd + ',HTARGET'
+        psylog.debug('EyeLink: Setting file filter')
         self.command('file_event_filter = ' + fef)
         self.command('file_sample_data  = ' + fsd)
         self.command('link_event_filter = ' + lef)
@@ -168,22 +209,26 @@ class EyelinkController(object):
         Filenames are saved by HHMMSS format, DO NOT start and stop
         recordings anywhere near once per second.
         """
-        self.eyelink.startRecording(1, 1, 1, 1)
         file_name = datetime.datetime.now().strftime('%H%M%S')
         # make absolutely sure we don't break this
         if len(file_name) > 8:
             raise RuntimeError('filename ("{0}") is too long!\n'
                                'Must be < 8 chars'.format(file_name))
+        psylog.info('Starting recording with filename {}'.format(file_name))
+        if self.eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
+            raise RuntimeError('Recording could not be started')
         self.eyelink.openDataFile(file_name)
         self._file_list += [file_name]
+        self._ec.flush_logs()
 
     def stop(self):
         """Stop Eyelink recording"""
+        psylog.info('Stopping recording')
         if self.eyelink.isConnected():
             self.eyelink.stopRecording()
             self.eyelink.closeDataFile()
 
-    def calibrate(self, start=True):
+    def calibrate(self, start=True, beep=True):
         """Calibrate the eyetracker
 
         Parameters
@@ -197,17 +242,20 @@ class EyelinkController(object):
         When calibrate is called, the stop() method is automatically
         executed before calibration begins.
         """
+        psylog.debug('EyeLink: Entering calibration')
+        self._ec.flush_logs()
         # stop the recording
         self.stop()
         # enter Eyetracker camera setup mode, calibration and validation
-        #if not self._is_dummy_mode:
         self._ec.clear_screen()
-        genv = CalibratePyglet(self._ec.win.winHandle)
+        genv = _CalibratePyglet(self._ec, beep)
         pylink.openGraphicsEx(genv)
         genv.setup_event_handlers()
         self.eyelink.doTrackerSetup()
         genv.release_event_handlers()
         self._ec.clear_screen()
+        psylog.debug('EyeLink: Completed calibration')
+        self._ec.flush_logs()
         # open file to record
         if start is True:
             self.start()
@@ -394,6 +442,165 @@ class EyelinkController(object):
         """Show the cursor for dummy mode"""
         if self._is_dummy_mode:
             self._ec.toggle_cursor(visibility)
+
+
+class _CalibratePyglet(pylink.EyeLinkCustomDisplay):
+    """Show and control calibration screen"""
+    def __init__(self, _ec, beep=False):
+        # set some useful parameters
+        self.flush_logs = _ec.flush_logs
+        self._win = _ec._win
+        self.size = _ec._win.size
+        self.keys = []
+        self.aspect = float(self.size[0]) / self.size[1]
+        self.img_span = (1.0, 1.0 * self.aspect)
+
+        # set up reusable objects
+        self.targ_circ = visual.Circle(self._win, radius=0.2, edges=100,
+                                       units='deg', fillColor=(0., 0., 0.),
+                                       lineWidth=5.0, lineColor=(1., 1., 1.))
+        self.loz_circ = visual.Circle(self._win, radius=5, edges=100,
+                                      units='deg', fillColor=None,
+                                      lineWidth=2.0, lineColor=(1., 1., 1.,))
+        self.render_disc = visual.Circle(self._win, radius=0.01, edges=100,
+                                         units='deg', fillColor=None,
+                                         lineWidth=5.0, lineColor=(1., 0., 0.))
+        self.palette = None
+        self.image_buffer = None
+
+        # deal with parent class
+        pylink.EyeLinkCustomDisplay.__init__(self)
+        self.__target_beep__ = None
+        self.__target_beep__done__ = None
+        self.__target_beep__error__ = None
+        self.setup_cal_display = self.clear_display
+        self.exit_cal_display = self.clear_display
+        self.erase_cal_target = self.clear_display
+        self.clear_cal_display = self.clear_display
+        self.exit_image_display = self.clear_display
+
+        if beep is True:
+            raise NotImplementedError  # XXX need to add
+
+    def setup_event_handlers(self):
+        self.label = visual.TextStim(self._win, 'Eye Label',
+                                     pos=(0, -self.img_span[1] / 2.),
+                                     alignVert='top',
+                                     height=0.05, color=(1.0, 1.0, 0.0),
+                                     autoLog=False)
+        self.img = visual.ImageStim(self._win, units='norm',
+                                    image=self.image_buffer,
+                                    pos=(0, 0), size=self.img_span,
+                                    colorSpace='rgb', autoLog=False)
+
+        def on_key_press(symbol, modifiers):
+            key = key_trans_dict.get(str(symbol), symbol)
+            self.keys += [pylink.KeyInput(key, modifiers)]
+
+        self._win.winHandle.push_handlers(on_key_press=on_key_press)
+
+    def release_event_handlers(self):
+        self._win.winHandle.pop_handlers()
+        del self.label
+        del self.img
+
+    def clear_display(self):
+        self._win.flip()
+
+    def record_abort_hide(self):
+        pass
+
+    def abs2rel(self, xy):
+        return (np.asarray(xy, float) - (self.size / 2.)) / self.size
+
+    def draw_cal_target(self, x, y):
+        self.targ_circ.setPos(self.abs2rel([x, y]), units='norm', log=False)
+        self.targ_circ.draw()
+        self._win.flip()
+
+    def render(self, x, y):
+        raise NotImplementedError  # need to check this
+        self.render_disc.setPos(self.abs2rel([x, y]), units='norm', log=False)
+        self.render_disc.draw()
+
+    def play_beep(self, eepid):
+        """Play a sound during calibration/drift correct."""
+        pass
+
+    def get_input_key(self):
+        self._win.winHandle.dispatch_events()
+        if len(self.keys) > 0:
+            k = self.keys
+            self.keys = []
+            return k
+        else:
+            return None
+
+    def get_mouse_state(self):
+        return((0, 0), 0)
+
+    def alert_printf(self, msg):
+        psylog.warn('EyeLink: alert_printf {}'.format(msg))
+
+    def setup_image_display(self, w, h):
+        # convert w, h from pixels to relative units
+        self.img_size = np.array([w, h], float) / self._win.size
+        self.clear_display()
+
+    def image_title(self, text):
+        self.label.setText(text, log=False)
+
+    def set_image_palette(self, r, g, b):
+        self.palette = (np.array([r, g, b], np.uint8).T).copy()
+
+    def draw_image_line(self, width, line, totlines, buff):
+        if self.image_buffer is None:
+            self.image_buffer = np.empty((totlines, width, 3), np.uint8)
+        self.image_buffer[line - 1, :, :] = self.palette[buff, :]
+        if line == totlines:
+            self.img.setImage(Image.fromarray(self.image_buffer), log=False)
+            self.img.draw()
+            self.label.draw()
+            self._win.flip()
+
+    def draw_line(self, x1, y1, x2, y2, colorindex):
+        # XXX check this
+        print 'draw_line ({0}, {1}, {2}, {3})'.format(x1, y1, x2, y2)
+        color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
+        x11, x22, y11, y22 = self._get_rltb(1, x1, x2, y1, y2)
+        line = visual.Line(self._win, [x11, y11], [x22, y22],
+                           lineColor=color[:3], units='pixels',
+                           autoLog=False)
+        line.draw()
+
+    def _get_rltb(self, asp, x1, x2, y1, y2):
+        """Convert from image coords to screen coords"""
+        r = (float)(self.half_width * 0.5 - self.half_width * 0.5 * 0.75)
+        l = (float)(self.half_width * 0.5 + self.half_width * 0.5 * 0.75)
+        t = (float)(self.height * 0.5 + self.height * 0.5 * asp * 0.75)
+        b = (float)(self.height * 0.5 - self.height * 0.5 * asp * 0.75)
+        x11 = float(float(x1) * (l - r) / float(self.img_size[0]) + r)
+        x22 = float(float(x2) * (l - r) / float(self.img_size[0]) + r)
+        y11 = float(float(y1) * (b - t) / float(self.img_size[1]) + t)
+        y22 = float(float(y2) * (b - t) / float(self.img_size[1]) + t)
+        return (x11, x22, y11, y22)
+
+    def draw_lozenge(self, x, y, width, height, colorindex):
+        # XXX check this
+        print 'draw lozenge ({0}, {1}, {2}, {3})'.format(x, y, width, height)
+        color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
+        width = int((float(width) / self.img_size[0]) * self.img_size[0])
+        height = int((float(height) / self.img_size[1]) * self.img_size[1])
+        r, l, t, b = self._get_rltb(1, x, x + width, y, y + height)
+        xw = abs(float(l - r))
+        yw = abs(float(b - t))
+        rad = float(min(xw, yw) * 0.5)
+        x = float(min(l, r) + rad)
+        y = float(min(t, b) + rad)
+        self.loz_circ.setColor(color)
+        self.loz_circ.setPos(x, y, log=False)
+        self.loz_circ.setRadius(rad, log=False)
+        self.loz_circ.draw()
 
 
 def _within_distance(pos_1, pos_2, radius):
