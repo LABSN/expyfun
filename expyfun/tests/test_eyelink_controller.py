@@ -25,10 +25,10 @@ def test_eyelink_methods():
     assert_true(x is False)
     x = el.wait_for_fix([-10000, -10000], max_wait=0.1)
     assert_true(x is False)
-    el.eye_used()
+    assert el.eye_used
     el.start()
     #el.calibrate()
-    assert_raises(TypeError, el.message, 1)
+    assert_raises(TypeError, el._message, 1)
     el.stop()
     el.save()  # auto-calls el.close()
     ec.close()
