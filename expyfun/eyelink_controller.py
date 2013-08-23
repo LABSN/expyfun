@@ -10,7 +10,6 @@ import datetime
 from distutils.version import LooseVersion
 import os
 from os import path as op
-import sys
 import time
 import Image
 from psychopy import visual
@@ -22,7 +21,7 @@ try:
     import pylink
 except ImportError:
     pylink = None
-from .utils import get_config, verbose_dec
+from .utils import get_config, verbose_dec, wait_secs
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
@@ -102,6 +101,7 @@ class EyelinkController(object):
         self._file_list = []
         if self._ec is not None:
             self._size = self._ec.win.size.copy()
+            self._ec._extra_cleanup_fun += [self.close]
         else:
             self._size = np.array([1920, 1200])
         self._ec.flush_logs()
@@ -135,9 +135,10 @@ class EyelinkController(object):
         self.custom_calibration()
 
         # set parser (conservative saccade thresholds)
-        self.command('saccade_velocity_threshold  =  35')
-        self.command('saccade_acceleration_threshold  =  9500')
-
+        self.eyelink.setSaccadeVelocityThreshold(35)
+        self.eyelink.setAccelerationThreshold(9500)
+        self.eyelink.setUpdateInterval(50)
+        self.eyelink.setFixationUpdateAccumulate(50)
         if fs not in [250, 500, 1000, 2000]:
             raise ValueError('fs must be 250, 500, 1000, or 2000')
         self.command('sample_rate = {0}'.format(fs))
@@ -149,27 +150,27 @@ class EyelinkController(object):
         v = LooseVersion(v).version
 
         # set EDF file contents
+        psylog.debug('EyeLink: Setting file and event filters')
         fef = 'LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT'
-        fsd = 'LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT'
-        lef = ('LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,'
-               'FIXUPDATE,INPUT')
-        lsd = 'LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT'
+        self.eyelink.setFileEventFilter(fef)
+        lef = ('LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,'
+               'BUTTON,FIXUPDATE,INPUT')
+        self.eyelink.setLinkEventFilter(lef)
+        fsf = 'LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT'
+        lsf = 'LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT'
         if len(v) > 1 and v[0] == 3 and v[1] == 4:
             # remote mode possible add HTARGET ( head target)
-            fsd = fsd + ',HTARGET'
+            fsf += ',HTARGET'
             # set link data (used for gaze cursor)
-            lsd = lsd + ',HTARGET'
-        psylog.debug('EyeLink: Setting file filter')
-        self.command('file_event_filter = ' + fef)
-        self.command('file_sample_data  = ' + fsd)
-        self.command('link_event_filter = ' + lef)
-        self.command('link_sample_data  = ' + lsd)
+            lsf += ',HTARGET'
+        self.eyelink.setFileSampleFilter(fsf)
+        self.eyelink.setLinkSampleFilter(lsf)
 
         # Ensure that we get areas
-        self.command('pupil_size_diameter = NO')
+        self.eyelink.setPupilSizeDiameter('NO')
 
         # calibration/drift cordisp.rection target
-        self.command('button_function 5 "accept_target_fixation"')
+        self.eyelink.setAcceptTargetFixationButton(5)
 
         # record a few samples before we actually start displaying
         # otherwise you may lose a few msec of data
@@ -205,9 +206,17 @@ class EyelinkController(object):
             raise RuntimeError('filename ("{0}") is too long!\n'
                                'Must be < 8 chars'.format(file_name))
         psylog.info('Starting recording with filename {}'.format(file_name))
+        self.eyelink.openDataFile(file_name)
         if self.eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
             raise RuntimeError('Recording could not be started')
-        self.eyelink.openDataFile(file_name)
+        #self.eyelink.waitForModeReady(1000)
+        if not self.eyelink.waitForBlockStart(100, 1, 0):
+            raise RuntimeError('No link samples received')
+        #if not self.eyelink.isRecording():
+        #    raise RuntimeError('Eyelink is not recording')
+        if not self.eyelink.getCurrentMode() == pylink.IN_RECORD_MODE:
+            raise RuntimeError('Eyelink is not recording '
+                               '{}'.format(self.eyelink.getCurrentMode()))
         self._file_list += [file_name]
         self._ec.flush_logs()
 
@@ -320,7 +329,7 @@ class EyelinkController(object):
             self.eyelink.closeDataFile()
         self.eyelink.close()
 
-    def wait_for_fix(self, fix_pos, fix_time=1e-4, tol=15, max_wait=np.inf):
+    def wait_for_fix(self, fix_pos, fix_time=0., tol=100., max_wait=np.inf):
         """Wait for gaze to settle within a defined region
 
         Parameters
@@ -329,7 +338,7 @@ class EyelinkController(object):
             The screen position (in pixels) required.
         fix_time : float
             Amount of time required to call a fixation.
-        tol : int
+        tol : float
             The tolerance (in pixels) to consider the target hit.
         max_wait : float
             Maximum time to wait (seconds) before returning.
@@ -344,43 +353,19 @@ class EyelinkController(object):
         fix_success = False
 
         # sample eye position for el.fix_hold seconds
-        time_out = time.time() + max_wait
-        while time.time() < time_out and not fix_success:
+        time_in = time.time()
+        time_out = time_in + max_wait
+        while (time.time() < time_out and not
+               (fix_success and time.time() - time_in >= fix_time)):
             # sample eye position
             eye_pos = self.get_eye_position()
             if _within_distance(eye_pos, fix_pos, tol):
                 fix_success = True
+            else:
+                fix_success = False
+                time_in = time.time()
             self._ec._check_force_quit()
 
-        self._toggle_dummy_cursor(False)
-        return fix_success
-
-    def hold_Fix(self, fix_pos, hold_duration, tol=15):
-        """Require the user to maintain gaze
-
-        Parameters
-        ----------
-        fix_pos : tuple (length 2)
-            The screen position (in pixels) required.
-        hold_duration : float
-            Duration the user must hold their position.
-        tol : int
-            The tolerance (in pixels) to consider the target hit.
-
-        Returns
-        -------
-        successful : bool
-            Whether or not the subject successfully fixated.
-        """
-        # sample eye position for el.fix_hold seconds
-        self._toggle_dummy_cursor(True)
-        stop_time = time.time() + hold_duration
-        fix_success = True
-        while time.time() < stop_time:
-            # sample eye position
-            eye_pos = self.get_eye_position()
-            if not _within_distance(eye_pos, fix_pos, tol):
-                fix_success = False
         self._toggle_dummy_cursor(False)
         return fix_success
 
@@ -447,15 +432,13 @@ class EyelinkController(object):
             if sample is None:
                 raise RuntimeError('No sample data, consider starting a '
                                    'recording using el.start()')
-            pos = [sample.getLeftEye(), sample.getRightEye()]
-            pos = [np.array(p.getGaze()) if p is not None else None
-                   for p in pos]
-            if all([p is not None for p in pos]):
-                eye_pos = (pos[0] + pos[1]) / 2.
-            elif pos[0] is not None:
-                eye_pos = pos[0]
-            elif pos[1] is not None:
-                eye_pos = pos[1]
+            if sample.isBinocular():
+                eye_pos = (np.array(sample.getLeftEye().getGaze()) +
+                           np.array(sample.getRightEye().getGaze())) / 2.
+            elif sample.isLeftSample:
+                eye_pos = np.array(sample.getLeftEye().getGaze())
+            elif sample.isRightSample:
+                eye_pos = np.array(sample.getRightEye().getGaze())
             else:
                 eye_pos = np.array([np.inf, np.inf])
             eye_pos -= (self._size / 2.)
@@ -496,14 +479,15 @@ class _Calibrate(pylink.EyeLinkCustomDisplay):
 
         # set up reusable objects
         self.targ_circ = visual.Circle(self.win, radius=0.2, edges=100,
-                                       units='deg', fillColor=(0., 0., 0.),
+                                       units='deg', fillColor=(-1., -1., -1.),
                                        lineWidth=5.0, lineColor=(1., 1., 1.))
         self.loz_circ = visual.Circle(self.win, radius=5, edges=100,
                                       units='deg', fillColor=None,
                                       lineWidth=2.0, lineColor=(1., 1., 1.,))
         self.render_disc = visual.Circle(self.win, radius=0.01, edges=100,
                                          units='deg', fillColor=None,
-                                         lineWidth=5.0, lineColor=(1., 0., 0.))
+                                         lineWidth=5.0,
+                                         lineColor=(1., -1., -1.))
         self.palette = None
         self.image_buffer = None
 
@@ -643,4 +627,5 @@ class _Calibrate(pylink.EyeLinkCustomDisplay):
 
 
 def _within_distance(pos_1, pos_2, radius):
+    """Helper for checking eye position"""
     return np.sum((pos_1 - pos_2) ** 2) <= radius ** 2

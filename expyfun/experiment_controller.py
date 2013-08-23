@@ -229,11 +229,8 @@ class ExperimentController(object):
                         'experimental timing and/or introduce artifacts.'
                         ''.format(stim_fs, self._fs))
 
-        # audio scaling factor; ensure uniform intensity across output devices
-        self.set_stim_db(self._stim_db)
-        self.set_noise_db(self._noise_db)
-
-        # set up trigger controller
+        # extra functions to run on cleanup
+        self._extra_cleanup_fun = []
         if trigger_controller is None:
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
         if isinstance(trigger_controller, basestring):
@@ -246,6 +243,7 @@ class ExperimentController(object):
             out = _PsychTrigger(trigger_controller['type'],
                                 trigger_controller.get('address'))
             self._trigger_handler = out
+            self._extra_cleanup_fun += [self._trigger_handler.close]
         else:
             raise ValueError('trigger_controller type must be '
                              '"parallel", "dummy", or "tdt", not '
@@ -979,10 +977,8 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: Exiting cleanly')
 
-        cleanup_actions = [self._data_file.close, self.stop_noise,
-                           self.stop, self._halt, self._win.close]
-        if self._trigger_controller in ['parallel', 'dummy']:
-            cleanup_actions += [self._trigger_handler.close]
+        cleanup_actions = [self._win.close, self.stop_noise, self.stop,
+                           self._halt] + self._extra_cleanup_fun
         for action in cleanup_actions:
             try:
                 action()
