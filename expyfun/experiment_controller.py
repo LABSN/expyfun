@@ -66,11 +66,12 @@ class ExperimentController(object):
         If None, a GUI will be used to acquire this information.
     session : str | None
         If None, a GUI will be used to acquire this information.
-    trigger_controller : str | None
+    trigger_controller : str | dict | None
         If None, the type will be read from the system configuration file.
         If a string, must be 'dummy', 'parallel', or 'tdt'. Note that by
         default the mode is 'dummy', since setting up the parallel port
-        can be a pain.
+        can be a pain. Can also be a dict with entries 'type' ('parallel')
+        and 'address' (e.g., '/dev/parport0').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -205,16 +206,21 @@ class ExperimentController(object):
 
         if trigger_controller is None:
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
-        if trigger_controller == 'tdt':
-            self._trigger_handler = self._tdt
-        elif trigger_controller == 'parallel':
-            self._trigger_handler = _psych_parallel()
-        elif trigger_controller == 'dummy':
-            self._trigger_handler = _psych_parallel(dummy_mode=True)
+        if isinstance(trigger_controller, basestring):
+            trigger_controller = dict(type=trigger_controller)
+        if trigger_controller['type'] == 'tdt':
+            self._trigger_handler = self.tdt
+        elif trigger_controller['type'] in ['parallel', 'dummy']:
+            if 'address' not in trigger_controller['type']:
+                trigger_controller['address'] = get_config('TRIGGER_ADDRESS')
+            out = _PsychTrigger(trigger_controller['type'],
+                                trigger_controller.get('address'))
+            self._trigger_handler = out
         else:
-            raise ValueError('trigger_controller must be either "parallel", '
-                             '"dummy", or "tdt", not '
-                             '{0}'.format(trigger_controller))
+            raise ValueError('trigger_controller type must be '
+                             '"parallel", "dummy", or "tdt", not '
+                             '{0}'.format(trigger_controller['type']))
+        self._trigger_controller = trigger_controller['type']
 
         # placeholder for extra actions to do on flip-and-play
         self._fp_function = None
@@ -775,8 +781,10 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: Exiting cleanly')
 
-        cleanup_actions = (self._win.close, self.stop_noise, self.stop,
-                           self._halt)
+        cleanup_actions = [self._win.close, self.stop_noise, self.stop,
+                           self._halt]
+        if self._trigger_controller in ['parallel', 'dummy']:
+            cleanup_actions += [self._trigger_handler.close]
         for action in cleanup_actions:
             try:
                 action()
@@ -811,13 +819,13 @@ class ExperimentController(object):
         return self._noise_db  # not user-settable
 
 
-class _psych_parallel(object):
+class _PsychTrigger(object):
     """Parallel port and dummy triggering support
 
     Parameters
     ----------
-    dummy_mode : bool
-        If True, then just pass through stamping calls.
+    mode : str
+        'parallel' for real use. 'dummy', passes all calls.
     high_duration : float
         Amount of time (seconds) to leave the trigger high whenever
         sending a trigger.
@@ -826,24 +834,25 @@ class _psych_parallel(object):
 
     Notes
     -----
-    On Linux, this may require some combination of the following:
+    On Linux, parallel port may require some combination of the following:
 
     1. ``sudo modprobe ppdev``
-    2. ``sudo mknod /dev/parport0 c 99 0 -m 666``
-    3. Add user to ``lp`` group (``/etc/group``)
+    2. Add user to ``lp`` group (``/etc/group``)
+    3. Run ``sudo rmmod lp`` (otherwise ``lp`` takes exclusive control)
+    4. Edit ``/etc/modprobe.d/blacklist.conf`` to add ``blacklist lp``
     """
     @verbose_dec
-    def __init__(self, dummy_mode=True, high_duration=0.01, verbose=None):
-        if dummy_mode is True:
-            self.parallel = None
-            self.stamp_triggers = self._dummy_triggers
-            psylog.info('Initializing dummy triggering mode')
-        else:
-            self.stamp_triggers = self._stamp_triggers
+    def __init__(self, mode='dummy', address=None, high_duration=0.01,
+                 verbose=None):
+        self.parallel = None
+        if mode == 'parallel':
+            psylog.info('Initializing psychopy parallel port triggering')
+            self._stamp_trigger = self._parallel_trigger
             # Psychopy has some legacy methods (e.g., parallel.setData()),
             # but we triage here to save time when time-critical stamping
             # may be used
-            if platform.system() == 'Linux':
+            if 'Linux' in platform.system():
+                address = '/dev/parport0' if address is None else address
                 try:
                     import parallel as _p
                     assert _p
@@ -851,19 +860,26 @@ class _psych_parallel(object):
                     raise ImportError('must have module "parallel" installed '
                                       'to use parallel triggering on Linux')
                 else:
-                    self.parallel = parallel.PParallelLinux()
+                    self.parallel = parallel.PParallelLinux(address)
             else:
                 raise NotImplementedError
+        else:  # mode == 'dummy':
+            psylog.info('Initializing dummy triggering mode')
+            self._stamp_trigger = self._dummy_trigger
 
-            psylog.info('Initializing psychopy parallel port triggering')
         self.high_duration = high_duration
 
-    def _dummy_triggers(self, triggers, delay):
-        """For testing
-        """
-        pass
+    def _dummy_trigger(self, trig):
+        """Fake stamping"""
+        wait_secs(self.high_duration)
 
-    def _stamp_triggers(self, triggers, delay):
+    def _parallel_trigger(self, trig):
+        """Stamp a single byte via parallel port"""
+        self.parallel.setData(int(trig))
+        wait_secs(self.high_duration)
+        self.parallel.setData(0)
+
+    def stamp_triggers(self, triggers, delay):
         """Stamp a list of triggers with a given inter-trigger delay
 
         Parameters
@@ -875,18 +891,22 @@ class _psych_parallel(object):
             The inter-trigger delay.
         """
         for ti, trig in enumerate(triggers):
-            self.parallel.setData(int(trig))
-            wait_secs(self.high_duration)
-            self.parallel.setData(0)
             if ti < len(triggers):
+                self._stamp_trigger(trig)
                 wait_secs(delay - self.high_duration)
+
+    def close(self):
+        """Release hardware interfaces
+        """
+        if self.parallel is not None:
+            del self.parallel
 
 
 def _get_dev_db(audio_controller):
     """Selects device-specific amplitude to ensure equivalence across devices.
     """
     if audio_controller == 'RM1':
-        return 108  # this is approx w/ knob @ 12 o'clock (knob not detented)
+        return 108  # this is approx; knob is not detented
     elif audio_controller == 'RP2':
         return 108
     elif audio_controller == 'RZ6':
