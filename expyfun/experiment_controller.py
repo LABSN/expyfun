@@ -869,7 +869,7 @@ class _PsychTrigger(object):
 
         self.high_duration = high_duration
 
-    def _dummy_trigger(self, triggers, delay):
+    def _dummy_trigger(self, trig):
         """Fake stamping"""
         wait_secs(self.high_duration)
 
