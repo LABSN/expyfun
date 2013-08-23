@@ -38,7 +38,7 @@ if num_freqs > 8:
 
 # keep only sinusoids, make stereo, order low-high, convert to list of arrays
 wavs = {k: np.r_[stims[k], stims[k]].T for k in stims if 'stim_' in k}
-wavs = [v for k, v in sorted(wavs.items())]
+wavs = [np.ascontiguousarray(v) for _, v in sorted(wavs.items())]
 
 # instructions
 instructions = ('You will hear tones at {0} different frequencies. Your job is'
@@ -64,7 +64,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
     ec.init_trial()  # resets trial clock, clears keyboard buffer, etc
     ec.screen_text(instructions)
     # show instructions until all buttons have been pressed at least once
-    ec.add_to_output({'stim_num': 'training'})
+    ec.add_to_output({'phase': 'training'})
     while len(not_yet_pressed) > 0:
         pressed, timestamp = ec.get_first_press(live_keys=live_keys)
         for p in pressed:
@@ -81,7 +81,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
     ec.wait_secs(isi)
 
     # show instructions finished screen
-    ec.add_to_output({'stim_num': 'prompt'})
+    ec.add_to_output({'phase': 'instructions'})
     ec.screen_prompt(instr_finished, live_keys=live_keys)
     ec.clear_screen()
     ec.wait_secs(isi)
@@ -91,11 +91,11 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
     ec.clear_screen()
     ec.wait_secs(isi)
 
-    single_trials = trial_order[range(int(len(trial_order) / 2))]
-    mass_trial_order = trial_order[int(len(trial_order) / 2):]
+    single_trial_order = trial_order[range(len(trial_order) / 2)]
+    mass_trial_order = trial_order[len(trial_order) / 2:]
     # run the single-tone trials
-    for stim_num in single_trials:
-        ec.add_to_output({'stim_num': stim_num + 1})  # 0-indexing
+    for stim_num in single_trial_order:
+        ec.add_to_output({'phase': 'one-tone trial', 'trial_id': stim_num + 1})
         ec.clear_buffer()
         ec.load_buffer(wavs[stim_num])
         ec.init_trial()
@@ -120,8 +120,10 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
 
     # create 100 ms pause to play between stims and concatenate
     pause = np.zeros((int(ec.fs / 10), 2))
-    stims = [np.row_stack((wavs[stim], pause)) for stim in mass_trial_order]
-    mass_stim = np.row_stack((stims[n] for n in range(len(stims))))
+    concat_wavs = wavs[mass_trial_order[0]]
+    for num in mass_trial_order[1:len(mass_trial_order)]:
+        concat_wavs = np.r_[concat_wavs, pause, wavs[num]]
+    print concat_wavs.shape
     # run mass trial
     ec.screen_prompt('Now you will hear {0} tones in a row. After they stop, '
                      'wait for the "Go!" prompt, then you will have {1} '
@@ -131,11 +133,12 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
                      live_keys=live_keys)
     ec.clear_screen()
     ec.clear_buffer()
-    ec.load_buffer(mass_stim)
-    ec.add_to_output({'stim_num': [x + 1 for x in mass_trial_order]})
+    ec.load_buffer(concat_wavs)
+    ec.add_to_output({'phase': 'multi-tone trial',
+                      'trial_id': [x + 1 for x in mass_trial_order]})
     ec.init_trial()
     ec.flip_and_play()
-    ec.wait_secs(len(mass_stim) / float(ec.fs))
+    ec.wait_secs(len(concat_wavs) / float(ec.fs))
     ec.screen_text('Go!')
     pressed = ec.get_presses(max_resp_time, min_resp_time, live_keys, False)
     answers = [str(x + 1) for x in mass_trial_order]
@@ -146,7 +149,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
                      len(answers)), max_wait=feedback_dur)
 
     # end experiment
-    ec.add_to_output({'stim_num': 'prompt'})
+    ec.add_to_output({'phase': 'finished'})
     ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '
-                     '"escape" to close.'.format(running_total, num_trials),
-                     live_keys=['escape'])
+                     'any key to close.'.format(running_total, num_trials))
+    ec.wait_secs(0.1)
