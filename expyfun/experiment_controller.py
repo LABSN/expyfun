@@ -11,7 +11,8 @@ import os
 from os import path as op
 from functools import partial
 from scipy.signal import resample
-from psychopy import visual, core, data, event, sound, gui, parallel, monitors
+from psychopy import (visual, core, data, event, sound, gui, parallel,
+                      monitors, misc)
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
 from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
@@ -671,6 +672,7 @@ class ExperimentController(object):
             If True, show; if False, hide.
         """
         self._win.setMouseVisible(visibility)
+        self._win.flip()
 
 
 ################################ AUDIO METHODS ###############################
