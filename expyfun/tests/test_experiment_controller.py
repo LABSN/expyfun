@@ -63,7 +63,7 @@ def test_ec(ac=None):
     ec.wait_secs(0.01)
     #ec.write_data_line('hello')
     ec.screen_prompt('test', 0.01, 0, None)
-    ec.screen_prompt('test', 0.01, 0, ['escape'])
+    ec.screen_prompt('test', 0.01, 0, ['1'])
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
     ec.clear_screen()
     assert ec.wait_one_press(0.01) == (None, None)

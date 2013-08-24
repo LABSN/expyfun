@@ -352,6 +352,69 @@ class ExperimentController(object):
             return self.wait_one_press(max_wait, min_wait, live_keys,
                                        timestamp)
 
+    def flip_and_play(self):
+        """Flip screen, play audio, then run any "on-flip" functions.
+
+        Notes
+        -----
+        Order of operations is: screen flip, audio start, additional functions
+        added with ``on_every_flip``, followed by functions added with
+        ``on_next_flip``.
+        """
+        psylog.info('Expyfun: Flipping screen and playing audio')
+        self._win.callOnFlip(self._play)
+        if self._on_every_flip is not None:
+            for function in self._on_every_flip:
+                self._win.callOnFlip(function)
+        if self._on_next_flip is not None:
+            for function in self._on_next_flip:
+                self._win.callOnFlip(function)
+        self._win.flip()
+
+    def call_on_next_flip(self, function, *args, **kwargs):
+        """Add a function to be executed on next flip only.
+
+        Notes
+        -----
+        See ``flip_and_play`` for order of operations. Can be called multiple
+        times to add multiple functions to the queue. If function is ``None``,
+        will clear all the "on every flip" functions.
+        """
+        if function is not None:
+            function = partial(function, *args, **kwargs)
+            if self._on_next_flip is None:
+                self._on_next_flip = [function]
+            else:
+                self._on_next_flip.append(function)
+        else:
+            self._on_next_flip = None
+
+    def call_on_every_flip(self, function, *args, **kwargs):
+        """Add a function to be executed on every flip.
+
+        Notes
+        -----
+        See ``flip_and_play`` for order of operations. Can be called multiple
+        times to add multiple functions to the queue. If function is ``None``,
+        will clear all the "on every flip" functions.
+        """
+        if function is not None:
+            function = partial(function, *args, **kwargs)
+            if self._on_every_flip is None:
+                self._on_every_flip = [function]
+            else:
+                self._on_every_flip.append(function)
+        else:
+            self._on_every_flip = None
+
+    @property
+    def on_next_flip_functions(self):
+        return self._on_next_flip
+
+    @property
+    def on_every_flip_functions(self):
+        return self._on_every_flip
+
 ############################ KEY / BUTTON METHODS ############################
     def listen_presses(self):
         """Start listening for keypresses.
@@ -433,9 +496,9 @@ class ExperimentController(object):
             timestamp==False, returns a string indicating the first key pressed
             (or None if no acceptable key was pressed).
         """
-        relative_to, start_time = self._init_press(max_wait, min_wait,
-                                                   live_keys, timestamp,
-                                                   relative_to)
+        relative_to, start_time = self._init_wait_press(max_wait, min_wait,
+                                                        live_keys, timestamp,
+                                                        relative_to)
 
         if self._response_device == 'keyboard':
             live_keys = self._add_escape_keys(live_keys)
@@ -494,9 +557,9 @@ class ExperimentController(object):
             (str, float) of keys and their timestamps. If no keys are pressed,
             returns [].
         """
-        relative_to, start_time = self._init_press(max_wait, min_wait,
-                                                   live_keys, timestamp,
-                                                   relative_to)
+        relative_to, start_time = self._init_wait_press(max_wait, min_wait,
+                                                        live_keys, timestamp,
+                                                        relative_to)
 
         if self._response_device == 'keyboard':
             live_keys = self._add_escape_keys(live_keys)
@@ -523,8 +586,8 @@ class ExperimentController(object):
         for key, stamp in pressed:
             self.write_data_line('keypress', key, stamp)
 
-    def _init_press(self, max_wait, min_wait, live_keys, timestamp,
-                    relative_to):
+    def _init_wait_press(self, max_wait, min_wait, live_keys, timestamp,
+                         relative_to):
         """Actions common to ``wait_one_press`` and ``wait_for_presses``
 
         Parameters
@@ -637,69 +700,6 @@ class ExperimentController(object):
         else:
             self._audio.play()
             self.stamp_triggers([1])
-
-    def flip_and_play(self):
-        """Flip screen, play audio, then run any "on-flip" functions.
-
-        Notes
-        -----
-        Order of operations is: screen flip, audio start, additional functions
-        added with ``on_every_flip``, followed by functions added with
-        ``on_next_flip``.
-        """
-        psylog.info('Expyfun: Flipping screen and playing audio')
-        self._win.callOnFlip(self._play)
-        if self._on_every_flip is not None:
-            for function in self._on_every_flip:
-                self._win.callOnFlip(function)
-        if self._on_next_flip is not None:
-            for function in self._on_next_flip:
-                self._win.callOnFlip(function)
-        self._win.flip()
-
-    def call_on_next_flip(self, function, *args, **kwargs):
-        """Add a function to be executed on next flip only.
-
-        Notes
-        -----
-        See ``flip_and_play`` for order of operations. Can be called multiple
-        times to add multiple functions to the queue. If function is ``None``,
-        will clear all the "on every flip" functions.
-        """
-        if function is not None:
-            function = partial(function, *args, **kwargs)
-            if self._on_next_flip is None:
-                self._on_next_flip = [function]
-            else:
-                self._on_next_flip.append(function)
-        else:
-            self._on_next_flip = None
-
-    def call_on_every_flip(self, function, *args, **kwargs):
-        """Add a function to be executed on every flip.
-
-        Notes
-        -----
-        See ``flip_and_play`` for order of operations. Can be called multiple
-        times to add multiple functions to the queue. If function is ``None``,
-        will clear all the "on every flip" functions.
-        """
-        if function is not None:
-            function = partial(function, *args, **kwargs)
-            if self._on_every_flip is None:
-                self._on_every_flip = [function]
-            else:
-                self._on_every_flip.append(function)
-        else:
-            self._on_every_flip = None
-
-    @property
-    def on_next_flip_functions(self):
-        return self._on_next_flip
-
-    @property
-    def on_every_flip_functions(self):
-        return self._on_every_flip
 
     def stop(self):
         """Stop audio buffer playback and reset cursor to beginning of buffer.
