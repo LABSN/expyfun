@@ -11,7 +11,8 @@ import os
 from os import path as op
 from functools import partial
 from scipy.signal import resample
-from psychopy import visual, core, data, event, sound, gui, parallel  # prefs
+from psychopy import visual, core, event, sound, gui, parallel  # prefs
+from psychopy.data import getDateStr as date_str
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
 from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
@@ -62,7 +63,7 @@ class ExperimentController(object):
     force_quit : list
         Keyboard key(s) to utilize as an experiment force-quit button. Can be
         a zero-element list for no force quit support. If None, defaults to
-        `['lctrl', 'rctrl']`.  Using ['escape'] is not recommended due to
+        ``['lctrl', 'rctrl']``.  Using ['escape'] is not recommended due to
         default handling of 'escape' in pyglet.
     participant : str | None
         If ``None``, a GUI will be used to acquire this information.
@@ -120,14 +121,15 @@ class ExperimentController(object):
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
-        self._fp_function = None
+        self._on_every_flip = None
+        self._on_next_flip = None
         # some hardcoded parameters...
         bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
         root_dir = os.getcwd()
 
         # dictionary for experiment metadata
         self._exp_info = {'participant': participant, 'session': session,
-                          'exp_name': exp_name, 'date': data.getDateStr()}
+                          'exp_name': exp_name, 'date': date_str()}
 
         # session start dialog, if necessary
         fixed_list = ['exp_name', 'date']  # things not user-editable in GUI
@@ -141,7 +143,7 @@ class ExperimentController(object):
             session_dialog = gui.DlgFromDict(dictionary=self._exp_info,
                                              fixed=fixed_list,
                                              title=exp_name)
-            if session_dialog.OK is False:
+            if not session_dialog.OK:
                 self.close()  # user pressed cancel
 
         # initialize log file
@@ -152,6 +154,11 @@ class ExperimentController(object):
                               self._exp_info['date']))
         self._log_file = basename + '.log'
         psylog.LogFile(self._log_file, level=psylog.INFO)
+
+        # initialize data file
+        self._data_file = open(basename + '.tab', 'a')
+        self._data_file.write('# ' + str(self._exp_info) + '\n')
+        self._data_file.write('timestamp\tevent\tvalue\n')
 
         # set up response device
         if response_device is None:
@@ -258,19 +265,11 @@ class ExperimentController(object):
         #self.shape_stim = visual.ShapeStim()
         #self._screen_objects.append(self.shape_stim)
 
-        # other basic components
-        self._button_handler = event.BuilderKeyResponse()
-        self._data_handler = data.ExperimentHandler(name=exp_name, version='',
-                                                    extraInfo=self._exp_info,
-                                                    runtimeInfo=None,
-                                                    originPath=None,
-                                                    savePickle=True,
-                                                    saveWideText=True,
-                                                    dataFileName=basename)
-        self._data_file = self._data_handler.dataFileName + '.csv'
-        self._data_handler.saveAsWideText(self._data_file, delim=',',
-                                          matrixOnly=False, appendFile=False)
-        self._data_handler.entries = []
+        # set up timing
+        self._master_clock = core.MonotonicClock()
+        self._listen_time = None
+        self._time_correction = None
+        self._time_correction = self._get_time_correction()
 
         # finish initialization
         psylog.info('Expyfun: Initialization complete')
@@ -279,7 +278,6 @@ class ExperimentController(object):
         psylog.info('Expyfun: Session: {0}'
                     ''.format(self._exp_info['session']))
         self.flush_logs()
-        self.master_clock.reset()
 
     def __repr__(self):
         """Return a useful string representation of the experiment
@@ -298,7 +296,7 @@ class ExperimentController(object):
         for comp in self._screen_objects:
             if hasattr(comp, 'setAutoDraw'):
                 comp.setAutoDraw(False)
-        self._win.callOnFlip(self.write_data_line, 'clear screen', None)
+        self._win.callOnFlip(self.write_data_line, 'screen cleared')
         self._win.flip()
 
     def screen_text(self, text):
@@ -307,13 +305,9 @@ class ExperimentController(object):
         Parameters
         ----------
         text : str
-            The text to be rendered
-        clock : Instance of psychopy.core.Clock()
-            Defaults to using self.trial_clock, but could be specified as
-            self.master_clock or any other PsychoPy clock object.
+            The text to be rendered.
         """
         self._text_stim.setText(text)
-#        self._text_stim.tStart = self.master_clock.getTime()
         self._text_stim.setAutoDraw(True)
         self._win.callOnFlip(self.write_data_line, 'screen text', text)
         self._win.flip()
@@ -355,22 +349,60 @@ class ExperimentController(object):
             wait_secs(max_wait)
             return (None, max_wait)
         else:
-            return self.get_first_press(max_wait, min_wait, live_keys,
-                                        timestamp)
+            return self.wait_one_press(max_wait, min_wait, live_keys,
+                                       timestamp)
 
 ############################ KEY / BUTTON METHODS ############################
-    def get_key_buffer(self):
-        """Get the entire keyboard / button box buffer.
+    def listen_presses(self):
+        """Start listening for keypresses.
         """
-        if self._response_device == 'keyboard':
-            buff = event.getKeys(timeStamped=False)
-        else:
-            buff = self._tdt.get_key_buffer()
-        self.write_data_line('get key buffer', buff)
-        return buff
+        self._time_correction = self._get_time_correction()
+        self._listen_time = self._master_clock.getTime()
+        event.clearEvents('keyboard')
+        # TODO: clear TDT button box events, add if self._response_device ?
 
-    def get_first_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
-                        timestamp=True, clock=None):
+    def get_presses(self, live_keys=None, timestamp=True, relative_to=None):
+        """Get the entire keyboard / button box buffer.
+
+        Parameters
+        ----------
+        live_keys : list | None
+            List of strings indicating acceptable keys or buttons. Other data
+            types are cast as strings, so a list of ints will also work.
+            live_keys=None accepts all keypresses.
+        timestamp : bool
+            Whether the keypress should be timestamped. If True, returns the
+            button press time relative to the value given in ``relative_to``.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            timestamp==False.  If ``None``, timestamps are relative to the time
+            ``listen_presses`` was last called.
+        """
+        pressed = []
+        if timestamp and relative_to is None:
+            if self._listen_time is None:
+                raise ValueError('I cannot timestamp: relative_to is None and '
+                                 'you have not yet called listen_presses.')
+            else:
+                relative_to = self._listen_time
+        if self._response_device == 'keyboard':
+            pressed = event.getKeys(live_keys, timeStamped=True)
+        else:
+            pressed = self._tdt.get_key_buffer()  # TODO: implement
+
+        if len(pressed):
+            pressed = [(k, s + self._time_correction) for k, s in pressed]
+            self._log_presses(pressed)
+            keys = [k for k, _ in pressed]
+            self._check_force_quit(keys)
+            if timestamp:
+                pressed = [(k, s - relative_to) for k, s in pressed]
+            else:
+                pressed = keys
+        return pressed
+
+    def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
+                       timestamp=True, relative_to=None):
         """Returns only the first button pressed after min_wait.
 
         Parameters
@@ -385,12 +417,12 @@ class ExperimentController(object):
             types are cast as strings, so a list of ints will also work.
             ``live_keys=None`` accepts all keypresses.
         timestamp : bool
-            Whether the keypresses should be timestamped. If True, returns the
-            button press time relative to when ``get_first_press`` was called, or
-            if a clock is provided, relative to whenever reset() was last
-            called for that clock.
-        clock : None | psychopy.core.clock
-            A clock object to use for timestamping. Ignored if timestamp==False
+            Whether the keypress should be timestamped. If ``True``, returns the
+            button press time relative to the value given in ``relative_to``.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            timestamp==False.  If ``None``, timestamps are relative to the time
+            ``wait_one_press`` was called.
 
         Returns
         -------
@@ -401,46 +433,38 @@ class ExperimentController(object):
             timestamp==False, returns a string indicating the first key pressed
             (or None if no acceptable key was pressed).
         """
-        assert min_wait < max_wait
-        if not isinstance(clock, core.MonotonicClock):
-            raise TypeError('provided clock must be an instance of '
-                            'psychopy.core.clock')
-        timer = core.MonotonicClock()
-        if timestamp:
-            if clock is None:
-                clock = core.Clock()
-        else:
-            clock = False
-        wait_secs(min_wait)
-        self._check_force_quit()
-        event.clearEvents('keyboard')
+        relative_to, start_time = self._init_press(max_wait, min_wait,
+                                                   live_keys, timestamp,
+                                                   relative_to)
 
         if self._response_device == 'keyboard':
             live_keys = self._add_escape_keys(live_keys)
             pressed = []
-            while (not len(pressed) and timer.getTime() < max_wait):
-                pressed = event.getKeys(keyList=live_keys, timeStamped=clock)
+            while (not len(pressed) and
+                   self._master_clock.getTime() - start_time < max_wait):
+                pressed = event.getKeys(keyList=live_keys,
+                                        timeStamped=self._master_clock)
         else:
-            pressed = self._tdt.get_first_press(max_wait, min_wait, live_keys,
-                                                timestamp)
-        if not len(pressed):
+            pressed = self._tdt.wait_one_press(max_wait, min_wait, live_keys,
+                                               timestamp, relative_to)
+        if len(pressed):
+            self._log_presses(pressed)  # multiple presses all get logged
+            key = pressed[0][0]  # only first press is returned
+            stamp = pressed[0][1]
+            self._check_force_quit(key)
             if timestamp:
-                pressed = (None, None)
+                pressed = (key, stamp - relative_to)
             else:
-                pressed = None
+                pressed = key
+        # handle non-presses
+        elif timestamp:
+            pressed = (None, None)
         else:
-            pressed = pressed[0]  # only keep first press if multiple
-
-        if timestamp:
-            key = pressed[0]  # ignore the timestamp
-        else:
-            key = pressed
-        self._check_force_quit(key)
-        self.write_data_line('keypress', key)
+            pressed = None
         return pressed
 
-    def get_presses(self, max_wait, min_wait=0.0, live_keys=None,
-                    timestamp=True):
+    def wait_for_presses(self, max_wait, min_wait=0.0, live_keys=None,
+                         timestamp=True, relative_to=None):
         """Returns all button presses between min_wait and max_wait.
 
         Parameters
@@ -453,9 +477,14 @@ class ExperimentController(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are cast as strings, so a list of ints will also work.
-            live_keys=None accepts all keypresses.
+            ``live_keys=None`` accepts all keypresses.
         timestamp : bool
-            Whether the keypresses should be timestamped.
+            Whether the keypresses should be timestamped. If ``True``, returns the
+            button press time relative to the value given in ``relative_to``.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            ``timestamp`` is ``False``.  If ``None``, timestamps are relative
+            to the time ``wait_for_presses`` was called.
 
         Returns
         -------
@@ -465,46 +494,38 @@ class ExperimentController(object):
             (str, float) of keys and their timestamps. If no keys are pressed,
             returns [].
         """
-        self._init_press(max_wait, min_wait, timestamp)
+        relative_to, start_time = self._init_press(max_wait, min_wait,
+                                                   live_keys, timestamp,
+                                                   relative_to)
 
         if self._response_device == 'keyboard':
             live_keys = self._add_escape_keys(live_keys)
             pressed = []
-            while self._button_handler.clock.getTime() < max_wait:
-                if timestamp:
-                    pressed += event.getKeys(keyList=live_keys,
-                                     timeStamped=self._button_handler.clock)
-                else:
-                    pressed += event.getKeys(keyList=live_keys,
-                                             timeStamped=False)
+            while (self._master_clock.getTime() - start_time < max_wait):
+                pressed += event.getKeys(keyList=live_keys,
+                                         timeStamped=self._master_clock)
         else:
-            pressed = self._tdt.get_presses(max_wait, min_wait, live_keys,
-                                            timestamp)
-        # check force quit
-        if timestamp:
-            self._check_force_quit([key for key, _ in pressed])
-        else:
-            self._check_force_quit(pressed)
-        # data handling
-        for key in pressed:
+            pressed += self._tdt.wait_one_press(max_wait, min_wait, live_keys,
+                                                timestamp, relative_to)
+        if len(pressed):
+            self._log_presses(pressed)
+            keys = [k for k, _ in pressed]
+            self._check_force_quit(keys)
             if timestamp:
-                self._button_handler.keys = key[0]
-                self._button_handler.rt = key[1]
-                self._data_handler.addData('reaction_times',
-                                           self._button_handler.rt)
+                pressed = [(k, s - relative_to) for k, s in pressed]
             else:
-                self._button_handler.keys = key
-            self._data_handler.addData('button_presses',
-                                       self._button_handler.keys)
-            self._data_handler.addData('trial_id', self.trial_id)
-            self._data_handler.nextEntry()
-        self._data_handler.saveAsWideText(self._data_file, delim=',',
-                                          matrixOnly=False, appendFile=True)
-        self._data_handler.entries = []
+                pressed = keys
         return pressed
 
-    def _init_press(self, max_wait, min_wait, clock):
-        """Common actions to be done before `get_first_press` and `get_presses`
+    def _log_presses(self, pressed):
+        """Write key presses to data file.
+        """
+        for key, stamp in pressed:
+            self.write_data_line('keypress', key, stamp)
+
+    def _init_press(self, max_wait, min_wait, live_keys, timestamp,
+                    relative_to):
+        """Actions common to ``wait_one_press`` and ``wait_for_presses``
 
         Parameters
         ----------
@@ -514,20 +535,18 @@ class ExperimentController(object):
             Duration for which to ignore keypresses (force-quit keys will
             still be checked at the end of the wait).
         """
-        assert min_wait < max_wait
-        if type(clock) is bool and clock:
-            clock = self._button_handler.clock
-        if isinstance(clock, core.Clock):
-            clock.reset()
-            # even if user passes in self._master_clock, it won't get reset
-            # since it's core.MonotonicClock (a superclass of core.Clock)
-
-        #self._button_handler.keys = []
-        #self._button_handler.rt = []
-        #self._button_handler.clock.reset()
+        if np.isinf(max_wait) and live_keys == []:
+            raise ValueError('max_wait cannot be infinite if there are no live'
+                             ' keys.')
+        if not min_wait < max_wait:
+            raise ValueError('min_wait must be less than max_wait')
+        start_time = self._master_clock.getTime()
+        if timestamp and relative_to is None:
+            relative_to = start_time
         wait_secs(min_wait)
         self._check_force_quit()
         event.clearEvents('keyboard')
+        return relative_to, start_time
 
     def _add_escape_keys(self, live_keys):
         """Helper to add force quit keys to button press listener.
@@ -609,42 +628,78 @@ class ExperimentController(object):
                                       sampleRate=self._fs)
             self._audio.setVolume(1.0)  # do not change: don't know if linear
 
-    def _play(self, clock):
+    def _play(self):
         """Play the audio buffer.
         """
         psylog.debug('Expyfun: playing audio')
         if self._tdt is not None:
             self._tdt.play()
         else:
-            self._audio.tStart = clock.getTime()
             self._audio.play()
             self.stamp_triggers([1])
 
-    def flip_and_play(self, clock=None):
-        """Flip screen and immediately begin playing audio.
+    def flip_and_play(self):
+        """Flip screen, play audio, then run any "on-flip" functions.
 
-        Parameters
-        ----------
-        clock : Instance of psychopy.core.Clock()
-            Defaults to using self.trial_clock, but could be specified as
-            self.master_clock or any other PsychoPy clock object.
+        Notes
+        -----
+        Order of operations is: screen flip, audio start, additional functions
+        added with ``on_every_flip``, followed by functions added with
+        ``on_next_flip``.
         """
         psylog.info('Expyfun: Flipping screen and playing audio')
-        if clock is None:
-            clock = self.trial_clock
-        self._win.callOnFlip(self._play, clock)
-        if self._fp_function is not None:
-            # PP automatically appends calls
-            self._win.callOnFlip(self._fp_function)
+        self._win.callOnFlip(self._play)
+        if self._on_every_flip is not None:
+            for function in self._on_every_flip:
+                self._win.callOnFlip(function)
+        if self._on_next_flip is not None:
+            for function in self._on_next_flip:
+                self._win.callOnFlip(function)
         self._win.flip()
 
-    def call_on_flip_and_play(self, function, *args, **kwargs):
-        """Locus for additional functions to be executed on flip and play.
+    def call_on_next_flip(self, function, *args, **kwargs):
+        """Add a function to be executed on next flip only.
+
+        Notes
+        -----
+        See ``flip_and_play`` for order of operations. Can be called multiple
+        times to add multiple functions to the queue. If function is ``None``,
+        will clear all the "on every flip" functions.
         """
         if function is not None:
-            self._fp_function = partial(function, *args, **kwargs)
+            function = partial(function, *args, **kwargs)
+            if self._on_next_flip is None:
+                self._on_next_flip = [function]
+            else:
+                self._on_next_flip.append(function)
         else:
-            self._fp_function = None
+            self._on_next_flip = None
+
+    def call_on_every_flip(self, function, *args, **kwargs):
+        """Add a function to be executed on every flip.
+
+        Notes
+        -----
+        See ``flip_and_play`` for order of operations. Can be called multiple
+        times to add multiple functions to the queue. If function is ``None``,
+        will clear all the "on every flip" functions.
+        """
+        if function is not None:
+            function = partial(function, *args, **kwargs)
+            if self._on_every_flip is None:
+                self._on_every_flip = [function]
+            else:
+                self._on_every_flip.append(function)
+        else:
+            self._on_every_flip = None
+
+    @property
+    def on_next_flip_functions(self):
+        return self._on_next_flip
+
+    @property
+    def on_every_flip_functions(self):
+        return self._on_every_flip
 
     def stop(self):
         """Stop audio buffer playback and reset cursor to beginning of buffer.
@@ -757,26 +812,23 @@ class ExperimentController(object):
             pass
 
 ################################ OTHER METHODS ###############################
-    def init_trial(self):
-        """Reset trial clock, clear stored keypresses and reaction times.
-        """
-        self.flush_logs()
-        self._button_handler.keys = []
-        self._button_handler.rt = []
-        self.trial_clock.reset()
-
-    def add_to_output(self, data_dict):
+    def write_data_line(self, event, value=None, timestamp=None):
         """Add a line of data to the output CSV.
 
         Parameters
         ----------
-        data_dict : dict
-            Key(s) of data_dict determine the column heading of the CSV under
-            which the value(s) will be written.
+        event : str
+            Type of event (e.g., keypress, screen flip, etc.)
+        value : None | str
+            Anything that can be cast to a string is okay here.
+        timestamp : float | None
+            The timestamp when the event occurred.  If ``None``, will use the
+            time the data line was written from the master clock.
         """
-        for key, value in data_dict.items():
-            self._data_handler.addData(key, value)
-        #self._data_handler.nextEntry()
+        if timestamp is None:
+            timestamp = self._master_clock.getTime()
+        line = str(timestamp) + '\t' + str(event) + '\t' + str(value) + '\n'
+        self._data_file.write(line)
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
@@ -793,6 +845,22 @@ class ExperimentController(object):
         See the wait_secs() function.
         """
         wait_secs(*args, **kwargs)
+
+    def _get_time_correction(self):
+        """Clock correction for pyglet- or TDT-generated timestamps.
+        """
+        if self._response_device == 'keyboard':
+            other_time = 0.0  # TODO: get the pyglet clock
+        else:
+            other_time = 0.0  # TODO: get TDT clock
+            raise NotImplementedError
+        start_time = self._master_clock.getTime()
+        time_correction = start_time - other_time
+        if self._time_correction is not None and \
+                np.abs(self._time_correction - time_correction) > 0.001:
+            psylog.warn('Expyfun: drift of > 1 ms between pyglet clock and '
+                        'experiment master clock.')
+        return time_correction
 
     def stamp_triggers(self, trigger_list, delay=0.03):
         """Stamp experiment ID triggers
@@ -823,8 +891,6 @@ class ExperimentController(object):
         """
         # pyflakes won't like this, but it's better here than outside class
         psylog.flush()
-        #self._data_handler.saveAsWideText(filename, delim=',',
-        #                                  matrixOnly=False, appendFile=True)
 
     def close(self):
         """Close all connections in experiment controller.
@@ -843,8 +909,8 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: Exiting cleanly')
 
-        cleanup_actions = [self._win.close, self.stop_noise, self.stop,
-                           self._halt]
+        cleanup_actions = [self._data_file.close, self.stop_noise,
+                           self.stop, self._halt, self._win.close]
         if self._trigger_controller in ['parallel', 'dummy']:
             cleanup_actions += [self._trigger_handler.close]
         for action in cleanup_actions:

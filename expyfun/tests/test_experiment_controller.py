@@ -52,25 +52,27 @@ def test_ec(ac=None):
                       **std_kwargs)
 
         #run rest of test with audio_controller == 'psychopy'
-        audio_controller = 'psychopy'
+        ec = ExperimentController(*std_args, audio_controller='psychopy',
+                                  **std_kwargs)
+
     else:
         # run rest of test with audio_controller == 'tdt'
-        audio_controller = 'tdt'
+        ec = ExperimentController(*std_args, audio_controller=ac,
+                                  **std_kwargs)
 
-    ec = ExperimentController(*std_args, audio_controller=audio_controller,
-                              **std_kwargs) as ec:
-    ec.init_trial()
     ec.wait_secs(0.01)
-    ec.add_to_output(dict(me='hello'))
+    #ec.write_data_line('hello')
     ec.screen_prompt('test', 0.01, 0, None)
     ec.screen_prompt('test', 0.01, 0, ['escape'])
-    assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, None)
+    assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
     ec.clear_screen()
-    assert ec.get_first_press(0.01) == (None, None)
-    assert ec.get_first_press(0.01, timestamp=False) is None
-    assert ec.get_presses(0.01) == []
-    assert ec.get_presses(0.01, timestamp=False) == []
-    assert ec.get_key_buffer() == []
+    assert ec.wait_one_press(0.01) == (None, None)
+    assert ec.wait_one_press(0.01, timestamp=False) is None
+    assert ec.wait_for_presses(0.01) == []
+    assert ec.wait_for_presses(0.01, timestamp=False) == []
+    assert_raises(ValueError, ec.get_presses)
+    ec.listen_presses()
+    assert ec.get_presses() == []
     ec.clear_buffer()
     ec.set_noise_db(0)
     ec.set_stim_db(20)
@@ -86,12 +88,15 @@ def test_ec(ac=None):
     assert_raises(ValueError, ec.load_buffer, np.zeros((3, 100)))
     assert_raises(ValueError, ec.load_buffer, np.zeros((1, 1, 1)))
     ec.stop()
-    ec.call_on_flip_and_play(None)
+    ec.call_on_every_flip(dummy_print, 'called on flip and play')
+    ec.flip_and_play()
+    ec.call_on_every_flip(None)
+    ec.call_on_next_flip(ec.start_noise())
+    ec.flip_and_play()
+    ec.call_on_next_flip(ec.stop_noise())
+    ec.flip_and_play()
     print ec.fs  # test fs support
-    ec.flip_and_play()
     wait_secs(0.01)
-    ec.call_on_flip_and_play(dummy_print, 'called on flip and play')
-    ec.flip_and_play()
     # test __repr__
     assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     ec.close()
@@ -108,9 +113,9 @@ def test_button_presses_and_window_size():
                               participant='foo', session='01')
     assert ec.screen_prompt('press 1', live_keys=['1']) == '1'
     ec.screen_text('press 1 again')
-    assert ec.get_first_press(live_keys=[1])[0] == '1'
+    assert ec.wait_one_press(live_keys=[1])[0] == '1'
     ec.screen_text('press 1 one last time')
-    assert ec.get_presses(0.5, live_keys=['1'], timestamp=False)[0] == '1'
+    assert ec.wait_for_presses(0.5, live_keys=['1'], timestamp=False)[0] == '1'
     ec.close()
     del ec
 
