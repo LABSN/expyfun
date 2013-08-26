@@ -7,7 +7,7 @@ from expyfun.utils import _TempDir, interactive_test, tdt_test
 temp_dir = _TempDir()
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
-                  participant='foo', session='01')
+                  participant='foo', session='01', stim_db=0.0, noise_db=0.0)
 
 
 def dummy_print(string):
@@ -61,7 +61,7 @@ def test_ec(ac=None):
                                   **std_kwargs)
 
     ec.wait_secs(0.01)
-    #ec.write_data_line('hello')
+    ec.write_data_line('hello')
     ec.screen_prompt('test', 0.01, 0, None)
     ec.screen_prompt('test', 0.01, 0, ['1'])
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])

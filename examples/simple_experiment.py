@@ -6,17 +6,17 @@ from expyfun import ExperimentController
 from expyfun.utils import set_log_level
 from generate_stimuli import generate_stimuli
 
+set_log_level('INFO')
+
 # set configuration
 ac = 'psychopy'  # change to 'RM1' or 'RP2' for TDT use
-noise_amp = 45  # dB for background noise
-stim_amp = 75  # dB for stimuli
+noise_db = 45  # dB for background noise
+stim_db = 65  # dB for stimuli
 min_resp_time = 0.1
 max_resp_time = 2.0
 feedback_dur = 0.5
 isi = 0.2
 running_total = 0
-
-set_log_level('DEBUG')
 
 # if the stimuli have not been made, let's make them in examples dir
 stimulus_dir = op.split(__file__)[0]
@@ -54,7 +54,7 @@ if ac != 'psychopy':
 
 with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
                           window_size=[800, 600], full_screen=False,
-                          stim_db=65, noise_db=45, stim_fs=fs,
+                          stim_db=stim_db, noise_db=noise_db, stim_fs=fs,
                           participant='foo', session='001') as ec:
 
     # define usable buttons / keys
@@ -132,7 +132,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
     ec.load_buffer(concat_wavs)
     ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])
     ec.flip_and_play()
-    ec.wait_secs(len(concat_wavs) / float(ec.fs))
+    ec.wait_secs(len(concat_wavs) / float(ec.stim_fs))
     ec.screen_text('Go!')
     pressed = ec.wait_for_presses(max_resp_time + concat_dur, min_resp_time,
                                   live_keys, False)

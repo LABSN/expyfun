@@ -18,10 +18,6 @@ from psychopy.constants import STARTED, STOPPED
 from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
 from .tdt_controller import TDTController
 
-# prefs.general['audioLib'] = ['pyo']
-# TODO: contact PsychoPy devs to get choice of audio backend
-# TODO: PsychoPy expose pygame "loops" argument
-
 
 class ExperimentController(object):
     """Interface for hardware control (audio, buttonbox, eye tracker, etc.)
@@ -110,7 +106,6 @@ class ExperimentController(object):
         self._force_quit = force_quit
 
         # initialize some values
-        self.trial_id = None
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
         self._stim_db = stim_db
@@ -334,11 +329,11 @@ class ExperimentController(object):
         Returns
         -------
         pressed : tuple | str | None
-            If ``timestamp==True``, returns a tuple ``(str, float)`` indicating the
-            first key pressed and its timestamp (or ``(None, None)`` if no
-            acceptable key was pressed between ``min_wait`` and ``max_wait``). If
-            ``timestamp==False``, returns a string indicating the first key pressed
-            (or ``None`` if no acceptable key was pressed).
+            If ``timestamp==True``, returns a tuple ``(str, float)`` indicating
+            the first key pressed and its timestamp (or ``(None, None)`` if no
+            acceptable key was pressed between ``min_wait`` and ``max_wait``).
+            If ``timestamp==False``, returns a string indicating the first key
+            pressed (or ``None`` if no acceptable key was pressed).
         """
         if np.isinf(max_wait) and live_keys == []:
             raise ValueError('You have asked for max_wait=inf with '
@@ -421,8 +416,11 @@ class ExperimentController(object):
         """
         self._time_correction = self._get_time_correction()
         self._listen_time = self._master_clock.getTime()
-        event.clearEvents('keyboard')
-        # TODO: clear TDT button box events, add if self._response_device ?
+        if self._response_device == 'buttonbox':
+            # TODO: clear TDT button box buffer
+            raise NotImplementedError
+        else:
+            event.clearEvents('keyboard')
 
     def get_presses(self, live_keys=None, timestamp=True, relative_to=None):
         """Get the entire keyboard / button box buffer.
@@ -480,21 +478,22 @@ class ExperimentController(object):
             types are cast as strings, so a list of ints will also work.
             ``live_keys=None`` accepts all keypresses.
         timestamp : bool
-            Whether the keypress should be timestamped. If ``True``, returns the
-            button press time relative to the value given in ``relative_to``.
+            Whether the keypress should be timestamped. If ``True``, returns
+            the button press time relative to the value given in
+            ``relative_to``.
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
-            timestamp==False.  If ``None``, timestamps are relative to the time
-            ``wait_one_press`` was called.
+            ``timestamp==False``.  If ``None``, timestamps are relative to the
+            time ``wait_one_press`` was called.
 
         Returns
         -------
         pressed : tuple | str | None
-            If timestamp==True, returns a tuple (str, float) indicating the
-            first key pressed and its timestamp (or (None, None) if no
-            acceptable key was pressed between min_wait and max_wait). If
-            timestamp==False, returns a string indicating the first key pressed
-            (or None if no acceptable key was pressed).
+            If ``timestamp==True``, returns a tuple (str, float) indicating the
+            first key pressed and its timestamp (or ``(None, None)`` if no
+            acceptable key was pressed between ``min_wait`` and ``max_wait``).
+            If ``timestamp==False``, returns a string indicating the first key
+            pressed (or ``None`` if no acceptable key was pressed).
         """
         relative_to, start_time = self._init_wait_press(max_wait, min_wait,
                                                         live_keys, timestamp,
@@ -542,8 +541,9 @@ class ExperimentController(object):
             types are cast as strings, so a list of ints will also work.
             ``live_keys=None`` accepts all keypresses.
         timestamp : bool
-            Whether the keypresses should be timestamped. If ``True``, returns the
-            button press time relative to the value given in ``relative_to``.
+            Whether the keypresses should be timestamped. If ``True``, returns
+            the button press time relative to the value given in
+            ``relative_to``.
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
             ``timestamp`` is ``False``.  If ``None``, timestamps are relative
@@ -850,12 +850,11 @@ class ExperimentController(object):
         """Clock correction for pyglet- or TDT-generated timestamps.
         """
         if self._response_device == 'keyboard':
-            other_time = 0.0  # TODO: get the pyglet clock
+            other_clock = 0.0  # TODO: get the pyglet clock
         else:
-            other_time = 0.0  # TODO: get TDT clock
-            raise NotImplementedError
+            other_clock = 0.0  # TODO: get TDT clock
         start_time = self._master_clock.getTime()
-        time_correction = start_time - other_time
+        time_correction = start_time - other_clock
         if self._time_correction is not None and \
                 np.abs(self._time_correction - time_correction) > 0.001:
             psylog.warn('Expyfun: drift of > 1 ms between pyglet clock and '
@@ -934,6 +933,12 @@ class ExperimentController(object):
         """Playback frequency of the audio controller (samples / second).
         """
         return self._fs  # not user-settable
+
+    @property
+    def stim_fs(self):
+        """Sampling rate at which the stimuli were generated.
+        """
+        return self._stim_fs  # not user-settable
 
     @property
     def stim_db(self):
