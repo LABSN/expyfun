@@ -394,6 +394,24 @@ class ExperimentController(object):
                 self._win.callOnFlip(function)
         self._win.flip()
 
+    def flip(self):
+        """Flip screen, then run any "on-flip" functions.
+
+        Notes
+        -----
+        Order of operations is: screen flip, audio start, additional functions
+        added with ``on_every_flip``, followed by functions added with
+        ``on_next_flip``.
+        """
+        psylog.info('Expyfun: Flipping screen')
+        if self._on_every_flip is not None:
+            for function in self._on_every_flip:
+                self._win.callOnFlip(function)
+        if self._on_next_flip is not None:
+            for function in self._on_next_flip:
+                self._win.callOnFlip(function)
+        self._win.flip()
+
     def call_on_next_flip(self, function, *args, **kwargs):
         """Add a function to be executed on next flip only.
 
@@ -430,6 +448,28 @@ class ExperimentController(object):
         else:
             self._on_every_flip = None
 
+    def pix2deg(self, xy):
+        """Convert pixels to degrees
+
+        Parameters
+        ----------
+        xy : array-like
+            Distances (in pixels) from center to convert to degrees.
+        """
+        xy = np.asarray(xy)
+        return misc.pix2deg(xy, self._win.monitor)
+
+    def deg2pix(self, xy):
+        """Convert degrees to pixels
+
+        Parameters
+        ----------
+        xy : array-like
+            Distances (in degrees) from center to convert to pixels.
+        """
+        xy = np.asarray(xy)
+        return misc.deg2pix(xy, self._win.monitor)
+
     @property
     def on_next_flip_functions(self):
         return self._on_next_flip
@@ -437,6 +477,10 @@ class ExperimentController(object):
     @property
     def on_every_flip_functions(self):
         return self._on_every_flip
+
+    @property
+    def window(self):
+        return self._win
 
 ############################ KEY / BUTTON METHODS ############################
     def listen_presses(self):
@@ -673,7 +717,7 @@ class ExperimentController(object):
         return self._mouse_handler.getPos()
 
     def toggle_cursor(self, visibility):
-        """Toggle cursor visibility
+        """Show or hide the mouse
 
         Parameters
         ----------
