@@ -111,8 +111,6 @@ class ExperimentController(object):
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
-        # clocks
-        self._master_clock = core.MonotonicClock()
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
@@ -231,9 +229,6 @@ class ExperimentController(object):
                              '"parallel", "dummy", or "tdt", not '
                              '{0}'.format(trigger_controller['type']))
         self._trigger_controller = trigger_controller['type']
-
-        # placeholder for extra actions to do on flip-and-play
-        self._fp_function = None
 
         # create visual window
         psylog.info('Expyfun: Setting up screen')
@@ -846,6 +841,37 @@ class ExperimentController(object):
         """
         wait_secs(*args, **kwargs)
 
+    def wait_until(self, timestamp):
+        """Wait until the given time is reached.
+
+        Parameters
+        ----------
+        timestamp : float
+            A time to wait until, evaluated against the experiment master
+            clock.
+
+        Returns
+        -------
+        remaining_time : float
+            The difference between ``timestamp`` and the time ``wait_until``
+            was called.
+
+        Notes
+        -----
+        Unlike ``wait_secs``, there is no guarantee of precise timing with this
+        function. It is the responsibility of the user to do choose a
+        reasonable timestamp (or equivalently, do a reasonably small amount of
+        processing prior to calling ``wait_until``).
+        """
+        time_left = timestamp - self._master_clock.getTime()
+        if time_left < 0:
+            psylog.warn('wait_until was called with a timestamp ({}) that had '
+                        'already passed {} seconds prior.'
+                        ''.format(timestamp, -time_left))
+        else:
+            wait_secs(time_left)
+        return time_left
+
     def _get_time_correction(self):
         """Clock correction for pyglet- or TDT-generated timestamps.
         """
@@ -855,10 +881,15 @@ class ExperimentController(object):
             other_clock = 0.0  # TODO: get TDT clock
         start_time = self._master_clock.getTime()
         time_correction = start_time - other_clock
-        if self._time_correction is not None and \
-                np.abs(self._time_correction - time_correction) > 0.001:
-            psylog.warn('Expyfun: drift of > 1 ms between pyglet clock and '
-                        'experiment master clock.')
+        if self._time_correction is not None:
+            if np.abs(self._time_correction - time_correction) > 0.00001:
+                psylog.warn('Expyfun: drift of > 0.1 ms between pyglet clock '
+                            'and experiment master clock.')
+            psylog.debug('Expyfun: time correction between pyglet and '
+                         'experiment master clock is {}. This is a change of '
+                         '{} from the previous value.'
+                         ''.format(time_correction, time_correction -
+                                   self._time_correction))
         return time_correction
 
     def stamp_triggers(self, trigger_list, delay=0.03):
@@ -951,6 +982,12 @@ class ExperimentController(object):
         """Sound power in dB of the background noise.
         """
         return self._noise_db  # not user-settable
+
+    @property
+    def current_time(self):
+        """Timestamp from the experiment master clock.
+        """
+        return self._master_clock.getTime()
 
 
 class _PsychTrigger(object):

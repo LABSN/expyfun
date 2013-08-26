@@ -19,7 +19,7 @@ def test_logging(ac='psychopy'):
         data = '\n'.join(fid.readlines())
 
     # check for various expected log messages (TODO: add more)
-    should_have = ['Subject: foo', 'Session: 01']
+    should_have = ['Subject: foo', 'Session: 01', 'wait_until was called']
     if ac == 'psychopy':
         should_have.append('PsychoPy')
     else:
