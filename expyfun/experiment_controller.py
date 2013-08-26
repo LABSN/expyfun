@@ -13,6 +13,7 @@ from functools import partial
 from scipy.signal import resample
 from psychopy import (visual, core, data, event, sound, gui, parallel,
                       monitors, misc)
+from psychopy.data import getDateStr as date_str
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
 from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
@@ -229,8 +230,13 @@ class ExperimentController(object):
                         'experimental timing and/or introduce artifacts.'
                         ''.format(stim_fs, self._fs))
 
+        # audio scaling factor; ensure uniform intensity across output devices
+        self.set_stim_db(self._stim_db)
+        self.set_noise_db(self._noise_db)
+
         # extra functions to run on cleanup
         self._extra_cleanup_fun = []
+        # set up trigger controller
         if trigger_controller is None:
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
         if isinstance(trigger_controller, basestring):
@@ -277,15 +283,13 @@ class ExperimentController(object):
         #self._screen_objects.append(self.shape_stim)
 
         # other basic components
-        self._button_handler = event.BuilderKeyResponse()
         self._mouse_handler = event.Mouse(visible=False, win=self._win)
-        self._data_handler = data.ExperimentHandler(name=exp_name, version='',
-                                                    extraInfo=self._exp_info,
-                                                    runtimeInfo=None,
-                                                    originPath=None,
-                                                    savePickle=True,
-                                                    saveWideText=True,
-                                                    dataFileName=basename)
+
+        # set up timing
+        self._master_clock = core.MonotonicClock()
+        self._listen_time = None
+        self._time_correction = None
+        self._time_correction = self._get_time_correction()
 
         # finish initialization
         psylog.info('Expyfun: Initialization complete')
