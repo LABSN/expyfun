@@ -31,10 +31,10 @@ with ExperimentController('testExp', full_screen=True,
     ec.clear_screen()
 
     # make some circles to be drawn
-    radius = 10  # in degrees
+    radius = 7.5  # in degrees
     theta = np.linspace(np.pi / 2., 2.5 * np.pi, 200)
     x_pos, y_pos = radius * np.cos(theta), radius * np.sin(theta)
-    big_circ = visual.Circle(ec.window, 10, edges=100, units='deg')
+    big_circ = visual.Circle(ec.window, radius, edges=100, units='deg')
     targ_circ = visual.Circle(ec.window, 0.2, edges=100, units='deg',
                               fillColor=(1., -1., -1.), lineColor=None)
     targ_circ.setPos((x_pos[0], y_pos[0]), units='deg', log=False)
@@ -58,4 +58,5 @@ with ExperimentController('testExp', full_screen=True,
         fix_pos = ec.deg2pix((x, y))
         if not el.wait_for_fix(fix_pos, max_wait=5.):
             print 'Fixation {0} failed'.format(ii + 1)
+    ec.screen_prompt('All done!', max_wait=1.0)
     # eyelink auto-closes (el.close()) because it gets registered with EC

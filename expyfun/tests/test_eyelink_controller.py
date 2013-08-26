@@ -25,6 +25,9 @@ def test_eyelink_methods():
     assert_true(x is False)
     assert el.eye_used
     el.start()
+    el.stamp_trial_id(1)
+    el.stamp_trial_id([1, 1])
+    assert_raises(ValueError, el.stamp_trial_id, [1] * 7)
     #el.calibrate()
     assert_raises(TypeError, el._message, 1)
     el.stop()

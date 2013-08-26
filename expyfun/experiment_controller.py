@@ -113,6 +113,8 @@ class ExperimentController(object):
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
+        # clocks
+        self._master_clock = core.MonotonicClock()
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
@@ -234,8 +236,9 @@ class ExperimentController(object):
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
 
-        # extra functions to run on cleanup
+        # placeholder for extra actions to run on close
         self._extra_cleanup_fun = []
+
         # set up trigger controller
         if trigger_controller is None:
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
@@ -665,6 +668,10 @@ class ExperimentController(object):
         if len(keys):
             self.close()
 
+    def get_mouse_position(self):
+        """Mouse position in screen coordinates"""
+        return self._mouse_handler.getPos()
+
     def toggle_cursor(self, visibility):
         """Toggle cursor visibility
 
@@ -675,7 +682,6 @@ class ExperimentController(object):
         """
         self._win.setMouseVisible(visibility)
         self._win.flip()
-
 
 ################################ AUDIO METHODS ###############################
     def start_noise(self):
@@ -981,8 +987,9 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: Exiting cleanly')
 
-        cleanup_actions = [self._win.close, self.stop_noise, self.stop,
-                           self._halt] + self._extra_cleanup_fun
+        cleanup_actions = [self._data_file.close, self.stop_noise,
+                           self.stop, self._halt, self._win.close]
+        cleanup_actions += self._extra_cleanup_fun
         for action in cleanup_actions:
             try:
                 action()
