@@ -14,6 +14,8 @@ def test_logging(ac='psychopy'):
     os.chdir(tempdir)
     ec = ExperimentController(*std_args, audio_controller=ac, **std_kwargs)
     test_name = ec._log_file
+    stamp = ec.current_time
+    ec.wait_until(stamp)  # should log a warning
     ec.close()
     with open(test_name) as fid:
         data = '\n'.join(fid.readlines())
