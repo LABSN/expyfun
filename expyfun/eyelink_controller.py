@@ -21,7 +21,7 @@ try:
     import pylink
 except ImportError:
     pylink = None
-from .utils import get_config, verbose_dec, wait_secs
+from .utils import get_config, verbose_dec
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
@@ -100,7 +100,7 @@ class EyelinkController(object):
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
         if self._ec is not None:
-            self._size = self._ec.win.size.copy()
+            self._size = self._ec.window.size.copy()
             self._ec._extra_cleanup_fun += [self.close]
         else:
             self._size = np.array([1920, 1200])
@@ -214,7 +214,8 @@ class EyelinkController(object):
             raise RuntimeError('No link samples received')
         #if not self.eyelink.isRecording():
         #    raise RuntimeError('Eyelink is not recording')
-        if not self.eyelink.getCurrentMode() == pylink.IN_RECORD_MODE:
+        recording = self.eyelink.getCurrentMode() == pylink.IN_RECORD_MODE
+        if not self._is_dummy_mode and not recording:
             raise RuntimeError('Eyelink is not recording '
                                '{}'.format(self.eyelink.getCurrentMode()))
         self._file_list += [file_name]
@@ -471,16 +472,23 @@ class _Calibrate(pylink.EyeLinkCustomDisplay):
     def __init__(self, ec, beep=False):
         # set some useful parameters
         self.flush_logs = ec.flush_logs
-        self.win = ec.win
+        self.win = ec.window
         self.size = self.win.size
         self.keys = []
         self.aspect = float(self.size[0]) / self.size[1]
         self.img_span = (1.0, 1.0 * self.aspect)
 
         # set up reusable objects
-        self.targ_circ = visual.Circle(self.win, radius=0.2, edges=100,
-                                       units='deg', fillColor=(-1., -1., -1.),
-                                       lineWidth=5.0, lineColor=(1., 1., 1.))
+        rad = ec.pix2deg([10, 10])[0]
+        print rad
+        self.targ_circ = visual.Circle(self.win, radius=rad, edges=100,
+                                       units='deg', fillColor=(1., 1., 1.),
+                                       lineWidth=0.0, lineColor=(1., 1., 1.))
+        rad = ec.pix2deg([3, 3])[0]
+        print rad
+        self.targ_ctr = visual.Circle(self.win, radius=rad, edges=100,
+                                      units='deg', fillColor=(-1., -1., -1.),
+                                      lineWidth=0.0, lineColor=(-1., -1., -1.))
         self.loz_circ = visual.Circle(self.win, radius=5, edges=100,
                                       units='deg', fillColor=None,
                                       lineWidth=2.0, lineColor=(1., 1., 1.,))
@@ -537,7 +545,9 @@ class _Calibrate(pylink.EyeLinkCustomDisplay):
 
     def draw_cal_target(self, x, y):
         self.targ_circ.setPos(self.pix2deg((x, y)), units='deg', log=False)
+        self.targ_ctr.setPos(self.pix2deg((x, y)), units='deg', log=False)
         self.targ_circ.draw()
+        self.targ_ctr.draw()
         self.win.flip()
 
     def render(self, x, y):

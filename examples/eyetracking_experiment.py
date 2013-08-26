@@ -22,49 +22,40 @@ link = '100.1.1.1'  # or 'dummy' for fake operation
 with ExperimentController('testExp', full_screen=True,
                           participant='foo', session='001') as ec:
     el = EyelinkController(ec, link=link)
-
-    ec.init_trial()  # resets trial clock, clears keyboard buffer, etc
     ec.screen_prompt('Welcome to the experiment!\n\nFirst, we will '
-                     'perform a screen calibration.1\n\nPress a button '
-                     'to continue', live_keys=['1'])
-    # do a calibration -- by default this automatically starts a
-    # recording file on the EyeLink
-    el.calibrate()
-
-    # let's trace a circle on the screen
-    ec.screen_prompt('Excellent! Now, follow the cursor around the '
-                     'perimiter of a circle.\n\nPress a button '
-                     'to continue', live_keys=['1'])
+                     'perform a screen calibration.\n\nPress a button '
+                     'to continue.')
+    el.calibrate()  # by default this starts recording EyeLink data
+    ec.screen_prompt('Excellent! Now, follow the red circle around the edge '
+                     'of the big white circle.\n\nPress a button to continue')
     ec.clear_screen()
 
-    # initialize the circle
-    rad = 10  # radius in degrees
+    # make some circles to be drawn
+    radius = 10  # in degrees
     theta = np.linspace(np.pi / 2., 2.5 * np.pi, 200)
-    x_pos, y_pos = rad * np.cos(theta), rad * np.sin(theta)
-    # by default the circles are centered, which is what we want
-    big_circ = visual.Circle(ec.win, 10, edges=100, units='deg')
-    targ_circ = visual.Circle(ec.win, 0.2, edges=100, units='deg',
+    x_pos, y_pos = radius * np.cos(theta), radius * np.sin(theta)
+    big_circ = visual.Circle(ec.window, 10, edges=100, units='deg')
+    targ_circ = visual.Circle(ec.window, 0.2, edges=100, units='deg',
                               fillColor=(1., -1., -1.), lineColor=None)
+    targ_circ.setPos((x_pos[0], y_pos[0]), units='deg', log=False)
 
-    # let's stamp this trial ID to the file
-    el.stamp_trial_id(1)
+    el.stamp_trial_id(1)  # stamp this trial ID to the file
     # now let's make it so the SYNC message gets stamped when we flip
-    ec.call_on_flip_and_play(el.stamp_trial_start)
+    ec.call_on_next_flip(el.stamp_trial_start)
+    fix_pos = ec.deg2pix((x_pos[0], y_pos[0]))
+
     # start out by waiting for a 1 sec fixation at the start
-    targ_circ.setPos((x_pos[0], y_pos[0]), units='deg')
     big_circ.draw()
     targ_circ.draw()
-    fix_pos = ec.deg2pix((x_pos[0], y_pos[0]))
-    ec.flip_and_play()
+    ec.flip()
     if not el.wait_for_fix(fix_pos, 1., max_wait=5.):
         print 'Initial fixation failed'
     for ii, (x, y) in enumerate(zip(x_pos[1:], y_pos[1:])):
-        targ_circ.setPos((x, y), units='deg')
+        targ_circ.setPos((x, y), units='deg', log=False)
         big_circ.draw()
         targ_circ.draw()
-        ec._win.flip()
+        ec.flip()
         fix_pos = ec.deg2pix((x, y))
         if not el.wait_for_fix(fix_pos, max_wait=5.):
             print 'Fixation {0} failed'.format(ii + 1)
-
     # eyelink auto-closes (el.close()) because it gets registered with EC

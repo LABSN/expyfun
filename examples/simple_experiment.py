@@ -151,7 +151,7 @@ with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
     pressed = ec.wait_for_presses(max_resp_time + concat_dur, min_resp_time,
                                   live_keys, False)
     answers = [str(x + 1) for x in mass_trial_order]
-    correct = [pressed[n] == answers[n] for n in range(len(pressed))]
+    correct = [press == ans for press, ans in zip(pressed, answers)]
     running_total += sum(correct)
     ec.call_on_next_flip(ec.stop_noise())
     ec.screen_prompt('You got {} out of {} correct.'.format(sum(correct),

@@ -21,8 +21,6 @@ def test_eyelink_methods():
     assert_raises(KeyError, el.custom_calibration, dict(me='hey'))
     assert_raises(ValueError, el.custom_calibration, dict(type='hey'))
     el.get_eye_position()
-    x = el.hold_Fix([-10000, -10000], 0.1)
-    assert_true(x is False)
     x = el.wait_for_fix([-10000, -10000], max_wait=0.1)
     assert_true(x is False)
     assert el.eye_used
