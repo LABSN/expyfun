@@ -11,8 +11,7 @@ import os
 from os import path as op
 from functools import partial
 from scipy.signal import resample
-from psychopy import (visual, core, data, event, sound, gui, parallel,
-                      monitors, misc)
+from psychopy import visual, core, event, sound, gui, parallel, monitors, misc
 from psychopy.data import getDateStr as date_str
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
