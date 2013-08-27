@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from nose.tools import assert_raises
 from numpy.testing import assert_allclose
@@ -52,7 +53,12 @@ def test_ec(ac=None):
                       audio_controller='psychopy', trigger_controller='foo',
                       **std_kwargs)
 
-        #run rest of test with audio_controller == 'psychopy'
+        # test value checking for RMS checker
+        assert_raises(ValueError, ExperimentController, *std_args,
+                      audio_controller='psychopy', check_rms=True,
+                      **std_kwargs)
+
+        # run rest of test with audio_controller == 'psychopy'
         ec = ExperimentController(*std_args, audio_controller='psychopy',
                                   **std_kwargs)
 
@@ -64,7 +70,6 @@ def test_ec(ac=None):
     stamp = ec.current_time
     ec.write_data_line('hello')
     ec.wait_until(stamp + 0.02)
-    ec.wait_until(stamp)  # should log a warning
     ec.screen_prompt('test', 0.01, 0, None)
     ec.screen_prompt('test', 0.01, 0, ['1'])
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
@@ -90,6 +95,25 @@ def test_ec(ac=None):
     assert_raises(ValueError, ec.load_buffer, np.zeros((100, 3)))
     assert_raises(ValueError, ec.load_buffer, np.zeros((3, 100)))
     assert_raises(ValueError, ec.load_buffer, np.zeros((1, 1, 1)))
+
+    # test RMS checking
+    assert_raises(ValueError, ec.set_rms_checking, 'foo')
+    # click: RMS 0.0135, should pass 'fullfile' and fail 'windowed'
+    click = np.zeros((ec.fs / 4,))  # 250 ms
+    click[len(click) / 2] = 1.
+    click[len(click) / 2 + 1] = -1.
+    # noise: RMS 0.03, should fail both 'fullfile' and 'windowed'
+    noise = np.random.normal(scale=0.03, size=(ec.fs / 4,))
+    ec.set_rms_checking(None)
+    ec.load_buffer(click)  # should go unchecked
+    ec.load_buffer(noise)  # should go unchecked
+    ec.set_rms_checking('wholefile')
+    ec.load_buffer(click)  # should pass
+    assert_raises(UserWarning, ec.load_buffer, noise)
+    ec.set_rms_checking('windowed')
+    assert_raises(UserWarning, ec.load_buffer, click)
+    assert_raises(UserWarning, ec.load_buffer, noise)
+
     ec.stop()
     ec.call_on_every_flip(dummy_print, 'called on flip and play')
     ec.flip_and_play()

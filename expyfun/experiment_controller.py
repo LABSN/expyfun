@@ -15,7 +15,8 @@ from psychopy import visual, core, event, sound, gui, parallel, monitors, misc
 from psychopy.data import getDateStr as date_str
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
-from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
+from .utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
+                    running_rms)
 from .tdt_controller import TDTController
 
 
@@ -39,6 +40,9 @@ class ExperimentController(object):
     stim_rms : float
         The RMS amplitude that the stimuli were generated at (strongly
         recommended to be 0.01).
+    stim_fs : int | float
+        The sampling frequency that the stimuli were generated with (samples
+        per second).
     stim_db : float
         The desired dB SPL at which to play the stimuli.
     noise_db : float
@@ -73,6 +77,10 @@ class ExperimentController(object):
         and 'address' (e.g., '/dev/parport0').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
+    check_rms : str | None
+        Method to use in checking stimulus RMS to ensure appropriate levels.
+        Possible values are ``None``, ``wholefile``, and ``windowed`` (the
+        default); see ``set_rms_checking`` for details.
 
     Returns
     -------
@@ -91,7 +99,7 @@ class ExperimentController(object):
                  output_dir='rawData', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
-                 verbose=None):
+                 verbose=None, check_rms='windowed'):
 
         # Check Pyglet version for safety
         _check_pyglet_version(raise_error=True)
@@ -112,6 +120,7 @@ class ExperimentController(object):
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
+        self.set_rms_checking(check_rms)
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
@@ -885,7 +894,45 @@ class ExperimentController(object):
             samples = samples.ravel()
             samples = np.array((samples, samples)).T
 
+        # check RMS
+        if self._check_rms is not None:
+            chans = [samples[:, x] for x in range(samples.shape[1])]
+            if self._check_rms == 'wholefile':
+                chan_rms = [np.sqrt(np.mean(x ** 2)) for x in chans]
+                max_rms = max(chan_rms)
+            else:  # 'windowed'
+                win_length = int(self.fs * 0.01)  # 10ms running window
+                chan_rms = [running_rms(x, win_length) for x in chans]
+                max_rms = max([max(x) for x in chan_rms])
+            if max_rms > 2 * self._stim_rms:
+                warn_string = ('Stimulus max RMS exceeds stated RMS by more '
+                               'than 6 dB.')
+                psylog.warn(warn_string)
+                raise UserWarning(warn_string)
+            elif max_rms < 0.5 * self._stim_rms:
+                warn_string = ('Stimulus max RMS is less than stated RMS by '
+                               'more than 6 dB.')
+                psylog.warn(warn_string)
+                # raise UserWarning(warn_string)
+
         return np.ascontiguousarray(samples)
+
+    def set_rms_checking(self, check_rms):
+        """Set the RMS checking flag.
+
+        Parameters
+        ----------
+        check_rms : str | None
+            Method to use in checking stimulus RMS to ensure appropriate
+            levels. ``'windowed'`` uses a 10ms window to find the max RMS in
+            each channel and checks to see that it is within 6 dB of the stated
+            ``stim_rms``.  ``'wholefile'`` checks the RMS of the stimulus as a
+            whole, while ``None`` disables RMS checking.
+        """
+        if check_rms not in [None, 'wholefile', 'windowed']:
+            raise ValueError('check_rms must be one of "wholefile", "windowed"'
+                             ', or None.')
+        self._check_rms = check_rms
 
     def _halt(self):
         """Cleanup action for halting the running circuit on a TDT.
