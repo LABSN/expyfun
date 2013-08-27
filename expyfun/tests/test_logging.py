@@ -8,6 +8,7 @@ std_args = ['test']
 std_kwargs = dict(participant='foo', session='01', full_screen=False,
                   window_size=(1, 1))
 
+
 def test_logging(ac='psychopy'):
     """Test logging to file (PsychoPy)
     """
