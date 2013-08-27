@@ -64,7 +64,6 @@ def test_ec(ac=None):
     stamp = ec.current_time
     ec.write_data_line('hello')
     ec.wait_until(stamp + 0.02)
-    ec.wait_until(stamp)  # should log a warning
     ec.screen_prompt('test', 0.01, 0, None)
     ec.screen_prompt('test', 0.01, 0, ['1'])
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])

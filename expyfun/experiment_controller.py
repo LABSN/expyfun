@@ -15,7 +15,8 @@ from psychopy import visual, core, event, sound, gui, parallel, monitors, misc
 from psychopy.data import getDateStr as date_str
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
-from .utils import get_config, verbose_dec, _check_pyglet_version, wait_secs
+from .utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
+                    running_rms)
 from .tdt_controller import TDTController
 
 
@@ -91,7 +92,7 @@ class ExperimentController(object):
                  output_dir='rawData', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
-                 verbose=None):
+                 verbose=None, check_rms='windowed'):
 
         # Check Pyglet version for safety
         _check_pyglet_version(raise_error=True)
@@ -112,6 +113,9 @@ class ExperimentController(object):
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
+        if check_rms not in [None, 'normal', 'windowed']:
+            raise ValueError('check_rms must be "normal", "windowed", None.')
+        self._check_rms = check_rms
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
@@ -884,6 +888,22 @@ class ExperimentController(object):
         elif 1 in samples.shape:
             samples = samples.ravel()
             samples = np.array((samples, samples)).T
+
+        # check RMS
+        if self._check_rms is None:
+            return np.ascontiguousarray(samples)
+        elif self._check_rms == 'advanced':
+            win_length = int(self._stim_fs * 0.01)  # 10ms running window
+            rms = [running_rms(x, win_length) for x in range(samples.shape[1])]
+            rms = max([max(x) for x in rms])
+        elif self._check_rms == 'normal':
+            rms = np.sqrt(np.mean(samples ** 2))
+        if rms > 10 * self._stim_rms:
+            psylog.warn('Stimulus RMS exceeds stated RMS by more than an order'
+                        ' of magnitude.')
+        elif rms < 0.1 * self._stim_rms:
+            psylog.warn('Stimulus RMS is less than stated RMS by more than an'
+                        ' order of magnitude.')
 
         return np.ascontiguousarray(samples)
 
