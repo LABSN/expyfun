@@ -52,7 +52,12 @@ def test_ec(ac=None):
                       audio_controller='psychopy', trigger_controller='foo',
                       **std_kwargs)
 
-        #run rest of test with audio_controller == 'psychopy'
+        # test value checking for RMS checker
+        assert_raises(ValueError, ExperimentController, *std_args,
+                      audio_controller='psychopy', check_rms=True,
+                      **std_kwargs)
+
+        # run rest of test with audio_controller == 'psychopy'
         ec = ExperimentController(*std_args, audio_controller='psychopy',
                                   **std_kwargs)
 
