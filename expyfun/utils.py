@@ -18,6 +18,7 @@ import json
 from distutils.version import LooseVersion
 import pyglet
 import platform
+from numpy import sqrt, convolve, ones
 from numpy.testing.decorators import skipif
 from psychopy import core
 try:
@@ -437,3 +438,16 @@ def wait_secs(secs, hog_cpu_time=0.2):
     if any([secs < 0.2, secs < hog_cpu_time]):
         hog_cpu_time = secs
     core.wait(secs, hogCPUperiod=hog_cpu_time)
+
+
+def running_rms(signal, win_length):
+    """RMS of ``signal`` with rectangular window ``win_length`` samples long.
+
+    Parameters
+    ----------
+    signal : array_like
+        The (1-dimesional) signal of interest.
+    win_length : int
+        Length (in samples) of the rectangular window
+    """
+    return sqrt(convolve(signal ** 2, ones(win_length) / win_length, 'valid'))
