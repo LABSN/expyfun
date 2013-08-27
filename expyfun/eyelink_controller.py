@@ -96,6 +96,8 @@ class EyelinkController(object):
                               'is installed correctly')
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
+        if fs not in [250, 500, 1000, 2000]:
+            raise ValueError('fs must be 250, 500, 1000, or 2000')
         if output_dir is None:
             output_dir = os.getcwd()
         if not isinstance(output_dir, basestring):
@@ -148,8 +150,6 @@ class EyelinkController(object):
         self.eyelink.setAccelerationThreshold(9500)
         self.eyelink.setUpdateInterval(50)
         self.eyelink.setFixationUpdateAccumulate(50)
-        if fs not in [250, 500, 1000, 2000]:
-            raise ValueError('fs must be 250, 500, 1000, or 2000')
         self.command('sample_rate = {0}'.format(fs))
 
         # retrieve tracker version and tracker software version
