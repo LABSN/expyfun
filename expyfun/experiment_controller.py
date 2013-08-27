@@ -77,8 +77,8 @@ class ExperimentController(object):
     check_rms : str | None
         Method to use in checking stimulus RMS to ensure appropriate levels.
         Defaults to ``'windowed'``, which uses a 10ms window to find the max
-        RMS in each file and checks to see that it is within one order of
-        magnitude of the stated ``stim_rms``.
+        RMS in each file and checks to see that it is within 6 dB of the stated
+        ``stim_rms``.  Other allowed values are ``'wholefile'`` and ``None``.
 
     Returns
     -------
