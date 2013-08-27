@@ -17,7 +17,10 @@ def test_logging(ac='psychopy'):
     test_name = ec._log_file
     stamp = ec.current_time
     ec.wait_until(stamp)  # wait_until called with already passed timestamp
-    ec.load_buffer([1., -1., 1., -1., 1., -1.])  # RMS warning
+    try:
+        ec.load_buffer([1., -1., 1., -1., 1., -1.])  # RMS warning
+    except UserWarning:
+        pass
     ec.close()
     with open(test_name) as fid:
         data = '\n'.join(fid.readlines())

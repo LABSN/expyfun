@@ -40,6 +40,9 @@ class ExperimentController(object):
     stim_rms : float
         The RMS amplitude that the stimuli were generated at (strongly
         recommended to be 0.01).
+    stim_fs : int | float
+        The sampling frequency that the stimuli were generated with (samples
+        per second).
     stim_db : float
         The desired dB SPL at which to play the stimuli.
     noise_db : float
@@ -76,9 +79,8 @@ class ExperimentController(object):
         If not None, override default verbose level (see expyfun.verbose).
     check_rms : str | None
         Method to use in checking stimulus RMS to ensure appropriate levels.
-        Defaults to ``'windowed'``, which uses a 10ms window to find the max
-        RMS in each file and checks to see that it is within 6 dB of the stated
-        ``stim_rms``.  Other allowed values are ``'wholefile'`` and ``None``.
+        Possible values are ``None``, ``wholefile``, and ``windowed`` (the
+        default); see ``set_rms_checking`` for details.
 
     Returns
     -------
@@ -118,10 +120,7 @@ class ExperimentController(object):
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
-        if check_rms not in [None, 'wholefile', 'windowed']:
-            raise ValueError('check_rms must be one of "wholefile", "windowed"'
-                             ', or None.')
-        self._check_rms = check_rms
+        self.set_rms_checking(check_rms)
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
@@ -900,18 +899,40 @@ class ExperimentController(object):
             chans = [samples[:, x] for x in range(samples.shape[1])]
             if self._check_rms == 'wholefile':
                 chan_rms = [np.sqrt(np.mean(x ** 2)) for x in chans]
+                max_rms = max(chan_rms)
             else:  # 'windowed'
                 win_length = int(self.fs * 0.01)  # 10ms running window
                 chan_rms = [running_rms(x, win_length) for x in chans]
-            rms = max([max(x) for x in chan_rms])
-            if rms > 2 * self._stim_rms:
-                psylog.warn('Stimulus max RMS exceeds stated RMS by more than '
-                            '6 dB.')
-            elif rms < 0.5 * self._stim_rms:
-                psylog.warn('Stimulus max RMS is less than stated RMS by more '
-                            'than 6 dB.')
+                max_rms = max([max(x) for x in chan_rms])
+            if max_rms > 2 * self._stim_rms:
+                warn_string = ('Stimulus max RMS exceeds stated RMS by more '
+                               'than 6 dB.')
+                psylog.warn(warn_string)
+                raise UserWarning(warn_string)
+            elif max_rms < 0.5 * self._stim_rms:
+                warn_string = ('Stimulus max RMS is less than stated RMS by '
+                               'more than 6 dB.')
+                psylog.warn(warn_string)
+                # raise UserWarning(warn_string)
 
         return np.ascontiguousarray(samples)
+
+    def set_rms_checking(self, check_rms):
+        """Set the RMS checking flag.
+
+        Parameters
+        ----------
+        check_rms : str | None
+            Method to use in checking stimulus RMS to ensure appropriate
+            levels. ``'windowed'`` uses a 10ms window to find the max RMS in
+            each channel and checks to see that it is within 6 dB of the stated
+            ``stim_rms``.  ``'wholefile'`` checks the RMS of the stimulus as a
+            whole, while ``None`` disables RMS checking.
+        """
+        if check_rms not in [None, 'wholefile', 'windowed']:
+            raise ValueError('check_rms must be one of "wholefile", "windowed"'
+                             ', or None.')
+        self._check_rms = check_rms
 
     def _halt(self):
         """Cleanup action for halting the running circuit on a TDT.
