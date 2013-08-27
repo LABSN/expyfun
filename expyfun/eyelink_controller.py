@@ -476,7 +476,13 @@ class EyelinkController(object):
         return eu
 
 
-class _Calibrate(pylink.EyeLinkCustomDisplay):
+if pylink is not None:
+    super_class = pylink.EyeLinkCustomDisplay
+else:
+    super_class = object
+
+
+class _Calibrate(super_class):
     """Show and control calibration screen"""
     def __init__(self, ec, beep=False):
         # set some useful parameters
