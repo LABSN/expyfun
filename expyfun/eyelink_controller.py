@@ -75,7 +75,7 @@ class EyelinkController(object):
     link : str | None
         If 'default', the default value will be read from EXPYFUN_EYELINK.
         If None, dummy (simulation) mode will be used. If str, should be
-        the network location of eyelink (e.g., "100.0.0.1").
+        the network location of eyelink (e.g., "100.1.1.1").
     output_dir : str | None
         Directory to store the output files in. If None, will use CWD.
     fs : int
