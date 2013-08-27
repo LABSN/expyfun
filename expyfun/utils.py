@@ -441,7 +441,7 @@ def wait_secs(secs, hog_cpu_time=0.2):
 
 
 def running_rms(signal, win_length):
-    """RMS of ``signal`` with retangular window ``win_length`` samples long.
+    """RMS of ``signal`` with rectangular window ``win_length`` samples long.
 
     Parameters
     ----------
@@ -450,4 +450,4 @@ def running_rms(signal, win_length):
     win_length : int
         Length (in samples) of the rectangular window
     """
-    return sqrt(convolve(signal ** 2, ones(win_length) / win_length))
+    return sqrt(convolve(signal ** 2, ones(win_length) / win_length, 'valid'))

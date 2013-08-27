@@ -74,6 +74,11 @@ class ExperimentController(object):
         and 'address' (e.g., '/dev/parport0').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
+    check_rms : str | None
+        Method to use in checking stimulus RMS to ensure appropriate levels.
+        Defaults to ``'windowed'``, which uses a 10ms window to find the max
+        RMS in each file and checks to see that it is within one order of
+        magnitude of the stated ``stim_rms``.
 
     Returns
     -------
@@ -113,8 +118,9 @@ class ExperimentController(object):
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
-        if check_rms not in [None, 'normal', 'windowed']:
-            raise ValueError('check_rms must be "normal", "windowed", None.')
+        if check_rms not in [None, 'wholefile', 'windowed']:
+            raise ValueError('check_rms must be one of "wholefile", "windowed"'
+                             ', or None.')
         self._check_rms = check_rms
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
@@ -890,20 +896,20 @@ class ExperimentController(object):
             samples = np.array((samples, samples)).T
 
         # check RMS
-        if self._check_rms is None:
-            return np.ascontiguousarray(samples)
-        elif self._check_rms == 'advanced':
-            win_length = int(self._stim_fs * 0.01)  # 10ms running window
-            rms = [running_rms(x, win_length) for x in range(samples.shape[1])]
-            rms = max([max(x) for x in rms])
-        elif self._check_rms == 'normal':
-            rms = np.sqrt(np.mean(samples ** 2))
-        if rms > 10 * self._stim_rms:
-            psylog.warn('Stimulus RMS exceeds stated RMS by more than an order'
-                        ' of magnitude.')
-        elif rms < 0.1 * self._stim_rms:
-            psylog.warn('Stimulus RMS is less than stated RMS by more than an'
-                        ' order of magnitude.')
+        if self._check_rms is not None:
+            chans = [samples[:, x] for x in range(samples.shape[1])]
+            if self._check_rms == 'wholefile':
+                chan_rms = [np.sqrt(np.mean(x ** 2)) for x in chans]
+            else:  # 'windowed'
+                win_length = int(self.fs * 0.01)  # 10ms running window
+                chan_rms = [running_rms(x, win_length) for x in chans]
+            rms = max([max(x) for x in chan_rms])
+            if rms > 2 * self._stim_rms:
+                psylog.warn('Stimulus max RMS exceeds stated RMS by more than '
+                            '6 dB.')
+            elif rms < 0.5 * self._stim_rms:
+                psylog.warn('Stimulus max RMS is less than stated RMS by more '
+                            'than 6 dB.')
 
         return np.ascontiguousarray(samples)
 
