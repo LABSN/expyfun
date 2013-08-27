@@ -11,7 +11,7 @@ import os
 from os import path as op
 from functools import partial
 from scipy.signal import resample
-from psychopy import visual, core, event, sound, gui, parallel  # prefs
+from psychopy import visual, core, event, sound, gui, parallel, monitors, misc
 from psychopy.data import getDateStr as date_str
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
@@ -90,7 +90,8 @@ class ExperimentController(object):
                  stim_rms=0.01, stim_fs=44100, stim_db=65, noise_db=45,
                  output_dir='rawData', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
-                 trigger_controller=None, session=None, verbose=None):
+                 monitor=None, trigger_controller=None, session=None,
+                 verbose=None):
 
         # Check Pyglet version for safety
         _check_pyglet_version(raise_error=True)
@@ -153,6 +154,27 @@ class ExperimentController(object):
         self._data_file.write('# ' + str(self._exp_info) + '\n')
         self._data_file.write('timestamp\tevent\tvalue\n')
 
+        if monitor is None:
+            monitor = dict()
+            monitor['SCREEN_WIDTH'] = float(get_config('SCREEN_WIDTH', '51.0'))
+            monitor['SCREEN_DISTANCE'] = float(get_config('SCREEN_DISTANCE',
+                                               '48.0'))
+            mon_size = get_config('SCREEN_SIZE_PIX', '1920,1080').split(',')
+            mon_size = [float(m) for m in mon_size]
+            monitor['SCREEN_SIZE_PIX'] = mon_size
+        else:
+            if not isinstance(monitor, dict):
+                raise TypeError('monitor must be a dict')
+            if not all([key in monitor for key in ['SCREEN_WIDTH',
+                                                   'SCREEN_DISTANCE',
+                                                   'SCREEN_SIZE_PIX']]):
+                raise KeyError('monitor must have keys "SCREEN_WIDTH", '
+                               '"SCREEN_DISTANCE", and "SCREEN_SIZE_PIX"')
+        mon_size = monitor['SCREEN_SIZE_PIX']
+        monitor = monitors.Monitor('custom', monitor['SCREEN_WIDTH'],
+                                   monitor['SCREEN_DISTANCE'])
+        monitor.setSizePix(mon_size)
+
         # set up response device
         if response_device is None:
             self._response_device = get_config('RESPONSE_DEVICE', 'keyboard')
@@ -211,6 +233,9 @@ class ExperimentController(object):
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
 
+        # placeholder for extra actions to run on close
+        self._extra_cleanup_fun = []
+
         # set up trigger controller
         if trigger_controller is None:
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
@@ -224,6 +249,7 @@ class ExperimentController(object):
             out = _PsychTrigger(trigger_controller['type'],
                                 trigger_controller.get('address'))
             self._trigger_handler = out
+            self._extra_cleanup_fun += [self._trigger_handler.close]
         else:
             raise ValueError('trigger_controller type must be '
                              '"parallel", "dummy", or "tdt", not '
@@ -237,10 +263,11 @@ class ExperimentController(object):
         if screen_num is None:
             screen_num = int(get_config('SCREEN_NUM', '0'))
         self._win = visual.Window(size=window_size, fullscr=full_screen,
-                                  monitor='', screen=screen_num,
+                                  monitor=monitor, screen=screen_num,
                                   winType='pyglet', allowGUI=False,
                                   allowStencil=False, color=bkgd_color,
                                   colorSpace='rgb')
+
         self._text_stim = visual.TextStim(win=self._win, text='', pos=[0, 0],
                                           height=0.1, wrapWidth=1.2,
                                           units='norm', color=[1, 1, 1],
@@ -254,6 +281,9 @@ class ExperimentController(object):
         self._screen_objects.append(self._text_stim)
         #self.shape_stim = visual.ShapeStim()
         #self._screen_objects.append(self.shape_stim)
+
+        # other basic components
+        self._mouse_handler = event.Mouse(visible=False, win=self._win)
 
         # set up timing
         self._master_clock = core.MonotonicClock()
@@ -361,6 +391,24 @@ class ExperimentController(object):
                 self._win.callOnFlip(function)
         self._win.flip()
 
+    def flip(self):
+        """Flip screen, then run any "on-flip" functions.
+
+        Notes
+        -----
+        Order of operations is: screen flip, audio start, additional functions
+        added with ``on_every_flip``, followed by functions added with
+        ``on_next_flip``.
+        """
+        psylog.info('Expyfun: Flipping screen')
+        if self._on_every_flip is not None:
+            for function in self._on_every_flip:
+                self._win.callOnFlip(function)
+        if self._on_next_flip is not None:
+            for function in self._on_next_flip:
+                self._win.callOnFlip(function)
+        self._win.flip()
+
     def call_on_next_flip(self, function, *args, **kwargs):
         """Add a function to be executed on next flip only.
 
@@ -397,6 +445,28 @@ class ExperimentController(object):
         else:
             self._on_every_flip = None
 
+    def pix2deg(self, xy):
+        """Convert pixels to degrees
+
+        Parameters
+        ----------
+        xy : array-like
+            Distances (in pixels) from center to convert to degrees.
+        """
+        xy = np.asarray(xy)
+        return misc.pix2deg(xy, self._win.monitor)
+
+    def deg2pix(self, xy):
+        """Convert degrees to pixels
+
+        Parameters
+        ----------
+        xy : array-like
+            Distances (in degrees) from center to convert to pixels.
+        """
+        xy = np.asarray(xy)
+        return misc.deg2pix(xy, self._win.monitor)
+
     @property
     def on_next_flip_functions(self):
         return self._on_next_flip
@@ -404,6 +474,10 @@ class ExperimentController(object):
     @property
     def on_every_flip_functions(self):
         return self._on_every_flip
+
+    @property
+    def window(self):
+        return self._win
 
 ############################ KEY / BUTTON METHODS ############################
     def listen_presses(self):
@@ -634,6 +708,21 @@ class ExperimentController(object):
                             ' strings, not a {}.'.format(type(keys)))
         if len(keys):
             self.close()
+
+    def get_mouse_position(self):
+        """Mouse position in screen coordinates"""
+        return self._mouse_handler.getPos()
+
+    def toggle_cursor(self, visibility):
+        """Show or hide the mouse
+
+        Parameters
+        ----------
+        visibility : bool
+            If True, show; if False, hide.
+        """
+        self._win.setMouseVisible(visibility)
+        self._win.flip()
 
 ################################ AUDIO METHODS ###############################
     def start_noise(self):
@@ -941,8 +1030,7 @@ class ExperimentController(object):
 
         cleanup_actions = [self._data_file.close, self.stop_noise,
                            self.stop, self._halt, self._win.close]
-        if self._trigger_controller in ['parallel', 'dummy']:
-            cleanup_actions += [self._trigger_handler.close]
+        cleanup_actions += self._extra_cleanup_fun
         for action in cleanup_actions:
             try:
                 action()

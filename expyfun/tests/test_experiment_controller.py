@@ -1,5 +1,6 @@
 import numpy as np
 from nose.tools import assert_raises
+from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs
 from expyfun.utils import _TempDir, interactive_test, tdt_test
@@ -92,6 +93,7 @@ def test_ec(ac=None):
     ec.stop()
     ec.call_on_every_flip(dummy_print, 'called on flip and play')
     ec.flip_and_play()
+    ec.flip()
     ec.call_on_every_flip(None)
     ec.call_on_next_flip(ec.start_noise())
     ec.flip_and_play()
@@ -99,6 +101,9 @@ def test_ec(ac=None):
     ec.flip_and_play()
     print ec.fs  # test fs support
     wait_secs(0.01)
+    test_pix = (11.3, 0.5, 110003)
+    print test_pix
+    assert_allclose(test_pix, ec.deg2pix(ec.pix2deg(test_pix)))
     # test __repr__
     assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     ec.close()

@@ -20,6 +20,12 @@ import pyglet
 import platform
 from numpy.testing.decorators import skipif
 from psychopy import core
+try:
+    import pylink
+except ImportError:
+    has_pylink = False
+else:
+    has_pylink = True
 
 
 ###############################################################################
@@ -199,6 +205,8 @@ def verbose_dec(function):
     return dec
 
 
+requires_pylink = skipif(has_pylink is False, 'Requires functional pylink')
+
 ###############################################################################
 # LOGGING
 
@@ -272,6 +280,9 @@ known_config_types = ['RESPONSE_DEVICE',
                       'TDT_CIRCUIT_PATH',
                       'WINDOW_SIZE',
                       'SCREEN_NUM',
+                      'SCREEN_WIDTH',
+                      'SCREEN_DISTANCE',
+                      'SCREEN_SIZE_PIX',
                       'EXPYFUN_INTERACTIVE_TESTING',
                       'EXPYFUN_LOGGING_LEVEL',
                       ]
