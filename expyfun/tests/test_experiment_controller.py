@@ -114,20 +114,6 @@ def test_ec(ac=None):
     assert_raises(UserWarning, ec.load_buffer, click)
     assert_raises(UserWarning, ec.load_buffer, noise)
 
-    """
-    with warnings.catch_warnings(True) as w:
-        ec.set_rms_checking(None)
-        ec.load_buffer(click)  # should go unchecked
-        ec.load_buffer(noise)  # should go unchecked
-        ec.set_rms_checking('wholefile')
-        ec.load_buffer(click)  # should pass
-        ec.load_buffer(noise)  # should fail
-        ec.set_rms_checking('windowed')
-        ec.load_buffer(click)  # should fail
-        ec.load_buffer(noise)  # should fail
-        assert len(w) == 3
-    """
-
     ec.stop()
     ec.call_on_every_flip(dummy_print, 'called on flip and play')
     ec.flip_and_play()
