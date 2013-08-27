@@ -25,34 +25,43 @@ from .utils import get_config, verbose_dec
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
-key_trans_dict = {str(pyglet.window.key.F1): pylink.F1_KEY,
-                  str(pyglet.window.key.F2): pylink.F2_KEY,
-                  str(pyglet.window.key.F3): pylink.F3_KEY,
-                  str(pyglet.window.key.F4): pylink.F4_KEY,
-                  str(pyglet.window.key.F5): pylink.F5_KEY,
-                  str(pyglet.window.key.F6): pylink.F6_KEY,
-                  str(pyglet.window.key.F7): pylink.F7_KEY,
-                  str(pyglet.window.key.F8): pylink.F8_KEY,
-                  str(pyglet.window.key.F9): pylink.F9_KEY,
-                  str(pyglet.window.key.F10): pylink.F10_KEY,
-                  str(pyglet.window.key.PAGEUP): pylink.PAGE_UP,
-                  str(pyglet.window.key.PAGEDOWN): pylink.PAGE_DOWN,
-                  str(pyglet.window.key.UP): pylink.CURS_UP,
-                  str(pyglet.window.key.DOWN): pylink.CURS_DOWN,
-                  str(pyglet.window.key.LEFT): pylink.CURS_LEFT,
-                  str(pyglet.window.key.RIGHT): pylink.CURS_RIGHT,
-                  str(pyglet.window.key.BACKSPACE): '\b',
-                  str(pyglet.window.key.RETURN): pylink.ENTER_KEY,
-                  str(pyglet.window.key.ESCAPE): pylink.ESC_KEY,
-                  str(pyglet.window.key.NUM_ADD): pyglet.window.key.PLUS,
-                  str(pyglet.window.key.NUM_SUBTRACT): pyglet.window.key.MINUS,
-                  }
 
-color_dict = {str(pylink.CR_HAIR_COLOR): (1.0, 1.0, 1.0),
-              str(pylink.PUPIL_HAIR_COLOR): (1.0, 1.0, 1.0),
-              str(pylink.PUPIL_BOX_COLOR): (0.0, 1.0, 0.0),
-              str(pylink.SEARCH_LIMIT_BOX_COLOR): (1.0, 0.0, 0.0),
-              str(pylink.MOUSE_CURSOR_COLOR): (1.0, 0.0, 0.0)}
+def _get_key_trans_dict():
+    """Helper to translate pyglet keys to pylink codes"""
+    key_trans_dict = {str(pyglet.window.key.F1): pylink.F1_KEY,
+                      str(pyglet.window.key.F2): pylink.F2_KEY,
+                      str(pyglet.window.key.F3): pylink.F3_KEY,
+                      str(pyglet.window.key.F4): pylink.F4_KEY,
+                      str(pyglet.window.key.F5): pylink.F5_KEY,
+                      str(pyglet.window.key.F6): pylink.F6_KEY,
+                      str(pyglet.window.key.F7): pylink.F7_KEY,
+                      str(pyglet.window.key.F8): pylink.F8_KEY,
+                      str(pyglet.window.key.F9): pylink.F9_KEY,
+                      str(pyglet.window.key.F10): pylink.F10_KEY,
+                      str(pyglet.window.key.PAGEUP): pylink.PAGE_UP,
+                      str(pyglet.window.key.PAGEDOWN): pylink.PAGE_DOWN,
+                      str(pyglet.window.key.UP): pylink.CURS_UP,
+                      str(pyglet.window.key.DOWN): pylink.CURS_DOWN,
+                      str(pyglet.window.key.LEFT): pylink.CURS_LEFT,
+                      str(pyglet.window.key.RIGHT): pylink.CURS_RIGHT,
+                      str(pyglet.window.key.BACKSPACE): '\b',
+                      str(pyglet.window.key.RETURN): pylink.ENTER_KEY,
+                      str(pyglet.window.key.ESCAPE): pylink.ESC_KEY,
+                      str(pyglet.window.key.NUM_ADD): pyglet.window.key.PLUS,
+                      str(pyglet.window.key.NUM_SUBTRACT):
+                      pyglet.window.key.MINUS,
+                      }
+    return key_trans_dict
+
+
+def _get_color_dict():
+    """Helper to translate pylink colors to pyglet"""
+    color_dict = {str(pylink.CR_HAIR_COLOR): (1.0, 1.0, 1.0),
+                  str(pylink.PUPIL_HAIR_COLOR): (1.0, 1.0, 1.0),
+                  str(pylink.PUPIL_BOX_COLOR): (0.0, 1.0, 0.0),
+                  str(pylink.SEARCH_LIMIT_BOX_COLOR): (1.0, 0.0, 0.0),
+                  str(pylink.MOUSE_CURSOR_COLOR): (1.0, 0.0, 0.0)}
+    return color_dict
 
 
 class EyelinkController(object):
@@ -520,6 +529,7 @@ class _Calibrate(pylink.EyeLinkCustomDisplay):
                                     colorSpace='rgb', autoLog=False)
 
         def on_key_press(symbol, modifiers):
+            key_trans_dict = _get_key_trans_dict()
             key = key_trans_dict.get(str(symbol), symbol)
             self.keys += [pylink.KeyInput(key, modifiers)]
 
@@ -599,6 +609,7 @@ class _Calibrate(pylink.EyeLinkCustomDisplay):
     def draw_line(self, x1, y1, x2, y2, colorindex):
         # XXX check this
         print 'draw_line ({0}, {1}, {2}, {3})'.format(x1, y1, x2, y2)
+        color_dict = _get_color_dict()
         color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
         x11, x22, y11, y22 = self._get_rltb(1, x1, x2, y1, y2)
         line = visual.Line(self.win, [x11, y11], [x22, y22],
@@ -621,6 +632,7 @@ class _Calibrate(pylink.EyeLinkCustomDisplay):
     def draw_lozenge(self, x, y, width, height, colorindex):
         # XXX check this
         print 'draw lozenge ({0}, {1}, {2}, {3})'.format(x, y, width, height)
+        color_dict = _get_color_dict()
         color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
         width = int((float(width) / self.img_size[0]) * self.img_size[0])
         height = int((float(height) / self.img_size[1]) * self.img_size[1])
