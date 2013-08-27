@@ -279,12 +279,24 @@ class EyelinkController(object):
 
         Parameters
         ----------
-        ids : a sequence of integers to stamp
-            The message to stamp. Must not have more than 12 characters
-            once the string is made.
+        ids : list | str | int | float
+            The ids to stamp. The first ID must contain at most 12
+            characters when converted to a string, and the rest should
+            be numbers.
         """
+        # From the Pylink doc:
+        #    The message should contain numbers ant text separated by spaces,
+        #    with the first item containing up to 12 numbers and letters that
+        #    uniquely identify the trial for analysis. Other data may follow,
+        #    such as one number for each trial independent variable.
         if not isinstance(ids, list):
             ids = [ids]
+        if len(str(ids[0])) > 12:
+            raise ValueError('The string representation of ids[0]="{}" must '
+                             'not be more than 12 characters'
+                             ''.format(str(ids[0])))
+        if not all([np.isscalar(x) for x in ids[1:]]):
+            raise ValueError('All ids after the first must be numeric')
         ids = ' '.join([str(ii) for ii in ids])
         if len(ids) > 12:
             raise ValueError('ids must not have more than 12 characters')
