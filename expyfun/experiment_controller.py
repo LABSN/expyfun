@@ -955,6 +955,8 @@ class ExperimentController(object):
         """
         if self._response_device == 'keyboard':
             other_clock = 0.0  # TODO: get the pyglet clock
+            #pyglet_clock = pyglet.clock.get_default().cumulative_time
+            # check to see if psychopy exposes a handle to this
         else:
             raise NotImplementedError
         start_time = self._master_clock.getTime()
