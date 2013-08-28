@@ -66,7 +66,7 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
 if ac != 'psychopy':
     ac = dict(TYPE='tdt', TDT_MODEL=ac)
 
-with ExperimentController('testExp', ac, 'keyboard', screen_num=0,
+with ExperimentController('testExp', ac, screen_num=0,
                           window_size=[800, 600], full_screen=False,
                           stim_db=stim_db, noise_db=noise_db, stim_fs=fs,
                           participant='foo', session='001') as ec:
