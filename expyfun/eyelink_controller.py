@@ -110,7 +110,7 @@ class EyelinkController(object):
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
         if self._ec is not None:
-            self._size = self._ec.window.size.copy()
+            self._size = np.array(self._ec.window.monitor.getSizePix())
             self._ec._extra_cleanup_fun += [self.close]
         else:
             self._size = np.array([1920, 1200])

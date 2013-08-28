@@ -16,11 +16,11 @@ from expyfun import ExperimentController, EyelinkController
 from psychopy import visual
 import numpy as np
 
-link = None  # 100.1.1.1'  # or None for fake operation
+link = '100.1.1.1'  # or None for fake operation
 
 
-with ExperimentController('testExp', full_screen=True,
-                          participant='foo', session='001') as ec:
+with ExperimentController('testExp', full_screen=True, participant='foo',
+                          session='001') as ec:
     el = EyelinkController(ec, link=link)
     ec.screen_prompt('Welcome to the experiment!\n\nFirst, we will '
                      'perform a screen calibration.\n\nPress a button '
