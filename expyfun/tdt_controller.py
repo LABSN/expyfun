@@ -11,27 +11,23 @@ from .utils import get_config, wait_secs
 
 
 class TDTController(object):
-    """ TODO: add docstring
+    """Interface for TDT audio output, stamping. and responses
+
+    Parameters
+    ----------
+    tdt_params : dict | None
+        A dictionary containing keys:
+        'TYPE' (this should always be 'tdt');
+        'TDT_MODEL' (String name of the TDT model ('RM1', 'RP2', etc));
+        'TDT_CIRCUIT_PATH' (Path to the TDT circuit); and
+        'TDT_INTERFACE' (Type of connection, either 'USB' or 'GB').
+
+    Returns
+    -------
+    tdt_obj : instance of a TDTObject.
+        The object containing all relevant info about the TDT in use.
     """
     def __init__(self, tdt_params):
-        """Interface for audio output.
-
-        Parameters
-        ----------
-        tdt_params : dict | None
-            A dictionary containing keys:
-            'TYPE' (this should always be 'tdt');
-            'TDT_MODEL' (String name of the TDT model ('RM1', 'RP2', etc));
-            'TDT_CIRCUIT_PATH' (Path to the TDT circuit); and
-            'TDT_INTERFACE' (Type of connection, either 'USB' or 'GB').
-
-        Returns
-        -------
-        tdt_obj : instance of a TDTObject.
-            The object containing all relevant info about the TDT in use.
-        """
-        # validate / populate parameters
-        # TODO: add test for this
         legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE']
         if tdt_params is None:
             tdt_params = {'TYPE': 'tdt'}
@@ -43,7 +39,6 @@ class TDTController(object):
         for k in tdt_params.keys():
             if k not in legal_keys:
                 raise KeyError('Unrecognized key in tdt_params: {0}'.format(k))
-
         self._model = tdt_params['TDT_MODEL']
 
         if tdt_params['TDT_CIRCUIT_PATH'] is None:
@@ -108,45 +103,7 @@ class TDTController(object):
                 raise SystemError('Expyfun: Problem starting TDT circuit.')
             time.sleep(0.25)
 
-    @property
-    def fs(self):
-        """Playback frequency of the audio (samples / second).
-
-        Notes
-        -----
-        When using TDT for audio, fs is read from the TDT circuit definition.
-        """
-        return np.float(self.rpcox.GetSFreq())
-
-    @property
-    def model(self):
-        """String representation of TDT model name ('RM1', 'RP2', etc).
-        """
-        return self._model
-
-    @property
-    def circuit(self):
-        """TDT circuit path.
-        """
-        return self._circuit
-
-    @property
-    def interface(self):
-        """String representation of TDT interface ('USB' or 'GB').
-        """
-        return self._interface
-
-    def _trigger(self, trigger_number):
-        """Wrapper for tdt.util.RPcoX.SoftTrg()
-
-        Parameters
-        ----------
-        trigger_number : int
-            Trigger number to send to TDT.
-        """
-        # TODO: do we want to return the 0 or 1 passed by SoftTrg() ?
-        self.rpcox.SoftTrg(trigger_number)
-
+################################ AUDIO METHODS ###############################
     def load_buffer(self, data):
         """Load audio samples into TDT buffer.
 
@@ -165,29 +122,6 @@ class TDTController(object):
         self.rpcox.ZeroTag('datainleft')
         self.rpcox.ZeroTag('datainright')
 
-    def stamp_triggers(self, triggers, delay):
-        """Stamp a list of triggers with a given inter-trigger delay
-
-        Parameters
-        ----------
-        triggers : list
-            No input checking is done, so ensure triggers is a list,
-            with each entry an integer with fewer than 8 bits (max 255).
-        delay : float
-            The inter-trigger delay.
-        """
-        for ti, trig in enumerate(triggers):
-            self.rpcox.SetTagVal('trgname', trig)
-            self.trigger(6)
-            if ti < len(triggers):
-                wait_secs(delay)
-
-    def halt_circuit(self):
-        """Wrapper for tdt.util.RPcoX.Halt()
-        """
-        self.rpcox.Halt()
-        psylog.debug('Expyfun: Halting TDT circuit')
-
     def play(self):
         """Send the soft trigger to start the ring buffer playback.
         """
@@ -195,6 +129,11 @@ class TDTController(object):
         psylog.debug('Expyfun: Starting TDT ring buffer')
 
     def stop(self):
+        """Stop playback and reset the buffer position"""
+        self.pause()
+        self.reset()
+
+    def pause(self):
         """Send the soft trigger to stop the ring buffer playback.
         """
         self._trigger(2)
@@ -218,81 +157,65 @@ class TDTController(object):
         self.rpcox.SetTagVal('noiselev', new_level)
 
     def reset(self):
-        """Send the soft trigger to reset the ring buffer.
+        """Send the soft trigger to reset the ring buffer to start position.
         """
         self._trigger(5)
         psylog.debug('Expyfun: Resetting TDT ring buffer')
 
-    def get_first_press(self, max_wait, min_wait, live_buttons,
-                        timestamp=True):
-        """Returns only the first button pressed after min_wait.
+################################ OTHER METHODS ###############################
+    def stamp_triggers(self, triggers, delay):
+        """Stamp a list of triggers with a given inter-trigger delay
 
         Parameters
         ----------
-        max_wait : float
-            Duration after which control is returned.
-        min_wait : float
-            Duration for which to ignore keypresses.
-        live_keys : list | None
-            List of strings indicating acceptable keys or buttons. Other data
-            types are automatically cast as strings.
-        timestamp : bool
-            Whether the button presses should be timestamped.
-
-        Returns
-        -------
-        pressed : list
-            A list of tuples (str, float) indicating the key(s) pressed and
-            their timestamp(s). If no acceptable keys were pressed between
-            min_wait and max_wait, returns the one-item list [([], None)].
+        triggers : list
+            No input checking is done, so ensure triggers is a list,
+            with each entry an integer with fewer than 8 bits (max 255).
+        delay : float
+            The inter-trigger delay.
         """
-        raise NotImplementedError()
-        # TODO: implement
+        for ti, trig in enumerate(triggers):
+            self.rpcox.SetTagVal('trgname', trig)
+            self._trigger(6)
+            if ti < len(triggers):
+                wait_secs(delay)
 
-    def get_key_buffer(self):
-        """TODO: docstring
-        """
-        self.tdt.rpcox.GetTagVal('currentbboxval')
-
-    def get_presses(self, max_wait, min_wait, live_buttons, timestamp=True):
-        """Get presses from min_wait to max_wait, from buttons in live_buttons.
+    def _trigger(self, trig):
+        """Wrapper for tdt.util.RPcoX.SoftTrg()
 
         Parameters
         ----------
-        max_wait : float
-            Duration after which control is returned.
-        min_wait : float
-            Duration for which to ignore keypresses.
-        live_keys : list | None
-            List of strings indicating acceptable keys or buttons. Other data
-            types are automatically cast as strings.
-        timestamp : bool
-            Whether the button presses should be timestamped.
-
-        Returns
-        -------
-        presses : list
-            A list of tuples (str, float) indicating the key(s) pressed and
-            their timestamp(s). If no acceptable keys were pressed between
-            min_wait and max_wait, returns the one-item list [([], None)].
+        trigger_number : int
+            Trigger number to send to TDT.
         """
-        press_count = self.tdt.rpcox.GetTagVal('pressind')
-        # Name, nOS, nWords, SrcType, DstType, nChans
-        press_times = self.tdt.rpcox.ReadTagVEX('presstimes', 1,
-                                                press_count, 'I32', 'F64',
-                                                1) / float(self.fs)
-        press_vals = np.ones_like(press_times)
-        # TODO: only works for button #1 (direct translation of Zach's code)
-        # TODO: subtract tSound (time the sound started)
-        # TODO: de-bounce presses (see below)
-        return zip(press_times, press_vals)
+        if not self.rpcox.SoftTrg(trig):
+            psylog.warn('SoftTrg failure for trigger: {}'.format(trig))
 
-        #MATLAB getPresses.m
-        #pressVals = ones(size(pressTimes));  % TDT circuit should be upgraded
-        #                      % to log all presses, rather than just 1-button
-        #pressTimes = pressTimes - tSound;
-        #pressTimes([false; diff(pressTimes)<0.1]) = []; % De-bounce presses
-        #pressTimes=pressTimes((pressTimes >= 0) & (pressTimes <= respWindow));
+    def halt(self):
+        """Wrapper for tdt.util.RPcoX.Halt()."""
+        self.rpcox.Halt()
+        psylog.debug('Expyfun: Halting TDT circuit')
+
+############################# READ-ONLY PROPERTIES ###########################
+    @property
+    def fs(self):
+        """Playback frequency of the audio (samples / second)."""
+        return np.float(self.rpcox.GetSFreq())
+
+    @property
+    def model(self):
+        """String representation of TDT model name ('RM1', 'RP2', etc)."""
+        return self._model
+
+    @property
+    def circuit(self):
+        """TDT circuit path."""
+        return self._circuit
+
+    @property
+    def interface(self):
+        """String representation of TDT interface ('USB' or 'GB')."""
+        return self._interface
 
 
 def get_tdt_rates():

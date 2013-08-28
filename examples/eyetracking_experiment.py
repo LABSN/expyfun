@@ -16,7 +16,7 @@ from expyfun import ExperimentController, EyelinkController
 from psychopy import visual
 import numpy as np
 
-link = '100.1.1.1'  # or 'dummy' for fake operation
+link = None  # 100.1.1.1'  # or None for fake operation
 
 
 with ExperimentController('testExp', full_screen=True,
@@ -31,18 +31,19 @@ with ExperimentController('testExp', full_screen=True,
     ec.clear_screen()
 
     # make some circles to be drawn
-    radius = 7.5  # in degrees
+    radius = ec.deg2pix(7.5)  # change degrees to pixels
+    targ_rad = ec.deg2pix(0.2)
     theta = np.linspace(np.pi / 2., 2.5 * np.pi, 200)
     x_pos, y_pos = radius * np.cos(theta), radius * np.sin(theta)
-    big_circ = visual.Circle(ec.window, radius, edges=100, units='deg')
-    targ_circ = visual.Circle(ec.window, 0.2, edges=100, units='deg',
+    big_circ = visual.Circle(ec.window, radius, edges=100, units='pix')
+    targ_circ = visual.Circle(ec.window, targ_rad, edges=100, units='pix',
                               fillColor=(1., -1., -1.), lineColor=None)
-    targ_circ.setPos((x_pos[0], y_pos[0]), units='deg', log=False)
+    targ_circ.setPos((x_pos[0], y_pos[0]), log=False)
 
     el.stamp_trial_id(1)  # stamp this trial ID to the file
     # now let's make it so the SYNC message gets stamped when we flip
     ec.call_on_next_flip(el.stamp_trial_start)
-    fix_pos = ec.deg2pix((x_pos[0], y_pos[0]))
+    fix_pos = (x_pos[0], y_pos[0])
 
     # start out by waiting for a 1 sec fixation at the start
     big_circ.draw()
@@ -51,12 +52,11 @@ with ExperimentController('testExp', full_screen=True,
     if not el.wait_for_fix(fix_pos, 1., max_wait=5.):
         print 'Initial fixation failed'
     for ii, (x, y) in enumerate(zip(x_pos[1:], y_pos[1:])):
-        targ_circ.setPos((x, y), units='deg', log=False)
+        targ_circ.setPos((x, y), log=False)
         big_circ.draw()
         targ_circ.draw()
         ec.flip()
-        fix_pos = ec.deg2pix((x, y))
-        if not el.wait_for_fix(fix_pos, max_wait=5.):
+        if not el.wait_for_fix([x, y], max_wait=5.):
             print 'Fixation {0} failed'.format(ii + 1)
     ec.screen_prompt('All done!', max_wait=1.0)
     # eyelink auto-closes (el.close()) because it gets registered with EC

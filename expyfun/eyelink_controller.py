@@ -13,7 +13,6 @@ from os import path as op
 import time
 import Image
 from psychopy import visual
-from psychopy.misc import pix2deg
 from psychopy import logging as psylog
 import pyglet
 # don't prevent basic functionality for folks who don't use EL
@@ -381,6 +380,7 @@ class EyelinkController(object):
                (fix_success and time.time() - time_in >= fix_time)):
             # sample eye position
             eye_pos = self.get_eye_position()
+            # print (np.round(fix_pos), np.round(eye_pos))
             if _within_distance(eye_pos, fix_pos, tol):
                 fix_success = True
             else:
@@ -465,8 +465,8 @@ class EyelinkController(object):
                 eye_pos = np.array([np.inf, np.inf])
             eye_pos -= (self._size / 2.)
         else:
-            # use mouse, referenced to lower left
-            eye_pos = self._ec.get_mouse_position() + (self._size / 2.)
+            # use mouse, already referenced to center
+            eye_pos = self._ec.get_mouse_position()
         return eye_pos
 
     def _toggle_dummy_cursor(self, visibility):
@@ -500,26 +500,24 @@ class _Calibrate(super_class):
         # set some useful parameters
         self.flush_logs = ec.flush_logs
         self.win = ec.window
-        self.size = self.win.size
+        self.size = np.array(ec.window.monitor.getSizePix())
         self.keys = []
         self.aspect = float(self.size[0]) / self.size[1]
         self.img_span = (1.0, 1.0 * self.aspect)
 
         # set up reusable objects
-        rad = ec.pix2deg([10, 10])[0]
-        print rad
+        rad = [7, 7]
         self.targ_circ = visual.Circle(self.win, radius=rad, edges=100,
-                                       units='deg', fillColor=(1., 1., 1.),
+                                       units='pix', fillColor=(1., 1., 1.),
                                        lineWidth=0.0, lineColor=(1., 1., 1.))
-        rad = ec.pix2deg([3, 3])[0]
-        print rad
+        rad = [2, 2]
         self.targ_ctr = visual.Circle(self.win, radius=rad, edges=100,
-                                      units='deg', fillColor=(-1., -1., -1.),
+                                      units='pix', fillColor=(-1., -1., -1.),
                                       lineWidth=0.0, lineColor=(-1., -1., -1.))
-        self.loz_circ = visual.Circle(self.win, radius=5, edges=100,
-                                      units='deg', fillColor=None,
+        self.loz_circ = visual.Circle(self.win, radius=[5, 5], edges=100,
+                                      units='pix', fillColor=None,
                                       lineWidth=2.0, lineColor=(1., 1., 1.,))
-        self.render_disc = visual.Circle(self.win, radius=0.01, edges=100,
+        self.render_disc = visual.Circle(self.win, radius=[1, 1], edges=100,
                                          units='deg', fillColor=None,
                                          lineWidth=5.0,
                                          lineColor=(1., -1., -1.))
@@ -564,16 +562,12 @@ class _Calibrate(super_class):
     def record_abort_hide(self):
         pass
 
-    def pix2deg(self, xy):
-        return pix2deg(np.asarray(xy) - self.size / 2.,
-                       self.win.monitor)
-
-    def abs2rel(self, xy):
-        return (np.asarray(xy, float) - (self.size / 2.)) / (self.size / 2.)
+    def recenter(self, xy):
+        return np.asarray(xy, float) - (self.size / 2.)
 
     def draw_cal_target(self, x, y):
-        self.targ_circ.setPos(self.pix2deg((x, y)), units='deg', log=False)
-        self.targ_ctr.setPos(self.pix2deg((x, y)), units='deg', log=False)
+        self.targ_circ.setPos(self.recenter((x, y)), log=True)
+        self.targ_ctr.setPos(self.recenter((x, y)), log=True)
         self.targ_circ.draw()
         self.targ_ctr.draw()
         self.win.flip()
