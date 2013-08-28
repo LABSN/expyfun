@@ -1067,8 +1067,9 @@ class ExperimentController(object):
         return self._master_clock.getTime()
 
 
+############################## PSYCH SOUND CLASS #############################
 class _PsychSound(object):
-    """Use PsychPy audio capabilities"""
+    """Use PsychoPy audio capabilities"""
     def __init__(self, ec):
         if sound.Sound is None:
             raise ImportError('PsychoPy sound could not be initialized. '
@@ -1081,7 +1082,7 @@ class _PsychSound(object):
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
         self.noise_array = np.array(np.c_[noise, -1.0 * noise], order='C')
         self.noise = sound.Sound(self.noise_array, sampleRate=self.fs)
-        self.noise.setVolume(1.0)  # do not change: don't know if linear
+        self.noise.setVolume(1.0, log=False)  # dont change: linearity unknown
         self.ec = ec
 
     def start_noise(self):
@@ -1097,7 +1098,7 @@ class _PsychSound(object):
 
     def load_buffer(self, samples):
         self.audio = sound.Sound(samples, sampleRate=self.fs)
-        self.audio.setVolume(1.0)  # do not change: don't know if linear
+        self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
 
     def play(self):
         self.audio.play()
@@ -1114,7 +1115,7 @@ class _PsychSound(object):
             self.noise = new_noise
             self.noise._snd.play(loops=-1)
             self.noise.status = STARTED  # have to explicitly set status,
-            # since we bypass PsychoPy's play() method to access "loops"
+            # since we bypass PsychoPy's play() method to access pygame "loops"
         else:
             self.noise = new_noise
 

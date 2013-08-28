@@ -11,7 +11,7 @@ from .utils import get_config, wait_secs
 
 
 class TDTController(object):
-    """Interface for TDT audio output, stamping. and responses
+    """Interface for TDT audio output, stamping, and responses
 
     Parameters
     ----------
