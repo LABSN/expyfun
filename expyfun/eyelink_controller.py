@@ -228,6 +228,7 @@ class EyelinkController(object):
                                '{}'.format(self.eyelink.getCurrentMode()))
         self._file_list += [file_name]
         self._ec.flush_logs()
+        self._toggle_dummy_cursor(True)
 
     def stop(self):
         """Stop Eyelink recording"""
@@ -235,6 +236,7 @@ class EyelinkController(object):
         if self.eyelink.isConnected():
             self.eyelink.stopRecording()
             self.eyelink.closeDataFile()
+        self._toggle_dummy_cursor(False)
 
     def calibrate(self, start=True, beep=True):
         """Calibrate the eyetracker
@@ -369,7 +371,6 @@ class EyelinkController(object):
         fix_success : bool
             Whether or not the subject successfully fixated.
         """
-        self._toggle_dummy_cursor(True)
         # initialize eye position to be outside of target
         fix_success = False
 
@@ -387,8 +388,8 @@ class EyelinkController(object):
                 fix_success = False
                 time_in = time.time()
             self._ec._check_force_quit()
+            self._ec.wait_secs(0.001)
 
-        self._toggle_dummy_cursor(False)
         return fix_success
 
     def custom_calibration(self, params=None):

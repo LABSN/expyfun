@@ -704,9 +704,25 @@ class ExperimentController(object):
             self.close()
             raise RuntimeError('Quit key pressed')
 
-    def get_mouse_position(self):
-        """Mouse position in screen coordinates"""
-        return self._mouse_handler.getPos()
+    def get_mouse_position(self, units='pix'):
+        """Mouse position in screen coordinates
+
+        Parameters
+        ----------
+        units : str
+            Either ``'pix'`` or ``'norm'`` for the type of units to return.
+
+        Returns
+        -------
+        position : ndarray
+            The mouse position.
+        """
+        if not units in ['pix', 'norm']:
+            raise RuntimeError('must request units in "pix" or "norm"')
+        pos = np.array(self._mouse_handler.getPos())
+        if units == 'pix':
+            pos *= self.window.size / 2.
+        return pos
 
     def toggle_cursor(self, visibility, flip=False):
         """Show or hide the mouse
