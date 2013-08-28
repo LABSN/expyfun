@@ -13,10 +13,11 @@ from functools import partial
 from scipy.signal import resample
 from psychopy import visual, core, event, sound, gui, parallel, monitors, misc
 from psychopy.data import getDateStr as date_str
+from psychopy import clock as psyclock
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
 from .utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
-                    running_rms)
+                    running_rms, _sanitize)
 from .tdt_controller import TDTController
 
 
@@ -900,7 +901,8 @@ class ExperimentController(object):
         """
         if timestamp is None:
             timestamp = self._master_clock.getTime()
-        line = str(timestamp) + '\t' + str(event) + '\t' + str(value) + '\n'
+        line = _sanitize(timestamp) + '\t' + _sanitize(event) + '\t' + \
+               _sanitize(value) + '\n'
         self._data_file.write(line)
 
     def wait_secs(self, *args, **kwargs):
@@ -951,10 +953,10 @@ class ExperimentController(object):
         return time_left
 
     def _get_time_correction(self):
-        """Clock correction for pyglet- or TDT-generated timestamps.
+        """Clock correction for psychopy- or TDT-generated timestamps.
         """
         if self._response_device == 'keyboard':
-            other_clock = 0.0  # TODO: get the pyglet clock
+            other_clock = psyclock.getTime()  # note the lowercase m
             #pyglet_clock = pyglet.clock.get_default().cumulative_time
             # check to see if psychopy exposes a handle to this
         else:
