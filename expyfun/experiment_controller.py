@@ -902,7 +902,7 @@ class ExperimentController(object):
         if timestamp is None:
             timestamp = self._master_clock.getTime()
         line = _sanitize(timestamp) + '\t' + _sanitize(event) + '\t' + \
-               _sanitize(value) + '\n'
+            _sanitize(value) + '\n'
         self._data_file.write(line)
 
     def wait_secs(self, *args, **kwargs):
@@ -954,20 +954,28 @@ class ExperimentController(object):
 
     def _get_time_correction(self):
         """Clock correction for psychopy- or TDT-generated timestamps.
+
+        Notes
+        -----
+        On Linux, PsychoPy's method for timestamping keypresses from Pyglet
+        uses timeit.default_timer, which wraps to time.time and returns seconds
+        elapsed since 1970/01/01 at midnight, giving very large numbers. On
+        Windows, PsychoPy's timer uses the indows Query Performance Counter,
+        which also returns floats in seconds (apparently measured from when the
+        system was last rebooted). Importantly, on either system the units are
+        in seconds, and thus can simply be subtracted out.
         """
         if self._response_device == 'keyboard':
-            other_clock = psyclock.getTime()  # note the lowercase m
-            #pyglet_clock = pyglet.clock.get_default().cumulative_time
-            # check to see if psychopy exposes a handle to this
+            other_clock = psyclock.getTime()
         else:
             raise NotImplementedError
         start_time = self._master_clock.getTime()
         time_correction = start_time - other_clock
         if self._time_correction is not None:
             if np.abs(self._time_correction - time_correction) > 0.00001:
-                psylog.warn('Expyfun: drift of > 0.1 ms between pyglet clock '
-                            'and experiment master clock.')
-            psylog.debug('Expyfun: time correction between pyglet and '
+                psylog.warn('Expyfun: drift of > 10 microseconds between '
+                            'system clock and experiment master clock.')
+            psylog.debug('Expyfun: time correction between system clock and '
                          'experiment master clock is {}. This is a change of '
                          '{} from the previous value.'
                          ''.format(time_correction, time_correction -
