@@ -149,6 +149,8 @@ def test_button_presses_and_window_size():
     out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
     if len(out) > 0:
         assert out[0] == '1'
+    else:
+        warnings.warn('press "1" faster next time')
     ec.close()
     del ec
 
