@@ -960,7 +960,7 @@ class ExperimentController(object):
         On Linux, PsychoPy's method for timestamping keypresses from Pyglet
         uses timeit.default_timer, which wraps to time.time and returns seconds
         elapsed since 1970/01/01 at midnight, giving very large numbers. On
-        Windows, PsychoPy's timer uses the indows Query Performance Counter,
+        Windows, PsychoPy's timer uses the Windows Query Performance Counter,
         which also returns floats in seconds (apparently measured from when the
         system was last rebooted). Importantly, on either system the units are
         in seconds, and thus can simply be subtracted out.
