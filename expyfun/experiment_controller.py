@@ -827,7 +827,7 @@ class ExperimentController(object):
         # check shape
         if samples.ndim == 2 and min(samples.shape) > 2:
             raise ValueError('Sound data has more than two channels.')
-        elif len(samples.shape) == 2 and samples.shape[0] == 2:
+        elif len(samples.shape) == 2 and samples.shape[0] <= 2:
             samples = samples.T
 
         # resample if needed
