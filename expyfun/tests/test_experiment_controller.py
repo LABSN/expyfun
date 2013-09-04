@@ -1,6 +1,6 @@
 import warnings
 import numpy as np
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true, assert_equal
 from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs
@@ -15,6 +15,48 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 
 def dummy_print(string):
     print string
+
+
+def test_data_line():
+    """Test writing of data lines
+    """
+    entries = [['foo'],
+               ['bar', 'bar\tbar'],
+               ['bar2', r'bar\tbar'],
+               ['fb', None, -0.5]]
+    # this is what should be written to the file for each one
+    goal_vals = ['None', 'bar\\tbar', 'bar\\\\tbar', 'None']
+    assert_true(len(entries) == len(goal_vals))
+
+    with ExperimentController(*std_args, **std_kwargs) as ec:
+        for ent in entries:
+            ec.write_data_line(*ent)
+        fname = ec._data_file.name
+    with open(fname) as fid:
+        lines = fid.readlines()
+    # check the header
+    assert_true(len(lines) == len(entries) + 2)
+    assert_true(lines[0][0] == '#')  # first line is a comment
+    outs = lines[1].strip().split('\t')
+    assert_true(all(l1 == l2 for l1, l2 in zip(outs, ['timestamp',
+                                                      'event', 'value'])))
+    # check the entries
+    ts = []
+    for line, ent, gv in zip(lines[2:], entries, goal_vals):
+        outs = line.strip().split('\t')
+        assert_true(len(outs) == 3)
+        # check timestamping
+        if len(ent) == 3 and ent[2] is not None:
+            assert_true(outs[0] == str(ent[2]))
+        else:
+            ts.append(float(outs[0]))
+        # check events
+        assert_true(outs[1] == ent[0])
+        # check values
+        assert_true(outs[2] == gv)
+    # make sure we got monotonically increasing timestamps
+    ts = np.array(ts)
+    assert_true(np.all(ts[1:] > ts[:-1]))
 
 
 def test_stamping():
@@ -75,13 +117,13 @@ def test_ec(ac=None):
     ec.screen_prompt('test', 0.01, 0, ['1'])
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
     ec.clear_screen()
-    assert ec.wait_one_press(0.01) == (None, None)
-    assert ec.wait_one_press(0.01, timestamp=False) is None
-    assert ec.wait_for_presses(0.01) == []
-    assert ec.wait_for_presses(0.01, timestamp=False) == []
+    assert_equal(ec.wait_one_press(0.01), (None, None))
+    assert_true(ec.wait_one_press(0.01, timestamp=False) is None)
+    assert_equal(ec.wait_for_presses(0.01), [])
+    assert_equal(ec.wait_for_presses(0.01, timestamp=False), [])
     assert_raises(ValueError, ec.get_presses)
     ec.listen_presses()
-    assert ec.get_presses() == []
+    assert_equal(ec.get_presses(), [])
     ec.clear_buffer()
     ec.set_noise_db(0)
     ec.set_stim_db(20)
@@ -143,13 +185,13 @@ def test_button_presses_and_window_size():
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
                               participant='foo', session='01')
-    assert ec.screen_prompt('press 1', live_keys=['1']) == '1'
+    assert_equal(ec.screen_prompt('press 1', live_keys=['1']), '1')
     ec.screen_text('press 1 again')
-    assert ec.wait_one_press(live_keys=[1])[0] == '1'
+    assert_equal(ec.wait_one_press(live_keys=[1])[0], '1')
     ec.screen_text('press 1 one last time')
     out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
     if len(out) > 0:
-        assert out[0] == '1'
+        assert_equal(out[0], '1')
     else:
         warnings.warn('press "1" faster next time')
     ec.close()

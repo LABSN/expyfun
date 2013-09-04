@@ -94,12 +94,10 @@ with ExperimentController('testExp', ac, screen_num=0,
 
     # show instructions finished screen
     ec.screen_prompt(instr_finished, live_keys=live_keys)
-    ec.clear_screen()
     ec.wait_secs(isi)
 
     ec.call_on_next_flip(ec.start_noise())
     ec.screen_prompt('OK, here we go!', max_wait=feedback_dur, live_keys=None)
-    ec.clear_screen()
     ec.wait_secs(isi)
 
     single_trial_order = trial_order[range(len(trial_order) / 2)]
@@ -124,8 +122,7 @@ with ExperimentController('testExp', ac, screen_num=0,
         else:
             message = ('You pressed {0}, the correct answer was '
                        '{1}.').format(pressed, stim_num + 1)
-        ec.screen_prompt(message, max_wait=feedback_dur)  # live_keys=live_keys
-        ec.clear_screen()
+        ec.screen_prompt(message, max_wait=feedback_dur)
         ec.wait_secs(isi)
 
     # create 100 ms pause to play between stims and concatenate
@@ -141,7 +138,6 @@ with ExperimentController('testExp', ac, screen_num=0,
                      'played in. Press one of the buttons to begin.'
                      ''.format(len(mass_trial_order), max_resp_time),
                      live_keys=live_keys)
-    ec.clear_screen()
     ec.clear_buffer()
     ec.load_buffer(concat_wavs)
     ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])
@@ -154,7 +150,7 @@ with ExperimentController('testExp', ac, screen_num=0,
     correct = [press == ans for press, ans in zip(pressed, answers)]
     running_total += sum(correct)
     ec.call_on_next_flip(ec.stop_noise())
-    ec.screen_prompt('You got {} out of {} correct.'.format(sum(correct),
+    ec.screen_prompt('You got {0} out of {1} correct.'.format(sum(correct),
                      len(answers)), max_wait=feedback_dur)
 
     # end experiment
