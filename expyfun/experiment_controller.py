@@ -14,10 +14,11 @@ from scipy.signal import resample
 from scipy import fftpack
 from psychopy import visual, core, event, sound, gui, parallel, monitors, misc
 from psychopy.data import getDateStr as date_str
+from psychopy import clock as psyclock
 from psychopy import logging as psylog
 from psychopy.constants import STARTED, STOPPED
 from .utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
-                    running_rms)
+                    running_rms, _sanitize)
 from .tdt_controller import TDTController
 
 
@@ -141,7 +142,7 @@ class ExperimentController(object):
             if key not in fixed_list and value is not None:
                 if not isinstance(value, basestring):
                     raise TypeError('{} must be string or None'.format(value))
-                fixed_list += [key]
+                fixed_list.append(key)
 
         if len(fixed_list) < len(self._exp_info):
             session_dialog = gui.DlgFromDict(dictionary=self._exp_info,
@@ -247,7 +248,7 @@ class ExperimentController(object):
             out = _PsychTrigger(trigger_controller['type'],
                                 trigger_controller.get('address'))
             self._trigger_handler = out
-            self._extra_cleanup_fun += [self._trigger_handler.close]
+            self._extra_cleanup_fun.append(self._trigger_handler.close)
         else:
             raise ValueError('trigger_controller type must be '
                              '"parallel", "dummy", or "tdt", not '
@@ -331,7 +332,7 @@ class ExperimentController(object):
         self._win.flip()
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
-                      timestamp=False):
+                      timestamp=False, clear_screen=True):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -348,6 +349,9 @@ class ExperimentController(object):
             The acceptable list of buttons or keys to use to advance the trial.
             If None, all buttons / keys will be accepted.  If an empty list,
             the prompt displays until max_wait seconds have passed.
+        clear_screen : bool
+            If True, ``clear_screen()`` will be called before returning to
+            the prompt.
 
         Returns
         -------
@@ -358,17 +362,12 @@ class ExperimentController(object):
             If ``timestamp==False``, returns a string indicating the first key
             pressed (or ``None`` if no acceptable key was pressed).
         """
-        if np.isinf(max_wait) and live_keys == []:
-            raise ValueError('You have asked for max_wait=inf with '
-                             'live_keys=[], this will stall the experiment '
-                             'forever.')
         self.screen_text(text)
-        if live_keys == []:
-            wait_secs(max_wait)
-            return (None, max_wait)
-        else:
-            return self.wait_one_press(max_wait, min_wait, live_keys,
-                                       timestamp)
+        out = self.wait_one_press(max_wait, min_wait, live_keys,
+                                  timestamp)
+        if clear_screen is True:
+            self.clear_screen()
+        return out
 
     def flip_and_play(self):
         """Flip screen, play audio, then run any "on-flip" functions.
@@ -630,8 +629,8 @@ class ExperimentController(object):
             live_keys = self._add_escape_keys(live_keys)
             pressed = []
             while (self._master_clock.getTime() - start_time < max_wait):
-                pressed += event.getKeys(keyList=live_keys,
-                                         timeStamped=self._master_clock)
+                pressed.extend(event.getKeys(keyList=live_keys,
+                                             timeStamped=self._master_clock))
         else:
             raise NotImplementedError
         if len(pressed):
@@ -901,8 +900,8 @@ class ExperimentController(object):
         """
         if timestamp is None:
             timestamp = self._master_clock.getTime()
-        line = str(timestamp) + '\t' + str(event) + '\t' + str(value) + '\n'
-        self._data_file.write(line)
+        ll = '\t'.join(_sanitize(x) for x in [timestamp, event, value]) + '\n'
+        self._data_file.write(ll)
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
@@ -952,19 +951,29 @@ class ExperimentController(object):
         return time_left
 
     def _get_time_correction(self):
-        """Clock correction for pyglet- or TDT-generated timestamps.
+        """Clock correction for psychopy- or TDT-generated timestamps.
+
+        Notes
+        -----
+        On Linux, PsychoPy's method for timestamping keypresses from Pyglet
+        uses timeit.default_timer, which wraps to time.time and returns seconds
+        elapsed since 1970/01/01 at midnight, giving very large numbers. On
+        Windows, PsychoPy's timer uses the Windows Query Performance Counter,
+        which also returns floats in seconds (apparently measured from when the
+        system was last rebooted). Importantly, on either system the units are
+        in seconds, and thus can simply be subtracted out.
         """
         if self._response_device == 'keyboard':
-            other_clock = 0.0  # TODO: get the pyglet clock
+            other_clock = psyclock.getTime()
         else:
             raise NotImplementedError
         start_time = self._master_clock.getTime()
         time_correction = start_time - other_clock
         if self._time_correction is not None:
             if np.abs(self._time_correction - time_correction) > 0.00001:
-                psylog.warn('Expyfun: drift of > 0.1 ms between pyglet clock '
-                            'and experiment master clock.')
-            psylog.debug('Expyfun: time correction between pyglet and '
+                psylog.warn('Expyfun: drift of > 10 microseconds between '
+                            'system clock and experiment master clock.')
+            psylog.debug('Expyfun: time correction between system clock and '
                          'experiment master clock is {}. This is a change of '
                          '{} from the previous value.'
                          ''.format(time_correction, time_correction -
@@ -1020,7 +1029,7 @@ class ExperimentController(object):
 
         cleanup_actions = [self._data_file.close, self.stop_noise,
                            self.stop, self._ac.halt, self._win.close]
-        cleanup_actions += self._extra_cleanup_fun
+        cleanup_actions.extend(self._extra_cleanup_fun)
         for action in cleanup_actions:
             try:
                 action()

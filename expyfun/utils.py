@@ -451,3 +451,9 @@ def running_rms(signal, win_length):
         Length (in samples) of the rectangular window
     """
     return sqrt(convolve(signal ** 2, ones(win_length) / win_length, 'valid'))
+
+
+def _sanitize(text_like):
+    """Cast as string, encode as UTF-8 and sanitize any escape characters.
+    """
+    return str(text_like).encode('utf-8').encode('string_escape')

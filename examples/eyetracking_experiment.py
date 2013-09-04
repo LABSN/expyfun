@@ -28,7 +28,6 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     el.calibrate()  # by default this starts recording EyeLink data
     ec.screen_prompt('Excellent! Now, follow the red circle around the edge '
                      'of the big white circle.\n\nPress a button to continue')
-    ec.clear_screen()
 
     # make some circles to be drawn
     radius = ec.deg2pix(7.5)  # change degrees to pixels
