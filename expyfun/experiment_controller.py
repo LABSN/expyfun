@@ -11,6 +11,7 @@ import os
 from os import path as op
 from functools import partial
 from scipy.signal import resample
+from scipy import fftpack
 from psychopy import visual, core, event, sound, gui, parallel, monitors, misc
 from psychopy.data import getDateStr as date_str
 from psychopy import logging as psylog
@@ -214,7 +215,7 @@ class ExperimentController(object):
         elif self._audio_type == 'psychopy':
             psylog.info('Expyfun: Setting up PsychoPy audio with {} '
                         'backend'.format(sound.audioLib))
-            self._ac = _PsychSound(self)
+            self._ac = _PsychSound(self, self.stim_fs)
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
                              '\'psychopy\' or \'tdt\'.')
@@ -1070,7 +1071,7 @@ class ExperimentController(object):
 ############################## PSYCH SOUND CLASS #############################
 class _PsychSound(object):
     """Use PsychoPy audio capabilities"""
-    def __init__(self, ec):
+    def __init__(self, ec, stim_fs):
         if sound.Sound is None:
             raise ImportError('PsychoPy sound could not be initialized. '
                               'Ensure you have the pygame package properly'
@@ -1080,6 +1081,16 @@ class _PsychSound(object):
         self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
         # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
+        # Low-pass if necessary
+        if stim_fs < self.fs:
+            # note we can use cheap DFT method here b/c
+            # circular convolution won't matter for AWGN (yay!)
+            freqs = fftpack.fftfreq(len(noise), 1. / self.fs)
+            noise = fftpack.fft(noise)
+            noise[np.abs(freqs) > stim_fs / 2.] = 0.0
+            noise = np.real(fftpack.ifft(noise))
+        # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
+        noise = noise / np.sqrt(np.mean(noise * noise))
         self.noise_array = np.array(np.c_[noise, -1.0 * noise], order='C')
         self.noise = sound.Sound(self.noise_array, sampleRate=self.fs)
         self.noise.setVolume(1.0, log=False)  # dont change: linearity unknown
