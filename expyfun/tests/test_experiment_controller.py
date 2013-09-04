@@ -1,6 +1,6 @@
 import warnings
 import numpy as np
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs
@@ -14,6 +14,48 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 
 def dummy_print(string):
     print string
+
+
+def test_data_line():
+    """Test writing of data lines
+    """
+    entries = [['foo'],
+               ['bar', 'bar\tbar'],
+               ['bar2', r'bar\tbar'],
+               ['fb', None, -0.5]]
+    # this is what should be written to the file for each one
+    goal_vals = ['None', 'bar\\tbar', 'bar\\\\tbar', 'None']
+    assert_true(len(entries) == len(goal_vals))
+
+    with ExperimentController(*std_args, **std_kwargs) as ec:
+        for ent in entries:
+            ec.write_data_line(*ent)
+        fname = ec._data_file.name
+    with open(fname) as fid:
+        lines = fid.readlines()
+    # check the header
+    assert_true(len(lines) == len(entries) + 2)
+    assert_true(lines[0][0] == '#')  # first line is a comment
+    outs = lines[1].strip().split('\t')
+    assert_true(all(l1 == l2 for l1, l2 in zip(outs, ['timestamp',
+                                                      'event', 'value'])))
+    # check the entries
+    ts = []
+    for line, ent, gv in zip(lines[2:], entries, goal_vals):
+        outs = line.strip().split('\t')
+        assert_true(len(outs) == 3)
+        # check timestamping
+        if len(ent) == 3 and ent[2] is not None:
+            assert_true(outs[0] == str(ent[2]))
+        else:
+            ts += [float(outs[0])]
+        # check events
+        assert_true(outs[1] == ent[0])
+        # check values
+        assert_true(outs[2] == gv)
+    # make sure we got monotonically increasing timestamps
+    ts = np.array(ts)
+    assert_true(np.all(ts[1:] > ts[:-1]))
 
 
 def test_stamping():

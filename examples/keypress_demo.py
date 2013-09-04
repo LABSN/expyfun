@@ -13,8 +13,6 @@ in the ExperimentController class.
 print __doc__
 
 from expyfun import ExperimentController
-# from expyfun.utils import set_log_level
-# set_log_level('DEBUG')
 
 isi = 0.5
 wait_dur = 3.0
@@ -36,7 +34,6 @@ with ExperimentController('KeypressDemo', 'psychopy', 'keyboard', screen_num=0,
         message = '{} pressed after {} secs'.format(pressed[0],
                                                     round(pressed[1], 4))
     ec.screen_prompt(message, msg_dur)
-    ec.clear_screen()
     ec.wait_secs(isi)
 
     # the wait_for_presses method, relative to master clock
@@ -51,7 +48,6 @@ with ExperimentController('KeypressDemo', 'psychopy', 'keyboard', screen_num=0,
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
     ec.screen_prompt(message, msg_dur)
-    ec.clear_screen()
     ec.wait_secs(isi)
 
     # the wait_for_presses method, relative to method call
@@ -66,7 +62,6 @@ with ExperimentController('KeypressDemo', 'psychopy', 'keyboard', screen_num=0,
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
     ec.screen_prompt(message, msg_dur)
-    ec.clear_screen()
     ec.wait_secs(isi)
 
     # the listen_presses / get_presses methods, relative to master clock
@@ -88,7 +83,6 @@ with ExperimentController('KeypressDemo', 'psychopy', 'keyboard', screen_num=0,
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
     ec.screen_prompt(message, msg_dur)
-    ec.clear_screen()
     ec.wait_secs(isi)
 
     # the listen_presses / get_presses methods, relative to method call
