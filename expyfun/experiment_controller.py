@@ -141,7 +141,7 @@ class ExperimentController(object):
             if key not in fixed_list and value is not None:
                 if not isinstance(value, basestring):
                     raise TypeError('{} must be string or None'.format(value))
-                fixed_list += [key]
+                fixed_list.append(key)
 
         if len(fixed_list) < len(self._exp_info):
             session_dialog = gui.DlgFromDict(dictionary=self._exp_info,
@@ -247,7 +247,7 @@ class ExperimentController(object):
             out = _PsychTrigger(trigger_controller['type'],
                                 trigger_controller.get('address'))
             self._trigger_handler = out
-            self._extra_cleanup_fun += [self._trigger_handler.close]
+            self._extra_cleanup_fun.append(self._trigger_handler.close)
         else:
             raise ValueError('trigger_controller type must be '
                              '"parallel", "dummy", or "tdt", not '
@@ -628,8 +628,8 @@ class ExperimentController(object):
             live_keys = self._add_escape_keys(live_keys)
             pressed = []
             while (self._master_clock.getTime() - start_time < max_wait):
-                pressed += event.getKeys(keyList=live_keys,
-                                         timeStamped=self._master_clock)
+                pressed.extend(event.getKeys(keyList=live_keys,
+                                             timeStamped=self._master_clock))
         else:
             raise NotImplementedError
         if len(pressed):
@@ -1028,7 +1028,7 @@ class ExperimentController(object):
 
         cleanup_actions = [self._data_file.close, self.stop_noise,
                            self.stop, self._ac.halt, self._win.close]
-        cleanup_actions += self._extra_cleanup_fun
+        cleanup_actions.extend(self._extra_cleanup_fun)
         for action in cleanup_actions:
             try:
                 action()
