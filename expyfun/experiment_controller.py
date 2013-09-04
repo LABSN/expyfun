@@ -1157,6 +1157,10 @@ class _PsychTrigger(object):
     ----------
     mode : str
         'parallel' for real use. 'dummy', passes all calls.
+    address : str | None
+        The address to use. On Linux this should be a path like
+        '/dev/parport0', on Windows it should be an address like
+        888 (a.k.a. 0x0378).
     high_duration : float
         Amount of time (seconds) to leave the trigger high whenever
         sending a trigger.
@@ -1171,6 +1175,11 @@ class _PsychTrigger(object):
     2. Add user to ``lp`` group (``/etc/group``)
     3. Run ``sudo rmmod lp`` (otherwise ``lp`` takes exclusive control)
     4. Edit ``/etc/modprobe.d/blacklist.conf`` to add ``blacklist lp``
+
+    On Windows, you may need to download ``inpout32.dll`` from someplace
+    like:
+
+        http://logix4u.net/InpOutBinaries.zip
     """
     @verbose_dec
     def __init__(self, mode='dummy', address=None, high_duration=0.01,
@@ -1192,6 +1201,9 @@ class _PsychTrigger(object):
                                       'to use parallel triggering on Linux')
                 else:
                     self.parallel = parallel.PParallelLinux(address)
+            elif 'Windows' in platform.system():
+                address = 0x0378 if address is None else float(address)
+                self.parallel = parallel.PParallelInpOut32(address)
             else:
                 raise NotImplementedError
         else:  # mode == 'dummy':
