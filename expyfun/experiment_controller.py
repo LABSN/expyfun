@@ -331,7 +331,7 @@ class ExperimentController(object):
         self._win.flip()
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
-                      timestamp=False):
+                      timestamp=False, clear_screen=True):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -348,6 +348,9 @@ class ExperimentController(object):
             The acceptable list of buttons or keys to use to advance the trial.
             If None, all buttons / keys will be accepted.  If an empty list,
             the prompt displays until max_wait seconds have passed.
+        clear_screen : bool
+            If True, ``clear_screen()`` will be called before returning to
+            the prompt.
 
         Returns
         -------
@@ -358,17 +361,12 @@ class ExperimentController(object):
             If ``timestamp==False``, returns a string indicating the first key
             pressed (or ``None`` if no acceptable key was pressed).
         """
-        if np.isinf(max_wait) and live_keys == []:
-            raise ValueError('You have asked for max_wait=inf with '
-                             'live_keys=[], this will stall the experiment '
-                             'forever.')
         self.screen_text(text)
-        if live_keys == []:
-            wait_secs(max_wait)
-            return (None, max_wait)
-        else:
-            return self.wait_one_press(max_wait, min_wait, live_keys,
-                                       timestamp)
+        out = self.wait_one_press(max_wait, min_wait, live_keys,
+                                  timestamp)
+        if clear_screen is True:
+            self.clear_screen()
+        return out
 
     def flip_and_play(self):
         """Flip screen, play audio, then run any "on-flip" functions.
@@ -901,9 +899,8 @@ class ExperimentController(object):
         """
         if timestamp is None:
             timestamp = self._master_clock.getTime()
-        line = _sanitize(timestamp) + '\t' + _sanitize(event) + '\t' + \
-            _sanitize(value) + '\n'
-        self._data_file.write(line)
+        ll = '\t'.join(_sanitize(x) for x in [timestamp, event, value]) + '\n'
+        self._data_file.write(ll)
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
