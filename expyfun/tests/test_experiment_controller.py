@@ -17,6 +17,20 @@ def dummy_print(string):
     print string
 
 
+def test_no_output():
+    """Test EC with no output
+    """
+    old_val = std_kwargs['output_dir']
+    std_kwargs['output_dir'] = None
+    try:
+        with ExperimentController(*std_args, **std_kwargs) as ec:
+            ec.write_data_line('hello')
+    except:
+        raise
+    finally:
+        std_kwargs['output_dir'] = old_val
+
+
 def test_data_line():
     """Test writing of data lines
     """
