@@ -1089,7 +1089,8 @@ class _PsychSound(object):
                               'Ensure you have the pygame package properly'
                               ' installed.')
         self.fs = 44100
-        self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self.fs)
+        sound.init(rate=self.fs, stereo=True, buffer=1024)
+        self.audio = sound.Sound(np.zeros((1, 2)))  # , sampleRate=self.fs)
         self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
         # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
