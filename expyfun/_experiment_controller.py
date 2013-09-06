@@ -105,16 +105,6 @@ class ExperimentController(object):
         # Check Pyglet version for safety
         _check_pyglet_version(raise_error=True)
 
-        # assure proper formatting for force-quit keys
-        if force_quit is None:
-            force_quit = ['lctrl', 'rctrl']
-        elif isinstance(force_quit, (int, basestring)):
-            force_quit = [str(force_quit)]
-        if 'escape' in force_quit:
-            psylog.warn('Expyfun: using "escape" as a force-quit key is not '
-                        'recommended because it has special status in pyglet.')
-        self._force_quit_keys = force_quit
-
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -243,16 +233,30 @@ class ExperimentController(object):
         #
         if response_device is None:
             response_device = get_config('RESPONSE_DEVICE', 'keyboard')
-        if response_device not in ['keyboard']:
-            raise ValueError('response_device must be "keyboard" or None')
+        if response_device not in ['keyboard', 'tdt']:
+            raise ValueError('response_device must be "keyboard", "tdt", or '
+                             'None')
         self._response_device = response_device
+
+        # assure proper formatting for force-quit keys
+        if force_quit is None:
+            force_quit = ['lctrl', 'rctrl']
+        elif isinstance(force_quit, (int, basestring)):
+            force_quit = [str(force_quit)]
+        if 'escape' in force_quit:
+            psylog.warn('Expyfun: using "escape" as a force-quit key is not '
+                        'recommended because it has special status in pyglet.')
+
+        # actually initialize
         if response_device == 'keyboard':
-            self._response_handler = PsychKeyboard(self)
+            self._response_handler = PsychKeyboard(self, force_quit)
         if response_device == 'tdt':
             if self._audio_type != 'tdt':
                 raise ValueError('response_device can only be "tdt" if '
                                  'tdt is used for audio')
             self._response_handler = self._ac
+        # pass on check force quit calls
+        self._check_force_quit = self._response_handler.check_force_quit
 
         #
         # set up trigger controller
@@ -596,26 +600,10 @@ class ExperimentController(object):
     def _log_presses(self, pressed):
         """Write key presses to data file.
         """
-        # This function will typically be called by _response_handler
+        # This function will typically be called by self._response_handler
         # after it retrieves some button presses
         for key, stamp in pressed:
             self.write_data_line('keypress', key, stamp)
-
-    def _check_force_quit(self, keys=None):
-        """Compare key buffer to list of force-quit keys and quit if matched.
-        """
-        if keys is None:
-            keys = event.getKeys(self._force_quit_keys, timeStamped=False)
-        elif type(keys) is str:
-            keys = [k for k in [keys] if k in self._force_quit_keys]
-        elif type(keys) is list:
-            keys = [k for k in keys if k in self._force_quit_keys]
-        else:
-            raise TypeError('Force quit checking requires a string or list of'
-                            ' strings, not a {}.'.format(type(keys)))
-        if len(keys):
-            self.close()
-            raise RuntimeError('Quit key pressed')
 
 ############################# MOUSE METHODS ##################################
     def get_mouse_position(self, units='pix'):

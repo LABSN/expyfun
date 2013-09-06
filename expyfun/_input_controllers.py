@@ -21,6 +21,7 @@ class BaseKeyboard(object):
         get_presses
         wait_one_press
         wait_for_presses
+        check_force_quit
 
     Requires:
         _get_time_correction
@@ -28,15 +29,19 @@ class BaseKeyboard(object):
         _retrieve_events
     """
 
-    def __init__(self, ec):
-        self._ec = ec
+    def __init__(self, ec, force_quit_keys):
         self.master_clock = ec._master_clock
-        self.check_force_quit = ec._check_force_quit
         self.log_presses = ec._log_presses
-        self.force_quit = ec._force_quit_keys
+        self.ec_close = ec.close  # needed for check_force_quit
+        self.force_quit_keys = force_quit_keys
         self.listen_start = None
         self.time_correction = None
         self.time_correction = self._get_time_correction()
+
+    def _get_time_correction(self):
+        """Clock correction (seconds) between clocks for hardware and EC.
+        """
+        raise NotImplementedError
 
     def _clear_events(self):
         """Clear all events from keyboard buffer.
@@ -44,7 +49,7 @@ class BaseKeyboard(object):
         raise NotImplementedError
 
     def _retrieve_events(self, live_keys):
-        """Get all events since last _clear_events.
+        """Get all events since last call to _clear_events.
         """
         raise NotImplementedError
 
@@ -66,8 +71,6 @@ class BaseKeyboard(object):
             else:
                 relative_to = self.listen_start
         pressed = self._retrieve_events(live_keys)
-
-        print relative_to
         return self._correct_presses(pressed, timestamp, relative_to)
 
     def wait_one_press(self, max_wait, min_wait, live_keys,
@@ -103,6 +106,24 @@ class BaseKeyboard(object):
         while (self.master_clock.getTime() - start_time < max_wait):
             pressed.extend(self._retrieve_events(live_keys))
         return self._correct_presses(pressed, timestamp, relative_to)
+
+    def check_force_quit(self, keys=None):
+        """Compare key buffer to list of force-quit keys and quit if matched.
+
+        This function always uses the keyboard, so is part of abstraction.
+        """
+        if keys is None:
+            keys = event.getKeys(self.force_quit_keys, timeStamped=False)
+        elif type(keys) is str:
+            keys = [k for k in [keys] if k in self.force_quit_keys]
+        elif type(keys) is list:
+            keys = [k for k in keys if k in self.force_quit_keys]
+        else:
+            raise TypeError('Force quit checking requires a string or list of'
+                            ' strings, not a {}.'.format(type(keys)))
+        if len(keys):
+            self.ec_close()
+            raise RuntimeError('Quit key pressed')
 
     def _correct_presses(self, pressed, timestamp, relative_to):
         """Correct timing of presses and check for quit press"""
@@ -177,6 +198,6 @@ class PsychKeyboard(BaseKeyboard):
         """
         if live_keys is not None:
             live_keys = [str(x) for x in live_keys]  # accept ints
-            if len(self.force_quit):  # should always be a list of strings
-                live_keys = live_keys + self.force_quit
+            if len(self.force_quit_keys):  # should always be a list of strings
+                live_keys = live_keys + self.force_quit_keys
         return live_keys
