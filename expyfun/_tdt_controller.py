@@ -170,23 +170,6 @@ class TDTController(BaseKeyboard):
         self._trigger(5)
         psylog.debug('Expyfun: Resetting TDT ring buffer')
 
-################################ KEYBOARD METHODS ############################
-
-    def _get_keyboard_timebase(self):
-        """Return time since circuit was started (in seconds).
-        """
-        raise NotImplementedError
-
-    def _clear_events(self):
-        """Clear keyboard buffers.
-        """
-        raise NotImplementedError
-
-    def _retrieve_events(self, live_keys):
-        """Values and timestamps currently in keyboard buffer.
-        """
-        raise NotImplementedError
-
 ################################ TRIGGER METHODS #############################
     def stamp_triggers(self, triggers, delay):
         """Stamp a list of triggers with a given inter-trigger delay
@@ -215,6 +198,30 @@ class TDTController(BaseKeyboard):
         """
         if not self.rpcox.SoftTrg(trig):
             psylog.warn('SoftTrg failure for trigger: {}'.format(trig))
+
+################################ KEYBOARD METHODS ############################
+
+    def _get_keyboard_timebase(self):
+        """Return time since circuit was started (in seconds).
+        """
+        return self.tdt.rpcox.GetTagVal('runsamples') / float(self.fs)
+
+    def _clear_events(self):
+        """Clear keyboard buffers.
+        """
+        self._trigger(7)
+        self.tdt.rpcox.SetTagVal('pressindexabs', 0)
+
+    def _retrieve_events(self, live_keys):
+        """Values and timestamps currently in keyboard buffer.
+        """
+        press_count = self.tdt.rpcox.GetTagVal('pressind')
+        press_times = self.tdt.rpcox.ReadTagVEX('presstimes', 1, press_count,
+                                                'I32', 'F64',
+                                                1) / float(self.fs)
+        press_vals = self.tdt.rpcox.ReadTagVEX('pressvals', 1, press_count,
+                                               'I32', 'I32', 1)
+        return [(t, v) for t, v in zip(press_times, press_vals)]
 
     def halt(self):
         """Wrapper for tdt.util.RPcoX.Halt()."""
