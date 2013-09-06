@@ -24,7 +24,7 @@ class BaseKeyboard(object):
         check_force_quit
 
     Requires:
-        _get_time_correction
+        _get_keyboard_timebase
         _clear_events
         _retrieve_events
     """
@@ -38,11 +38,6 @@ class BaseKeyboard(object):
         self.time_correction = None
         self.time_correction = self._get_time_correction()
 
-    def _get_time_correction(self):
-        """Clock correction (seconds) between clocks for hardware and EC.
-        """
-        raise NotImplementedError
-
     def _clear_events(self):
         """Clear all events from keyboard buffer.
         """
@@ -52,6 +47,28 @@ class BaseKeyboard(object):
         """Get all events since last call to _clear_events.
         """
         raise NotImplementedError
+
+    def _get_keyboard_timebase(self):
+        """Hardware time (seconds) for the keypresses.
+        """
+        raise NotImplementedError
+
+    def _get_time_correction(self):
+        """Clock correction (seconds) between clocks for hardware and EC.
+        """
+        other_clock = self._get_keyboard_timebase()
+        start_time = self.master_clock.getTime()
+        time_correction = start_time - other_clock
+        if self.time_correction is not None:
+            if np.abs(self.time_correction - time_correction) > 0.00001:
+                psylog.warn('Expyfun: drift of > 10 microseconds between '
+                            'system clock and experiment master clock.')
+            psylog.debug('Expyfun: time correction between system clock and '
+                         'experiment master clock is {}. This is a change of '
+                         '{} from the previous value.'
+                         ''.format(time_correction, time_correction -
+                                   self.time_correction))
+        return time_correction
 
     def listen_presses(self):
         """Start listening for keypresses.
@@ -159,8 +176,15 @@ class BaseKeyboard(object):
 class PsychKeyboard(BaseKeyboard):
     """Retrieve button presses from keyboard.
     """
-    def _get_time_correction(self):
-        """Clock correction for psychopy-generated timestamps.
+    def _clear_events(self):
+        event.clearEvents('keyboard')
+
+    def _retrieve_events(self, live_keys):
+        live_keys = self._add_escape_keys(live_keys)
+        return event.getKeys(live_keys, timeStamped=True)
+
+    def _get_keyboard_timebase(self):
+        """Get psychopy keyboard time reference.
 
         Notes
         -----
@@ -172,26 +196,7 @@ class PsychKeyboard(BaseKeyboard):
         system was last rebooted). Importantly, on either system the units are
         in seconds, and thus can simply be subtracted out.
         """
-        other_clock = psyclock.getTime()
-        start_time = self.master_clock.getTime()
-        time_correction = start_time - other_clock
-        if self.time_correction is not None:
-            if np.abs(self.time_correction - time_correction) > 0.00001:
-                psylog.warn('Expyfun: drift of > 10 microseconds between '
-                            'system clock and experiment master clock.')
-            psylog.debug('Expyfun: time correction between system clock and '
-                         'experiment master clock is {}. This is a change of '
-                         '{} from the previous value.'
-                         ''.format(time_correction, time_correction -
-                                   self.time_correction))
-        return time_correction
-
-    def _clear_events(self):
-        event.clearEvents('keyboard')
-
-    def _retrieve_events(self, live_keys):
-        live_keys = self._add_escape_keys(live_keys)
-        return event.getKeys(live_keys, timeStamped=True)
+        return psyclock.getTime()
 
     def _add_escape_keys(self, live_keys):
         """Helper to add force quit keys to button press listener.

@@ -7,10 +7,12 @@ if 'Windows' in platform.platform():
 else:
     connect_rpcox, connect_zbus = None, None
 from psychopy import logging as psylog
+
 from .utils import get_config, wait_secs
+from ._input_controllers import BaseKeyboard
 
 
-class TDTController(object):
+class TDTController(BaseKeyboard):
     """Interface for TDT audio output, stamping, and responses
 
     Parameters
@@ -21,13 +23,19 @@ class TDTController(object):
         'TDT_MODEL' (String name of the TDT model ('RM1', 'RP2', etc));
         'TDT_CIRCUIT_PATH' (Path to the TDT circuit); and
         'TDT_INTERFACE' (Type of connection, either 'USB' or 'GB').
+    force_quit_keys : list | None | bool
+        Keys to use to quit when initializing in keyboard mode. If False,
+        don't bother initializing as a keyboard.
 
     Returns
     -------
     tdt_obj : instance of a TDTObject.
         The object containing all relevant info about the TDT in use.
     """
-    def __init__(self, tdt_params):
+    def __init__(self, tdt_params, force_quit_keys):
+        # do BaseKeyboard init
+        if force_quit_keys is not False:
+            super(BaseKeyboard, self).__init__(force_quit_keys)
         legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE']
         if tdt_params is None:
             tdt_params = {'TYPE': 'tdt'}
@@ -162,7 +170,24 @@ class TDTController(object):
         self._trigger(5)
         psylog.debug('Expyfun: Resetting TDT ring buffer')
 
-################################ OTHER METHODS ###############################
+################################ KEYBOARD METHODS ############################
+
+    def _get_keyboard_timebase(self):
+        """Return time since circuit was started (in seconds).
+        """
+        raise NotImplementedError
+
+    def _clear_events(self):
+        """Clear keyboard buffers.
+        """
+        raise NotImplementedError
+
+    def _retrieve_events(self, live_keys):
+        """Values and timestamps currently in keyboard buffer.
+        """
+        raise NotImplementedError
+
+################################ TRIGGER METHODS #############################
     def stamp_triggers(self, triggers, delay):
         """Stamp a list of triggers with a given inter-trigger delay
 
