@@ -501,7 +501,7 @@ class ExperimentController(object):
         self._response_handler.listen_presses()
 
     def get_presses(self, live_keys=None, timestamp=True, relative_to=None):
-        """Get the current entire keyboard / button box buffer.
+        """Get the entire keyboard / button box buffer.
 
         Parameters
         ----------
@@ -596,7 +596,7 @@ class ExperimentController(object):
     def _log_presses(self, pressed):
         """Write key presses to data file.
         """
-        # This function will typically be called by response_handler
+        # This function will typically be called by _response_handler
         # after it retrieves some button presses
         for key, stamp in pressed:
             self.write_data_line('keypress', key, stamp)
