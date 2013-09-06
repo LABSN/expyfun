@@ -24,6 +24,7 @@ set_log_level('INFO')
 
 # set configuration
 ac = 'psychopy'  # change to 'RM1' or 'RP2' for TDT use
+fs = 44100
 noise_db = 45  # dB for background noise
 stim_db = 65  # dB for stimuli
 min_resp_time = 0.1
@@ -36,7 +37,7 @@ running_total = 0
 stimulus_dir = op.split(__file__)[0]
 stimulus_file = op.join(stimulus_dir, 'equally_spaced_sinewaves.mat')
 if not op.isfile(stimulus_file):
-    generate_stimuli(output_dir=stimulus_dir)
+    generate_stimuli(output_dir=stimulus_dir, fs=fs)
 
 # load stimuli (from a call to generate_stimuli() from generate_stimuli.py)
 stims = sio.loadmat('equally_spaced_sinewaves.mat')
