@@ -52,7 +52,8 @@ class ExperimentController(object):
     output_dir : str | None
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be
-        created. If None, no output data will be saved (ONLY FOR TESTING!).
+        created. If None, no output data or logs will be saved
+        (ONLY FOR TESTING!).
     window_size : list | array | None
         Window size to use. If list or array, it must have two elements.
         If None, the default will be read from the system config,
@@ -155,9 +156,9 @@ class ExperimentController(object):
             output_dir = op.abspath(output_dir)
             if not op.isdir(output_dir):
                 os.mkdir(output_dir)
-            basename = op.join(output_dir, '%s_%s'
-                               % (self._exp_info['participant'],
-                                  self._exp_info['date']))
+            basename = op.join(output_dir,
+                               '{}_{}'.format(self._exp_info['participant'],
+                                              self._exp_info['date']))
             self._log_file = basename + '.log'
             psylog.LogFile(self._log_file, level=psylog.INFO)
             # initialize data file
