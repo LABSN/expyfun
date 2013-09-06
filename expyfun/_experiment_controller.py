@@ -505,7 +505,7 @@ class ExperimentController(object):
     def window(self):
         return self._win
 
-############################ KEY / BUTTON METHODS ############################
+############################ KEYPRESS METHODS ############################
     def listen_presses(self):
         """Start listening for keypresses.
         """

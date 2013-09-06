@@ -53,23 +53,6 @@ class BaseKeyboard(object):
         """
         raise NotImplementedError
 
-    def _get_time_correction(self):
-        """Clock correction (seconds) between clocks for hardware and EC.
-        """
-        other_clock = self._get_keyboard_timebase()
-        start_time = self.master_clock.getTime()
-        time_correction = start_time - other_clock
-        if self.time_correction is not None:
-            if np.abs(self.time_correction - time_correction) > 0.00001:
-                psylog.warn('Expyfun: drift of > 10 microseconds between '
-                            'system clock and experiment master clock.')
-            psylog.debug('Expyfun: time correction between system clock and '
-                         'experiment master clock is {}. This is a change of '
-                         '{} from the previous value.'
-                         ''.format(time_correction, time_correction -
-                                   self.time_correction))
-        return time_correction
-
     def listen_presses(self):
         """Start listening for keypresses.
         """
@@ -141,6 +124,23 @@ class BaseKeyboard(object):
         if len(keys):
             self.ec_close()
             raise RuntimeError('Quit key pressed')
+
+    def _get_time_correction(self):
+        """Clock correction (seconds) between clocks for hardware and EC.
+        """
+        other_clock = self._get_keyboard_timebase()
+        start_time = self.master_clock.getTime()
+        time_correction = start_time - other_clock
+        if self.time_correction is not None:
+            if np.abs(self.time_correction - time_correction) > 0.00001:
+                psylog.warn('Expyfun: drift of > 10 microseconds between '
+                            'system clock and experiment master clock.')
+            psylog.debug('Expyfun: time correction between system clock and '
+                         'experiment master clock is {}. This is a change of '
+                         '{} from the previous value.'
+                         ''.format(time_correction, time_correction -
+                                   self.time_correction))
+        return time_correction
 
     def _correct_presses(self, pressed, timestamp, relative_to):
         """Correct timing of presses and check for quit press"""
