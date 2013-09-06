@@ -12,11 +12,14 @@ from os import path as op
 from functools import partial
 from scipy.signal import resample
 from scipy import fftpack
+from psychopy import prefs
+prefs.general['audioLib'] = ['pyo', 'pygame']  # prefer pyo, fallback pygame
+prefs.general['audioDriver'] = ['jack', 'portaudio']  # only used for pyo
 from psychopy import visual, core, event, sound, gui, parallel, monitors, misc
 from psychopy.data import getDateStr as date_str
 from psychopy import clock as psyclock
 from psychopy import logging as psylog
-from psychopy.constants import STARTED, STOPPED
+from psychopy.constants import STARTED
 from .utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                     running_rms, _sanitize)
 from .tdt_controller import TDTController
@@ -1086,7 +1089,8 @@ class _PsychSound(object):
                               'Ensure you have the pygame package properly'
                               ' installed.')
         self.fs = 44100
-        self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self.fs)
+        sound.init(rate=self.fs, stereo=True, buffer=1024)
+        self.audio = sound.Sound(np.zeros((1, 2)))  # , sampleRate=self.fs)
         self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
         # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
@@ -1106,12 +1110,10 @@ class _PsychSound(object):
         self.ec = ec
 
     def start_noise(self):
-        self.noise._snd.play(loops=-1)
-        self.noise.status = STARTED
+        self.noise.play(loops=-1)
 
     def stop_noise(self):
         self.noise.stop()
-        self.noise.status = STOPPED
 
     def clear_buffer(self):
         self.audio.setSound(np.zeros((1, 2)), log=False)
