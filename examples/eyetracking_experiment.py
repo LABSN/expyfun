@@ -20,7 +20,7 @@ link = None  # or '100.1.1.1' for real eye tracking
 
 
 with ExperimentController('testExp', full_screen=True, participant='foo',
-                          session='001') as ec:
+                          session='001', output_dir=None) as ec:
     el = EyelinkController(ec, link=link)
     ec.screen_prompt('Welcome to the experiment!\n\nFirst, we will '
                      'perform a screen calibration.\n\nPress a button '

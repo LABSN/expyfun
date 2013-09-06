@@ -49,10 +49,10 @@ class ExperimentController(object):
         The desired dB SPL at which to play the stimuli.
     noise_db : float
         The desired dB SPL at which to play the dichotic noise.
-    output_dir : str | 'rawData'
+    output_dir : str | None
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be
-        created.
+        created. If None, no output data will be saved (ONLY FOR TESTING!).
     window_size : list | array | None
         Window size to use. If list or array, it must have two elements.
         If None, the default will be read from the system config,
@@ -130,7 +130,6 @@ class ExperimentController(object):
         self._on_next_flip = None
         # some hardcoded parameters...
         bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
-        root_dir = os.getcwd()
 
         # dictionary for experiment metadata
         self._exp_info = {'participant': participant, 'session': session,
@@ -152,18 +151,22 @@ class ExperimentController(object):
                 self.close()  # user pressed cancel
 
         # initialize log file
-        if not op.isdir(op.join(root_dir, output_dir)):
-            os.mkdir(op.join(root_dir, output_dir))
-        basename = op.join(root_dir, output_dir, '%s_%s'
-                           % (self._exp_info['participant'],
-                              self._exp_info['date']))
-        self._log_file = basename + '.log'
-        psylog.LogFile(self._log_file, level=psylog.INFO)
-
-        # initialize data file
-        self._data_file = open(basename + '.tab', 'a')
-        self._data_file.write('# ' + str(self._exp_info) + '\n')
-        self._data_file.write('timestamp\tevent\tvalue\n')
+        if output_dir is not None:
+            output_dir = op.abspath(output_dir)
+            if not op.isdir(output_dir):
+                os.mkdir(output_dir)
+            basename = op.join(output_dir, '%s_%s'
+                               % (self._exp_info['participant'],
+                                  self._exp_info['date']))
+            self._log_file = basename + '.log'
+            psylog.LogFile(self._log_file, level=psylog.INFO)
+            # initialize data file
+            self._data_file = open(basename + '.tab', 'a')
+            self._data_file.write('# ' + str(self._exp_info) + '\n')
+            self._data_file.write('timestamp\tevent\tvalue\n')
+        else:
+            psylog.LogFile(None, level=psylog.info)
+            self._data_file = None
 
         if monitor is None:
             monitor = dict()
@@ -901,7 +904,8 @@ class ExperimentController(object):
         if timestamp is None:
             timestamp = self._master_clock.getTime()
         ll = '\t'.join(_sanitize(x) for x in [timestamp, event, value]) + '\n'
-        self._data_file.write(ll)
+        if self._data_file is not None:
+            self._data_file.write(ll)
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
@@ -1027,8 +1031,10 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: Exiting cleanly')
 
-        cleanup_actions = [self._data_file.close, self.stop_noise,
-                           self.stop, self._ac.halt, self._win.close]
+        cleanup_actions = [self.stop_noise, self.stop,
+                           self._ac.halt, self._win.close]
+        if self._data_file is not None:
+            cleanup_actions.append(self._data_file.close)
         cleanup_actions.extend(self._extra_cleanup_fun)
         for action in cleanup_actions:
             try:
