@@ -15,22 +15,19 @@ from ._utils import wait_secs, psylog
 class BaseKeyboard(object):
     """Retrieve presses from various devices.
 
-    Public:
+    Public metohds:
         __init__
         listen_presses
         get_presses
         wait_one_press
         wait_for_presses
 
-    Private:
-        _correct_presses
-        _init_wait_press
-
     Requires:
         _get_time_correction
         _clear_events
         _retrieve_events
-        """
+    """
+
     def __init__(self, ec):
         self._ec = ec
         self.master_clock = ec._master_clock
