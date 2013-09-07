@@ -964,7 +964,7 @@ class ExperimentController(object):
     def _fs_mismatch(self):
         """Quantify if sample rates substantively differ.
         """
-        return not np.isclose(self.stim_fs, self.fs, rtol=1e-5, atol=1e-8)
+        return not np.isclose(self.stim_fs, self.fs, rtol=0, atol=0.05)
 
 
 def _get_dev_db(audio_controller):
