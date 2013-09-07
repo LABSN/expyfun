@@ -102,9 +102,8 @@ class BaseKeyboard(object):
                                                         live_keys, timestamp,
                                                         relative_to)
 
-        pressed = []
         while (self.master_clock.getTime() - start_time < max_wait):
-            pressed.extend(self._retrieve_events(live_keys))
+            pressed = self._retrieve_events(live_keys)
         return self._correct_presses(pressed, timestamp, relative_to)
 
     def check_force_quit(self, keys=None):
@@ -176,12 +175,18 @@ class BaseKeyboard(object):
 class PsychKeyboard(BaseKeyboard):
     """Retrieve button presses from keyboard.
     """
+    def __init__(self, *args, **kwargs):
+        BaseKeyboard.__init__(self, *args, **kwargs)
+        self._press_buffer = []
+
     def _clear_events(self):
         event.clearEvents('keyboard')
+        self._press_buffer = []
 
     def _retrieve_events(self, live_keys):
         live_keys = self._add_escape_keys(live_keys)
-        return event.getKeys(live_keys, timeStamped=True)
+        self._press_buffer.extend(event.getKeys(live_keys, timeStamped=True))
+        return self._press_buffer
 
     def _get_keyboard_timebase(self):
         """Get psychopy keyboard time reference.

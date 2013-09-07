@@ -229,11 +229,13 @@ class ExperimentController(object):
         #
 
         # Audio (and for TDT, potentially keyboard)
+        self._tdt_init = False
         if self._audio_type == 'tdt':
             psylog.info('Expyfun: Setting up TDT')
             fq = force_quit if self._response_device == 'tdt' else False
-            self._ac = TDTController(audio_controller, fq)
+            self._ac = TDTController(audio_controller, self, fq)
             self._audio_type = self._ac.model
+            self._tdt_init = True
         elif self._audio_type == 'psychopy':
             psylog.info('Expyfun: Setting up PsychoPy audio with {} '
                         'backend'.format(sound.audioLib))
@@ -245,19 +247,19 @@ class ExperimentController(object):
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
 
-        if stim_fs != self.fs:
+        if self._fs_mismatch is True:
             psylog.warn('Mismatch between reported stim sample rate ({0}) and '
                         'device sample rate ({1}). ExperimentController will '
                         'resample for you, but that takes a non-trivial amount'
                         ' of processing time and may compromise your '
                         'experimental timing and/or introduce artifacts.'
-                        ''.format(stim_fs, self.fs))
+                        ''.format(self.stim_fs, self.fs))
 
         # Keyboard
         if response_device == 'keyboard':
             self._response_handler = PsychKeyboard(self, force_quit)
         if response_device == 'tdt':
-            if self._audio_type != 'tdt':
+            if self._tdt_init is False:
                 raise ValueError('response_device can only be "tdt" if '
                                  'tdt is used for audio')
             self._response_handler = self._ac
@@ -273,10 +275,10 @@ class ExperimentController(object):
         if isinstance(trigger_controller, basestring):
             trigger_controller = dict(type=trigger_controller)
         if trigger_controller['type'] == 'tdt':
-            if self._audio_type != 'tdt':
+            if self._tdt_init is False:
                 raise ValueError('trigger_controller can only be "tdt" if '
                                  'tdt is used for audio')
-            self._trigger_handler = self.tdt
+            self._trigger_handler = self._ac
         elif trigger_controller['type'] in ['parallel', 'dummy']:
             if 'address' not in trigger_controller['type']:
                 trigger_controller['address'] = get_config('TRIGGER_ADDRESS')
@@ -740,7 +742,7 @@ class ExperimentController(object):
             samples = samples.T
 
         # resample if needed
-        if self._stim_fs != self.fs:
+        if self._fs_mismatch is True:
             psylog.warn('Resampling {} seconds of audio'
                         ''.format(round(len(samples) / self._stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self._stim_fs)
@@ -957,6 +959,12 @@ class ExperimentController(object):
         """Timestamp from the experiment master clock.
         """
         return self._master_clock.getTime()
+
+    @property
+    def _fs_mismatch(self):
+        """Quantify if sample rates substantively differ.
+        """
+        return not np.isclose(self.stim_fs, self.fs, rtol=1e-5, atol=1e-8)
 
 
 def _get_dev_db(audio_controller):

@@ -23,6 +23,8 @@ class TDTController(BaseKeyboard):
         'TDT_MODEL' (String name of the TDT model ('RM1', 'RP2', etc));
         'TDT_CIRCUIT_PATH' (Path to the TDT circuit); and
         'TDT_INTERFACE' (Type of connection, either 'USB' or 'GB').
+    ec : instance of ExperimentController
+        The parent EC.
     force_quit_keys : list | None | bool
         Keys to use to quit when initializing in keyboard mode. If False,
         don't bother initializing as a keyboard.
@@ -32,10 +34,7 @@ class TDTController(BaseKeyboard):
     tdt_obj : instance of a TDTObject.
         The object containing all relevant info about the TDT in use.
     """
-    def __init__(self, tdt_params, force_quit_keys):
-        # do BaseKeyboard init
-        if force_quit_keys is not False:
-            super(BaseKeyboard, self).__init__(force_quit_keys)
+    def __init__(self, tdt_params, ec, force_quit_keys):
         legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE']
         if tdt_params is None:
             tdt_params = {'TYPE': 'tdt'}
@@ -74,9 +73,14 @@ class TDTController(BaseKeyboard):
         """
         # MID-LEVEL APPROACH
         if connect_rpcox is not None:
-            self.rpcox = connect_rpcox(name=self.model,
-                                       interface=self.interface,
-                                       device_id=1, address=None)
+            try:
+                self.rpcox = connect_rpcox(name=self.model,
+                                           interface=self.interface,
+                                           device_id=1, address=None)
+            except Exception as exp:
+                raise OSError('Could not connect to {}, is it turned on? '
+                              '(TDT message: "{}")'.format(self._model, exp))
+
             if self.rpcox is not None:
                 psylog.info('Expyfun: RPcoX connection established')
             else:
@@ -110,6 +114,12 @@ class TDTController(BaseKeyboard):
             else:
                 raise SystemError('Expyfun: Problem starting TDT circuit.')
             time.sleep(0.25)
+
+        self.clear_buffer()
+
+        # do BaseKeyboard init last, to make sure circuit is running
+        if force_quit_keys is not False:
+            BaseKeyboard.__init__(self, ec, force_quit_keys)
 
 ################################ AUDIO METHODS ###############################
     def load_buffer(self, data):
@@ -204,24 +214,30 @@ class TDTController(BaseKeyboard):
     def _get_keyboard_timebase(self):
         """Return time since circuit was started (in seconds).
         """
-        return self.tdt.rpcox.GetTagVal('runsamples') / float(self.fs)
+        return self.rpcox.GetTagVal('masterclock') / float(self.fs)
 
     def _clear_events(self):
         """Clear keyboard buffers.
         """
         self._trigger(7)
-        self.tdt.rpcox.SetTagVal('pressindexabs', 0)
 
     def _retrieve_events(self, live_keys):
         """Values and timestamps currently in keyboard buffer.
         """
-        press_count = self.tdt.rpcox.GetTagVal('pressind')
-        press_times = self.tdt.rpcox.ReadTagVEX('presstimes', 1, press_count,
-                                                'I32', 'F64',
-                                                1) / float(self.fs)
-        press_vals = self.tdt.rpcox.ReadTagVEX('pressvals', 1, press_count,
+        press_count = int(round(self.rpcox.GetTagVal('npressabs')))
+        if press_count > 0:
+            # this one is indexed from zero
+            press_times = self.rpcox.ReadTagVEX('presstimesabs', 0,
+                                                press_count, 'I32', 'I32', 1)
+            # this one is indexed from one (silly)
+            press_vals = self.rpcox.ReadTagVEX('pressvalsabs', 1, press_count,
                                                'I32', 'I32', 1)
-        return [(t, v) for t, v in zip(press_times, press_vals)]
+            press_times = np.array(press_times[0], float) / self.fs
+            press_vals = np.log2(np.array(press_vals[0], float)) + 1
+            press_vals = [str(int(round(p))) for p in press_vals]
+            return [(v, t) for v, t in zip(press_vals, press_times)]
+        else:
+            return []
 
     def halt(self):
         """Wrapper for tdt.util.RPcoX.Halt()."""
