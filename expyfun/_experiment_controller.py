@@ -169,6 +169,7 @@ class ExperimentController(object):
             self._data_file = open(basename + '.tab', 'a')
             self._data_file.write('# ' + str(self._exp_info) + '\n')
             self._data_file.write('timestamp\tevent\tvalue\n')
+            self._data_file.flush()
         else:
             psylog.LogFile(None, level=psylog.info)
             self._data_file = None
@@ -808,12 +809,19 @@ class ExperimentController(object):
         timestamp : float | None
             The timestamp when the event occurred.  If ``None``, will use the
             time the data line was written from the master clock.
+
+        Notes
+        -----
+        Writing a data line causes the file to be flushed, which may take
+        some time (although it usually shouldn't), so avoid calling during
+        critical timing periods.
         """
         if timestamp is None:
             timestamp = self._master_clock.getTime()
         ll = '\t'.join(_sanitize(x) for x in [timestamp, event, value]) + '\n'
         if self._data_file is not None:
             self._data_file.write(ll)
+            self._data_file.flush()  # make sure it's actually written out
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
