@@ -122,6 +122,15 @@ class ExperimentController(object):
         # some hardcoded parameters...
         bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
 
+        # assure proper formatting for force-quit keys
+        if force_quit is None:
+            force_quit = ['lctrl', 'rctrl']
+        elif isinstance(force_quit, (int, basestring)):
+            force_quit = [str(force_quit)]
+        if 'escape' in force_quit:
+            psylog.warn('Expyfun: using "escape" as a force-quit key is not '
+                        'recommended because it has special status in pyglet.')
+
         # set up timing
         self._master_clock = core.MonotonicClock()
 
@@ -159,7 +168,7 @@ class ExperimentController(object):
             # initialize data file
             self._data_file = open(basename + '.tab', 'a')
             self._data_file.write('# ' + str(self._exp_info) + '\n')
-            self._data_file.write('timestamp\tevent\tvalue\n')
+            self.write_data_line('event', 'value', 'timestamp')
         else:
             psylog.LogFile(None, level=psylog.info)
             self._data_file = None
@@ -189,7 +198,7 @@ class ExperimentController(object):
         monitor.setSizePix(mon_size)
 
         #
-        # set up audio controller
+        # parse audio controller
         #
         if audio_controller is None:
             audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
@@ -205,31 +214,8 @@ class ExperimentController(object):
             raise TypeError('audio_controller must be a str or dict.')
         self._audio_type = audio_controller['TYPE'].lower()
 
-        if self._audio_type == 'tdt':
-            psylog.info('Expyfun: Setting up TDT')
-            self._ac = TDTController(audio_controller)
-            self._audio_type = self._ac.model
-        elif self._audio_type == 'psychopy':
-            psylog.info('Expyfun: Setting up PsychoPy audio with {} '
-                        'backend'.format(sound.audioLib))
-            self._ac = PsychSound(self, self.stim_fs)
-        else:
-            raise ValueError('audio_controller[\'TYPE\'] must be '
-                             '\'psychopy\' or \'tdt\'.')
-        if stim_fs != self.fs:
-            psylog.warn('Mismatch between reported stim sample rate ({0}) and '
-                        'device sample rate ({1}). ExperimentController will '
-                        'resample for you, but that takes a non-trivial amount'
-                        ' of processing time and may compromise your '
-                        'experimental timing and/or introduce artifacts.'
-                        ''.format(stim_fs, self.fs))
-
-        # audio scaling factor; ensure uniform intensity across output devices
-        self.set_stim_db(self._stim_db)
-        self.set_noise_db(self._noise_db)
-
         #
-        # set up response device
+        # parse response device
         #
         if response_device is None:
             response_device = get_config('RESPONSE_DEVICE', 'keyboard')
@@ -238,23 +224,46 @@ class ExperimentController(object):
                              'None')
         self._response_device = response_device
 
-        # assure proper formatting for force-quit keys
-        if force_quit is None:
-            force_quit = ['lctrl', 'rctrl']
-        elif isinstance(force_quit, (int, basestring)):
-            force_quit = [str(force_quit)]
-        if 'escape' in force_quit:
-            psylog.warn('Expyfun: using "escape" as a force-quit key is not '
-                        'recommended because it has special status in pyglet.')
+        #
+        # Initialize devices
+        #
 
-        # actually initialize
+        # Audio (and for TDT, potentially keyboard)
+        self._tdt_init = False
+        if self._audio_type == 'tdt':
+            psylog.info('Expyfun: Setting up TDT')
+            as_kb = True if self._response_device == 'tdt' else False
+            self._ac = TDTController(audio_controller, self, as_kb, force_quit)
+            self._audio_type = self._ac.model
+            self._tdt_init = True
+        elif self._audio_type == 'psychopy':
+            psylog.info('Expyfun: Setting up PsychoPy audio with {} '
+                        'backend'.format(sound.audioLib))
+            self._ac = PsychSound(self, self.stim_fs)
+        else:
+            raise ValueError('audio_controller[\'TYPE\'] must be '
+                             '\'psychopy\' or \'tdt\'.')
+        # audio scaling factor; ensure uniform intensity across output devices
+        self.set_stim_db(self._stim_db)
+        self.set_noise_db(self._noise_db)
+
+        if self._fs_mismatch is True:
+            psylog.warn('Mismatch between reported stim sample rate ({0}) and '
+                        'device sample rate ({1}). ExperimentController will '
+                        'resample for you, but that takes a non-trivial amount'
+                        ' of processing time and may compromise your '
+                        'experimental timing and/or introduce artifacts.'
+                        ''.format(self.stim_fs, self.fs))
+
+        # Keyboard
         if response_device == 'keyboard':
             self._response_handler = PsychKeyboard(self, force_quit)
         if response_device == 'tdt':
-            if self._audio_type != 'tdt':
+            if self._tdt_init is False:
                 raise ValueError('response_device can only be "tdt" if '
                                  'tdt is used for audio')
             self._response_handler = self._ac
+
         # pass on check force quit calls
         self._check_force_quit = self._response_handler.check_force_quit
 
@@ -266,10 +275,10 @@ class ExperimentController(object):
         if isinstance(trigger_controller, basestring):
             trigger_controller = dict(type=trigger_controller)
         if trigger_controller['type'] == 'tdt':
-            if self._audio_type != 'tdt':
+            if self._tdt_init is False:
                 raise ValueError('trigger_controller can only be "tdt" if '
                                  'tdt is used for audio')
-            self._trigger_handler = self.tdt
+            self._trigger_handler = self._ac
         elif trigger_controller['type'] in ['parallel', 'dummy']:
             if 'address' not in trigger_controller['type']:
                 trigger_controller['address'] = get_config('TRIGGER_ADDRESS')
@@ -498,7 +507,7 @@ class ExperimentController(object):
     def window(self):
         return self._win
 
-############################ KEY / BUTTON METHODS ############################
+############################ KEYPRESS METHODS ############################
     def listen_presses(self):
         """Start listening for keypresses.
         """
@@ -733,7 +742,7 @@ class ExperimentController(object):
             samples = samples.T
 
         # resample if needed
-        if self._stim_fs != self.fs:
+        if self._fs_mismatch is True:
             psylog.warn('Resampling {} seconds of audio'
                         ''.format(round(len(samples) / self._stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self._stim_fs)
@@ -799,12 +808,19 @@ class ExperimentController(object):
         timestamp : float | None
             The timestamp when the event occurred.  If ``None``, will use the
             time the data line was written from the master clock.
+
+        Notes
+        -----
+        Writing a data line causes the file to be flushed, which may take
+        some time (although it usually shouldn't), so avoid calling during
+        critical timing periods.
         """
         if timestamp is None:
             timestamp = self._master_clock.getTime()
         ll = '\t'.join(_sanitize(x) for x in [timestamp, event, value]) + '\n'
         if self._data_file is not None:
             self._data_file.write(ll)
+            self._data_file.flush()  # make sure it's actually written out
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.
@@ -950,6 +966,12 @@ class ExperimentController(object):
         """Timestamp from the experiment master clock.
         """
         return self._master_clock.getTime()
+
+    @property
+    def _fs_mismatch(self):
+        """Quantify if sample rates substantively differ.
+        """
+        return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.05)
 
 
 def _get_dev_db(audio_controller):
