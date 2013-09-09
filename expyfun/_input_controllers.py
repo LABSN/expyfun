@@ -131,8 +131,8 @@ class BaseKeyboard(object):
         start_time = self.master_clock.getTime()
         time_correction = start_time - other_clock
         if self.time_correction is not None:
-            if not np.isclose(self.time_correction, time_correction,
-                              rtol=0, atol=10e-6):
+            if not np.allclose(self.time_correction, time_correction,
+                               rtol=0, atol=10e-6):
                 psylog.warn('Expyfun: drift of > 10 microseconds between '
                             'system clock and experiment master clock.')
             psylog.debug('Expyfun: time correction between system clock and '

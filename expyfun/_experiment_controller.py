@@ -168,8 +168,7 @@ class ExperimentController(object):
             # initialize data file
             self._data_file = open(basename + '.tab', 'a')
             self._data_file.write('# ' + str(self._exp_info) + '\n')
-            self._data_file.write('timestamp\tevent\tvalue\n')
-            self._data_file.flush()
+            self.write_data_line('event', 'value', 'timestamp')
         else:
             psylog.LogFile(None, level=psylog.info)
             self._data_file = None
@@ -233,8 +232,8 @@ class ExperimentController(object):
         self._tdt_init = False
         if self._audio_type == 'tdt':
             psylog.info('Expyfun: Setting up TDT')
-            fq = force_quit if self._response_device == 'tdt' else False
-            self._ac = TDTController(audio_controller, self, fq)
+            as_kb = True if self._response_device == 'tdt' else False
+            self._ac = TDTController(audio_controller, self, as_kb, force_quit)
             self._audio_type = self._ac.model
             self._tdt_init = True
         elif self._audio_type == 'psychopy':
@@ -972,7 +971,7 @@ class ExperimentController(object):
     def _fs_mismatch(self):
         """Quantify if sample rates substantively differ.
         """
-        return not np.isclose(self.stim_fs, self.fs, rtol=0, atol=0.05)
+        return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.05)
 
 
 def _get_dev_db(audio_controller):
