@@ -274,6 +274,8 @@ class ExperimentController(object):
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
         if isinstance(trigger_controller, basestring):
             trigger_controller = dict(type=trigger_controller)
+        psylog.info('Initializing {} triggering mode'
+                    ''.format(trigger_controller['type']))
         if trigger_controller['type'] == 'tdt':
             if self._tdt_init is False:
                 raise ValueError('trigger_controller can only be "tdt" if '
