@@ -47,7 +47,6 @@ class PsychTrigger(object):
                  verbose=None):
         self.parallel = None
         if mode == 'parallel':
-            psylog.info('Initializing psychopy parallel port triggering')
             self._stamp_trigger = self._parallel_trigger
             # Psychopy has some legacy methods (e.g., parallel.setData()),
             # but we triage here to save time when time-critical stamping
@@ -68,7 +67,6 @@ class PsychTrigger(object):
             else:
                 raise NotImplementedError
         else:  # mode == 'dummy':
-            psylog.info('Initializing dummy triggering mode')
             self._stamp_trigger = self._dummy_trigger
 
         self.high_duration = high_duration

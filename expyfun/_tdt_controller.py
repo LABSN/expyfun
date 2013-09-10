@@ -145,6 +145,7 @@ class TDTController(BaseKeyboard):
     def play(self):
         """Send the soft trigger to start the ring buffer playback.
         """
+        self.rpcox.SetTagVal('trgname', 1)
         self._trigger(1)
         psylog.debug('Expyfun: Starting TDT ring buffer')
 
