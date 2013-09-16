@@ -10,6 +10,9 @@ import os
 from os import path as op
 from functools import partial
 from scipy.signal import resample
+from psychopy import prefs
+prefs.general['audioLib'] = ['pyo', 'pygame']
+prefs.general['audioDriver'] = ['jack', 'portaudio']
 from psychopy import visual, core, event, sound, gui, monitors, misc
 from psychopy.data import getDateStr as date_str
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
@@ -973,7 +976,7 @@ class ExperimentController(object):
     def _fs_mismatch(self):
         """Quantify if sample rates substantively differ.
         """
-        return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.05)
+        return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.5)
 
 
 def _get_dev_db(audio_controller):

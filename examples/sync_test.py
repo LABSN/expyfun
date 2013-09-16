@@ -21,12 +21,15 @@ with ExperimentController('SyncTest', screen_num=0, window_size=[300, 300],
     ec.load_buffer(np.r_[0.1, np.zeros(2000)])
     while True:
         ec.window.setColor([1, 1, 1])
-        ec.window.flip()
-        ec._ac.play()
         #ec.flip_and_play()
-        ec.wait_one_press(0.5)
+        #ec.flip()                  # expyfun
+        #ec.window.flip()           # psychopy
+        ec.window.winHandle.flip()  # pyglet
+        ec._ac.play()
+        ec.wait_one_press(0.5)  # or ec.wait_secs(0.5)
         ec.stop()
         ec.window.setColor([-1, -1, -1])
-        ec.window.flip()
-        #ec.flip()
-        ec.wait_one_press(0.5)
+        #ec.flip()                  # expyfun
+        #ec.window.flip()           # psychopy
+        ec.window.winHandle.flip()  # pyglet
+        ec.wait_one_press(0.5)  # or ec.wait_secs(0.5)
