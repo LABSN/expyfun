@@ -250,7 +250,7 @@ class ExperimentController(object):
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
 
-        if self._fs_mismatch is True:
+        if self._fs_mismatch:
             psylog.warn('Mismatch between reported stim sample rate ({0}) and '
                         'device sample rate ({1}). ExperimentController will '
                         'resample for you, but that takes a non-trivial amount'
@@ -262,7 +262,7 @@ class ExperimentController(object):
         if response_device == 'keyboard':
             self._response_handler = PsychKeyboard(self, force_quit)
         if response_device == 'tdt':
-            if self._tdt_init is False:
+            if not self._tdt_init:
                 raise ValueError('response_device can only be "tdt" if '
                                  'tdt is used for audio')
             self._response_handler = self._ac
@@ -280,7 +280,7 @@ class ExperimentController(object):
         psylog.info('Initializing {} triggering mode'
                     ''.format(trigger_controller['type']))
         if trigger_controller['type'] == 'tdt':
-            if self._tdt_init is False:
+            if not self._tdt_init:
                 raise ValueError('trigger_controller can only be "tdt" if '
                                  'tdt is used for audio')
             self._trigger_handler = self._ac
@@ -401,7 +401,7 @@ class ExperimentController(object):
         self.screen_text(text)
         out = self.wait_one_press(max_wait, min_wait, live_keys,
                                   timestamp)
-        if clear_screen is True:
+        if clear_screen:
             self.clear_screen()
         return out
 
@@ -502,14 +502,17 @@ class ExperimentController(object):
 
     @property
     def on_next_flip_functions(self):
+        """Current stack of functions to be called on next flip."""
         return self._on_next_flip
 
     @property
     def on_every_flip_functions(self):
+        """Current stack of functions called on every flip."""
         return self._on_every_flip
 
     @property
     def window(self):
+        """Visual window handle."""
         return self._win
 
 ############################ KEYPRESS METHODS ############################
@@ -649,7 +652,7 @@ class ExperimentController(object):
             If True, show; if False, hide.
         """
         self._win.setMouseVisible(visibility)
-        if flip is True:
+        if flip:
             self._win.flip()
 
 ################################ AUDIO METHODS ###############################
@@ -747,10 +750,10 @@ class ExperimentController(object):
             samples = samples.T
 
         # resample if needed
-        if self._fs_mismatch is True:
+        if self._fs_mismatch:
             psylog.warn('Resampling {} seconds of audio'
-                        ''.format(round(len(samples) / self._stim_fs), 2))
-            num_samples = len(samples) * self.fs / float(self._stim_fs)
+                        ''.format(round(len(samples) / self.stim_fs), 2))
+            num_samples = len(samples) * self.fs / float(self.stim_fs)
             samples = resample(samples, int(num_samples), window='boxcar')
 
         # make stereo if not already
@@ -802,12 +805,12 @@ class ExperimentController(object):
         self._check_rms = check_rms
 
 ################################ OTHER METHODS ###############################
-    def write_data_line(self, event, value=None, timestamp=None):
+    def write_data_line(self, event_type, value=None, timestamp=None):
         """Add a line of data to the output CSV.
 
         Parameters
         ----------
-        event : str
+        event_type : str
             Type of event (e.g., keypress, screen flip, etc.)
         value : None | str
             Anything that can be cast to a string is okay here.
@@ -823,7 +826,8 @@ class ExperimentController(object):
         """
         if timestamp is None:
             timestamp = self._master_clock.getTime()
-        ll = '\t'.join(_sanitize(x) for x in [timestamp, event, value]) + '\n'
+        ll = '\t'.join(_sanitize(x) for x in [timestamp, event_type,
+                                              value]) + '\n'
         if self._data_file is not None:
             self._data_file.write(ll)
             self._data_file.flush()  # make sure it's actually written out
