@@ -85,6 +85,9 @@ class ExperimentController(object):
         Method to use in checking stimulus RMS to ensure appropriate levels.
         Possible values are ``None``, ``wholefile``, and ``windowed`` (the
         default); see ``set_rms_checking`` for details.
+    suppress_resamp : bool
+        If ``True``, will suppress resampling of stimuli to the sampling
+        frequency of the sound output device.
 
     Returns
     -------
@@ -103,7 +106,7 @@ class ExperimentController(object):
                  output_dir='rawData', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
-                 verbose=None, check_rms='windowed'):
+                 verbose=None, check_rms='windowed', suppress_resamp=False):
 
         # Check Pyglet version for safety
         _check_pyglet_version(raise_error=True)
@@ -115,6 +118,7 @@ class ExperimentController(object):
         self._noise_db = noise_db
         self._stim_scaler = None
         self.set_rms_checking(check_rms)
+        self._suppress_resamp = suppress_resamp
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
@@ -250,19 +254,25 @@ class ExperimentController(object):
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
 
-        if self._fs_mismatch is True:
-            psylog.warn('Mismatch between reported stim sample rate ({0}) and '
-                        'device sample rate ({1}). ExperimentController will '
-                        'resample for you, but that takes a non-trivial amount'
-                        ' of processing time and may compromise your '
-                        'experimental timing and/or introduce artifacts.'
-                        ''.format(self.stim_fs, self.fs))
+        if self._fs_mismatch:
+            if self._suppress_resamp:
+                psylog.warn('Mismatch between reported stim sample rate ({0}) '
+                            'and device sample rate ({1}). Nothing will be '
+                            'done about this because suppress_resamp is "True"'
+                            '.'.format(self.stim_fs, self.fs))
+            else:
+                psylog.warn('Mismatch between reported stim sample rate ({0}) '
+                            'and device sample rate ({1}). Experiment'
+                            'Controller will resample for you, but that takes '
+                            'a non-trivial amount of processing time and may '
+                            'compromise your experimental timing and/or cause '
+                            'artifacts.'.format(self.stim_fs, self.fs))
 
         # Keyboard
         if response_device == 'keyboard':
             self._response_handler = PsychKeyboard(self, force_quit)
         if response_device == 'tdt':
-            if self._tdt_init is False:
+            if not self._tdt_init:
                 raise ValueError('response_device can only be "tdt" if '
                                  'tdt is used for audio')
             self._response_handler = self._ac
@@ -280,7 +290,7 @@ class ExperimentController(object):
         psylog.info('Initializing {} triggering mode'
                     ''.format(trigger_controller['type']))
         if trigger_controller['type'] == 'tdt':
-            if self._tdt_init is False:
+            if not self._tdt_init:
                 raise ValueError('trigger_controller can only be "tdt" if '
                                  'tdt is used for audio')
             self._trigger_handler = self._ac
@@ -508,14 +518,17 @@ class ExperimentController(object):
 
     @property
     def on_next_flip_functions(self):
+        """Current stack of functions to be called on next flip."""
         return self._on_next_flip
 
     @property
     def on_every_flip_functions(self):
+        """Current stack of functions called on every flip."""
         return self._on_every_flip
 
     @property
     def window(self):
+        """Visual window handle."""
         return self._win
 
 ############################ KEYPRESS METHODS ############################
@@ -655,7 +668,7 @@ class ExperimentController(object):
             If True, show; if False, hide.
         """
         self._win.setMouseVisible(visibility)
-        if flip is True:
+        if flip:
             self._win.flip()
 
 ################################ AUDIO METHODS ###############################
@@ -753,10 +766,10 @@ class ExperimentController(object):
             samples = samples.T
 
         # resample if needed
-        if self._fs_mismatch is True:
+        if self._fs_mismatch and not self._suppress_resamp:
             psylog.warn('Resampling {} seconds of audio'
-                        ''.format(round(len(samples) / self._stim_fs), 2))
-            num_samples = len(samples) * self.fs / float(self._stim_fs)
+                        ''.format(round(len(samples) / self.stim_fs), 2))
+            num_samples = len(samples) * self.fs / float(self.stim_fs)
             samples = resample(samples, int(num_samples), window='boxcar')
 
         # make stereo if not already
@@ -808,12 +821,12 @@ class ExperimentController(object):
         self._check_rms = check_rms
 
 ################################ OTHER METHODS ###############################
-    def write_data_line(self, event, value=None, timestamp=None):
+    def write_data_line(self, event_type, value=None, timestamp=None):
         """Add a line of data to the output CSV.
 
         Parameters
         ----------
-        event : str
+        event_type : str
             Type of event (e.g., keypress, screen flip, etc.)
         value : None | str
             Anything that can be cast to a string is okay here.
@@ -829,7 +842,8 @@ class ExperimentController(object):
         """
         if timestamp is None:
             timestamp = self._master_clock.getTime()
-        ll = '\t'.join(_sanitize(x) for x in [timestamp, event, value]) + '\n'
+        ll = '\t'.join(_sanitize(x) for x in [timestamp, event_type,
+                                              value]) + '\n'
         if self._data_file is not None:
             self._data_file.write(ll)
             self._data_file.flush()  # make sure it's actually written out

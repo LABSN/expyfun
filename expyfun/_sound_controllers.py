@@ -39,7 +39,7 @@ class PsychSound(object):
         self.ec = ec
 
     def start_noise(self):
-        self.noise._snd.play(loops=-1)
+        self.noise.play(loops=-1)
         self.noise.status = STARTED
 
     def stop_noise(self):
