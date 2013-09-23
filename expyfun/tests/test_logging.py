@@ -27,7 +27,7 @@ def test_logging(ac='psychopy'):
 
     # check for various expected log messages (TODO: add more)
     should_have = ['Subject: foo', 'Session: 01', 'wait_until was called',
-                   'Stimulus max RMS exceeds']
+                   'Stimulus max RMS (']
     if ac == 'psychopy':
         should_have.append('PsychoPy')
     else:
