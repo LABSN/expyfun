@@ -258,7 +258,7 @@ class ExperimentController(object):
                 psylog.warn('Mismatch between reported stim sample rate ({0}) '
                             'and device sample rate ({1}). Nothing will be '
                             'done about this because suppress_resamp is "True"'
-                            '.'.format(self.stim_fs, self.fs)))
+                            '.'.format(self.stim_fs, self.fs))
             else:
                 psylog.warn('Mismatch between reported stim sample rate ({0}) '
                             'and device sample rate ({1}). Experiment'
