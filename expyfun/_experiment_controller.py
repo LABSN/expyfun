@@ -118,6 +118,7 @@ class ExperimentController(object):
         self._noise_db = noise_db
         self._stim_scaler = None
         self.set_rms_checking(check_rms)
+        self._suppress_resamp = suppress_resamp
         # list of entities to draw / clear from the visual window
         self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
@@ -254,7 +255,7 @@ class ExperimentController(object):
         self.set_noise_db(self._noise_db)
 
         if self._fs_mismatch:
-            if suppress_resamp:
+            if self._suppress_resamp:
                 psylog.warn('Mismatch between reported stim sample rate ({0}) '
                             'and device sample rate ({1}). Nothing will be '
                             'done about this because suppress_resamp is "True"'
@@ -759,7 +760,7 @@ class ExperimentController(object):
             samples = samples.T
 
         # resample if needed
-        if self._fs_mismatch and not suppress_resamp:
+        if self._fs_mismatch and not self._suppress_resamp:
             psylog.warn('Resampling {} seconds of audio'
                         ''.format(round(len(samples) / self.stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self.stim_fs)
