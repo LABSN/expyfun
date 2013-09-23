@@ -85,6 +85,9 @@ class ExperimentController(object):
         Method to use in checking stimulus RMS to ensure appropriate levels.
         Possible values are ``None``, ``wholefile``, and ``windowed`` (the
         default); see ``set_rms_checking`` for details.
+    suppress_resamp : bool
+        If ``True``, will suppress resampling of stimuli to the sampling
+        frequency of the sound output device.
 
     Returns
     -------
@@ -103,7 +106,7 @@ class ExperimentController(object):
                  output_dir='rawData', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
-                 verbose=None, check_rms='windowed'):
+                 verbose=None, check_rms='windowed', suppress_resamp=False):
 
         # Check Pyglet version for safety
         _check_pyglet_version(raise_error=True)
@@ -251,12 +254,18 @@ class ExperimentController(object):
         self.set_noise_db(self._noise_db)
 
         if self._fs_mismatch:
-            psylog.warn('Mismatch between reported stim sample rate ({0}) and '
-                        'device sample rate ({1}). ExperimentController will '
-                        'resample for you, but that takes a non-trivial amount'
-                        ' of processing time and may compromise your '
-                        'experimental timing and/or introduce artifacts.'
-                        ''.format(self.stim_fs, self.fs))
+            if suppress_resamp:
+                psylog.warn('Mismatch between reported stim sample rate ({0}) '
+                            'and device sample rate ({1}). Nothing will be '
+                            'done about this because suppress_resamp is "True"'
+                            '.'.format(self.stim_fs, self.fs)))
+            else:
+                psylog.warn('Mismatch between reported stim sample rate ({0}) '
+                            'and device sample rate ({1}). Experiment'
+                            'Controller will resample for you, but that takes '
+                            'a non-trivial amount of processing time and may '
+                            'compromise your experimental timing and/or cause '
+                            'artifacts.'.format(self.stim_fs, self.fs))
 
         # Keyboard
         if response_device == 'keyboard':
@@ -750,7 +759,7 @@ class ExperimentController(object):
             samples = samples.T
 
         # resample if needed
-        if self._fs_mismatch:
+        if self._fs_mismatch and not suppress_resamp:
             psylog.warn('Resampling {} seconds of audio'
                         ''.format(round(len(samples) / self.stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self.stim_fs)
