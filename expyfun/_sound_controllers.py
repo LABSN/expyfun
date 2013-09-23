@@ -39,7 +39,7 @@ class PsychSound(object):
         self.ec = ec
 
     def start_noise(self):
-        self.noise._snd.play(loops=-1)
+        self.noise.play(loops=-1)
         self.noise.status = STARTED
 
     def stop_noise(self):
@@ -74,3 +74,4 @@ class PsychSound(object):
 
     def halt(self):
         sound.pyoSndServer.shutdown()
+        # wait_secs(0.5)
