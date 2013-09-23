@@ -74,4 +74,3 @@ class PsychSound(object):
 
     def halt(self):
         sound.pyoSndServer.shutdown()
-        # wait_secs(0.5)
