@@ -771,8 +771,9 @@ class ExperimentController(object):
                 chan_rms = [running_rms(x, win_length) for x in chans]
                 max_rms = max([max(x) for x in chan_rms])
             if max_rms > 2 * self._stim_rms:
-                warn_string = ('Stimulus max RMS exceeds stated RMS by more '
-                               'than 6 dB.')
+                warn_string = ('Stimulus max RMS ({}) exceeds stated RMS ({}) '
+                               'by more than 6 dB.'.format(max_rms,
+                                                           self._stim_rms))
                 psylog.warn(warn_string)
                 raise UserWarning(warn_string)
             elif max_rms < 0.5 * self._stim_rms:

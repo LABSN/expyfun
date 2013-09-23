@@ -73,4 +73,4 @@ class PsychSound(object):
             self.noise = new_noise
 
     def halt(self):
-        pass
+        sound.pyoSndServer.shutdown()
