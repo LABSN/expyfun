@@ -373,8 +373,9 @@ class ExperimentController(object):
 
         Parameters
         ----------
-        text : str
+        text : str | list
             The text to display. It will automatically wrap lines.
+            If list, the prompts will be displayed sequentially.
         max_wait : float
             The maximum amount of time to wait before returning. Can be np.inf
             to wait until the user responds.
@@ -398,9 +399,14 @@ class ExperimentController(object):
             If ``timestamp==False``, returns a string indicating the first key
             pressed (or ``None`` if no acceptable key was pressed).
         """
-        self.screen_text(text)
-        out = self.wait_one_press(max_wait, min_wait, live_keys,
-                                  timestamp)
+        if not isinstance(text, list):
+            text = [text]
+        if not all([isinstance(t, basestring) for t in text]):
+            raise TypeError('text must be a string or list of strings')
+        for t in text:
+            self.screen_text(t)
+            out = self.wait_one_press(max_wait, min_wait, live_keys,
+                                      timestamp)
         if clear_screen is True:
             self.clear_screen()
         return out
