@@ -4,7 +4,7 @@ from nose.tools import assert_raises, assert_true, assert_equal
 from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs
-from expyfun.utils import _TempDir, interactive_test, tdt_test
+from expyfun._utils import _TempDir, interactive_test, tdt_test
 
 temp_dir = _TempDir()
 std_args = ['test']  # experiment name

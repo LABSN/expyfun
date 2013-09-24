@@ -8,7 +8,7 @@
 import platform
 from psychopy import parallel
 
-from .utils import wait_secs, verbose_dec, psylog
+from ._utils import wait_secs, verbose_dec, psylog
 
 
 class PsychTrigger(object):

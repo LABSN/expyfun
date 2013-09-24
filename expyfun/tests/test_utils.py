@@ -2,7 +2,7 @@ from nose.tools import assert_true, assert_raises
 import os
 import warnings
 
-from expyfun.utils import get_config, set_config, deprecated
+from expyfun._utils import get_config, set_config, deprecated
 
 
 def test_config():
