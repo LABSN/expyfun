@@ -64,6 +64,38 @@ with ExperimentController('KeypressDemo', screen_num=0,
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
 
+    # listen_presses / get_presses with wait_secs, relative to listen_presses
+    ec.screen_text('press a few keys\n\nlisten_presses()\nwait_secs({})\n'
+                   'get_presses()'.format(wait_dur))
+    ec.listen_presses()
+    ec.wait_secs(wait_dur, hog_cpu_time=wait_dur)
+    pressed = ec.get_presses()  # relative_to=0.0
+    ec.write_data_line('get_presses after wait_secs', pressed)
+    if not len(pressed):
+        message = 'no keys pressed'
+    else:
+        message = ['{} pressed at {} secs'
+                   ''.format(key, round(time, 4)) for key, time in pressed]
+        message = '\n'.join(message)
+    ec.screen_prompt(message, msg_dur)
+    ec.wait_secs(isi)
+
+    # listen_presses / get_presses with wait_secs, relative to master clock
+    ec.screen_text('press a few keys\n\nlisten_presses()\nwait_secs({})\n'
+                   'get_presses(relative_to=0.0)'.format(wait_dur))
+    ec.listen_presses()
+    ec.wait_secs(wait_dur, hog_cpu_time=wait_dur)
+    pressed = ec.get_presses(relative_to=0.0)
+    ec.write_data_line('get_presses after wait_secs, relative_to 0.0', pressed)
+    if not len(pressed):
+        message = 'no keys pressed'
+    else:
+        message = ['{} pressed at {} secs'
+                   ''.format(key, round(time, 4)) for key, time in pressed]
+        message = '\n'.join(message)
+    ec.screen_prompt(message, msg_dur)
+    ec.wait_secs(isi)
+
     # the listen_presses / get_presses methods, relative to master clock
     disp_time = wait_dur
     countdown = ec.current_time + disp_time
