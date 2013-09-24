@@ -388,6 +388,9 @@ def set_config(key, value):
         json.dump(config, fid, sort_keys=True, indent=0)
 
 
+###############################################################################
+# MISC
+
 def _check_pyglet_version(raise_error=False):
     """Check pyglet version, return True if usable.
     """

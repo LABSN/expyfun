@@ -1,8 +1,6 @@
 from nose.tools import assert_raises, assert_true
 from expyfun import EyelinkController, ExperimentController
-from expyfun.utils import _TempDir
-
-from expyfun.utils import requires_pylink
+from expyfun._utils import _TempDir, requires_pylink
 
 std_args = ['test']
 temp_dir = _TempDir()

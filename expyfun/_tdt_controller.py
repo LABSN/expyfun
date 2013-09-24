@@ -8,7 +8,7 @@ else:
     connect_rpcox, connect_zbus = None, None
 from psychopy import logging as psylog
 
-from .utils import get_config, wait_secs
+from ._utils import get_config, wait_secs
 from ._input_controllers import BaseKeyboard
 
 

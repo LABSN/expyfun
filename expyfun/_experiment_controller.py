@@ -14,6 +14,7 @@ from psychopy import prefs
 prefs.general['audioLib'] = ['pyo', 'pygame']
 prefs.general['audioDriver'] = ['jack', 'portaudio']
 from psychopy import visual, core, event, sound, gui, monitors, misc
+from psychopy import clock as psyclock
 from psychopy.data import getDateStr as date_str
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, psylog)
@@ -140,6 +141,10 @@ class ExperimentController(object):
 
         # set up timing
         self._master_clock = core.MonotonicClock()
+        self._time_corrections = dict()
+        flip_fun = visual.window.logging.defaultClock.getTime
+        self._time_correction_fxns = dict(flip=flip_fun)
+        self._get_time_correction('flip')
 
         # dictionary for experiment metadata
         self._exp_info = {'participant': participant, 'session': session,
@@ -438,7 +443,10 @@ class ExperimentController(object):
         if self._on_next_flip is not None:
             for function in self._on_next_flip:
                 self._win.callOnFlip(function)
-        self._win.flip()
+        # self._win.flip() returns psychopy.clock.monotonicClock.getTime()
+        flip_time = self._win.flip() + self._get_time_correction('flip')
+        self.write_data_line('flip & play', flip_time)
+        return flip_time
 
     def flip(self):
         """Flip screen, then run any "on-flip" functions.
@@ -847,6 +855,25 @@ class ExperimentController(object):
         if self._data_file is not None:
             self._data_file.write(ll)
             self._data_file.flush()  # make sure it's actually written out
+
+    def _get_time_correction(self, clock_type):
+        """Clock correction (seconds) for win.flip().
+        """
+        other_time = self._time_correction_fxns[clock_type]()
+        start_time = self._master_clock.getTime()
+        time_correction = start_time - other_time
+        if clock_type not in self._time_corrections:
+            self._time_corrections[clock_type] = time_correction
+
+        if not np.allclose(self._time_corrections[clock_type], time_correction,
+                           rtol=0, atol=10e-6):
+            psylog.warn('Expyfun: drift of > 10 microseconds between '
+                        '{} clock and EC master clock.'.format(clock_type))
+        psylog.debug('Expyfun: time correction between {} clock and EC master '
+                     'clock is {}. This is a change of {}.'
+                     ''.format(clock_type, time_correction, time_correction -
+                               self._time_corrections[clock_type]))
+        return time_correction
 
     def wait_secs(self, *args, **kwargs):
         """Wait a specified number of seconds.

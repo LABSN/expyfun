@@ -1,6 +1,6 @@
 import os
 
-from expyfun.utils import _TempDir, tdt_test
+from expyfun._utils import _TempDir, tdt_test
 from expyfun import ExperimentController
 
 tempdir = _TempDir()
