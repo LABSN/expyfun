@@ -7,7 +7,7 @@ Created on Mon Jul 29 11:28:06 2013
 
 import logging
 
-from .utils import set_config, verbose_dec
+from ._utils import set_config, verbose_dec
 
 logger = logging.getLogger('expyfun')
 

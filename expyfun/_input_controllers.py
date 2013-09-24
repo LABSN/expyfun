@@ -6,10 +6,11 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from functools import partial
 from psychopy import event
 from psychopy import clock as psyclock
 
-from ._utils import wait_secs, psylog
+from ._utils import wait_secs
 
 
 class BaseKeyboard(object):
@@ -35,8 +36,9 @@ class BaseKeyboard(object):
         self.ec_close = ec.close  # needed for check_force_quit
         self.force_quit_keys = force_quit_keys
         self.listen_start = None
-        self.time_correction = None
-        self.time_correction = self._get_time_correction()
+        ec._time_correction_fxns['keypress'] = self._get_keyboard_timebase
+        self.get_time_corr = partial(ec._get_time_correction, 'keypress')
+        self.time_correction = self.get_time_corr()
 
     def _clear_events(self):
         """Clear all events from keyboard buffer.
@@ -56,7 +58,7 @@ class BaseKeyboard(object):
     def listen_presses(self):
         """Start listening for keypresses.
         """
-        self.time_correction = self._get_time_correction()
+        self.time_correction = self.get_time_corr()
         self.listen_start = self.master_clock.getTime()
         self._clear_events()
 
@@ -123,24 +125,6 @@ class BaseKeyboard(object):
         if len(keys):
             self.ec_close()
             raise RuntimeError('Quit key pressed')
-
-    def _get_time_correction(self):
-        """Clock correction (seconds) between clocks for hardware and EC.
-        """
-        other_clock = self._get_keyboard_timebase()
-        start_time = self.master_clock.getTime()
-        time_correction = start_time - other_clock
-        if self.time_correction is not None:
-            if not np.allclose(self.time_correction, time_correction,
-                               rtol=0, atol=10e-6):
-                psylog.warn('Expyfun: drift of > 10 microseconds between '
-                            'system clock and experiment master clock.')
-            psylog.debug('Expyfun: time correction between system clock and '
-                         'experiment master clock is {}. This is a change of '
-                         '{} from the previous value.'
-                         ''.format(time_correction, time_correction -
-                                   self.time_correction))
-        return time_correction
 
     def _correct_presses(self, pressed, timestamp, relative_to):
         """Correct timing of presses and check for quit press"""
