@@ -438,7 +438,9 @@ class ExperimentController(object):
         if self._on_next_flip is not None:
             for function in self._on_next_flip:
                 self._win.callOnFlip(function)
-        self._win.flip()
+        flip_time = self._win.flip()
+        self.write_data_line('flip & play', flip_time)
+        return flip_time
 
     def flip(self):
         """Flip screen, then run any "on-flip" functions.
