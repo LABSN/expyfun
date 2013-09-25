@@ -347,10 +347,16 @@ class ExperimentController(object):
 
 ############################### SCREEN METHODS ###############################
     def clear_screen(self):
-        """Remove all visual stimuli and flip screen.
+        """Flip the screen buffer.
+
+        Notes
+        -----
+        If you have manually set some of your ``screen_text`` objects to have
+        PsychoPy's property ``AutoDraw=True``, then ExperimentController's
+        ``clear_screen`` method will NOT remove them for you.
         """
         flip_time = self.flip()
-        self.write_data_line('screen cleared', flip_time)
+        self.write_data_line('clear_screen', flip_time)
 
     def screen_text(self, text, pos=[0, 0], h_align='center', v_align='center',
                     units='norm', color=[1, 1, 1], color_space='rgb',
@@ -370,9 +376,15 @@ class ExperimentController(object):
         units : str
             units for ``pos``.
 
+        Returns
+        -------
+        Instance of psychopy.visual.TextStim
+
         Notes
         -----
-        For remaining parameters see documentation for psychopy.visual.TextStim
+        For other parameters see documentation for ``psychopy.visual.TextStim``
+        Note that ``TextStim`` instances created by ``screen_text`` are spawned
+        with ``AutoDraw=False``.
         """
         scr_txt = visual.TextStim(win=self._win, text=text, pos=pos,
                                   height=height, wrapWidth=wrap_width,
@@ -385,7 +397,7 @@ class ExperimentController(object):
                                   fontFiles=[], antialias=True, name=name)
         scr_txt.setAutoDraw(False)
         scr_txt.draw()
-        self.call_on_next_flip(self.write_data_line, 'screen text', text)
+        self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         self.flip()
         return scr_txt
 
@@ -438,6 +450,11 @@ class ExperimentController(object):
     def flip_and_play(self):
         """Flip screen, play audio, then run any "on-flip" functions.
 
+        Returns
+        -------
+        flip_time : float
+            The timestamp of the screen flip.
+
         Notes
         -----
         Order of operations is: screen flip, audio start, additional functions
@@ -452,6 +469,11 @@ class ExperimentController(object):
 
     def flip(self):
         """Flip screen, then run any "on-flip" functions.
+
+        Returns
+        -------
+        flip_time : float
+            The timestamp of the screen flip.
 
         Notes
         -----
