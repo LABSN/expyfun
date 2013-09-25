@@ -326,18 +326,6 @@ class ExperimentController(object):
                                   allowStencil=False, color=bkgd_color,
                                   colorSpace='rgb')
 
-        self._text_stim = visual.TextStim(win=self._win, text='', pos=[0, 0],
-                                          height=0.1, wrapWidth=1.2,
-                                          units='norm', color=[1, 1, 1],
-                                          colorSpace='rgb', opacity=1.0,
-                                          contrast=1.0, name='myTextStim',
-                                          ori=0, depth=0, flipHoriz=False,
-                                          flipVert=False, alignHoriz='center',
-                                          alignVert='center', bold=False,
-                                          italic=False, font='Arial',
-                                          fontFiles=[], antialias=True)
-        self._screen_objects.append(self._text_stim)
-
         # other basic components
         self._mouse_handler = event.Mouse(visible=False, win=self._win)
 
@@ -369,16 +357,39 @@ class ExperimentController(object):
         self._win.callOnFlip(self.write_data_line, 'screen cleared')
         self._win.flip()
 
-    def screen_text(self, text):
+    def screen_text(self, text, pos=[0, 0], h_align='center', v_align='center',
+                    units='norm', color=[1, 1, 1], color_space='rgb',
+                    height=0.1, wrap_width=1.5, h_flip=False, v_flip=False,
+                    angle=0, opacity=1.0, contrast=1.0, name='', font='Arial'):
         """Show some text on the screen.
 
         Parameters
         ----------
         text : str
             The text to be rendered.
+        pos : list | tuple
+            x, y position of the text. In the default units (-1 to 1, with
+            positive going up and right) the default is dead center (0, 0).
+        h_align, v_align : str
+            Horizontal/vertical alignment of the text relative to ``pos``
+        units : str
+            units for ``pos``.
+
+        Notes
+        -----
+        For remaining parameters see documentation for psychopy.visual.TextStim
         """
-        self._text_stim.setText(text)
-        self._text_stim.setAutoDraw(True)
+        scr_txt = visual.TextStim(win=self._win, text=text, pos=pos,
+                                  height=height, wrapWidth=wrap_width,
+                                  alignHoriz=h_align, alignVert=v_align,
+                                  flipHoriz=h_flip, flipVert=v_flip,
+                                  units=units, ori=angle, depth=0,
+                                  color=color, colorSpace=color_space,
+                                  opacity=opacity, contrast=contrast,
+                                  font=font, bold=False, italic=False,
+                                  fontFiles=[], antialias=True, name=name)
+        scr_txt.setAutoDraw(True)
+        self._screen_objects.append(scr_txt)
         self._win.callOnFlip(self.write_data_line, 'screen text', text)
         self._win.flip()
 
