@@ -47,6 +47,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = ['{} pressed at {} secs'
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
+    ec.clear_screen()
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
 
@@ -61,6 +62,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = ['{} pressed after {} secs'
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
+    ec.clear_screen()
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
 
@@ -77,6 +79,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = ['{} pressed at {} secs'
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
+    ec.clear_screen()
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
 
@@ -93,6 +96,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = ['{} pressed at {} secs'
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
+    ec.clear_screen()
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
 
@@ -114,6 +118,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = ['{} pressed at {} secs'
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
+    ec.clear_screen()
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
 
@@ -135,4 +140,5 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = ['{} pressed after {} secs'
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
+    ec.clear_screen()
     ec.screen_prompt(message, msg_dur)
