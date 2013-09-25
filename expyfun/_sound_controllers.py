@@ -8,7 +8,7 @@
 import numpy as np
 from scipy import fftpack
 from psychopy import sound
-from psychopy.constants import STARTED, STOPPED
+from psychopy.constants import STARTED
 
 
 class PsychSound(object):
@@ -40,11 +40,9 @@ class PsychSound(object):
 
     def start_noise(self):
         self.noise.play(loops=-1)
-        self.noise.status = STARTED
 
     def stop_noise(self):
         self.noise.stop()
-        self.noise.status = STOPPED
 
     def clear_buffer(self):
         self.audio.setSound(np.zeros((1, 2)), log=False)
