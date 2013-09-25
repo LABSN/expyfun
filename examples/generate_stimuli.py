@@ -1,7 +1,7 @@
 from os import path as op
 import numpy as np
 from scipy.io import savemat, wavfile
-from expyfun.tdt_controller import get_tdt_rates
+from expyfun._tdt_controller import get_tdt_rates
 
 
 def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,

@@ -120,8 +120,6 @@ class ExperimentController(object):
         self._stim_scaler = None
         self.set_rms_checking(check_rms)
         self._suppress_resamp = suppress_resamp
-        # list of entities to draw / clear from the visual window
-        self._screen_objects = []
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = None
         self._on_next_flip = None
@@ -326,18 +324,6 @@ class ExperimentController(object):
                                   allowStencil=False, color=bkgd_color,
                                   colorSpace='rgb')
 
-        self._text_stim = visual.TextStim(win=self._win, text='', pos=[0, 0],
-                                          height=0.1, wrapWidth=1.2,
-                                          units='norm', color=[1, 1, 1],
-                                          colorSpace='rgb', opacity=1.0,
-                                          contrast=1.0, name='myTextStim',
-                                          ori=0, depth=0, flipHoriz=False,
-                                          flipVert=False, alignHoriz='center',
-                                          alignVert='center', bold=False,
-                                          italic=False, font='Arial',
-                                          fontFiles=[], antialias=True)
-        self._screen_objects.append(self._text_stim)
-
         # other basic components
         self._mouse_handler = event.Mouse(visible=False, win=self._win)
 
@@ -361,29 +347,62 @@ class ExperimentController(object):
 
 ############################### SCREEN METHODS ###############################
     def clear_screen(self):
-        """Remove all visual stimuli from the screen.
-        """
-        for comp in self._screen_objects:
-            if hasattr(comp, 'setAutoDraw'):
-                comp.setAutoDraw(False)
-        self._win.callOnFlip(self.write_data_line, 'screen cleared')
-        self._win.flip()
+        """Flip the screen buffer.
 
-    def screen_text(self, text):
+        Notes
+        -----
+        If you have manually set some of your ``screen_text`` objects to have
+        PsychoPy's property ``AutoDraw=True``, then ExperimentController's
+        ``clear_screen`` method will NOT remove them for you.
+        """
+        flip_time = self.flip()
+        self.write_data_line('clear_screen', flip_time)
+
+    def screen_text(self, text, pos=[0, 0], h_align='center', v_align='center',
+                    units='norm', color=[1, 1, 1], color_space='rgb',
+                    height=0.1, wrap_width=1.5, h_flip=False, v_flip=False,
+                    angle=0, opacity=1.0, contrast=1.0, name='', font='Arial'):
         """Show some text on the screen.
 
         Parameters
         ----------
         text : str
             The text to be rendered.
+        pos : list | tuple
+            x, y position of the text. In the default units (-1 to 1, with
+            positive going up and right) the default is dead center (0, 0).
+        h_align, v_align : str
+            Horizontal/vertical alignment of the text relative to ``pos``
+        units : str
+            units for ``pos``.
+
+        Returns
+        -------
+        Instance of psychopy.visual.TextStim
+
+        Notes
+        -----
+        For other parameters see documentation for ``psychopy.visual.TextStim``
+        Note that ``TextStim`` instances created by ``screen_text`` are spawned
+        with ``AutoDraw=False``.
         """
-        self._text_stim.setText(text)
-        self._text_stim.setAutoDraw(True)
-        self._win.callOnFlip(self.write_data_line, 'screen text', text)
-        self._win.flip()
+        scr_txt = visual.TextStim(win=self._win, text=text, pos=pos,
+                                  height=height, wrapWidth=wrap_width,
+                                  alignHoriz=h_align, alignVert=v_align,
+                                  flipHoriz=h_flip, flipVert=v_flip,
+                                  units=units, ori=angle, depth=0,
+                                  color=color, colorSpace=color_space,
+                                  opacity=opacity, contrast=contrast,
+                                  font=font, bold=False, italic=False,
+                                  fontFiles=[], antialias=True, name=name)
+        scr_txt.setAutoDraw(False)
+        scr_txt.draw()
+        self.call_on_next_flip(self.write_data_line, 'screen_text', text)
+        self.flip()
+        return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
-                      timestamp=False, clear_screen=True):
+                      timestamp=False, clear_after=True):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -401,9 +420,11 @@ class ExperimentController(object):
             The acceptable list of buttons or keys to use to advance the trial.
             If None, all buttons / keys will be accepted.  If an empty list,
             the prompt displays until max_wait seconds have passed.
-        clear_screen : bool
-            If True, ``clear_screen()`` will be called before returning to
-            the prompt.
+        clear_before : bool
+            If True, ``clear_screen()`` will be called before displaying the
+            text.
+        clear_after : bool
+            If True, ``clear_screen()`` will be called before returning.
 
         Returns
         -------
@@ -422,12 +443,17 @@ class ExperimentController(object):
             self.screen_text(t)
             out = self.wait_one_press(max_wait, min_wait, live_keys,
                                       timestamp)
-        if clear_screen is True:
+        if clear_after:
             self.clear_screen()
         return out
 
     def flip_and_play(self):
         """Flip screen, play audio, then run any "on-flip" functions.
+
+        Returns
+        -------
+        flip_time : float
+            The timestamp of the screen flip.
 
         Notes
         -----
@@ -437,19 +463,17 @@ class ExperimentController(object):
         """
         psylog.info('Expyfun: Flipping screen and playing audio')
         self._win.callOnFlip(self._play)
-        if self._on_every_flip is not None:
-            for function in self._on_every_flip:
-                self._win.callOnFlip(function)
-        if self._on_next_flip is not None:
-            for function in self._on_next_flip:
-                self._win.callOnFlip(function)
-        # self._win.flip() returns psychopy.clock.monotonicClock.getTime()
-        flip_time = self._win.flip() + self._get_time_correction('flip')
-        self.write_data_line('flip & play', flip_time)
+        # does not use self._on_next_flip, to ensure self._play comes first
+        flip_time = self.flip()
         return flip_time
 
     def flip(self):
         """Flip screen, then run any "on-flip" functions.
+
+        Returns
+        -------
+        flip_time : float
+            The timestamp of the screen flip.
 
         Notes
         -----
@@ -464,7 +488,10 @@ class ExperimentController(object):
         if self._on_next_flip is not None:
             for function in self._on_next_flip:
                 self._win.callOnFlip(function)
-        self._win.flip()
+            self._on_next_flip = None
+        flip_time = self._win.flip() + self._get_time_correction('flip')
+        self.write_data_line('flip', flip_time)
+        return flip_time
 
     def call_on_next_flip(self, function, *args, **kwargs):
         """Add a function to be executed on next flip only.
@@ -473,7 +500,7 @@ class ExperimentController(object):
         -----
         See ``flip_and_play`` for order of operations. Can be called multiple
         times to add multiple functions to the queue. If function is ``None``,
-        will clear all the "on every flip" functions.
+        will clear all the "on next flip" functions.
         """
         if function is not None:
             function = partial(function, *args, **kwargs)
@@ -677,7 +704,7 @@ class ExperimentController(object):
         """
         self._win.setMouseVisible(visibility)
         if flip:
-            self._win.flip()
+            self.flip()
 
 ################################ AUDIO METHODS ###############################
     def start_noise(self):
@@ -712,11 +739,13 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: playing audio')
         self._ac.play()
+        self.write_data_line('play')
 
     def stop(self):
         """Stop audio buffer playback and reset cursor to beginning of buffer.
         """
         self._ac.stop()
+        self.write_data_line('stop')
         psylog.info('Expyfun: Audio stopped and reset.')
 
     def set_noise_db(self, new_db):

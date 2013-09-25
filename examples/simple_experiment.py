@@ -17,7 +17,7 @@ import numpy as np
 from scipy import io as sio
 
 from expyfun import ExperimentController
-from expyfun.utils import set_log_level
+from expyfun._utils import set_log_level
 from generate_stimuli import generate_stimuli
 
 set_log_level('INFO')
@@ -145,7 +145,7 @@ with ExperimentController('testExp', ac, screen_num=0,
     ec.flip_and_play()
     ec.wait_secs(len(concat_wavs) / float(ec.stim_fs))
     ec.screen_text('Go!')
-    pressed = ec.wait_for_presses(max_resp_time + concat_dur, min_resp_time,
+    pressed = ec.wait_for_presses(max_resp_time + 1, min_resp_time,
                                   live_keys, False)
     answers = [str(x + 1) for x in mass_trial_order]
     correct = [press == ans for press, ans in zip(pressed, answers)]
@@ -156,5 +156,5 @@ with ExperimentController('testExp', ac, screen_num=0,
 
     # end experiment
     ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '
-                     'any key to close.'.format(running_total, num_trials))
-    ec.wait_secs(0.1)
+                     'any key to close.'.format(running_total, num_trials),
+                     max_wait=feedback_dur)

@@ -24,9 +24,11 @@ with ExperimentController('KeypressDemo', screen_num=0,
                           participant='foo', session='001') as ec:
     ec.wait_secs(isi)
 
-    # the screen_prompt method
-    pressed = ec.screen_prompt('screen_prompt\npress any key',
-                               max_wait=wait_dur, timestamp=True)
+    ###############
+    # screen_prompt
+    pressed = ec.screen_prompt('press any key\n\nscreen_prompt(max_wait={})'
+                               ''.format(wait_dur), max_wait=wait_dur,
+                               timestamp=True)
     ec.write_data_line('screen_prompt', pressed)
     if pressed[0] is None:
         message = 'no keys pressed'
@@ -36,9 +38,25 @@ with ExperimentController('KeypressDemo', screen_num=0,
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
 
-    # the wait_for_presses method, relative to master clock
-    ec.screen_text('press a few keys\n\nwait_for_presses\nmax_wait={}\n'
-                   'timestamp relative to master clock'.format(wait_dur))
+    ##################
+    # wait_for_presses
+    ec.screen_text('press some keys\n\nwait_for_presses(max_wait={})'
+                   ''.format(wait_dur))
+    pressed = ec.wait_for_presses(wait_dur)
+    ec.write_data_line('wait_for_presses', pressed)
+    if not len(pressed):
+        message = 'no keys pressed'
+    else:
+        message = ['{} pressed after {} secs'
+                   ''.format(key, round(time, 4)) for key, time in pressed]
+        message = '\n'.join(message)
+    ec.screen_prompt(message, msg_dur)
+    ec.wait_secs(isi)
+
+    ############################################
+    # wait_for_presses, relative to master clock
+    ec.screen_text('press some keys\n\nwait_for_presses(max_wait={},\n'
+                   'relative_to=0.0)'.format(wait_dur))
     pressed = ec.wait_for_presses(wait_dur, relative_to=0.0)
     ec.write_data_line('wait_for_presses relative_to 0.0', pressed)
     if not len(pressed):
@@ -50,89 +68,86 @@ with ExperimentController('KeypressDemo', screen_num=0,
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
 
-    # the wait_for_presses method, relative to method call
-    ec.screen_text('press a few keys\n\nwait_for_presses\nmax_wait={}\n'
-                   'timestamp relative to when method called'.format(wait_dur))
-    pressed = ec.wait_for_presses(wait_dur, relative_to=None)
-    ec.write_data_line('wait_for_presses relative_to None', pressed)
-    if not len(pressed):
-        message = 'no keys pressed'
-    else:
-        message = ['{} pressed after {} secs'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
-        message = '\n'.join(message)
-    ec.screen_prompt(message, msg_dur)
-    ec.wait_secs(isi)
-
-    # listen_presses / get_presses with wait_secs, relative to listen_presses
-    ec.screen_text('press a few keys\n\nlisten_presses()\nwait_secs({})\n'
-                   'get_presses()'.format(wait_dur))
+    ##########################################
+    # listen_presses / wait_secs / get_presses
+    ec.screen_text('press some keys\n\nlisten_presses()\nwait_secs({0}, '
+                   'hog_cpu_time={0})\nget_presses()'.format(wait_dur))
     ec.listen_presses()
     ec.wait_secs(wait_dur, hog_cpu_time=wait_dur)
     pressed = ec.get_presses()  # relative_to=0.0
-    ec.write_data_line('get_presses after wait_secs', pressed)
-    if not len(pressed):
-        message = 'no keys pressed'
-    else:
-        message = ['{} pressed at {} secs'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
-        message = '\n'.join(message)
-    ec.screen_prompt(message, msg_dur)
-    ec.wait_secs(isi)
-
-    # listen_presses / get_presses with wait_secs, relative to master clock
-    ec.screen_text('press a few keys\n\nlisten_presses()\nwait_secs({})\n'
-                   'get_presses(relative_to=0.0)'.format(wait_dur))
-    ec.listen_presses()
-    ec.wait_secs(wait_dur, hog_cpu_time=wait_dur)
-    pressed = ec.get_presses(relative_to=0.0)
-    ec.write_data_line('get_presses after wait_secs, relative_to 0.0', pressed)
-    if not len(pressed):
-        message = 'no keys pressed'
-    else:
-        message = ['{} pressed at {} secs'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
-        message = '\n'.join(message)
-    ec.screen_prompt(message, msg_dur)
-    ec.wait_secs(isi)
-
-    # the listen_presses / get_presses methods, relative to master clock
-    disp_time = wait_dur
-    countdown = ec.current_time + disp_time
-    ec.listen_presses()
-    while ec.current_time < countdown:
-        cur_time = round(countdown - ec.current_time, 1)
-        if cur_time != disp_time:
-            disp_time = cur_time
-            ec.screen_text('press a few keys\n\nlisten_presses\n{}\ntimestamp '
-                           'relative to master clock'.format(disp_time))
-    pressed = ec.get_presses(relative_to=0.0)
-    ec.write_data_line('get_presses relative_to 0.0', pressed)
-    if not len(pressed):
-        message = 'no keys pressed'
-    else:
-        message = ['{} pressed at {} secs'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
-        message = '\n'.join(message)
-    ec.screen_prompt(message, msg_dur)
-    ec.wait_secs(isi)
-
-    # the listen_presses / get_presses methods, relative to method call
-    disp_time = wait_dur
-    countdown = ec.current_time + disp_time
-    ec.listen_presses()
-    while ec.current_time < countdown:
-        cur_time = round(countdown - ec.current_time, 1)
-        if cur_time != disp_time:
-            disp_time = cur_time
-            ec.screen_text('press a few keys\n\nlisten_presses\n{}\ntimestamp '
-                           'relative to when method called'.format(disp_time))
-    pressed = ec.get_presses()
-    ec.write_data_line('get_presses relative_to None', pressed)
+    ec.write_data_line('listen / wait / get_presses', pressed)
     if not len(pressed):
         message = 'no keys pressed'
     else:
         message = ['{} pressed after {} secs'
+                   ''.format(key, round(time, 4)) for key, time in pressed]
+        message = '\n'.join(message)
+    ec.screen_prompt(message, msg_dur)
+    ec.wait_secs(isi)
+
+    ####################################################################
+    # listen_presses / wait_secs / get_presses, relative to master clock
+    ec.screen_text('press a few keys\n\nlisten_presses()\nwait_secs({0}, '
+                   'hog_cpu_time={0})\nget_presses(relative_to=0.0)'
+                   ''.format(wait_dur))
+    ec.listen_presses()
+    ec.wait_secs(wait_dur, hog_cpu_time=wait_dur)
+    pressed = ec.get_presses(relative_to=0.0)
+    ec.write_data_line('listen / wait / get_presses relative_to 0.0', pressed)
+    if not len(pressed):
+        message = 'no keys pressed'
+    else:
+        message = ['{} pressed at {} secs'
+                   ''.format(key, round(time, 4)) for key, time in pressed]
+        message = '\n'.join(message)
+    ec.screen_prompt(message, msg_dur)
+    ec.wait_secs(isi)
+
+    ###########################################
+    # listen_presses / while loop / get_presses
+    disp_time = wait_dur
+    countdown = ec.current_time + disp_time
+    ec.call_on_next_flip(ec.listen_presses)
+    ec.screen_text('press some keys\n\nlisten_presses()\nwhile loop {}\n'
+                   'get_presses()'.format(disp_time))
+    while ec.current_time < countdown:
+        cur_time = round(countdown - ec.current_time, 1)
+        if cur_time != disp_time:
+            disp_time = cur_time
+            # redraw text with updated disp_time
+            ec.screen_text('press some keys\n\nlisten_presses()\n'
+                           'while loop {}\nget_presses()'.format(disp_time))
+    pressed = ec.get_presses()
+    ec.write_data_line('listen / while / get_presses', pressed)
+    if not len(pressed):
+        message = 'no keys pressed'
+    else:
+        message = ['{} pressed after {} secs'
+                   ''.format(key, round(time, 4)) for key, time in pressed]
+        message = '\n'.join(message)
+    ec.screen_prompt(message, msg_dur)
+    ec.wait_secs(isi)
+
+    #####################################################################
+    # listen_presses / while loop / get_presses, relative to master clock
+    disp_time = wait_dur
+    countdown = ec.current_time + disp_time
+    ec.call_on_next_flip(ec.listen_presses)
+    ec.screen_text('press some keys\n\nlisten_presses()\nwhile loop {}\n'
+                   'get_presses(relative_to=0.0)'.format(disp_time))
+    while ec.current_time < countdown:
+        cur_time = round(countdown - ec.current_time, 1)
+        if cur_time != disp_time:
+            disp_time = cur_time
+            # redraw text with updated disp_time
+            ec.screen_text('press some keys\n\nlisten_presses()\nwhile loop {}'
+                           '\nget_presses(relative_to=0.0)'.format(disp_time))
+    pressed = ec.get_presses(relative_to=0.0)
+    ec.write_data_line('listen / while / get_presses relative_to 0.0', pressed)
+    if not len(pressed):
+        message = 'no keys pressed'
+    else:
+        message = ['{} pressed at {} secs'
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
     ec.screen_prompt(message, msg_dur)
