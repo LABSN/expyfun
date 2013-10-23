@@ -4,6 +4,8 @@ import warnings
 
 from expyfun._utils import get_config, set_config, deprecated
 
+warnings.simplefilter('always')
+
 
 def test_config():
     """Test expyfun config file support"""
