@@ -2,9 +2,12 @@ import warnings
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from numpy.testing import assert_allclose
+import warnings
 
 from expyfun import ExperimentController, wait_secs
 from expyfun._utils import _TempDir, interactive_test, tdt_test
+
+warnings.simplefilter('always')
 
 temp_dir = _TempDir()
 std_args = ['test']  # experiment name
@@ -49,8 +52,8 @@ def test_data_line():
     with open(fname) as fid:
         lines = fid.readlines()
     # check the header
-    assert_true(len(lines) == len(entries) + 2)
-    assert_true(lines[0][0] == '#')  # first line is a comment
+    assert_equal(len(lines), len(entries) + 2)
+    assert_equal(lines[0][0], '#')  # first line is a comment
     outs = lines[1].strip().split('\t')
     assert_true(all(l1 == l2 for l1, l2 in zip(outs, ['timestamp',
                                                       'event', 'value'])))
@@ -58,7 +61,7 @@ def test_data_line():
     ts = []
     for line, ent, gv in zip(lines[2:], entries, goal_vals):
         outs = line.strip().split('\t')
-        assert_true(len(outs) == 3)
+        assert_equal(len(outs), 3)
         # check timestamping
         if len(ent) == 3 and ent[2] is not None:
             assert_true(outs[0] == str(ent[2]))
