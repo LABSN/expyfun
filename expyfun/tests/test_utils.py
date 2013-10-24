@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 import os
 import warnings
 
@@ -17,13 +17,14 @@ def test_config():
     del os.environ[key]
     # catch the warning about it being a non-standard config key
     with warnings.catch_warnings(True) as w:
+        # warnings raised only when setting key
         set_config(key, None)
-        assert_true(len(w) == 1)
-    assert_true(get_config(key) is None)
-    assert_raises(KeyError, get_config, key, raise_error=True)
-    set_config(key, value)
-    assert_true(get_config(key) == value)
-    set_config(key, None)
+        assert_true(get_config(key) is None)
+        assert_raises(KeyError, get_config, key, raise_error=True)
+        set_config(key, value)
+        assert_equal(get_config(key), value)
+        set_config(key, None)
+    assert_equal(len(w), 3)
     if old_val is not None:
         os.environ[key] = old_val
 
