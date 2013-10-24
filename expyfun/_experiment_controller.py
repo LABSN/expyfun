@@ -13,9 +13,9 @@ from scipy.signal import resample
 from psychopy import prefs
 prefs.general['audioLib'] = ['pyo', 'pygame']
 prefs.general['audioDriver'] = ['jack', 'portaudio']
-
 from psychopy import visual, core, event, gui, monitors, misc
 from psychopy.data import getDateStr as date_str
+
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, psylog)
 from ._tdt_controller import TDTController
