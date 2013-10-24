@@ -33,7 +33,7 @@ else:
 ###############################################################################
 # RANDOM UTILITIES
 
-is_linux = platform.system() == 'Linux'
+is_linux = (platform.system() == 'Linux')
 
 
 class WrapStdOut(object):

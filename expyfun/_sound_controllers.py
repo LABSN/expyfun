@@ -31,11 +31,10 @@ class PsychSound(object):
             with HideAlsaOutput():
                 # request 44100 if it's available
                 self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=44100.0)
-            # dont change "log": linearity unknown
-            self.audio.setVolume(1.0, log=False)
-            # Need to generate at RMS=1 to match TDT circuit
-
+        self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
         self.fs = int(self.audio.sampleRate)
+
+        # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
         # Low-pass if necessary
         if stim_fs < self.fs:
@@ -45,15 +44,11 @@ class PsychSound(object):
             noise = fftpack.fft(noise)
             noise[np.abs(freqs) > stim_fs / 2.] = 0.0
             noise = np.real(fftpack.ifft(noise))
-
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
         noise = noise / np.sqrt(np.mean(noise * noise))
         self.noise_array = np.array(np.c_[noise, -1.0 * noise], order='C')
-
-        with HidePyoOutput():
-            self.noise = sound.Sound(self.noise_array, sampleRate=self.fs)
-            # dont change "log": linearity unknown
-            self.noise.setVolume(1.0, log=False)
+        self.noise = sound.Sound(self.noise_array, sampleRate=self.fs)
+        self.noise.setVolume(1.0, log=False)  # dont change: linearity unknown
         self.ec = ec
 
     def start_noise(self):
