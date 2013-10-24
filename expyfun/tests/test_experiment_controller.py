@@ -2,7 +2,6 @@ import warnings
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from numpy.testing import assert_allclose
-import warnings
 
 from expyfun import ExperimentController, wait_secs
 from expyfun._utils import _TempDir, interactive_test, tdt_test
@@ -43,7 +42,7 @@ def test_data_line():
                ['fb', None, -0.5]]
     # this is what should be written to the file for each one
     goal_vals = ['None', 'bar\\tbar', 'bar\\\\tbar', 'None']
-    assert_true(len(entries) == len(goal_vals))
+    assert_equal(len(entries), len(goal_vals))
 
     with ExperimentController(*std_args, **std_kwargs) as ec:
         for ent in entries:
@@ -52,8 +51,12 @@ def test_data_line():
     with open(fname) as fid:
         lines = fid.readlines()
     # check the header
-    assert_equal(len(lines), len(entries) + 2)
+    print lines
+    assert_equal(len(lines), len(entries) + 3)
     assert_equal(lines[0][0], '#')  # first line is a comment
+    for x in ['timestamp', 'event', 'value']:  # second line is col header
+        assert_true(x in lines[1])
+    assert_true('stop' in lines[-1])  # last line is stop (from __exit__)
     outs = lines[1].strip().split('\t')
     assert_true(all(l1 == l2 for l1, l2 in zip(outs, ['timestamp',
                                                       'event', 'value'])))
