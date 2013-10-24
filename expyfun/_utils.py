@@ -286,7 +286,7 @@ known_config_types = ['RESPONSE_DEVICE',
                       'SCREEN_DISTANCE',
                       'SCREEN_SIZE_PIX',
                       'EXPYFUN_INTERACTIVE_TESTING',
-                      'EXPYFUN_LOGGING_LEVEL',
+                      'EXPYFUN_LOGGING_LEVEL'
                       ]
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed

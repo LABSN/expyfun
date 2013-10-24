@@ -1,7 +1,10 @@
 import os
+import warnings
 
 from expyfun._utils import _TempDir, tdt_test
 from expyfun import ExperimentController
+
+warnings.simplefilter('always')
 
 tempdir = _TempDir()
 std_args = ['test']

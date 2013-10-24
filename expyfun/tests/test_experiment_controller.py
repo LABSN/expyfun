@@ -6,6 +6,8 @@ from numpy.testing import assert_allclose
 from expyfun import ExperimentController, wait_secs
 from expyfun._utils import _TempDir, interactive_test, tdt_test
 
+warnings.simplefilter('always')
+
 temp_dir = _TempDir()
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
@@ -40,7 +42,7 @@ def test_data_line():
                ['fb', None, -0.5]]
     # this is what should be written to the file for each one
     goal_vals = ['None', 'bar\\tbar', 'bar\\\\tbar', 'None']
-    assert_true(len(entries) == len(goal_vals))
+    assert_equal(len(entries), len(goal_vals))
 
     with ExperimentController(*std_args, **std_kwargs) as ec:
         for ent in entries:
@@ -49,8 +51,11 @@ def test_data_line():
     with open(fname) as fid:
         lines = fid.readlines()
     # check the header
-    assert_true(len(lines) == len(entries) + 2)
-    assert_true(lines[0][0] == '#')  # first line is a comment
+    assert_equal(len(lines), len(entries) + 3)
+    assert_equal(lines[0][0], '#')  # first line is a comment
+    for x in ['timestamp', 'event', 'value']:  # second line is col header
+        assert_true(x in lines[1])
+    assert_true('stop' in lines[-1])  # last line is stop (from __exit__)
     outs = lines[1].strip().split('\t')
     assert_true(all(l1 == l2 for l1, l2 in zip(outs, ['timestamp',
                                                       'event', 'value'])))
@@ -58,7 +63,7 @@ def test_data_line():
     ts = []
     for line, ent, gv in zip(lines[2:], entries, goal_vals):
         outs = line.strip().split('\t')
-        assert_true(len(outs) == 3)
+        assert_equal(len(outs), 3)
         # check timestamping
         if len(ent) == 3 and ent[2] is not None:
             assert_true(outs[0] == str(ent[2]))

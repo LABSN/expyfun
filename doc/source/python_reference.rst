@@ -10,8 +10,8 @@ This is the classes and functions reference of expyfun. Functions are
 grouped by hardware control type.
 
 
-Classes
-=======
+Experiment Control
+==================
 
 .. currentmodule:: expyfun
 
@@ -21,6 +21,18 @@ Classes
 
    ExperimentController
    EyelinkController
+
+Analysis
+========
+
+.. currentmodule:: expyfun.analyze
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   dprime
+   dprime_2afc
 
 Logging and Configuration
 =========================

@@ -1,7 +1,7 @@
 """Experiment control functions
 """
 
-__version__ = '0.1.git'
+__version__ = '1.1.0.git'
 
 # have to import verbose first since it's needed by many things
 from ._utils import set_log_level, set_config, \

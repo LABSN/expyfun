@@ -48,7 +48,8 @@ if __name__ == "__main__":
                        'Operating System :: Unix',
                        'Operating System :: MacOS'],
           platforms='any',
-          packages=['expyfun', 'expyfun.tests'],
+          packages=['expyfun', 'expyfun.tests',
+                    'expyfun.analyze', 'expyfun.analyze.tests'],
           package_data={'expyfun': [op.join('tdt-circuits','*.rcx'),
                                     op.join('tests', 'data', '*')]},
           scripts=[])
