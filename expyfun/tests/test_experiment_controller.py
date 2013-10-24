@@ -51,7 +51,6 @@ def test_data_line():
     with open(fname) as fid:
         lines = fid.readlines()
     # check the header
-    print lines
     assert_equal(len(lines), len(entries) + 3)
     assert_equal(lines[0][0], '#')  # first line is a comment
     for x in ['timestamp', 'event', 'value']:  # second line is col header
