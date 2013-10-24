@@ -8,6 +8,8 @@ warnings.simplefilter('always')
 
 
 def test_dprime():
+    """Test dprime and dprime_2afc accuracy
+    """
     assert_raises(TypeError, ea.dprime, 'foo', 0, 0, 0)
     with warnings.catch_warnings(True) as w:
         ea.dprime((1.1, 0, 0, 0))
