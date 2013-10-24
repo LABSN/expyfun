@@ -13,9 +13,9 @@ from scipy.signal import resample
 from psychopy import prefs
 prefs.general['audioLib'] = ['pyo', 'pygame']
 prefs.general['audioDriver'] = ['jack', 'portaudio']
-from psychopy import visual, core, event, sound, gui, monitors, misc
-from psychopy import clock as psyclock
+from psychopy import visual, core, event, gui, monitors, misc
 from psychopy.data import getDateStr as date_str
+
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, psylog)
 from ._tdt_controller import TDTController
@@ -247,8 +247,6 @@ class ExperimentController(object):
             self._audio_type = self._ac.model
             self._tdt_init = True
         elif self._audio_type == 'psychopy':
-            psylog.info('Expyfun: Setting up PsychoPy audio with {} '
-                        'backend'.format(sound.audioLib))
             self._ac = PsychSound(self, self.stim_fs)
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '

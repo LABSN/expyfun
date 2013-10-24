@@ -7,20 +7,33 @@
 
 import numpy as np
 from scipy import fftpack
-from psychopy import sound
 from psychopy.constants import STARTED
+
+from ._utils import HidePyoOutput, HideAlsaOutput, psylog
+
+with HidePyoOutput():
+    from psychopy import sound
 
 
 class PsychSound(object):
     """Use PsychoPy audio capabilities"""
     def __init__(self, ec, stim_fs):
+        psylog.info('Expyfun: Setting up PsychoPy audio with {} '
+                    'backend'.format(sound.audioLib))
+
         if sound.Sound is None:
             raise ImportError('PsychoPy sound could not be initialized. '
                               'Ensure you have the pygame package properly'
                               ' installed.')
-        self.fs = 44100
-        self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=self.fs)
+
+        # deal with crappy JACK output
+        with HidePyoOutput():
+            with HideAlsaOutput():
+                # request 44100 if it's available
+                self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=44100.0)
         self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
+        self.fs = int(self.audio.sampleRate)
+
         # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
         # Low-pass if necessary
