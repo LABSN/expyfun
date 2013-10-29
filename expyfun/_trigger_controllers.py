@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import platform
-from psychopy import parallel
 
 from ._utils import wait_secs, verbose_dec, psylog
 
@@ -47,6 +46,8 @@ class PsychTrigger(object):
                  verbose=None):
         self.parallel = None
         if mode == 'parallel':
+            # use nested import in case parallel isn't used
+            from psychopy import parallel
             self._stamp_trigger = self._parallel_trigger
             # Psychopy has some legacy methods (e.g., parallel.setData()),
             # but we triage here to save time when time-critical stamping
