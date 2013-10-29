@@ -510,7 +510,7 @@ def _get_c_err_handler():
 
 
 if is_linux:
-    _asound = ctypes.cdll.LoadLibrary('libasound.so')
+    _asound = ctypes.cdll.LoadLibrary('libasound.so.2')
     _err_handler_func = ctypes.CFUNCTYPE(None, ctypes.c_char_p,
                                          ctypes.c_int, ctypes.c_char_p,
                                          ctypes.c_int, ctypes.c_char_p)
