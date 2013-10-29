@@ -7,7 +7,7 @@
 
 import platform
 
-from ._utils import wait_secs, verbose_dec, psylog
+from ._utils import wait_secs, verbose_dec
 
 
 class PsychTrigger(object):
