@@ -86,7 +86,7 @@ def _check_dprime_inputs(hmfc, tafc=False):
     elif tafc:
         z = np.zeros_like(hmfc[:, 0])
         hmfc = np.c_[hmfc[:, 0], z, hmfc[:, 1], z]
-    if hmfc.dtype != np.int64:
+    if hmfc.dtype not in [np.int64, np.int32]:
         warnings.warn('Argument to dprime() cast to np.int64; floating point '
                       'values will have been truncated.')
         hmfc = hmfc.astype(np.int64)
