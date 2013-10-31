@@ -28,8 +28,8 @@ with ExperimentController('SyncTest', screen_num=0, window_size=[300, 300],
         ec.flip_and_play()
         #ec.flip()                  # expyfun
         #ec._ac.play()
-        ec.wait_one_press(0.5 + rng.rand(1) * 0.0167)
+        ec.wait_one_press(rng.rand(1) * 5 * 0.0167)
         ec.stop()
         ec.window.setColor(black)
         ec.flip()                  # expyfun
-        ec.wait_one_press(rng.rand(1) * 5 * 0.0167)
+        ec.wait_one_press(0.5 + rng.rand(1) * 0.0167)

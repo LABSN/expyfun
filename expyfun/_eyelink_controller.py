@@ -19,7 +19,7 @@ import pyglet
 try:
     import pylink
 except ImportError:
-    pylink = None
+    pylink = None  #analysis:ignore
 from ._utils import get_config, verbose_dec
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable

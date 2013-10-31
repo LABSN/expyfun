@@ -3,7 +3,10 @@ import numpy as np
 import platform
 from os import path as op
 if 'Windows' in platform.platform():
-    from tdt.util import connect_rpcox, connect_zbus
+    try:
+        from tdt.util import connect_rpcox, connect_zbus
+    except ImportError:
+        connect_rpcox, connect_zbus = None, None  #analysis:ignore
 else:
     connect_rpcox, connect_zbus = None, None
 from psychopy import logging as psylog

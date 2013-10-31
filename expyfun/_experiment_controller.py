@@ -12,7 +12,7 @@ from functools import partial
 from scipy.signal import resample
 from psychopy import prefs
 prefs.general['audioLib'] = ['pyo', 'pygame']
-prefs.general['audioDriver'] = ['jack', 'portaudio']
+prefs.general['audioDriver'] = ['jack', 'portaudio', 'ASIO', 'directsound']
 from psychopy import visual, core, event, gui, monitors, misc
 from psychopy.data import getDateStr as date_str
 
