@@ -13,6 +13,11 @@ from ._utils import wait_secs, verbose_dec
 class PsychTrigger(object):
     """Parallel port and dummy triggering support
 
+    IMPORTANT: When using the parallel port, note that calling
+    ec.flip_and_play() will automatically invoke a stamping of
+    the 1 trigger, which will cause a delay equal to that of
+    high_duration.
+
     Parameters
     ----------
     mode : str
@@ -42,7 +47,7 @@ class PsychTrigger(object):
         http://logix4u.net/InpOutBinaries.zip
     """
     @verbose_dec
-    def __init__(self, mode='dummy', address=None, high_duration=0.01,
+    def __init__(self, mode='dummy', address=None, high_duration=0.001,
                  verbose=None):
         self.parallel = None
         if mode == 'parallel':
@@ -74,7 +79,7 @@ class PsychTrigger(object):
 
     def _dummy_trigger(self, trig):
         """Fake stamping"""
-        wait_secs(self.high_duration)
+        pass
 
     def _parallel_trigger(self, trig):
         """Stamp a single byte via parallel port"""
@@ -94,8 +99,8 @@ class PsychTrigger(object):
             The inter-trigger delay.
         """
         for ti, trig in enumerate(triggers):
-            if ti < len(triggers):
-                self._stamp_trigger(trig)
+            self._stamp_trigger(trig)
+            if ti < len(triggers) - 1:
                 wait_secs(delay - self.high_duration)
 
     def close(self):
