@@ -18,7 +18,7 @@ rng = np.random.RandomState(0)
 
 with ExperimentController('SyncTest', screen_num=0, window_size=[300, 300],
                           full_screen=False, stim_db=70, noise_db=-np.inf,
-                          stim_fs=44100, participant='s', session='0',
+                          stim_fs=24414, participant='s', session='0',
                           output_dir=None) as ec:
     ec.load_buffer(np.r_[0.1, np.zeros(2000)])
     white = [1, 1, 1]
