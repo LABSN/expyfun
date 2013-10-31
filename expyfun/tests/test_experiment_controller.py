@@ -148,6 +148,7 @@ def test_ec(ac=None):
     ec.clear_buffer()
     ec.set_noise_db(0)
     ec.set_stim_db(20)
+    ec.draw_background_color('black')
     # test buffer data handling
     ec.load_buffer([0, 0, 0, 0, 0, 0])
     assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])

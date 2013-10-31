@@ -321,6 +321,8 @@ class ExperimentController(object):
                                   winType='pyglet', allowGUI=False,
                                   allowStencil=False, color=bkgd_color,
                                   colorSpace='rgb')
+        # save time on flips, we record these in a log anyway
+        self._win.setRecordFrameIntervals(False)
 
         # other basic components
         self._mouse_handler = event.Mouse(visible=False, win=self._win)
@@ -444,6 +446,29 @@ class ExperimentController(object):
         if clear_after:
             self.clear_screen()
         return out
+
+    def draw_background_color(self, color='black'):
+        """Draw a solid background color
+
+        Parameters
+        ----------
+        color : PsychoPy color
+            The background color.
+
+        Returns
+        -------
+        rect : instance of Rect
+            The drawn PsychoPy Rect object.
+
+        Notes
+        -----
+        This shold be the first object drawn to a buffer, as it will
+        cover any previsouly drawn objects.
+        """
+        rect = visual.Rect(self._win, width=2.0, height=2.0,
+                           fillColor=color, lineColor=color)
+        rect.draw()
+        return rect
 
     def flip_and_play(self):
         """Flip screen, play audio, then run any "on-flip" functions.
