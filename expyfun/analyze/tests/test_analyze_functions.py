@@ -21,3 +21,17 @@ def test_dprime():
     assert_raises(ValueError, ea.dprime, (1, 2, 3))
     assert_raises(ValueError, ea.dprime_2afc, (1, 2, 3))
     assert_equal(np.sum(ea.dprime_2afc([[5, 1], [1, 5]])), 0)
+
+
+def test_plotting():
+    """
+    """
+    tmp = np.arange(12).reshape((3, 4))
+    grp1 = np.arange(4).reshape((2, 2))
+    grp2 = [[0, 1, 2], [3]]
+    assert_raises(TypeError, ea.barplot, tmp, err_bars=True)
+    assert_raises(ValueError, ea.barplot, tmp, err_bars='foo')
+    ea.barplot(tmp, lines=True, err_bars='sd')
+    ea.barplot(tmp, grp1, err_bars='se', group_names=['a', 'b'])
+    ea.barplot(tmp, grp2, False, err_bars='ci', group_names=['a', 'b'])
+    del tmp, grp1, grp2
