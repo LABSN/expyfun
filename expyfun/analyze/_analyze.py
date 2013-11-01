@@ -100,6 +100,7 @@ def barplot(df, grouping=None, fix_bar_width=True, xlab=None, group_names=None,
             lines=False, err_bars=None, filename=None, bar_kwargs=None,
             err_kwargs=None, line_kwargs=None):
     """Generates optionally grouped barplots with connected line overlays.
+
     Parameters
     ----------
     df : pandas.DataFrame
