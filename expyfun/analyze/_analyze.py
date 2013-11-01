@@ -135,6 +135,11 @@ def barplot(df, grouping=None, fix_bar_width=True, xlab=None, group_names=None,
         arguments passed to ``pyplot.bar(error_kw)`` (e.g., ecolor, capsize).
     line_kwargs : dict
         arguments passed to ``pyplot.plot()`` (e.g., color, marker, linestyle).
+
+    Returns
+    -------
+    ax : matplotlib.axes.Axes
+        The plot object.
     """
     if err_bars is not None:
         if not isinstance(err_bars, basestring):
@@ -216,6 +221,7 @@ def barplot(df, grouping=None, fix_bar_width=True, xlab=None, group_names=None,
     if filename is not None:
         plt.savefig(filename, format='pdf', transparent=False)
     plt.draw()
+    return plt
 
 
 def box_off(ax):
