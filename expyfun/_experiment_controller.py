@@ -121,8 +121,8 @@ class ExperimentController(object):
         self.set_rms_checking(check_rms)
         self._suppress_resamp = suppress_resamp
         # placeholder for extra actions to do on flip-and-play
-        self._on_every_flip = None
-        self._on_next_flip = None
+        self._on_every_flip = []
+        self._on_next_flip = []
         # placeholder for extra actions to run on close
         self._extra_cleanup_fun = []
         # some hardcoded parameters...
@@ -320,7 +320,7 @@ class ExperimentController(object):
                                   monitor=monitor, screen=screen_num,
                                   winType='pyglet', allowGUI=False,
                                   allowStencil=False, color=bkgd_color,
-                                  colorSpace='rgb')
+                                  colorSpace='rgb', waitBlanking=True)
         # save time on flips, we record these in a log anyway
         self._win.setRecordFrameIntervals(False)
 
@@ -394,7 +394,8 @@ class ExperimentController(object):
                                   color=color, colorSpace=color_space,
                                   opacity=opacity, contrast=contrast,
                                   font=font, bold=False, italic=False,
-                                  fontFiles=[], antialias=True, name=name)
+                                  fontFiles=[], antialias=True, name=name,
+                                  autoLog=False)
         scr_txt.setAutoDraw(False)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
@@ -465,8 +466,10 @@ class ExperimentController(object):
         This shold be the first object drawn to a buffer, as it will
         cover any previsouly drawn objects.
         """
-        rect = visual.Rect(self._win, width=2.0, height=2.0,
-                           fillColor=color, lineColor=color)
+        # we go a little over here to be safe from round-off errors
+        rect = visual.Rect(self._win, width=2.1, height=2.1,
+                           fillColor=color, lineWidth=0,
+                           interpolate=False, autoLog=False)
         rect.draw()
         return rect
 
@@ -485,8 +488,8 @@ class ExperimentController(object):
         ``on_next_flip``.
         """
         psylog.info('Expyfun: Flipping screen and playing audio')
-        self._win.callOnFlip(self._play)
-        # does not use self._on_next_flip, to ensure self._play comes first
+        # ensure self._play comes first in list:
+        self._on_next_flip = [self._play] + self._on_next_flip
         flip_time = self.flip()
         return flip_time
 
@@ -505,52 +508,73 @@ class ExperimentController(object):
         ``on_next_flip``.
         """
         psylog.info('Expyfun: Flipping screen')
-        if self._on_every_flip is not None:
-            for function in self._on_every_flip:
-                self._win.callOnFlip(function)
-        if self._on_next_flip is not None:
-            for function in self._on_next_flip:
-                self._win.callOnFlip(function)
-            self._on_next_flip = None
-        flip_time = self._win.flip() + self._get_time_correction('flip')
+        for function in self._on_every_flip:
+            self._win.callOnFlip(function)
+        for function in self._on_next_flip:
+            self._win.callOnFlip(function)
+            self._on_next_flip = []
+        flip_time = self._win.flip()
+        # Function does not return instantaneously afterward
+        # don't readjust correction
+        flip_time += self._get_time_correction('flip', instant_return=False)
         self.write_data_line('flip', flip_time)
         return flip_time
 
     def call_on_next_flip(self, function, *args, **kwargs):
         """Add a function to be executed on next flip only.
 
+        Parameters
+        ----------
+        function : function | None
+            The function to call. If ``None``, all the "on every flip"
+            functions will be cleared.
+
+        *args
+        -----
+        Function arguments
+
+        **kwargs
+        --------
+        Function keyword arguments.
+
         Notes
         -----
         See ``flip_and_play`` for order of operations. Can be called multiple
-        times to add multiple functions to the queue. If function is ``None``,
-        will clear all the "on next flip" functions.
+        times to add multiple functions to the queue.
         """
         if function is not None:
             function = partial(function, *args, **kwargs)
-            if self._on_next_flip is None:
-                self._on_next_flip = [function]
-            else:
-                self._on_next_flip.append(function)
+            self._on_next_flip.append(function)
         else:
-            self._on_next_flip = None
+            self._on_next_flip = []
 
     def call_on_every_flip(self, function, *args, **kwargs):
         """Add a function to be executed on every flip.
 
+        Parameters
+        ----------
+        function : function | None
+            The function to call. If ``None``, all the "on every flip"
+            functions will be cleared.
+
+        *args
+        -----
+        Function arguments
+
+        **kwargs
+        --------
+        Function keyword arguments.
+
         Notes
         -----
         See ``flip_and_play`` for order of operations. Can be called multiple
-        times to add multiple functions to the queue. If function is ``None``,
-        will clear all the "on every flip" functions.
+        times to add multiple functions to the queue.
         """
         if function is not None:
             function = partial(function, *args, **kwargs)
-            if self._on_every_flip is None:
-                self._on_every_flip = [function]
-            else:
-                self._on_every_flip.append(function)
+            self._on_every_flip.append(function)
         else:
-            self._on_every_flip = None
+            self._on_every_flip = []
 
     def pix2deg(self, xy):
         """Convert pixels to degrees
@@ -861,6 +885,8 @@ class ExperimentController(object):
                 psylog.warn(warn_string)
                 # raise UserWarning(warn_string)
 
+        # always prepend a zero to deal with TDT reset of buffer position
+        samples = np.r_[np.atleast_2d([0.0, 0.0]), samples]
         return np.ascontiguousarray(samples)
 
     def set_rms_checking(self, check_rms):
@@ -908,23 +934,27 @@ class ExperimentController(object):
             self._data_file.write(ll)
             self._data_file.flush()  # make sure it's actually written out
 
-    def _get_time_correction(self, clock_type):
+    def _get_time_correction(self, clock_type, instant_return=True):
         """Clock correction (seconds) for win.flip().
         """
-        other_time = self._time_correction_fxns[clock_type]()
-        start_time = self._master_clock.getTime()
-        time_correction = start_time - other_time
+        new_correction = (self._master_clock.getTime() -
+                          self._time_correction_fxns[clock_type]())
         if clock_type not in self._time_corrections:
-            self._time_corrections[clock_type] = time_correction
+            self._time_corrections[clock_type] = new_correction
 
-        if not np.allclose(self._time_corrections[clock_type], time_correction,
-                           rtol=0, atol=10e-6):
-            psylog.warn('Expyfun: drift of > 10 microseconds between '
-                        '{} clock and EC master clock.'.format(clock_type))
-        psylog.debug('Expyfun: time correction between {} clock and EC master '
-                     'clock is {}. This is a change of {}.'
-                     ''.format(clock_type, time_correction, time_correction -
-                               self._time_corrections[clock_type]))
+        diff = new_correction - self._time_corrections[clock_type]
+        if instant_return:
+            if np.abs(diff) > 10e-6:
+                psylog.warn('Expyfun: drift of > 10 microseconds ({}) '
+                            'between {} clock and EC master clock.'
+                            ''.format(round(diff * 10e6), clock_type))
+            psylog.debug('Expyfun: time correction between {} clock and EC '
+                         'master clock is {}. This is a change of {}.'
+                         ''.format(clock_type, new_correction, new_correction
+                                   - self._time_corrections[clock_type]))
+            time_correction = new_correction
+        else:
+            time_correction = self._time_corrections[clock_type]
         return time_correction
 
     def wait_secs(self, *args, **kwargs):
