@@ -26,7 +26,7 @@ with ExperimentController('SyncTest', screen_num=0, full_screen=True,
                           stim_db=90, noise_db=-np.inf, stim_fs=24414,
                           participant='s', session='0', audio_controller=ac,
                           trigger_controller=tc, output_dir=None,
-                          suppress_reamp=True) as ec:
+                          suppress_resamp=True) as ec:
     ec.load_buffer(np.r_[0.1, np.zeros(2000)])
     while True:
         ec.draw_background_color('white')
