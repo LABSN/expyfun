@@ -484,8 +484,8 @@ class ExperimentController(object):
         Notes
         -----
         Order of operations is: screen flip, audio start, additional functions
-        added with ``on_every_flip``, followed by functions added with
-        ``on_next_flip``.
+        added with ``on_next_flip``, followed by functions added with
+        ``on_every_flip``.
         """
         psylog.info('Expyfun: Flipping screen and playing audio')
         # ensure self._play comes first in list:
@@ -508,16 +508,16 @@ class ExperimentController(object):
         ``on_next_flip``.
         """
         psylog.info('Expyfun: Flipping screen')
-        for function in self._on_every_flip:
-            self._win.callOnFlip(function)
         for function in self._on_next_flip:
             self._win.callOnFlip(function)
-            self._on_next_flip = []
+        for function in self._on_every_flip:
+            self._win.callOnFlip(function)
         flip_time = self._win.flip()
         # Function does not return instantaneously afterward
         # don't readjust correction
         flip_time += self._get_time_correction('flip')
         self.write_data_line('flip', flip_time)
+        self._on_next_flip = []
         return flip_time
 
     def call_on_next_flip(self, function, *args, **kwargs):
@@ -531,7 +531,7 @@ class ExperimentController(object):
 
         *args
         -----
-        Function arguments
+        Function arguments.
 
         **kwargs
         --------
@@ -559,7 +559,7 @@ class ExperimentController(object):
 
         *args
         -----
-        Function arguments
+        Function arguments.
 
         **kwargs
         --------

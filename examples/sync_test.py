@@ -35,6 +35,6 @@ with ExperimentController('SyncTest', screen_num=0, full_screen=True,
         t2 = ec.flip()
         diff = round(1000 * (t2 - t1), 2)
         ec.screen_prompt('\n\n\nIFI (ms):\n{}'.format(diff),
-                         0, min_wait=-np.inf, clear_after=False)
+                         0, clear_after=False)
         ec.wait_one_press(0.5)
         ec.stop()

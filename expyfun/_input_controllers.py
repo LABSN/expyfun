@@ -146,7 +146,7 @@ class BaseKeyboard(object):
         if np.isinf(max_wait) and live_keys == []:
             raise ValueError('max_wait cannot be infinite if there are no live'
                              ' keys.')
-        if not min_wait < max_wait:
+        if not min_wait <= max_wait:
             raise ValueError('min_wait must be less than max_wait')
         start_time = self.master_clock.getTime()
         if timestamp and relative_to is None:
