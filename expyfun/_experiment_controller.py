@@ -516,7 +516,7 @@ class ExperimentController(object):
         flip_time = self._win.flip()
         # Function does not return instantaneously afterward
         # don't readjust correction
-        flip_time += self._get_time_correction('flip', instant_return=False)
+        flip_time += self._get_time_correction('flip')
         self.write_data_line('flip', flip_time)
         return flip_time
 
@@ -934,27 +934,23 @@ class ExperimentController(object):
             self._data_file.write(ll)
             self._data_file.flush()  # make sure it's actually written out
 
-    def _get_time_correction(self, clock_type, instant_return=True):
+    def _get_time_correction(self, clock_type):
         """Clock correction (seconds) for win.flip().
         """
-        new_correction = (self._master_clock.getTime() -
-                          self._time_correction_fxns[clock_type]())
+        time_correction = (self._master_clock.getTime() -
+                           self._time_correction_fxns[clock_type]())
         if clock_type not in self._time_corrections:
-            self._time_corrections[clock_type] = new_correction
+            self._time_corrections[clock_type] = time_correction
 
-        diff = new_correction - self._time_corrections[clock_type]
-        if instant_return:
-            if np.abs(diff) > 10e-6:
-                psylog.warn('Expyfun: drift of > 10 microseconds ({}) '
-                            'between {} clock and EC master clock.'
-                            ''.format(round(diff * 10e6), clock_type))
-            psylog.debug('Expyfun: time correction between {} clock and EC '
-                         'master clock is {}. This is a change of {}.'
-                         ''.format(clock_type, new_correction, new_correction
-                                   - self._time_corrections[clock_type]))
-            time_correction = new_correction
-        else:
-            time_correction = self._time_corrections[clock_type]
+        diff = time_correction - self._time_corrections[clock_type]
+        if np.abs(diff) > 10e-6:
+            psylog.warn('Expyfun: drift of > 10 microseconds ({}) '
+                        'between {} clock and EC master clock.'
+                        ''.format(round(diff * 10e6), clock_type))
+        psylog.debug('Expyfun: time correction between {} clock and EC '
+                     'master clock is {}. This is a change of {}.'
+                     ''.format(clock_type, time_correction, time_correction
+                               - self._time_corrections[clock_type]))
         return time_correction
 
     def wait_secs(self, *args, **kwargs):

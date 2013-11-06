@@ -478,7 +478,8 @@ class HidePyoOutput(object):
         os.system('ls -l')
     """
     def __init__(self):
-        sys.stdout.flush()
+        if hasattr(sys.stdout, 'flush'):
+            sys.stdout.flush()
         self._origstdout = sys.stdout
         if hasattr(sys.stdout, 'fileno'):
             self._oldstdout_fno = os.dup(sys.stdout.fileno())
@@ -494,7 +495,8 @@ class HidePyoOutput(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout = self._origstdout
-        sys.stdout.flush()
+        if hasattr(sys.stdout, 'flush'):
+            sys.stdout.flush()
         if self._oldstdout_fno is not None:
             os.dup2(self._oldstdout_fno, 1)
 
