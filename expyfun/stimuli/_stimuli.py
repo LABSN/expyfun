@@ -32,7 +32,7 @@ def _get_dtype_norm(dtype):
 
 
 def _print_wav_info(pre, data, dtype):
-    psylog.info('{0} WAV file with {1} channel{2} and {3} samples '
+    psylog.info('{0} WAV file with {1} channel{3} and {2} samples '
                 '(format {4})'.format(pre, data.shape[0], data.shape[1],
                                       's' if data.shape[0] != 1 else '',
                                       dtype))
