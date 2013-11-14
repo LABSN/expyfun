@@ -257,14 +257,14 @@ class EyelinkController(object):
         # stop the recording
         self.stop()
         # enter Eyetracker camera setup mode, calibration and validation
-        self._ec.clear_screen()
+        self._ec.flip()
         cal = _Calibrate(self._ec, beep)
         pylink.openGraphicsEx(cal)
         cal.setup_event_handlers()
         cal.play_beep(0)
         self.eyelink.doTrackerSetup()
         cal.release_event_handlers()
-        self._ec.clear_screen()
+        self._ec.flip()
         psylog.debug('EyeLink: Completed calibration')
         self._ec.flush_logs()
         # open file to record

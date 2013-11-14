@@ -346,18 +346,6 @@ class ExperimentController(object):
         return string
 
 ############################### SCREEN METHODS ###############################
-    def clear_screen(self):
-        """Flip the screen buffer.
-
-        Notes
-        -----
-        If you have manually set some of your ``screen_text`` objects to have
-        PsychoPy's property ``AutoDraw=True``, then ExperimentController's
-        ``clear_screen`` method will NOT remove them for you.
-        """
-        flip_time = self.flip()
-        self.write_data_line('clear_screen', flip_time)
-
     def screen_text(self, text, pos=[0, 0], h_align='center', v_align='center',
                     units='norm', color=[1, 1, 1], color_space='rgb',
                     height=0.1, wrap_width=1.5, h_flip=False, v_flip=False,
@@ -421,11 +409,8 @@ class ExperimentController(object):
             The acceptable list of buttons or keys to use to advance the trial.
             If None, all buttons / keys will be accepted.  If an empty list,
             the prompt displays until max_wait seconds have passed.
-        clear_before : bool
-            If True, ``clear_screen()`` will be called before displaying the
-            text.
         clear_after : bool
-            If True, ``clear_screen()`` will be called before returning.
+            If True, the screen will be cleared before returning.
 
         Returns
         -------
@@ -445,7 +430,7 @@ class ExperimentController(object):
             out = self.wait_one_press(max_wait, min_wait, live_keys,
                                       timestamp)
         if clear_after:
-            self.clear_screen()
+            self.flip()
         return out
 
     def draw_background_color(self, color='black'):
