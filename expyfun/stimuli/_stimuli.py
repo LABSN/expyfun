@@ -5,7 +5,7 @@ import numpy as np
 from scipy.io import wavfile
 from os import path as op
 
-from ..utils import verbose_dec, psylog
+from .._utils import verbose_dec, psylog
 
 
 def rms(data, axis=-1):
