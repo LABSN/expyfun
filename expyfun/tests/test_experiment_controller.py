@@ -1,7 +1,6 @@
 import warnings
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
-from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs
 from expyfun._utils import _TempDir, interactive_test, tdt_test
@@ -75,7 +74,7 @@ def test_data_line():
         assert_true(outs[2] == gv)
     # make sure we got monotonically increasing timestamps
     ts = np.array(ts)
-    assert_true(np.all(ts[1:] > ts[:-1]))
+    assert_true(np.all(ts[1:] >= ts[:-1]))
 
 
 def test_stamping():
@@ -107,21 +106,21 @@ def test_ec(ac=None):
         # test type checking for 'session'
         std_kwargs['session'] = 1
         assert_raises(TypeError, ExperimentController, *std_args,
-                      audio_controller='psychopy', **std_kwargs)
+                      audio_controller='pyo', **std_kwargs)
         std_kwargs['session'] = '01'
 
         # test value checking for trigger controller
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='psychopy', trigger_controller='foo',
+                      audio_controller='pyo', trigger_controller='foo',
                       **std_kwargs)
 
         # test value checking for RMS checker
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='psychopy', check_rms=True,
+                      audio_controller='pyo', check_rms=True,
                       **std_kwargs)
 
-        # run rest of test with audio_controller == 'psychopy'
-        ec = ExperimentController(*std_args, audio_controller='psychopy',
+        # run rest of test with audio_controller == 'pyo'
+        ec = ExperimentController(*std_args, audio_controller='pyo',
                                   **std_kwargs)
 
     else:
@@ -201,7 +200,7 @@ def test_ec(ac=None):
 def test_button_presses_and_window_size():
     """Test EC window_size=None and button press capture (press 1 thrice)
     """
-    ec = ExperimentController(*std_args, audio_controller='psychopy',
+    ec = ExperimentController(*std_args, audio_controller='pyo',
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
                               participant='foo', session='01')

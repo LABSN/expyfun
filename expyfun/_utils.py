@@ -6,7 +6,6 @@
 
 import warnings
 import scipy as sp
-from psychopy import logging as psylog
 import os
 import os.path as op
 from functools import wraps
@@ -25,6 +24,11 @@ import ctypes
 from psychopy import core
 import datetime
 from timeit import default_timer as clock  #analysis:ignore
+
+# set this first thing to make sure it "takes"
+pyglet.options['debug_gl'] = False
+
+from psychopy import logging as psylog
 
 try:
     import pylink

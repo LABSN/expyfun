@@ -7,32 +7,44 @@
 
 import numpy as np
 from scipy import fftpack
-from psychopy.constants import STARTED
+import sys
 
-from ._utils import HidePyoOutput, HideAlsaOutput, psylog
-
-with HidePyoOutput():
-    from psychopy import sound
+from ._utils import HidePyoOutput, HideAlsaOutput, psylog, wait_secs
 
 
 class PyoSound(object):
-    """Use PsychoPy audio capabilities"""
-    def __init__(self, ec, stim_fs):
-        psylog.info('Expyfun: Setting up PsychoPy audio with {} '
-                    'backend'.format(sound.audioLib))
+    """Use Pyo audio capabilities"""
+    def __init__(self, ec, stim_fs, buffer_size=128):
+        psylog.info('Expyfun: Setting up Pyo audio')
+        self._pyo_server = None
+        # nest the pyo import, in case we have a sys with just TDT
+        try:
+            with HidePyoOutput():
+                import pyo
+        except Exception as exp:
+            raise RuntimeError('Cannot init pyo sound: {}'.format(str(exp)))
 
-        if sound.Sound is None:
-            raise ImportError('PsychoPy sound could not be initialized. '
-                              'Ensure you have the pygame package properly'
-                              ' installed.')
+        driver_dict = dict(darwin='coreaudio', linux2='jack')
+        audio = driver_dict.get(sys.platform, 'portaudio')
+        self._pyo_server = pyo.Server(sr=44100, nchnls=2, audio=audio,
+                                      buffersize=buffer_size)
+        self._pyo_server.setVerbosity(1)  # error
 
-        # deal with crappy JACK output
+        if sys.platform == 'win32':
+            names, ids = pyo.pa_get_output_devices()
+            driver, id_ = _best_driver_win32(names, ids)
+            if not id_:
+                raise RuntimeError('No audio outputs found')
+            psylog.info('Using sound driver: {} (ID={})'
+                        ''.format(driver, id_))
+            self._pyo_server.setOutputDevice(id_)
+        self._pyo_server.setDuplex(False)
         with HidePyoOutput():
             with HideAlsaOutput():
-                # request 44100 if it's available
-                self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=44100)
-        self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
-        self.fs = int(self.audio.sampleRate)
+                self._pyo_server.boot()
+        wait_secs(0.5)
+        self._pyo_server.start()
+        self.fs = int(self._pyo_server.getSamplingRate())
 
         # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
@@ -47,22 +59,23 @@ class PyoSound(object):
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
         noise = noise / np.sqrt(np.mean(noise * noise))
         self.noise_array = np.array(np.c_[noise, -1.0 * noise], order='C')
-        self.noise = sound.Sound(self.noise_array, sampleRate=self.fs)
-        self.noise.setVolume(1.0, log=False)  # dont change: linearity unknown
+        self.noise = Sound(self.noise_array, loop=True)
+        self.clear_buffer()  # initializes self.audio
         self.ec = ec
+        psylog.debug('Expyfun: Pyo sound server started')
+        psylog.flush()
 
     def start_noise(self):
-        self.noise.play(loops=-1)
+        self.noise.play()
 
     def stop_noise(self):
         self.noise.stop()
 
     def clear_buffer(self):
-        self.audio.setSound(np.zeros((1, 2)), log=False)
+        self.audio = Sound(np.zeros((1, 2)))
 
     def load_buffer(self, samples):
-        self.audio = sound.Sound(samples, sampleRate=self.fs)
-        self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
+        self.audio = Sound(samples)
 
     def play(self):
         self.audio.play()
@@ -72,17 +85,43 @@ class PyoSound(object):
         self.audio.stop()
 
     def set_noise_level(self, level):
-        new_noise = sound.Sound(self.noise_array * level, sampleRate=self.fs)
-        if self.noise.status == STARTED:
-            # change the noise level immediately
-            self.noise.stop()
-            self.noise = new_noise
-            self.noise._snd.play(loops=-1)
-            self.noise.status = STARTED  # have to explicitly set status,
-            # since we bypass PsychoPy's play() method to access pygame "loops"
-        else:
-            self.noise = new_noise
+        new_noise = Sound(self.noise_array * level, loop=True)
+        self.noise.stop()
+        new_noise.play()
+        self.noise = new_noise
 
     def halt(self):
-        if sound.pyoSndServer is not None:
-            sound.pyoSndServer.shutdown()
+        if self._pyo_server is not None:
+            self._pyo_server.stop()
+            wait_secs(0.5)
+            self._pyo_server.shutdown()
+
+
+def _best_driver_win32(devices, ids):
+    """Find ASIO or Windows sound drivers"""
+    prefs = ['ASIO', 'Primary Sound']  # 'Primary Sound' is DirectSound
+    for pref in prefs:
+        for driver, id_ in zip(devices, ids):
+            if pref.encode('utf-8') in driver.encode('utf-8'):
+                return driver, id_
+    raise RuntimeError('could not find appropriate driver')
+
+
+class Sound(object):
+    """Create a sound object, from one of MANY ways.
+    """
+    def __init__(self, data, loop=False):
+        import pyo
+        _snd_table = pyo.DataTable(size=data.shape[0],
+                                   init=data.T.tolist(),
+                                   chnls=data.shape[1])
+        self._snd = pyo.TableRead(_snd_table, freq=_snd_table.getRate(),
+                                  loop=loop, mul=1.0)
+
+    def play(self):
+        """Starts playing the sound."""
+        self._snd.out()
+
+    def stop(self, log=True):
+        """Stops the sound immediately"""
+        self._snd.stop()

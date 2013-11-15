@@ -110,7 +110,7 @@ class EyelinkController(object):
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
         if self._ec is not None:
-            self._size = np.array(self._ec.window.monitor.getSizePix())
+            self._size = np.array(self._ec.size_pix)
             self._ec._extra_cleanup_fun += [self.close]
         else:
             self._size = np.array([1920, 1200])
@@ -501,7 +501,7 @@ class _Calibrate(super_class):
         # set some useful parameters
         self.flush_logs = ec.flush_logs
         self.win = ec.window
-        self.size = np.array(ec.window.monitor.getSizePix())
+        self.size = np.array(ec.size_pix)
         self.keys = []
         self.aspect = float(self.size[0]) / self.size[1]
         self.img_span = (1.0, 1.0 * self.aspect)

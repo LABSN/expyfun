@@ -68,7 +68,7 @@ class Keyboard(object):
         self.win.dispatch_events()  # pump events on pyglet windows
         targets = []
         for key in self._keyboard_buffer:
-            if key[0] in live_keys or live_keys is None:
+            if live_keys is None or key[0] in live_keys:
                 targets.append(key)
         return targets
 
@@ -221,5 +221,6 @@ class Mouse(object):
     @property
     def pos(self):
         """The current position of the mouse in normalized units"""
-        last_pos = np.array([self.win._mouse_x, self.win._mouse_y])
-        return (last_pos - self.win.size / 2) / (self.win.size / 2)
+        x = (self.win._mouse_x - self.win.width / 2.) / (self.win.width / 2.)
+        y = (self.win._mouse_y - self.win.height / 2.) / (self.win.height / 2.)
+        return np.array([x, y])

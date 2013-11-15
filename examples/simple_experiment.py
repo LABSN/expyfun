@@ -79,6 +79,7 @@ with ExperimentController('testExp', ac, screen_num=0,
 
     # show instructions until all buttons have been pressed at least once
     ec.screen_text(instructions)
+    ec.flip()
     while len(not_yet_pressed) > 0:
         pressed, timestamp = ec.wait_one_press(live_keys=live_keys)
         for p in pressed:

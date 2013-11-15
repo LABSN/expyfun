@@ -14,7 +14,7 @@ print __doc__
 import numpy as np
 from expyfun import ExperimentController
 
-ac = 'psychopy'
+ac = 'pyo'
 #ac = dict(TYPE='tdt', TDT_MODEL='RM1')
 
 tc = 'dummy'

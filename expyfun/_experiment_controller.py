@@ -6,8 +6,8 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from scipy import linalg
 import os
-import sys
 import threading
 import warnings
 from os import path as op
@@ -140,8 +140,7 @@ class ExperimentController(object):
         # set up timing
         self._master_clock = clock
         self._time_corrections = dict()
-        self._time_correction_fxns = dict(flip=self._master_clock)
-        self._get_time_correction('flip')
+        self._time_correction_fxns = dict()
 
         # dictionary for experiment metadata
         self._exp_info = {'participant': participant, 'session': session,
@@ -186,9 +185,9 @@ class ExperimentController(object):
             monitor['SCREEN_WIDTH'] = float(get_config('SCREEN_WIDTH', '51.0'))
             monitor['SCREEN_DISTANCE'] = float(get_config('SCREEN_DISTANCE',
                                                '48.0'))
-            mon_size = get_config('SCREEN_SIZE_PIX', '1920,1080').split(',')
-            mon_size = [float(m) for m in mon_size]
-            monitor['SCREEN_SIZE_PIX'] = mon_size
+            pix_size = get_config('SCREEN_SIZE_PIX', '1920,1080').split(',')
+            pix_size = [int(p) for p in pix_size]
+            monitor['SCREEN_SIZE_PIX'] = pix_size
         else:
             if not isinstance(monitor, dict):
                 raise TypeError('monitor must be a dict')
@@ -197,6 +196,11 @@ class ExperimentController(object):
                                                    'SCREEN_SIZE_PIX']]):
                 raise KeyError('monitor must have keys "SCREEN_WIDTH", '
                                '"SCREEN_DISTANCE", and "SCREEN_SIZE_PIX"')
+        monitor['SCREEN_DPI'] = (monitor['SCREEN_SIZE_PIX'][0] /
+                                 (monitor['SCREEN_WIDTH'] * 0.393701))
+        monitor['SCREEN_HEIGHT'] = (monitor['SCREEN_WIDTH']
+                                    / float(monitor['SCREEN_SIZE_PIX'][0])
+                                    * float(monitor['SCREEN_SIZE_PIX'][1]))
         self._monitor = monitor
 
         #
@@ -271,19 +275,12 @@ class ExperimentController(object):
         psylog.info('Expyfun: Setting up screen')
         if window_size is None:
             window_size = get_config('WINDOW_SIZE', '1920,1080').split(',')
+            window_size = [int(w) for w in window_size]
         if screen_num is None:
             screen_num = int(get_config('SCREEN_NUM', '0'))
 
-        # setup GL config
-        config = GL.Config(depth_size=8, double_buffer=True,
-                           stencil_size=0, stereo=False)
-        self._win = pyglet.window.Window(width=window_size[0],
-                                         height=window_size[1],
-                                         caption=exp_name,
-                                         fullscreen=full_screen,
-                                         config=config,
-                                         screen=screen_num,
-                                         style='borderless')
+        # open window and setup GL config
+        self._setup_window(window_size, exp_name, full_screen, screen_num)
 
         # Keyboard
         if response_device == 'keyboard':
@@ -365,7 +362,7 @@ class ExperimentController(object):
         -------
         Instance of visual.Text
         """
-        scr_txt = Text(self._win, text)
+        scr_txt = Text(self, text)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         return scr_txt
@@ -433,8 +430,7 @@ class ExperimentController(object):
         cover any previsouly drawn objects.
         """
         # we go a little over here to be safe from round-off errors
-        rect = Rectangle(self._win, width=2.1, height=2.1,
-                         fill_color=color, line_width=0)
+        rect = Rectangle(self, width=2.1, height=2.1, fill_color=color)
         rect.draw()
         return rect
 
@@ -456,33 +452,6 @@ class ExperimentController(object):
         # ensure self._play comes first in list:
         self._on_next_flip = [self._play] + self._on_next_flip
         flip_time = self.flip()
-        return flip_time
-
-    def flip(self):
-        """Flip screen, then run any "on-flip" functions.
-
-        Returns
-        -------
-        flip_time : float
-            The timestamp of the screen flip.
-
-        Notes
-        -----
-        Order of operations is: screen flip, audio start, additional functions
-        added with ``on_every_flip``, followed by functions added with
-        ``on_next_flip``.
-        """
-        psylog.info('Expyfun: Flipping screen')
-        for function in self._on_next_flip:
-            self._win.callOnFlip(function)
-        for function in self._on_every_flip:
-            self._win.callOnFlip(function)
-        flip_time = self._win.flip()
-        # Function does not return instantaneously afterward
-        # don't readjust correction
-        flip_time += self._get_time_correction('flip')
-        self.write_data_line('flip', flip_time)
-        self._on_next_flip = []
         return flip_time
 
     def call_on_next_flip(self, function, *args, **kwargs):
@@ -541,6 +510,59 @@ class ExperimentController(object):
         else:
             self._on_every_flip = []
 
+    def _convert_units(self, verts, fro, to):
+        """Convert between different screen units"""
+        verts = np.atleast_2d(verts).copy()
+        if verts.shape[0] != 2:
+            raise RuntimeError('verts must have 2 rows')
+        if fro not in self.unit_conversions:
+            raise KeyError('unit_conversions does not have "{}"'.format(fro))
+        if to not in self.unit_conversions:
+            raise KeyError('unit_conversions does not have "{}"'.format(to))
+
+        if fro == to:
+            return verts.copy()
+
+        # simplify by using two if neither is in normalized (native) units
+        if 'norm' not in [to, fro]:
+            # convert to normal
+            verts = self._convert_units(verts, fro, 'norm')
+            # convert from normal to dest
+            verts = self._convert_units(verts, 'norm', to)
+            return verts
+
+        # figure out our actual transition, knowing one is 'norm'
+        h_pix = self.size_pix[0]
+        w_pix = self.size_pix[1]
+        d_cm = self._monitor['SCREEN_DISTANCE']
+        h_cm = self._monitor['SCREEN_HEIGHT']
+        w_cm = self._monitor['SCREEN_WIDTH']
+        if 'pix' in [to, fro]:
+            if 'pix' == to:
+                # norm to pixels
+                x = np.array([[w_pix / 2., 0, -w_pix / 2.],
+                              [0, h_pix / 2., -h_pix / 2.]])
+            else:
+                # pixels to norm
+                x = np.array([[2. / w_pix, 0, -1.],
+                              [0, 2. / h_pix, -1.]])
+            verts = np.dot(x, np.r_[verts, np.ones(verts.shape[1])])
+        elif 'deg' in [to, fro]:
+            if 'deg' == to:
+                # norm to deg
+                x = np.arctan2(verts[0] / (w_cm / 2.), d_cm)
+                y = np.arctan2(verts[1] / (h_cm / 2.), d_cm)
+                verts = np.array([x, y])
+                verts *= (180. / np.pi)
+            else:
+                # deg to norm
+                verts *= (np.pi / 180.)
+                x = d_cm * np.tan(verts[0])
+                y = d_cm * np.tan(verts[1])
+        else:
+            raise KeyError('unknown conversion "{}" to "{}"'.format(fro, to))
+        return verts
+
     @property
     def on_next_flip_functions(self):
         """Current stack of functions to be called on next flip."""
@@ -556,57 +578,77 @@ class ExperimentController(object):
         """Visual window handle."""
         return self._win
 
+    @property
+    def dpi(self):
+        return self._monitor['SCREEN_DPI']
+
+    @property
+    def size_pix(self):
+        return np.array([self._win.width, self._win.height])
+
 ############################### OPENGL METHODS ###############################
-    def _setupGL(self):
-        #setup screen color
+    def _setup_window(self, window_size, exp_name, full_screen, screen_num):
+        config = GL.Config(depth_size=8, double_buffer=True,
+                           stencil_size=0, stereo=False)
+        self._win = pyglet.window.Window(width=window_size[0],
+                                         height=window_size[1],
+                                         caption=exp_name,
+                                         fullscreen=full_screen,
+                                         config=config,
+                                         screen=screen_num,
+                                         style='borderless')
+
+        # with the context set up, do GL stuff
         GL.glClearColor(0.0, 0.0, 0.0, 1.0)
         GL.glClearDepth(1.0)
-        GL.glViewport(0, 0, int(self.size[0]), int(self.size[1]))
-
+        GL.glViewport(0, 0, int(self.size_pix[0]), int(self.size_pix[1]))
         GL.glMatrixMode(GL.GL_PROJECTION)  # Reset The Projection Matrix
         GL.glLoadIdentity()
         GL.gluOrtho2D(-1, 1, -1, 1)
-
         GL.glMatrixMode(GL.GL_MODELVIEW)  # Reset The Projection Matrix
         GL.glLoadIdentity()
-
         GL.glDisable(GL.GL_DEPTH_TEST)
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-
         GL.glShadeModel(GL.GL_SMOOTH)  # Color Shading (FLAT or SMOOTH)
         GL.glEnable(GL.GL_POINT_SMOOTH)
-
-        #check for GL_ARB_texture_float (needed for shaders to be useful)
-        #this needs to be done AFTER the context has been created
-        """
-        _haveShaders = (GL.gl_info.get_version() >= '2.0' and
-                        GL.gl_info.have_extension('GL_ARB_texture_float')
-
-        if _haveShaders:
-            #we should be able to compile shaders (don't just 'try')
-            # fragSignedColorTexMask
-            self._progSignedTexMask = _shaders.compileProgram(
-                _shaders.vertSimple, _shaders.fragSignedColorTexMask)
-            self._progSignedTex = _shaders.compileProgram(
-                _shaders.vertSimple, _shaders.fragSignedColorTex)
-            self._progSignedTexMask1D = _shaders.compileProgram(
-                _shaders.vertSimple, _shaders.fragSignedColorTexMask1D)
-            self._progSignedTexFont = _shaders.compileProgram(
-                _shaders.vertSimple, _shaders.fragSignedColorTexFont)
-        """
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
-        #identify gfx card vendor
-        self._gl_vendor = GL.gl_info.get_vendor().lower()
-        if sys.platform == 'darwin':
-            import ctypes
-            cocoa = ctypes.cdll.LoadLibrary(ctypes.util.find_library("Cocoa"))
-            kCGLCPSwapInterval = ctypes.c_int(222)
-            v = ctypes.pointer(ctypes.c_int(1))
-            cocoa.CGLSetParameter(cocoa.CGLGetCurrentContext(),
-                                  kCGLCPSwapInterval,
-                                  v)
+    def flip(self):
+        """Flip screen, then run any "on-flip" functions.
+
+        Returns
+        -------
+        flip_time : float
+            The timestamp of the screen flip.
+
+        Notes
+        -----
+        Order of operations is: screen flip, audio start, additional functions
+        added with ``on_every_flip``, followed by functions added with
+        ``on_next_flip``.
+        """
+        psylog.info('Expyfun: Flipping screen')
+        call_list = self._on_next_flip + self._on_every_flip
+        GL.glTranslatef(0.0, 0.0, -5.0)
+        #for dispatcher in self._eventDispatchers:
+        #    dispatcher.dispatch_events()
+        self._win.dispatch_events()
+        self._win.flip()
+        GL.glLoadIdentity()
+        #waitBlanking
+        GL.glBegin(GL.GL_POINTS)
+        GL.glColor4f(0, 0, 0, 0)
+        GL.glVertex2i(10, 10)
+        GL.glEnd()
+        GL.glFinish()
+        flip_time = clock()
+        for function in call_list:
+            function()
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        self.write_data_line('flip', flip_time)
+        self._on_next_flip = []
+        return flip_time
 
 ############################ KEYPRESS METHODS ############################
     def listen_presses(self):
@@ -731,9 +773,10 @@ class ExperimentController(object):
         """
         if not units in ['pix', 'norm']:
             raise RuntimeError('must request units in "pix" or "norm"')
-        pos = np.array(self._mouse_handler.getPos())
+        pos = np.array(self._mouse_handler.pos)
         if units == 'pix':
-            pos *= self.window.size / 2.
+            pos *= self.size_pix / 2.
+            pos += self.size_pix / 2.
         return pos
 
     def toggle_cursor(self, visibility, flip=False):
@@ -744,7 +787,7 @@ class ExperimentController(object):
         visibility : bool
             If True, show; if False, hide.
         """
-        self._win.setMouseVisible(visibility)
+        self._mouse_handler.set_visible(visibility)
         if flip:
             self.flip()
 
