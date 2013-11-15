@@ -387,7 +387,7 @@ class EyelinkController(object):
             else:
                 fix_success = False
                 time_in = time.time()
-            self._ec._check_force_quit()
+            self._ec._response_handler.check_force_quit()
             self._ec.wait_secs(0.001)
 
         return fix_success

@@ -12,10 +12,10 @@ else:
 from psychopy import logging as psylog
 
 from ._utils import get_config, wait_secs
-from ._input_controllers import BaseKeyboard
+from ._input_controllers import Keyboard
 
 
-class TDTController(BaseKeyboard):
+class TDTController(Keyboard):
     """Interface for TDT audio output, stamping, and responses
 
     Parameters
@@ -124,7 +124,7 @@ class TDTController(BaseKeyboard):
 
         # do BaseKeyboard init last, to make sure circuit is running
         if as_kb is True:
-            BaseKeyboard.__init__(self, ec, force_quit_keys)
+            Keyboard.__init__(self, ec, force_quit_keys)
 
 ################################ AUDIO METHODS ###############################
     def load_buffer(self, data):
@@ -217,7 +217,7 @@ class TDTController(BaseKeyboard):
 
 ################################ KEYBOARD METHODS ############################
 
-    def _get_keyboard_timebase(self):
+    def _get_timebase(self):
         """Return time since circuit was started (in seconds).
         """
         return self.rpcox.GetTagVal('masterclock') / float(self.fs)
@@ -226,10 +226,12 @@ class TDTController(BaseKeyboard):
         """Clear keyboard buffers.
         """
         self._trigger(7)
+        self._clear_keyboard_events()
 
     def _retrieve_events(self, live_keys):
         """Values and timestamps currently in keyboard buffer.
         """
+        # get values from the tdt
         press_count = int(round(self.rpcox.GetTagVal('npressabs')))
         if press_count > 0:
             # this one is indexed from zero
@@ -241,9 +243,12 @@ class TDTController(BaseKeyboard):
             press_times = np.array(press_times[0], float) / self.fs
             press_vals = np.log2(np.array(press_vals[0], float)) + 1
             press_vals = [str(int(round(p))) for p in press_vals]
-            return [(v, t) for v, t in zip(press_vals, press_times)]
+            presses = [(v, t) for v, t in zip(press_vals, press_times)]
         else:
-            return []
+            presses = []
+        # adds force_quit presses
+        presses.extend(self._retrieve_keyboard_events([]))
+        return presses
 
     def halt(self):
         """Wrapper for tdt.util.RPcoX.Halt()."""

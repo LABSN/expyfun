@@ -12,7 +12,7 @@ import pyglet
 from ._utils import wait_secs, clock
 
 
-class BaseKeyboard(object):
+class Keyboard(object):
     """Retrieve presses from various devices.
 
     Public metohds:
@@ -23,8 +23,8 @@ class BaseKeyboard(object):
         wait_for_presses
         check_force_quit
 
-    Requires:
-        _get_keyboard_timebase
+    Methods to override by subclasses:
+        _get_timebase
         _clear_events
         _retrieve_events
     """
@@ -35,31 +35,58 @@ class BaseKeyboard(object):
         self.ec_close = ec.close  # needed for check_force_quit
         self.force_quit_keys = force_quit_keys
         self.listen_start = None
-        ec._time_correction_fxns['keypress'] = self._get_keyboard_timebase
+        ec._time_correction_fxns['keypress'] = self._get_timebase
         self.get_time_corr = partial(ec._get_time_correction, 'keypress')
         self.time_correction = self.get_time_corr()
         self.win = ec._win
+        # always init pyglet response handler for error (and non-error) keys
+        self.win.on_key_press = self._on_pyglet_keypress
+        self._keyboard_buffer = []
 
+    ###########################################################################
+    # Methods to be overridden by subclasses
     def _clear_events(self):
-        """Clear all events from keyboard buffer.
-        """
-        raise NotImplementedError
+        self._clear_keyboard_events()
 
     def _retrieve_events(self, live_keys):
-        """Get all events since last call to _clear_events.
-        """
-        raise NotImplementedError
+        return self._retrieve_keyboard_events(live_keys)
 
-    def _get_keyboard_timebase(self):
-        """Hardware time (seconds) for the keypresses.
+    def _get_timebase(self):
+        """Get keyboard time reference (in seconds)
         """
-        raise NotImplementedError
+        return clock()
+
+    def _clear_keyboard_events(self):
+        self.win.dispatch_events()
+        self._keyboard_buffer = []
+
+    def _retrieve_keyboard_events(self, live_keys):
+        # add escape keys
+        if live_keys is not None:
+            live_keys = [str(x) for x in live_keys]  # accept ints
+            live_keys.extend(self.force_quit_keys)
+        self.win.dispatch_events()  # pump events on pyglet windows
+        targets = []
+        for key in self._keyboard_buffer:
+            if key[0] in live_keys or live_keys is None:
+                targets.append(key)
+        return targets
+
+    def _on_pyglet_keypress(self, symbol, modifiers, emulated=False):
+        """Handler for on_key_press pyglet events"""
+        key_time = clock()
+        if emulated:
+            this_key = unicode(symbol)
+        else:
+            this_key = pyglet.window.key.symbol_string(symbol).lower()
+            this_key = this_key.lstrip('_').lstrip('NUM_')
+        self._keyboard_buffer.append((this_key, key_time))
 
     def listen_presses(self):
         """Start listening for keypresses.
         """
         self.time_correction = self.get_time_corr()
-        self.listen_start = self.master_clock.getTime()
+        self.listen_start = self.master_clock()
         self._clear_events()
 
     def get_presses(self, live_keys, timestamp, relative_to):
@@ -84,7 +111,7 @@ class BaseKeyboard(object):
                                                         relative_to)
         pressed = []
         while (not len(pressed) and
-               self.master_clock.getTime() - start_time < max_wait):
+               self.master_clock() - start_time < max_wait):
             pressed = self._retrieve_events(live_keys)
 
         # handle non-presses
@@ -104,7 +131,7 @@ class BaseKeyboard(object):
                                                         live_keys, timestamp,
                                                         relative_to)
 
-        while (self.master_clock.getTime() - start_time < max_wait):
+        while (self.master_clock() - start_time < max_wait):
             pressed = self._retrieve_events(live_keys)
         return self._correct_presses(pressed, timestamp, relative_to)
 
@@ -114,15 +141,17 @@ class BaseKeyboard(object):
         This function always uses the keyboard, so is part of abstraction.
         """
         if keys is None:
-            #keys = getKeys(self.force_quit_keys, timeStamped=False)
-            keys = []  # NEED TO FIX HANDLING OF FORCE_QUIT CHECKING TDT!
-        elif type(keys) is str:
-            keys = [k for k in [keys] if k in self.force_quit_keys]
-        elif type(keys) is list:
-            keys = [k for k in keys if k in self.force_quit_keys]
+            # only grab the force-quit keys
+            keys = self._retrieve_keyboard_events([])
         else:
-            raise TypeError('Force quit checking requires a string or list of'
-                            ' strings, not a {}.'.format(type(keys)))
+            if isinstance(keys, basestring):
+                keys = [keys]
+            if isinstance(keys, list):
+                keys = [k for k in keys if k in self.force_quit_keys]
+            else:
+                raise TypeError('Force quit checking requires a string or '
+                                ' list of strings, not a {}.'
+                                ''.format(type(keys)))
         if len(keys):
             self.ec_close()
             raise RuntimeError('Quit key pressed')
@@ -149,73 +178,13 @@ class BaseKeyboard(object):
                              ' keys.')
         if not min_wait <= max_wait:
             raise ValueError('min_wait must be less than max_wait')
-        start_time = self.master_clock.getTime()
+        start_time = self.master_clock()
         if timestamp and relative_to is None:
             relative_to = start_time
         wait_secs(min_wait)
         self.check_force_quit()
         self._clear_events()
         return relative_to, start_time
-
-
-class Keyboard(BaseKeyboard):
-    """Retrieve button presses from keyboard.
-    """
-    def __init__(self, *args, **kwargs):
-        BaseKeyboard.__init__(self, *args, **kwargs)
-        # init pyglet response handler
-        self.win.on_key_press = self._on_pyglet_keypress
-        self._pyglet_buffer = []
-        self._press_buffer = []
-
-    def _on_pyglet_keypress(self, symbol, modifiers, emulated=False):
-        """Handler for on_key_press pyglet events"""
-        key_time = clock()
-        if emulated:
-            this_key = unicode(symbol)
-        else:
-            this_key = pyglet.window.key.symbol_string(symbol).lower()
-            this_key = this_key.lstrip('_').lstrip('NUM_')
-        self._pyglet_buffer.append((this_key, key_time))
-
-    def _clear_events(self):
-        self.win.dispatch_events()
-        self._pyglet_buffer = []
-        self._press_buffer = []
-
-    def _retrieve_events(self, live_keys):
-        live_keys = self._add_escape_keys(live_keys)
-        self.win.dispatch_events()  # pump events on pyglet windows
-        targets = []
-        for key in self._pyglet_buffer:
-            if key[0] in live_keys or live_keys is None:
-                targets.append(key)
-        self._press_buffer.extend(targets)
-        return self._press_buffer
-
-    def _get_keyboard_timebase(self):
-        """Get psychopy keyboard time reference.
-
-        Notes
-        -----
-        On Linux, PsychoPy's method for timestamping keypresses from Pyglet
-        uses timeit.default_timer, which wraps to time.time and returns seconds
-        elapsed since 1970/01/01 at midnight, giving very large numbers. On
-        Windows, PsychoPy's timer uses the Windows Query Performance Counter,
-        which also returns floats in seconds (apparently measured from when the
-        system was last rebooted). Importantly, on either system the units are
-        in seconds, and thus can simply be subtracted out.
-        """
-        return clock()
-
-    def _add_escape_keys(self, live_keys):
-        """Helper to add force quit keys to button press listener.
-        """
-        if live_keys is not None:
-            live_keys = [str(x) for x in live_keys]  # accept ints
-            if len(self.force_quit_keys):  # should always be a list of strings
-                live_keys = live_keys + self.force_quit_keys
-        return live_keys
 
 
 class Mouse(object):

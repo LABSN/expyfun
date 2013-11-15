@@ -294,9 +294,6 @@ class ExperimentController(object):
                                  'tdt is used for audio')
             self._response_handler = self._ac
 
-        # pass on check force quit calls
-        self._check_force_quit = self._response_handler.check_force_quit
-
         #
         # set up trigger controller
         #
@@ -368,20 +365,9 @@ class ExperimentController(object):
         -------
         Instance of visual.Text
         """
-        scr_txt = Text(win=self._win, text=text, pos=pos,
-                       height=height, wrapWidth=wrap_width,
-                       alignHoriz=h_align, alignVert=v_align,
-                       flipHoriz=h_flip, flipVert=v_flip,
-                       units=units, ori=angle, depth=0,
-                       color=color, colorSpace=color_space,
-                       opacity=opacity, contrast=contrast,
-                       font=font, bold=False, italic=False,
-                       fontFiles=[], antialias=True, name=name,
-                       autoLog=False)
-        scr_txt.setAutoDraw(False)
+        scr_txt = Text(self._win, text)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
-        self.flip()
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
@@ -421,6 +407,7 @@ class ExperimentController(object):
             raise TypeError('text must be a string or list of strings')
         for t in text:
             self.screen_text(t)
+            self.flip()
             out = self.wait_one_press(max_wait, min_wait, live_keys,
                                       timestamp)
         if clear_after:
@@ -554,6 +541,22 @@ class ExperimentController(object):
         else:
             self._on_every_flip = []
 
+    @property
+    def on_next_flip_functions(self):
+        """Current stack of functions to be called on next flip."""
+        return self._on_next_flip
+
+    @property
+    def on_every_flip_functions(self):
+        """Current stack of functions called on every flip."""
+        return self._on_every_flip
+
+    @property
+    def window(self):
+        """Visual window handle."""
+        return self._win
+
+############################### OPENGL METHODS ###############################
     def _setupGL(self):
         #setup screen color
         GL.glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -604,21 +607,6 @@ class ExperimentController(object):
             cocoa.CGLSetParameter(cocoa.CGLGetCurrentContext(),
                                   kCGLCPSwapInterval,
                                   v)
-
-    @property
-    def on_next_flip_functions(self):
-        """Current stack of functions to be called on next flip."""
-        return self._on_next_flip
-
-    @property
-    def on_every_flip_functions(self):
-        """Current stack of functions called on every flip."""
-        return self._on_every_flip
-
-    @property
-    def window(self):
-        """Visual window handle."""
-        return self._win
 
 ############################ KEYPRESS METHODS ############################
     def listen_presses(self):
