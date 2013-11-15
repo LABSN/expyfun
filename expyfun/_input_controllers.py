@@ -7,10 +7,9 @@
 
 import numpy as np
 from functools import partial
-from psychopy import event
-from psychopy import clock as psyclock
+import pyglet
 
-from ._utils import wait_secs
+from ._utils import wait_secs, clock
 
 
 class BaseKeyboard(object):
@@ -39,6 +38,7 @@ class BaseKeyboard(object):
         ec._time_correction_fxns['keypress'] = self._get_keyboard_timebase
         self.get_time_corr = partial(ec._get_time_correction, 'keypress')
         self.time_correction = self.get_time_corr()
+        self.win = ec._win
 
     def _clear_events(self):
         """Clear all events from keyboard buffer.
@@ -114,7 +114,8 @@ class BaseKeyboard(object):
         This function always uses the keyboard, so is part of abstraction.
         """
         if keys is None:
-            keys = event.getKeys(self.force_quit_keys, timeStamped=False)
+            #keys = getKeys(self.force_quit_keys, timeStamped=False)
+            keys = []  # NEED TO FIX HANDLING OF FORCE_QUIT CHECKING TDT!
         elif type(keys) is str:
             keys = [k for k in [keys] if k in self.force_quit_keys]
         elif type(keys) is list:
@@ -157,20 +158,39 @@ class BaseKeyboard(object):
         return relative_to, start_time
 
 
-class PsychKeyboard(BaseKeyboard):
+class Keyboard(BaseKeyboard):
     """Retrieve button presses from keyboard.
     """
     def __init__(self, *args, **kwargs):
         BaseKeyboard.__init__(self, *args, **kwargs)
+        # init pyglet response handler
+        self.win.on_key_press = self._on_pyglet_keypress
+        self._pyglet_buffer = []
         self._press_buffer = []
 
+    def _on_pyglet_keypress(self, symbol, modifiers, emulated=False):
+        """Handler for on_key_press pyglet events"""
+        key_time = clock()
+        if emulated:
+            this_key = unicode(symbol)
+        else:
+            this_key = pyglet.window.key.symbol_string(symbol).lower()
+            this_key = this_key.lstrip('_').lstrip('NUM_')
+        self._pyglet_buffer.append((this_key, key_time))
+
     def _clear_events(self):
-        event.clearEvents('keyboard')
+        self.win.dispatch_events()
+        self._pyglet_buffer = []
         self._press_buffer = []
 
     def _retrieve_events(self, live_keys):
         live_keys = self._add_escape_keys(live_keys)
-        self._press_buffer.extend(event.getKeys(live_keys, timeStamped=True))
+        self.win.dispatch_events()  # pump events on pyglet windows
+        targets = []
+        for key in self._pyglet_buffer:
+            if key[0] in live_keys or live_keys is None:
+                targets.append(key)
+        self._press_buffer.extend(targets)
         return self._press_buffer
 
     def _get_keyboard_timebase(self):
@@ -186,7 +206,7 @@ class PsychKeyboard(BaseKeyboard):
         system was last rebooted). Importantly, on either system the units are
         in seconds, and thus can simply be subtracted out.
         """
-        return psyclock.getTime()
+        return clock()
 
     def _add_escape_keys(self, live_keys):
         """Helper to add force quit keys to button press listener.
@@ -196,3 +216,41 @@ class PsychKeyboard(BaseKeyboard):
             if len(self.force_quit_keys):  # should always be a list of strings
                 live_keys = live_keys + self.force_quit_keys
         return live_keys
+
+
+class Mouse(object):
+    """Class to track mouse properties and events
+
+    Parameters
+    ----------
+    win : instance of pyglet Window
+        The window the mouse is attached to.
+    visible : bool
+        Initial mouse visibility.
+    """
+    def __init__(self, window, visible=False):
+        self._visible = visible
+        self.win = window
+        self.set_visible(visible)
+
+    def set_visible(self, visible):
+        """Sets the visibility of the mouse
+
+        Parameters
+        ----------
+        visible : bool
+            If True, make mouse visible.
+        """
+        self.win.set_mouse_visible(visible)
+        self._visible = visible
+
+    @property
+    def visible(self):
+        """Mouse visibility"""
+        return self._visible
+
+    @property
+    def pos(self):
+        """The current position of the mouse in normalized units"""
+        last_pos = np.array([self.win._mouse_x, self.win._mouse_y])
+        return (last_pos - self.win.size / 2) / (self.win.size / 2)

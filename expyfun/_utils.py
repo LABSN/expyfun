@@ -23,6 +23,9 @@ from numpy import sqrt, convolve, ones
 from numpy.testing.decorators import skipif
 import ctypes
 from psychopy import core
+import datetime
+from timeit import default_timer as clock  #analysis:ignore
+
 try:
     import pylink
 except ImportError:
@@ -35,6 +38,17 @@ else:
 # RANDOM UTILITIES
 
 is_linux = (platform.system() == 'Linux')
+
+
+def date_str():
+    """Produce a date string for the current date and time
+
+    Returns
+    -------
+    datestr : str
+        The date string.
+    """
+    return str(datetime.datetime.today())
 
 
 class WrapStdOut(object):

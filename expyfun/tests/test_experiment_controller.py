@@ -191,7 +191,6 @@ def test_ec(ac=None):
     wait_secs(0.01)
     test_pix = (11.3, 0.5, 110003)
     print test_pix
-    assert_allclose(test_pix, ec.deg2pix(ec.pix2deg(test_pix)))
     # test __repr__
     assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     ec.close()

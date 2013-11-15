@@ -15,7 +15,7 @@ with HidePyoOutput():
     from psychopy import sound
 
 
-class PsychSound(object):
+class PyoSound(object):
     """Use PsychoPy audio capabilities"""
     def __init__(self, ec, stim_fs):
         psylog.info('Expyfun: Setting up PsychoPy audio with {} '
@@ -30,7 +30,7 @@ class PsychSound(object):
         with HidePyoOutput():
             with HideAlsaOutput():
                 # request 44100 if it's available
-                self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=44100.0)
+                self.audio = sound.Sound(np.zeros((1, 2)), sampleRate=44100)
         self.audio.setVolume(1.0, log=False)  # dont change: linearity unknown
         self.fs = int(self.audio.sampleRate)
 
@@ -84,4 +84,5 @@ class PsychSound(object):
             self.noise = new_noise
 
     def halt(self):
-        sound.pyoSndServer.shutdown()
+        if sound.pyoSndServer is not None:
+            sound.pyoSndServer.shutdown()

@@ -10,7 +10,7 @@ import platform
 from ._utils import wait_secs, verbose_dec
 
 
-class PsychTrigger(object):
+class ParallelTrigger(object):
     """Parallel port and dummy triggering support
 
     IMPORTANT: When using the parallel port, note that calling

@@ -7,21 +7,22 @@
 
 import numpy as np
 import os
+import sys
+import threading
+import warnings
 from os import path as op
 from functools import partial
 from scipy.signal import resample
-from psychopy import prefs
-prefs.general['audioLib'] = ['pyo', 'pygame']
-prefs.general['audioDriver'] = ['jack', 'portaudio', 'ASIO', 'directsound']
-from psychopy import visual, core, event, gui, monitors, misc
-from psychopy.data import getDateStr as date_str
+import pyglet
+from pyglet import gl as GL
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
-                     running_rms, _sanitize, psylog)
+                     running_rms, _sanitize, psylog, clock, date_str)
 from ._tdt_controller import TDTController
-from ._trigger_controllers import PsychTrigger
-from ._sound_controllers import PsychSound
-from ._input_controllers import PsychKeyboard
+from ._trigger_controllers import ParallelTrigger
+from ._sound_controllers import PyoSound
+from ._input_controllers import Keyboard, Mouse
+from .visual import Text, Rectangle
 
 
 class ExperimentController(object):
@@ -33,9 +34,9 @@ class ExperimentController(object):
         Name of the experiment.
     audio_controller : str | dict | None
         If audio_controller is None, the type will be read from the system
-        configuration file. If a string, can be 'psychopy' or 'tdt', and the
+        configuration file. If a string, can be 'pyo' or 'tdt', and the
         remaining audio parameters will be read from the machine configuration
-        file. If a dict, must include a key 'TYPE' that is either 'psychopy'
+        file. If a dict, must include a key 'TYPE' that is either 'pyo'
         or 'tdt'; the dict can contain other parameters specific to the TDT
         (see documentation for expyfun.TDTController).
     response_device : str | None
@@ -126,7 +127,6 @@ class ExperimentController(object):
         # placeholder for extra actions to run on close
         self._extra_cleanup_fun = []
         # some hardcoded parameters...
-        bkgd_color = [-1, -1, -1]  # psychopy does RGB from -1 to 1
 
         # assure proper formatting for force-quit keys
         if force_quit is None:
@@ -138,10 +138,9 @@ class ExperimentController(object):
                         'recommended because it has special status in pyglet.')
 
         # set up timing
-        self._master_clock = core.MonotonicClock()
+        self._master_clock = clock
         self._time_corrections = dict()
-        flip_fun = visual.window.logging.defaultClock.getTime
-        self._time_correction_fxns = dict(flip=flip_fun)
+        self._time_correction_fxns = dict(flip=self._master_clock)
         self._get_time_correction('flip')
 
         # dictionary for experiment metadata
@@ -157,11 +156,7 @@ class ExperimentController(object):
                 fixed_list.append(key)
 
         if len(fixed_list) < len(self._exp_info):
-            session_dialog = gui.DlgFromDict(dictionary=self._exp_info,
-                                             fixed=fixed_list,
-                                             title=exp_name)
-            if not session_dialog.OK:
-                self.close()  # user pressed cancel
+            _get_items(self._exp_info, fixed=fixed_list, title=exp_name)
 
         #
         # initialize log file
@@ -202,24 +197,21 @@ class ExperimentController(object):
                                                    'SCREEN_SIZE_PIX']]):
                 raise KeyError('monitor must have keys "SCREEN_WIDTH", '
                                '"SCREEN_DISTANCE", and "SCREEN_SIZE_PIX"')
-        mon_size = monitor['SCREEN_SIZE_PIX']
-        monitor = monitors.Monitor('custom', monitor['SCREEN_WIDTH'],
-                                   monitor['SCREEN_DISTANCE'])
-        monitor.setSizePix(mon_size)
+        self._monitor = monitor
 
         #
         # parse audio controller
         #
         if audio_controller is None:
             audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
-                                                   'psychopy')}
+                                                   'pyo')}
         elif isinstance(audio_controller, basestring):
-            if audio_controller.lower() in ['psychopy', 'tdt']:
+            if audio_controller.lower() in ['pyo', 'psychopy', 'tdt']:
                 audio_controller = {'TYPE': audio_controller.lower()}
             else:
-                raise ValueError('audio_controller must be \'psychopy\' or '
+                raise ValueError('audio_controller must be \'pyo\' or '
                                  '\'tdt\' (or a dict including \'TYPE\':'
-                                 ' \'psychopy\' or \'TYPE\': \'tdt\').')
+                                 ' \'pyo\' or \'TYPE\': \'tdt\').')
         elif not isinstance(audio_controller, dict):
             raise TypeError('audio_controller must be a str or dict.')
         self._audio_type = audio_controller['TYPE'].lower()
@@ -246,8 +238,12 @@ class ExperimentController(object):
             self._ac = TDTController(audio_controller, self, as_kb, force_quit)
             self._audio_type = self._ac.model
             self._tdt_init = True
-        elif self._audio_type == 'psychopy':
-            self._ac = PsychSound(self, self.stim_fs)
+        elif self._audio_type in ['pyo', 'psychopy']:
+            if self._audio_type == 'psychopy':
+                warnings.warn('psychopy is deprecated and will be removed in '
+                              'version 1.2, use "pyo" instead for equivalent '
+                              'functionality')
+            self._ac = PyoSound(self, self.stim_fs)
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
                              '\'psychopy\' or \'tdt\'.')
@@ -269,9 +265,29 @@ class ExperimentController(object):
                             'compromise your experimental timing and/or cause '
                             'artifacts.'.format(self.stim_fs, self.fs))
 
+        #
+        # set up visual window (must be done before keyboard and mouse)
+        #
+        psylog.info('Expyfun: Setting up screen')
+        if window_size is None:
+            window_size = get_config('WINDOW_SIZE', '1920,1080').split(',')
+        if screen_num is None:
+            screen_num = int(get_config('SCREEN_NUM', '0'))
+
+        # setup GL config
+        config = GL.Config(depth_size=8, double_buffer=True,
+                           stencil_size=0, stereo=False)
+        self._win = pyglet.window.Window(width=window_size[0],
+                                         height=window_size[1],
+                                         caption=exp_name,
+                                         fullscreen=full_screen,
+                                         config=config,
+                                         screen=screen_num,
+                                         style='borderless')
+
         # Keyboard
         if response_device == 'keyboard':
-            self._response_handler = PsychKeyboard(self, force_quit)
+            self._response_handler = Keyboard(self, force_quit)
         if response_device == 'tdt':
             if not self._tdt_init:
                 raise ValueError('response_device can only be "tdt" if '
@@ -298,8 +314,8 @@ class ExperimentController(object):
         elif trigger_controller['type'] in ['parallel', 'dummy']:
             if 'address' not in trigger_controller['type']:
                 trigger_controller['address'] = get_config('TRIGGER_ADDRESS')
-            out = PsychTrigger(trigger_controller['type'],
-                               trigger_controller.get('address'))
+            out = ParallelTrigger(trigger_controller['type'],
+                                  trigger_controller.get('address'))
             self._trigger_handler = out
             self._extra_cleanup_fun.append(self._trigger_handler.close)
         else:
@@ -308,24 +324,8 @@ class ExperimentController(object):
                              '{0}'.format(trigger_controller['type']))
         self._trigger_controller = trigger_controller['type']
 
-        #
-        # set up visual window
-        #
-        psylog.info('Expyfun: Setting up screen')
-        if window_size is None:
-            window_size = get_config('WINDOW_SIZE', '1920,1080').split(',')
-        if screen_num is None:
-            screen_num = int(get_config('SCREEN_NUM', '0'))
-        self._win = visual.Window(size=window_size, fullscr=full_screen,
-                                  monitor=monitor, screen=screen_num,
-                                  winType='pyglet', allowGUI=False,
-                                  allowStencil=False, color=bkgd_color,
-                                  colorSpace='rgb', waitBlanking=True)
-        # save time on flips, we record these in a log anyway
-        self._win.setRecordFrameIntervals(False)
-
         # other basic components
-        self._mouse_handler = event.Mouse(visible=False, win=self._win)
+        self._mouse_handler = Mouse(self._win)
 
         # finish initialization
         psylog.info('Expyfun: Initialization complete')
@@ -366,24 +366,18 @@ class ExperimentController(object):
 
         Returns
         -------
-        Instance of psychopy.visual.TextStim
-
-        Notes
-        -----
-        For other parameters see documentation for ``psychopy.visual.TextStim``
-        Note that ``TextStim`` instances created by ``screen_text`` are spawned
-        with ``AutoDraw=False``.
+        Instance of visual.Text
         """
-        scr_txt = visual.TextStim(win=self._win, text=text, pos=pos,
-                                  height=height, wrapWidth=wrap_width,
-                                  alignHoriz=h_align, alignVert=v_align,
-                                  flipHoriz=h_flip, flipVert=v_flip,
-                                  units=units, ori=angle, depth=0,
-                                  color=color, colorSpace=color_space,
-                                  opacity=opacity, contrast=contrast,
-                                  font=font, bold=False, italic=False,
-                                  fontFiles=[], antialias=True, name=name,
-                                  autoLog=False)
+        scr_txt = Text(win=self._win, text=text, pos=pos,
+                       height=height, wrapWidth=wrap_width,
+                       alignHoriz=h_align, alignVert=v_align,
+                       flipHoriz=h_flip, flipVert=v_flip,
+                       units=units, ori=angle, depth=0,
+                       color=color, colorSpace=color_space,
+                       opacity=opacity, contrast=contrast,
+                       font=font, bold=False, italic=False,
+                       fontFiles=[], antialias=True, name=name,
+                       autoLog=False)
         scr_txt.setAutoDraw(False)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
@@ -443,18 +437,17 @@ class ExperimentController(object):
 
         Returns
         -------
-        rect : instance of Rect
-            The drawn PsychoPy Rect object.
+        rect : instance of Rectangle
+            The drawn Rectangle object.
 
         Notes
         -----
-        This shold be the first object drawn to a buffer, as it will
+        This should be the first object drawn to a buffer, as it will
         cover any previsouly drawn objects.
         """
         # we go a little over here to be safe from round-off errors
-        rect = visual.Rect(self._win, width=2.1, height=2.1,
-                           fillColor=color, lineWidth=0,
-                           interpolate=False, autoLog=False)
+        rect = Rectangle(self._win, width=2.1, height=2.1,
+                         fill_color=color, line_width=0)
         rect.draw()
         return rect
 
@@ -561,27 +554,56 @@ class ExperimentController(object):
         else:
             self._on_every_flip = []
 
-    def pix2deg(self, xy):
-        """Convert pixels to degrees
+    def _setupGL(self):
+        #setup screen color
+        GL.glClearColor(0.0, 0.0, 0.0, 1.0)
+        GL.glClearDepth(1.0)
+        GL.glViewport(0, 0, int(self.size[0]), int(self.size[1]))
 
-        Parameters
-        ----------
-        xy : array-like
-            Distances (in pixels) from center to convert to degrees.
+        GL.glMatrixMode(GL.GL_PROJECTION)  # Reset The Projection Matrix
+        GL.glLoadIdentity()
+        GL.gluOrtho2D(-1, 1, -1, 1)
+
+        GL.glMatrixMode(GL.GL_MODELVIEW)  # Reset The Projection Matrix
+        GL.glLoadIdentity()
+
+        GL.glDisable(GL.GL_DEPTH_TEST)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+
+        GL.glShadeModel(GL.GL_SMOOTH)  # Color Shading (FLAT or SMOOTH)
+        GL.glEnable(GL.GL_POINT_SMOOTH)
+
+        #check for GL_ARB_texture_float (needed for shaders to be useful)
+        #this needs to be done AFTER the context has been created
         """
-        xy = np.asarray(xy)
-        return misc.pix2deg(xy, self._win.monitor)
+        _haveShaders = (GL.gl_info.get_version() >= '2.0' and
+                        GL.gl_info.have_extension('GL_ARB_texture_float')
 
-    def deg2pix(self, xy):
-        """Convert degrees to pixels
-
-        Parameters
-        ----------
-        xy : array-like
-            Distances (in degrees) from center to convert to pixels.
+        if _haveShaders:
+            #we should be able to compile shaders (don't just 'try')
+            # fragSignedColorTexMask
+            self._progSignedTexMask = _shaders.compileProgram(
+                _shaders.vertSimple, _shaders.fragSignedColorTexMask)
+            self._progSignedTex = _shaders.compileProgram(
+                _shaders.vertSimple, _shaders.fragSignedColorTex)
+            self._progSignedTexMask1D = _shaders.compileProgram(
+                _shaders.vertSimple, _shaders.fragSignedColorTexMask1D)
+            self._progSignedTexFont = _shaders.compileProgram(
+                _shaders.vertSimple, _shaders.fragSignedColorTexFont)
         """
-        xy = np.asarray(xy)
-        return misc.deg2pix(xy, self._win.monitor)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+
+        #identify gfx card vendor
+        self._gl_vendor = GL.gl_info.get_vendor().lower()
+        if sys.platform == 'darwin':
+            import ctypes
+            cocoa = ctypes.cdll.LoadLibrary(ctypes.util.find_library("Cocoa"))
+            kCGLCPSwapInterval = ctypes.c_int(222)
+            v = ctypes.pointer(ctypes.c_int(1))
+            cocoa.CGLSetParameter(cocoa.CGLGetCurrentContext(),
+                                  kCGLCPSwapInterval,
+                                  v)
 
     @property
     def on_next_flip_functions(self):
@@ -912,7 +934,7 @@ class ExperimentController(object):
         critical timing periods.
         """
         if timestamp is None:
-            timestamp = self._master_clock.getTime()
+            timestamp = self._master_clock()
         ll = '\t'.join(_sanitize(x) for x in [timestamp, event_type,
                                               value]) + '\n'
         if self._data_file is not None:
@@ -922,7 +944,7 @@ class ExperimentController(object):
     def _get_time_correction(self, clock_type):
         """Clock correction (seconds) for win.flip().
         """
-        time_correction = (self._master_clock.getTime() -
+        time_correction = (self._master_clock() -
                            self._time_correction_fxns[clock_type]())
         if clock_type not in self._time_corrections:
             self._time_corrections[clock_type] = time_correction
@@ -976,7 +998,7 @@ class ExperimentController(object):
         reasonable timestamp (or equivalently, do a reasonably small amount of
         processing prior to calling ``wait_until``).
         """
-        time_left = timestamp - self._master_clock.getTime()
+        time_left = timestamp - self._master_clock()
         if time_left < 0:
             psylog.warn('wait_until was called with a timestamp ({}) that had '
                         'already passed {} seconds prior.'
@@ -1032,6 +1054,7 @@ class ExperimentController(object):
         """
         psylog.debug('Expyfun: Exiting cleanly')
 
+        # do external cleanups
         cleanup_actions = [self.stop_noise, self.stop,
                            self._ac.halt, self._win.close]
         if self._data_file is not None:
@@ -1043,12 +1066,21 @@ class ExperimentController(object):
             except Exception as exc:
                 print exc
                 continue
+
+        # clean up our API
         try:
-            core.quit()
-        except SystemExit:
-            pass
+            self._win.close()
+            #logging.flush()
+            for thisThread in threading.enumerate():
+                if hasattr(thisThread, 'stop') and \
+                        hasattr(thisThread, 'running'):
+                    # this is one of our event threads - kill it and wait
+                    thisThread.stop()
+                    while thisThread.running == 0:
+                        pass  # wait until it has properly finished polling
         except Exception as exc:
             print exc
+
         if any([x is not None for x in (err_type, value, traceback)]):
             raise err_type, value, traceback
 
@@ -1081,13 +1113,23 @@ class ExperimentController(object):
     def current_time(self):
         """Timestamp from the experiment master clock.
         """
-        return self._master_clock.getTime()
+        return self._master_clock()
 
     @property
     def _fs_mismatch(self):
         """Quantify if sample rates substantively differ.
         """
         return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.5)
+
+
+def _get_items(d, fixed, title):
+    """Helper to get items for an experiment"""
+    print title
+    for key, val in d.iteritems():
+        if key in fixed:
+            print '{0}: {1}'.format(key, val)
+        else:
+            d[key] = raw_input('{0}: '.format(key))
 
 
 def _get_dev_db(audio_controller):
@@ -1099,7 +1141,7 @@ def _get_dev_db(audio_controller):
         return 108
     elif audio_controller == 'RZ6':
         return 114
-    elif audio_controller == 'psychopy':
+    elif audio_controller in ['pyo', 'psychopy']:
         return 90  # TODO: this value not yet calibrated, may vary by system
     else:
         psylog.warn('Unknown audio controller: stim scaler may not work '

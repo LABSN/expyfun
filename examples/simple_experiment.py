@@ -23,7 +23,7 @@ from generate_stimuli import generate_stimuli
 set_log_level('INFO')
 
 # set configuration
-ac = 'psychopy'  # change to 'RM1' or 'RP2' for TDT use
+ac = 'pyo'  # change to 'RM1' or 'RP2' for TDT use
 fs = 44100
 noise_db = 45  # dB for background noise
 stim_db = 65  # dB for stimuli
@@ -64,13 +64,14 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
                   'thing. There will be background noise.')
 
 # select audio controller
-if ac != 'psychopy':
+if ac != 'pyo':
     ac = dict(TYPE='tdt', TDT_MODEL=ac)
 
 with ExperimentController('testExp', ac, screen_num=0,
                           window_size=[800, 600], full_screen=False,
                           stim_db=stim_db, noise_db=noise_db, stim_fs=fs,
-                          participant='foo', session='001') as ec:
+                          participant='foo', session='001',
+                          verbose=True) as ec:
 
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]

@@ -12,8 +12,7 @@ using eye-tracking simpler.
 
 print __doc__
 
-from expyfun import ExperimentController, EyelinkController
-from psychopy import visual
+from expyfun import ExperimentController, EyelinkController, visual
 import numpy as np
 
 link = None  # or '100.1.1.1' for real eye tracking
@@ -30,14 +29,14 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
                      'of the big white circle.\n\nPress a button to continue')
 
     # make some circles to be drawn
-    radius = ec.deg2pix(7.5)  # change degrees to pixels
-    targ_rad = ec.deg2pix(0.2)
+    radius = 7.5  # degrees
+    targ_rad = 0.2  # degrees
     theta = np.linspace(np.pi / 2., 2.5 * np.pi, 200)
     x_pos, y_pos = radius * np.cos(theta), radius * np.sin(theta)
-    big_circ = visual.Circle(ec.window, radius, edges=100, units='pix')
-    targ_circ = visual.Circle(ec.window, targ_rad, edges=100, units='pix',
+    big_circ = visual.Circle(ec.window, radius, edges=100, units='deg')
+    targ_circ = visual.Circle(ec.window, targ_rad, edges=100, units='deg',
                               fillColor=(1., -1., -1.), lineColor=None)
-    targ_circ.setPos((x_pos[0], y_pos[0]), log=False)
+    targ_circ.setPos((x_pos[0], y_pos[0]), units='deg')
 
     el.stamp_trial_id(1)  # stamp this trial ID to the file
     # now let's make it so the SYNC message gets stamped when we flip
@@ -48,14 +47,14 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     big_circ.draw()
     targ_circ.draw()
     ec.flip()
-    if not el.wait_for_fix(fix_pos, 1., max_wait=5.):
+    if not el.wait_for_fix(fix_pos, 1., max_wait=5., units='deg'):
         print 'Initial fixation failed'
     for ii, (x, y) in enumerate(zip(x_pos[1:], y_pos[1:])):
-        targ_circ.setPos((x, y), log=False)
+        targ_circ.setPos((x, y), units='deg')
         big_circ.draw()
         targ_circ.draw()
         ec.flip()
-        if not el.wait_for_fix([x, y], max_wait=5.):
+        if not el.wait_for_fix([x, y], max_wait=5., units='deg'):
             print 'Fixation {0} failed'.format(ii + 1)
     el.stop()  # stop recording to save the file
     ec.screen_prompt('All done!', max_wait=1.0)
