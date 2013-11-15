@@ -32,6 +32,7 @@ def _get_dtype_norm(dtype):
 
 
 def _print_wav_info(pre, data, dtype):
+    """Helper to print WAV info"""
     psylog.info('{0} WAV file with {1} channel{3} and {2} samples '
                 '(format {4})'.format(pre, data.shape[0], data.shape[1],
                                       's' if data.shape[0] != 1 else '',
@@ -53,7 +54,7 @@ def read_wav(fname, verbose=None):
         The WAV file data. Will be of datatype np.float64. If the data
         had been saved as integers (typical), this function will
         automatically rescale the data to be between -1 and +1.
-        If the data The result will have dimension n_channels x n_samples.
+        The result will have dimension n_channels x n_samples.
     fs : int
         The wav sample rate
     """
@@ -84,7 +85,7 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
     """
     if not overwrite and op.isfile(fname):
         raise IOError('File {} exists, overwrite=True must be '
-                      'used'.format(fname))
+                      'used'.format(op.basename(fname)))
     data = np.atleast_2d(data)
     _print_wav_info('Writing', data, data.dtype)
     if np.issubdtype(data.dtype, np.float64):
@@ -93,5 +94,4 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
                              'with an integer dtype')
     max_val = _get_dtype_norm(dtype)
     data = (data * max_val).astype(dtype)
-    print (data.min(), data.max(), data.dtype)
     wavfile.write(fname, fs, data.T)
