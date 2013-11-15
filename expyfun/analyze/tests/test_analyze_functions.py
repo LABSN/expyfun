@@ -24,7 +24,7 @@ def test_dprime():
 
 
 def test_plotting():
-    """
+    """Test plotting functions
     """
     tmp = np.arange(12).reshape((3, 4))
     grp1 = np.arange(4).reshape((2, 2))

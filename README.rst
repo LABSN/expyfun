@@ -6,6 +6,11 @@
 This package is designed for audio-visual experiments with precise timing,
 and includes functionality for Eyelink control.
 
+Note that lab calibration logs can be stored here:
+
+https://github.com/LABSN/expyfun/wiki/Calibration-log
+
+
 Licensing
 ^^^^^^^^^
 

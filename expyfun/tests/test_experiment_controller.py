@@ -137,7 +137,6 @@ def test_ec(ac=None):
     ec.screen_prompt(['test', 'ing'], 0.01, 0, ['1'])
     assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
     assert_raises(TypeError, ec.screen_prompt, 3, 0.01, 0, None)
-    ec.clear_screen()
     assert_equal(ec.wait_one_press(0.01), (None, None))
     assert_true(ec.wait_one_press(0.01, timestamp=False) is None)
     assert_equal(ec.wait_for_presses(0.01), [])
@@ -210,7 +209,6 @@ def test_button_presses_and_window_size():
     assert_equal(ec.screen_prompt('press 1', live_keys=['1']), '1')
     ec.screen_text('press 1 again')
     assert_equal(ec.wait_one_press(live_keys=[1])[0], '1')
-    ec.clear_screen()
     ec.screen_text('press 1 one last time')
     out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
     if len(out) > 0:

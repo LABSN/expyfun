@@ -11,6 +11,7 @@ from ._experiment_controller import ExperimentController, wait_secs
 from ._eyelink_controller import EyelinkController
 from ._create_system_config import create_system_config
 from . import analyze  # fast enough, include here
+from . import stimuli
 
 # initialize logging
 set_log_level(None, False)
