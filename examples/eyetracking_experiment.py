@@ -33,10 +33,10 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     targ_rad = 0.2  # degrees
     theta = np.linspace(np.pi / 2., 2.5 * np.pi, 200)
     x_pos, y_pos = radius * np.cos(theta), radius * np.sin(theta)
-    big_circ = visual.Circle(ec.window, radius, edges=100, units='deg')
-    targ_circ = visual.Circle(ec.window, targ_rad, edges=100, units='deg',
-                              fillColor=(1., -1., -1.), lineColor=None)
-    targ_circ.setPos((x_pos[0], y_pos[0]), units='deg')
+    big_circ = visual.Circle(ec, radius, (0, 0), units='deg',
+                             fill_color=None, line_color='white')
+    targ_circ = visual.Circle(ec, targ_rad, (x_pos[0], y_pos[0]),
+                              units='deg', fill_color='red')
 
     el.stamp_trial_id(1)  # stamp this trial ID to the file
     # now let's make it so the SYNC message gets stamped when we flip
@@ -50,7 +50,7 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     if not el.wait_for_fix(fix_pos, 1., max_wait=5., units='deg'):
         print 'Initial fixation failed'
     for ii, (x, y) in enumerate(zip(x_pos[1:], y_pos[1:])):
-        targ_circ.setPos((x, y), units='deg')
+        targ_circ.set_pos((x, y), units='deg')
         big_circ.draw()
         targ_circ.draw()
         ec.flip()

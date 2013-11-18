@@ -90,6 +90,13 @@ class _TempDir(str):
             rmtree(self._path, ignore_errors=True)
 
 
+def _check_units(units):
+    """Helper to make sure user passed in valid units type"""
+    good_units = ['norm', 'pix', 'deg']
+    if units not in good_units:
+        raise ValueError('"units" must be one of {}, not {}'
+                         ''.format(good_units, units))
+
 ###############################################################################
 # DECORATORS
 

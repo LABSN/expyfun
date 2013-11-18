@@ -42,8 +42,12 @@ class PyoSound(object):
         with HidePyoOutput():
             with HideAlsaOutput():
                 self._pyo_server.boot()
-        wait_secs(0.5)
+        if not self._pyo_server.getIsBooted():
+            raise RuntimeError('pyo sound server could not be booted')
+        wait_secs(0.1)
         self._pyo_server.start()
+        if not self._pyo_server.getIsStarted():
+            raise RuntimeError('pyo sound server could not be started')
         self.fs = int(self._pyo_server.getSamplingRate())
 
         # Need to generate at RMS=1 to match TDT circuit
@@ -93,7 +97,6 @@ class PyoSound(object):
     def halt(self):
         if self._pyo_server is not None:
             self._pyo_server.stop()
-            wait_secs(0.5)
             self._pyo_server.shutdown()
 
 

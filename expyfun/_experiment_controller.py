@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 import os
 import threading
 import warnings
@@ -17,7 +16,8 @@ import pyglet
 from pyglet import gl as GL
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
-                     running_rms, _sanitize, psylog, clock, date_str)
+                     running_rms, _sanitize, psylog, clock, date_str,
+                     _check_units)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PyoSound
@@ -180,14 +180,20 @@ class ExperimentController(object):
         #
         # set up monitor
         #
+        if screen_num is None:
+            screen_num = int(get_config('SCREEN_NUM', '0'))
         if monitor is None:
+            mon_size = pyglet.window.get_platform().get_default_display()
+            mon_size = mon_size.get_screens()[screen_num]
+            mon_size = [mon_size.width, mon_size.height]
+            mon_size = ','.join([str(d) for d in mon_size])
             monitor = dict()
             monitor['SCREEN_WIDTH'] = float(get_config('SCREEN_WIDTH', '51.0'))
             monitor['SCREEN_DISTANCE'] = float(get_config('SCREEN_DISTANCE',
                                                '48.0'))
-            pix_size = get_config('SCREEN_SIZE_PIX', '1920,1080').split(',')
-            pix_size = [int(p) for p in pix_size]
-            monitor['SCREEN_SIZE_PIX'] = pix_size
+            mon_size = get_config('SCREEN_SIZE_PIX', mon_size).split(',')
+            mon_size = [int(p) for p in mon_size]
+            monitor['SCREEN_SIZE_PIX'] = mon_size
         else:
             if not isinstance(monitor, dict):
                 raise TypeError('monitor must be a dict')
@@ -196,6 +202,7 @@ class ExperimentController(object):
                                                    'SCREEN_SIZE_PIX']]):
                 raise KeyError('monitor must have keys "SCREEN_WIDTH", '
                                '"SCREEN_DISTANCE", and "SCREEN_SIZE_PIX"')
+            mon_size = monitor['SCREEN_SIZE_PIX']
         monitor['SCREEN_DPI'] = (monitor['SCREEN_SIZE_PIX'][0] /
                                  (monitor['SCREEN_WIDTH'] * 0.393701))
         monitor['SCREEN_HEIGHT'] = (monitor['SCREEN_WIDTH']
@@ -273,11 +280,16 @@ class ExperimentController(object):
         # set up visual window (must be done before keyboard and mouse)
         #
         psylog.info('Expyfun: Setting up screen')
-        if window_size is None:
-            window_size = get_config('WINDOW_SIZE', '1920,1080').split(',')
-            window_size = [int(w) for w in window_size]
-        if screen_num is None:
-            screen_num = int(get_config('SCREEN_NUM', '0'))
+        if full_screen:
+            window_size = monitor['SCREEN_SIZE_PIX']
+        else:
+            if window_size is None:
+                window_size = get_config('WINDOW_SIZE', '800,600').split(',')
+                window_size = [int(w) for w in window_size]
+        window_size = np.array(window_size)
+        if window_size.ndim != 1 or window_size.size != 2:
+            raise ValueError('window_size must be 2-element array-like or '
+                             'None')
 
         # open window and setup GL config
         self._setup_window(window_size, exp_name, full_screen, screen_num)
@@ -340,10 +352,8 @@ class ExperimentController(object):
         return string
 
 ############################### SCREEN METHODS ###############################
-    def screen_text(self, text, pos=[0, 0], h_align='center', v_align='center',
-                    units='norm', color=[1, 1, 1], color_space='rgb',
-                    height=0.1, wrap_width=1.5, h_flip=False, v_flip=False,
-                    angle=0, opacity=1.0, contrast=1.0, name='', font='Arial'):
+    def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
+                    font_size=24):
         """Show some text on the screen.
 
         Parameters
@@ -362,7 +372,7 @@ class ExperimentController(object):
         -------
         Instance of visual.Text
         """
-        scr_txt = Text(self, text)
+        scr_txt = Text(self, text, pos, color, font_name, font_size)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         return scr_txt
@@ -430,7 +440,7 @@ class ExperimentController(object):
         cover any previsouly drawn objects.
         """
         # we go a little over here to be safe from round-off errors
-        rect = Rectangle(self, width=2.1, height=2.1, fill_color=color)
+        rect = Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color)
         rect.draw()
         return rect
 
@@ -512,16 +522,14 @@ class ExperimentController(object):
 
     def _convert_units(self, verts, fro, to):
         """Convert between different screen units"""
-        verts = np.atleast_2d(verts).copy()
+        _check_units(to)
+        _check_units(fro)
+        verts = np.array(np.atleast_2d(verts), dtype=float)
         if verts.shape[0] != 2:
             raise RuntimeError('verts must have 2 rows')
-        if fro not in self.unit_conversions:
-            raise KeyError('unit_conversions does not have "{}"'.format(fro))
-        if to not in self.unit_conversions:
-            raise KeyError('unit_conversions does not have "{}"'.format(to))
 
         if fro == to:
-            return verts.copy()
+            return verts
 
         # simplify by using two if neither is in normalized (native) units
         if 'norm' not in [to, fro]:
@@ -532,33 +540,34 @@ class ExperimentController(object):
             return verts
 
         # figure out our actual transition, knowing one is 'norm'
-        h_pix = self.size_pix[0]
-        w_pix = self.size_pix[1]
+        w_pix = self.window_size_pix[0]
+        h_pix = self.window_size_pix[1]
         d_cm = self._monitor['SCREEN_DISTANCE']
         h_cm = self._monitor['SCREEN_HEIGHT']
         w_cm = self._monitor['SCREEN_WIDTH']
         if 'pix' in [to, fro]:
             if 'pix' == to:
                 # norm to pixels
-                x = np.array([[w_pix / 2., 0, -w_pix / 2.],
-                              [0, h_pix / 2., -h_pix / 2.]])
+                x = np.array([[w_pix / 2., 0, w_pix / 2.],
+                              [0, h_pix / 2., h_pix / 2.]])
             else:
                 # pixels to norm
                 x = np.array([[2. / w_pix, 0, -1.],
                               [0, 2. / h_pix, -1.]])
-            verts = np.dot(x, np.r_[verts, np.ones(verts.shape[1])])
+            verts = np.dot(x, np.r_[verts, np.ones((1, verts.shape[1]))])
         elif 'deg' in [to, fro]:
             if 'deg' == to:
                 # norm to deg
-                x = np.arctan2(verts[0] / (w_cm / 2.), d_cm)
-                y = np.arctan2(verts[1] / (h_cm / 2.), d_cm)
+                x = np.arctan2(verts[0] * (w_cm / 2.), d_cm)
+                y = np.arctan2(verts[1] * (h_cm / 2.), d_cm)
                 verts = np.array([x, y])
                 verts *= (180. / np.pi)
             else:
                 # deg to norm
                 verts *= (np.pi / 180.)
-                x = d_cm * np.tan(verts[0])
-                y = d_cm * np.tan(verts[1])
+                x = (d_cm * np.tan(verts[0])) / (w_cm / 2.)
+                y = (d_cm * np.tan(verts[1])) / (h_cm / 2.)
+                verts = np.array([x, y])
         else:
             raise KeyError('unknown conversion "{}" to "{}"'.format(fro, to))
         return verts
@@ -583,25 +592,36 @@ class ExperimentController(object):
         return self._monitor['SCREEN_DPI']
 
     @property
-    def size_pix(self):
+    def window_size_pix(self):
         return np.array([self._win.width, self._win.height])
+
+    @property
+    def monitor_size_pix(self):
+        return np.array(self._monitor['SCREEN_SIZE_PIX'])
 
 ############################### OPENGL METHODS ###############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         config = GL.Config(depth_size=8, double_buffer=True,
                            stencil_size=0, stereo=False)
-        self._win = pyglet.window.Window(width=window_size[0],
-                                         height=window_size[1],
-                                         caption=exp_name,
-                                         fullscreen=full_screen,
-                                         config=config,
-                                         screen=screen_num,
-                                         style='borderless')
+        win = pyglet.window.Window(width=window_size[0],
+                                   height=window_size[1],
+                                   caption=exp_name,
+                                   fullscreen=full_screen,
+                                   config=config,
+                                   screen=screen_num,
+                                   style='borderless')
+        if not full_screen:
+            x = int(win.screen.width / 2. - win.width / 2.)
+            y = int(win.screen.height / 2. - win.height / 2.)
+            win.set_location(x, y)
+        self._win = win
 
+        """
         # with the context set up, do GL stuff
         GL.glClearColor(0.0, 0.0, 0.0, 1.0)
         GL.glClearDepth(1.0)
-        GL.glViewport(0, 0, int(self.size_pix[0]), int(self.size_pix[1]))
+        GL.glViewport(0, 0, int(self.window_size_pix[0]),
+                      int(self.window_size_pix[1]))
         GL.glMatrixMode(GL.GL_PROJECTION)  # Reset The Projection Matrix
         GL.glLoadIdentity()
         GL.gluOrtho2D(-1, 1, -1, 1)
@@ -613,6 +633,8 @@ class ExperimentController(object):
         GL.glShadeModel(GL.GL_SMOOTH)  # Color Shading (FLAT or SMOOTH)
         GL.glEnable(GL.GL_POINT_SMOOTH)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        """
+        self.flip()
 
     def flip(self):
         """Flip screen, then run any "on-flip" functions.
@@ -764,19 +786,16 @@ class ExperimentController(object):
         Parameters
         ----------
         units : str
-            Either ``'pix'`` or ``'norm'`` for the type of units to return.
+            Units to return.
 
         Returns
         -------
         position : ndarray
             The mouse position.
         """
-        if not units in ['pix', 'norm']:
-            raise RuntimeError('must request units in "pix" or "norm"')
+        _check_units(units)
         pos = np.array(self._mouse_handler.pos)
-        if units == 'pix':
-            pos *= self.size_pix / 2.
-            pos += self.size_pix / 2.
+        pos = self._convert_units(pos[:, np.newaxis], 'norm', units)[:, 0]
         return pos
 
     def toggle_cursor(self, visibility, flip=False):

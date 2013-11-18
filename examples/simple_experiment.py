@@ -153,8 +153,9 @@ with ExperimentController('testExp', ac, screen_num=0,
     correct = [press == ans for press, ans in zip(pressed, answers)]
     running_total += sum(correct)
     ec.call_on_next_flip(ec.stop_noise())
-    ec.screen_prompt('You got {0} out of {1} correct.'.format(sum(correct),
-                     len(answers)), max_wait=feedback_dur)
+    ec.screen_prompt('You got {0} out of {1} correct.'
+                     ''.format(sum(correct), len(answers)),
+                     max_wait=feedback_dur)
 
     # end experiment
     ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '
