@@ -3,7 +3,7 @@ import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from numpy.testing import assert_allclose
 
-from expyfun import ExperimentController, wait_secs
+from expyfun import ExperimentController, wait_secs, visual
 from expyfun._utils import _TempDir, interactive_test, tdt_test
 
 warnings.simplefilter('always')
@@ -142,80 +142,90 @@ def test_ec(ac=None):
                       **std_kwargs)
 
         # run rest of test with audio_controller == 'pyo'
-        ec = ExperimentController(*std_args, audio_controller='pyo',
-                                  **std_kwargs)
+        this_ac = 'pyo'
 
     else:
         # run rest of test with audio_controller == 'tdt'
-        ec = ExperimentController(*std_args, audio_controller=ac,
-                                  **std_kwargs)
+        this_ac = ac
+    with ExperimentController(*std_args, audio_controller=this_ac,
+                              **std_kwargs) as ec:
+        stamp = ec.current_time
+        ec.write_data_line('hello')
+        ec.wait_until(stamp + 0.02)
+        ec.screen_prompt('test', 0.01, 0, None)
+        ec.screen_prompt('test', 0.01, 0, ['1'])
+        ec.screen_prompt(['test', 'ing'], 0.01, 0, ['1'])
+        assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
+        assert_raises(TypeError, ec.screen_prompt, 3, 0.01, 0, None)
+        assert_equal(ec.wait_one_press(0.01), (None, None))
+        assert_true(ec.wait_one_press(0.01, timestamp=False) is None)
+        assert_equal(ec.wait_for_presses(0.01), [])
+        assert_equal(ec.wait_for_presses(0.01, timestamp=False), [])
+        assert_raises(ValueError, ec.get_presses)
+        ec.listen_presses()
+        assert_equal(ec.get_presses(), [])
+        ec.clear_buffer()
+        ec.set_noise_db(0)
+        ec.set_stim_db(20)
+        ec.draw_background_color('black')
+        # test buffer data handling
+        ec.load_buffer([0, 0, 0, 0, 0, 0])
+        assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
+        ec.load_buffer(np.zeros((100,)))
+        ec.load_buffer(np.zeros((100, 1)))
+        ec.load_buffer(np.zeros((100, 2)))
+        ec.load_buffer(np.zeros((1, 100)))
+        ec.load_buffer(np.zeros((2, 100)))
+        assert_raises(ValueError, ec.load_buffer, np.zeros((100, 3)))
+        assert_raises(ValueError, ec.load_buffer, np.zeros((3, 100)))
+        assert_raises(ValueError, ec.load_buffer, np.zeros((1, 1, 1)))
 
-    stamp = ec.current_time
-    ec.write_data_line('hello')
-    ec.wait_until(stamp + 0.02)
-    ec.screen_prompt('test', 0.01, 0, None)
-    ec.screen_prompt('test', 0.01, 0, ['1'])
-    ec.screen_prompt(['test', 'ing'], 0.01, 0, ['1'])
-    assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
-    assert_raises(TypeError, ec.screen_prompt, 3, 0.01, 0, None)
-    assert_equal(ec.wait_one_press(0.01), (None, None))
-    assert_true(ec.wait_one_press(0.01, timestamp=False) is None)
-    assert_equal(ec.wait_for_presses(0.01), [])
-    assert_equal(ec.wait_for_presses(0.01, timestamp=False), [])
-    assert_raises(ValueError, ec.get_presses)
-    ec.listen_presses()
-    assert_equal(ec.get_presses(), [])
-    ec.clear_buffer()
-    ec.set_noise_db(0)
-    ec.set_stim_db(20)
-    ec.draw_background_color('black')
-    # test buffer data handling
-    ec.load_buffer([0, 0, 0, 0, 0, 0])
-    assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
-    ec.load_buffer(np.zeros((100,)))
-    ec.load_buffer(np.zeros((100, 1)))
-    ec.load_buffer(np.zeros((100, 2)))
-    ec.load_buffer(np.zeros((1, 100)))
-    ec.load_buffer(np.zeros((2, 100)))
-    assert_raises(ValueError, ec.load_buffer, np.zeros((100, 3)))
-    assert_raises(ValueError, ec.load_buffer, np.zeros((3, 100)))
-    assert_raises(ValueError, ec.load_buffer, np.zeros((1, 1, 1)))
+        # test RMS checking
+        assert_raises(ValueError, ec.set_rms_checking, 'foo')
+        # click: RMS 0.0135, should pass 'fullfile' and fail 'windowed'
+        click = np.zeros((ec.fs / 4,))  # 250 ms
+        click[len(click) / 2] = 1.
+        click[len(click) / 2 + 1] = -1.
+        # noise: RMS 0.03, should fail both 'fullfile' and 'windowed'
+        noise = np.random.normal(scale=0.03, size=(ec.fs / 4,))
+        ec.set_rms_checking(None)
+        ec.load_buffer(click)  # should go unchecked
+        ec.load_buffer(noise)  # should go unchecked
+        ec.set_rms_checking('wholefile')
+        ec.load_buffer(click)  # should pass
+        assert_raises(UserWarning, ec.load_buffer, noise)
+        ec.set_rms_checking('windowed')
+        assert_raises(UserWarning, ec.load_buffer, click)
+        assert_raises(UserWarning, ec.load_buffer, noise)
 
-    # test RMS checking
-    assert_raises(ValueError, ec.set_rms_checking, 'foo')
-    # click: RMS 0.0135, should pass 'fullfile' and fail 'windowed'
-    click = np.zeros((ec.fs / 4,))  # 250 ms
-    click[len(click) / 2] = 1.
-    click[len(click) / 2 + 1] = -1.
-    # noise: RMS 0.03, should fail both 'fullfile' and 'windowed'
-    noise = np.random.normal(scale=0.03, size=(ec.fs / 4,))
-    ec.set_rms_checking(None)
-    ec.load_buffer(click)  # should go unchecked
-    ec.load_buffer(noise)  # should go unchecked
-    ec.set_rms_checking('wholefile')
-    ec.load_buffer(click)  # should pass
-    assert_raises(UserWarning, ec.load_buffer, noise)
-    ec.set_rms_checking('windowed')
-    assert_raises(UserWarning, ec.load_buffer, click)
-    assert_raises(UserWarning, ec.load_buffer, noise)
-
-    ec.stop()
-    ec.call_on_every_flip(dummy_print, 'called on flip and play')
-    ec.flip_and_play()
-    ec.flip()
-    ec.call_on_every_flip(None)
-    ec.call_on_next_flip(ec.start_noise())
-    ec.flip_and_play()
-    ec.call_on_next_flip(ec.stop_noise())
-    ec.flip_and_play()
-    print ec.fs  # test fs support
-    wait_secs(0.01)
-    test_pix = (11.3, 0.5, 110003)
-    print test_pix
-    # test __repr__
-    assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
-    ec.close()
+        ec.stop()
+        ec.call_on_every_flip(dummy_print, 'called on flip and play')
+        ec.flip_and_play()
+        ec.flip()
+        ec.call_on_every_flip(None)
+        ec.call_on_next_flip(ec.start_noise())
+        ec.flip_and_play()
+        ec.call_on_next_flip(ec.stop_noise())
+        ec.flip_and_play()
+        data = ec.screenshot()
+        assert_allclose(data.shape[:2], std_kwargs['window_size'])
+        print ec.fs  # test fs support
+        wait_secs(0.01)
+        test_pix = (11.3, 0.5, 110003)
+        print test_pix
+        # test __repr__
+        assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     del ec
+
+
+def test_visual(ac=None):
+    """Test EC visual methods
+    """
+    with ExperimentController(*std_args, audio_controller=ac,
+                              **std_kwargs) as ec:
+        circ = visual.Circle(ec)
+        rect = visual.Rectangle(ec, [0, 0, 1, 1])
+        img = visual.RawImage(ec, np.ones((3, 3, 4)))
 
 
 @interactive_test
