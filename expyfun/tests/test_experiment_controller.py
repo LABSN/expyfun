@@ -2,6 +2,7 @@ import warnings
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from numpy.testing import assert_allclose
+from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
 from expyfun._utils import _TempDir, interactive_test, tdt_test
@@ -22,14 +23,17 @@ def dummy_print(string):
 def test_unit_conversions():
     """Test unit conversions
     """
-    with ExperimentController(*std_args, **std_kwargs) as ec:
-        verts = np.random.rand(2, 4)
-        for to in ['norm', 'pix', 'deg']:
-            for fro in ['norm', 'pix', 'deg']:
-                print (to, fro)
-                v2 = ec._convert_units(verts, fro, to)
-                v2 = ec._convert_units(v2, to, fro)
-                assert_allclose(verts, v2)
+    for ws in [(2, 1), (1, 1)]:
+        kwargs = deepcopy(std_kwargs)
+        kwargs['window_size'] = ws
+        with ExperimentController(*std_args, **kwargs) as ec:
+            verts = np.random.rand(2, 4)
+            for to in ['norm', 'pix', 'deg']:
+                for fro in ['norm', 'pix', 'deg']:
+                    print (ws, to, fro)
+                    v2 = ec._convert_units(verts, fro, to)
+                    v2 = ec._convert_units(v2, to, fro)
+                    assert_allclose(verts, v2)
 
         # test that degrees yield equiv. pixels in both directions
         verts = np.ones((2, 1))

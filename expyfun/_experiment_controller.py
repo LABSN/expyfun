@@ -543,7 +543,7 @@ class ExperimentController(object):
         w_cm = self._monitor['SCREEN_WIDTH']
         h_cm = self._monitor['SCREEN_HEIGHT']
         w_prop = w_pix / float(self.monitor_size_pix[0])
-        h_prop = w_pix / float(self.monitor_size_pix[1])
+        h_prop = h_pix / float(self.monitor_size_pix[1])
         if 'pix' in [to, fro]:
             if 'pix' == to:
                 # norm to pixels
