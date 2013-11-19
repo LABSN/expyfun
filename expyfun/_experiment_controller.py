@@ -7,7 +7,6 @@
 
 import numpy as np
 import os
-import threading
 import warnings
 from os import path as op
 from functools import partial
@@ -957,12 +956,11 @@ class ExperimentController(object):
                                'by more than 6 dB.'.format(max_rms,
                                                            self._stim_rms))
                 logger.warn(warn_string)
-                raise UserWarning(warn_string)
+                warnings.warn(warn_string)
             elif max_rms < 0.5 * self._stim_rms:
                 warn_string = ('Stimulus max RMS is less than stated RMS by '
                                'more than 6 dB.')
                 logger.warn(warn_string)
-                # raise UserWarning(warn_string)
 
         # always prepend a zero to deal with TDT reset of buffer position
         samples = np.r_[np.atleast_2d([0.0, 0.0]), samples]
@@ -1143,13 +1141,6 @@ class ExperimentController(object):
         try:
             self._win.close()
             self.flush_logs()
-            for thisThread in threading.enumerate():
-                if hasattr(thisThread, 'stop') and \
-                        hasattr(thisThread, 'running'):
-                    # this is one of our event threads - kill it and wait
-                    thisThread.stop()
-                    while thisThread.running == 0:
-                        pass  # wait until it has properly finished polling
         except Exception as exc:
             print exc
 
