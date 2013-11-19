@@ -16,15 +16,14 @@ def test_logging(ac='pyo'):
     """Test logging to file (Pyo)
     """
     os.chdir(tempdir)
-    ec = ExperimentController(*std_args, audio_controller=ac, **std_kwargs)
-    test_name = ec._log_file
-    stamp = ec.current_time
-    ec.wait_until(stamp)  # wait_until called with already passed timestamp
-    try:
-        ec.load_buffer([1., -1., 1., -1., 1., -1.])  # RMS warning
-    except UserWarning:
-        pass
-    ec.close()
+    with ExperimentController(*std_args, audio_controller=ac,
+                              **std_kwargs) as ec:
+        test_name = ec._log_file
+        stamp = ec.current_time
+        ec.wait_until(stamp)  # wait_until called with already passed timestamp
+        with warnings.catch_warnings(True):
+            ec.load_buffer([1., -1., 1., -1., 1., -1.])  # RMS warning
+
     with open(test_name) as fid:
         data = '\n'.join(fid.readlines())
 

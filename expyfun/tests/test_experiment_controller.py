@@ -101,9 +101,8 @@ def test_data_line():
 
 def test_stamping():
     """Test EC stamping support"""
-    ec = ExperimentController(*std_args, **std_kwargs)
-    ec.stamp_triggers([1, 2])
-    ec.close()
+    with ExperimentController(*std_args, **std_kwargs) as ec:
+        ec.stamp_triggers([1, 2])
 
 
 @tdt_test
@@ -192,11 +191,16 @@ def test_ec(ac=None):
         ec.load_buffer(click)  # should go unchecked
         ec.load_buffer(noise)  # should go unchecked
         ec.set_rms_checking('wholefile')
-        ec.load_buffer(click)  # should pass
-        assert_raises(UserWarning, ec.load_buffer, noise)
-        ec.set_rms_checking('windowed')
-        assert_raises(UserWarning, ec.load_buffer, click)
-        assert_raises(UserWarning, ec.load_buffer, noise)
+        with warnings.catch_warnings(True) as w:
+            ec.load_buffer(click)  # should pass
+            assert_equal(len(w), 0)
+            ec.load_buffer(noise)
+            assert_equal(len(w), 1)
+            ec.set_rms_checking('windowed')
+            ec.load_buffer(click)
+            assert_equal(len(w), 2)
+            ec.load_buffer(noise)
+            assert_equal(len(w), 3)
 
         ec.stop()
         ec.call_on_every_flip(dummy_print, 'called on flip and play')
@@ -247,10 +251,3 @@ def test_button_presses_and_window_size():
         warnings.warn('press "1" faster next time')
     ec.close()
     del ec
-
-
-def test_with_support():
-    """Test EC 'with' statement support
-    """
-    with ExperimentController(*std_args, **std_kwargs) as ec:
-        print ec
