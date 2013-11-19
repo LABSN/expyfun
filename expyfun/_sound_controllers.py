@@ -9,13 +9,14 @@ import numpy as np
 from scipy import fftpack
 import sys
 
-from ._utils import HidePyoOutput, HideAlsaOutput, psylog, wait_secs
+from ._utils import (HidePyoOutput, HideAlsaOutput, logger, wait_secs,
+                     flush_logger)
 
 
 class PyoSound(object):
     """Use Pyo audio capabilities"""
     def __init__(self, ec, stim_fs, buffer_size=128):
-        psylog.info('Expyfun: Setting up Pyo audio')
+        logger.info('Expyfun: Setting up Pyo audio')
         self._pyo_server = None
         # nest the pyo import, in case we have a sys with just TDT
         try:
@@ -35,7 +36,7 @@ class PyoSound(object):
             driver, id_ = _best_driver_win32(names, ids)
             if not id_:
                 raise RuntimeError('No audio outputs found')
-            psylog.info('Using sound driver: {} (ID={})'
+            logger.info('Using sound driver: {} (ID={})'
                         ''.format(driver, id_))
             self._pyo_server.setOutputDevice(id_)
         self._pyo_server.setDuplex(False)
@@ -66,8 +67,8 @@ class PyoSound(object):
         self.noise = Sound(self.noise_array, loop=True)
         self.clear_buffer()  # initializes self.audio
         self.ec = ec
-        psylog.debug('Expyfun: Pyo sound server started')
-        psylog.flush()
+        logger.debug('Expyfun: Pyo sound server started')
+        flush_logger()
 
     def start_noise(self):
         self.noise.play()

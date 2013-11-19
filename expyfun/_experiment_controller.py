@@ -18,8 +18,8 @@ import pyglet
 from pyglet import gl as GL
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
-                     running_rms, _sanitize, psylog, clock, date_str,
-                     _check_units)
+                     running_rms, _sanitize, logger, clock, date_str,
+                     _check_units, set_log_file, flush_logger)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PyoSound
@@ -136,7 +136,7 @@ class ExperimentController(object):
         elif isinstance(force_quit, (int, basestring)):
             force_quit = [str(force_quit)]
         if 'escape' in force_quit:
-            psylog.warn('Expyfun: using "escape" as a force-quit key is not '
+            logger.warn('Expyfun: using "escape" as a force-quit key is not '
                         'recommended because it has special status in pyglet.')
 
         # set up timing
@@ -170,13 +170,13 @@ class ExperimentController(object):
                                '{}_{}'.format(self._exp_info['participant'],
                                               self._exp_info['date']))
             self._log_file = basename + '.log'
-            psylog.LogFile(self._log_file, level=psylog.INFO)
+            set_log_file(self._log_file)
             # initialize data file
             self._data_file = open(basename + '.tab', 'a')
             self._data_file.write('# ' + str(self._exp_info) + '\n')
             self.write_data_line('event', 'value', 'timestamp')
         else:
-            psylog.LogFile(None, level=psylog.info)
+            set_log_file(None)
             self._data_file = None
 
         #
@@ -219,7 +219,7 @@ class ExperimentController(object):
             audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
                                                    'pyo')}
         elif isinstance(audio_controller, basestring):
-            if audio_controller.lower() in ['pyo', 'psychopy', 'tdt']:
+            if audio_controller.lower() in ['pyo', 'tdt']:
                 audio_controller = {'TYPE': audio_controller.lower()}
             else:
                 raise ValueError('audio_controller must be \'pyo\' or '
@@ -246,32 +246,28 @@ class ExperimentController(object):
         # Audio (and for TDT, potentially keyboard)
         self._tdt_init = False
         if self._audio_type == 'tdt':
-            psylog.info('Expyfun: Setting up TDT')
+            logger.info('Expyfun: Setting up TDT')
             as_kb = True if self._response_device == 'tdt' else False
             self._ac = TDTController(audio_controller, self, as_kb, force_quit)
             self._audio_type = self._ac.model
             self._tdt_init = True
-        elif self._audio_type in ['pyo', 'psychopy']:
-            if self._audio_type == 'psychopy':
-                warnings.warn('psychopy is deprecated and will be removed in '
-                              'version 1.2, use "pyo" instead for equivalent '
-                              'functionality')
+        elif self._audio_type == 'pyo':
             self._ac = PyoSound(self, self.stim_fs)
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
-                             '\'psychopy\' or \'tdt\'.')
+                             '\'pyo\' or \'tdt\'.')
         # audio scaling factor; ensure uniform intensity across output devices
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
 
         if self._fs_mismatch:
             if self._suppress_resamp:
-                psylog.warn('Mismatch between reported stim sample rate ({0}) '
+                logger.warn('Mismatch between reported stim sample rate ({0}) '
                             'and device sample rate ({1}). Nothing will be '
                             'done about this because suppress_resamp is "True"'
                             '.'.format(self.stim_fs, self.fs))
             else:
-                psylog.warn('Mismatch between reported stim sample rate ({0}) '
+                logger.warn('Mismatch between reported stim sample rate ({0}) '
                             'and device sample rate ({1}). Experiment'
                             'Controller will resample for you, but that takes '
                             'a non-trivial amount of processing time and may '
@@ -281,7 +277,7 @@ class ExperimentController(object):
         #
         # set up visual window (must be done before keyboard and mouse)
         #
-        psylog.info('Expyfun: Setting up screen')
+        logger.info('Expyfun: Setting up screen')
         if full_screen:
             window_size = monitor['SCREEN_SIZE_PIX']
         else:
@@ -312,7 +308,7 @@ class ExperimentController(object):
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
         if isinstance(trigger_controller, basestring):
             trigger_controller = dict(type=trigger_controller)
-        psylog.info('Initializing {} triggering mode'
+        logger.info('Initializing {} triggering mode'
                     ''.format(trigger_controller['type']))
         if trigger_controller['type'] == 'tdt':
             if not self._tdt_init:
@@ -336,10 +332,10 @@ class ExperimentController(object):
         self._mouse_handler = Mouse(self._win)
 
         # finish initialization
-        psylog.info('Expyfun: Initialization complete')
-        psylog.info('Expyfun: Subject: {0}'
+        logger.info('Expyfun: Initialization complete')
+        logger.info('Expyfun: Subject: {0}'
                     ''.format(self._exp_info['participant']))
-        psylog.info('Expyfun: Session: {0}'
+        logger.info('Expyfun: Session: {0}'
                     ''.format(self._exp_info['session']))
         self.flush_logs()
 
@@ -428,7 +424,7 @@ class ExperimentController(object):
 
         Parameters
         ----------
-        color : PsychoPy color
+        color : matplotlib color
             The background color.
 
         Returns
@@ -460,7 +456,7 @@ class ExperimentController(object):
         added with ``on_next_flip``, followed by functions added with
         ``on_every_flip``.
         """
-        psylog.info('Expyfun: Flipping screen and playing audio')
+        logger.info('Expyfun: Flipping screen and playing audio')
         # ensure self._play comes first in list:
         self._on_next_flip = [self._play] + self._on_next_flip
         flip_time = self.flip()
@@ -608,7 +604,7 @@ class ExperimentController(object):
 
     @property
     def window(self):
-        """Visual window handle."""
+        """Pyglet visual window handle."""
         return self._win
 
     @property
@@ -639,7 +635,7 @@ class ExperimentController(object):
             y = int(win.screen.height / 2. - win.height / 2.)
             win.set_location(x, y)
         self._win = win
-        # with the context set up, do GL stuff
+        # with the context set up, do basic GL initialization
         GL.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
         GL.glClearDepth(1.0)  # clear value for the depth buffer
         # set the viewport size
@@ -662,7 +658,6 @@ class ExperimentController(object):
         GL.glEnable(GL.GL_POINT_SMOOTH)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         win.dispatch_events()
-        self.flip()
 
     def flip(self):
         """Flip screen, then run any "on-flip" functions.
@@ -678,7 +673,7 @@ class ExperimentController(object):
         added with ``on_every_flip``, followed by functions added with
         ``on_next_flip``.
         """
-        psylog.info('Expyfun: Flipping screen')
+        logger.info('Expyfun: Flipping screen')
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
         self._win.flip()
@@ -686,9 +681,10 @@ class ExperimentController(object):
         GL.glLoadIdentity()
         #waitBlanking
         GL.glBegin(GL.GL_POINTS)
-        GL.glColor4f(1.0, 1.0, 1.0, 1.0)  # using black can corrupt rendering
+        GL.glColor4f(0.0, 0.0, 0.0, 0.0)  # transparent
         GL.glVertex2i(10, 10)
         GL.glEnd()
+        # this waits until everything is called, including last draw
         GL.glFinish()
         flip_time = clock()
         for function in call_list:
@@ -848,7 +844,7 @@ class ExperimentController(object):
     def clear_buffer(self):
         """Clear audio data from the audio buffer."""
         self._ac.clear_buffer()
-        psylog.info('Expyfun: Buffer cleared')
+        logger.info('Expyfun: Buffer cleared')
 
     def load_buffer(self, samples):
         """Load audio data into the audio buffer.
@@ -860,14 +856,14 @@ class ExperimentController(object):
             numpy array with dtype float32.
         """
         samples = self._validate_audio(samples) * self._stim_scaler
-        psylog.info('Expyfun: Loading {} samples to buffer'
+        logger.info('Expyfun: Loading {} samples to buffer'
                     ''.format(samples.size))
         self._ac.load_buffer(samples)
 
     def _play(self):
         """Play the audio buffer.
         """
-        psylog.debug('Expyfun: playing audio')
+        logger.debug('Expyfun: playing audio')
         self._ac.play()
         self.write_data_line('play')
 
@@ -876,7 +872,7 @@ class ExperimentController(object):
         """
         self._ac.stop()
         self.write_data_line('stop')
-        psylog.info('Expyfun: Audio stopped and reset.')
+        logger.info('Expyfun: Audio stopped and reset.')
 
     def set_noise_db(self, new_db):
         """Set the level of the background noise.
@@ -934,7 +930,7 @@ class ExperimentController(object):
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
-            psylog.warn('Resampling {} seconds of audio'
+            logger.warn('Resampling {} seconds of audio'
                         ''.format(round(len(samples) / self.stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self.stim_fs)
             samples = resample(samples, int(num_samples), window='boxcar')
@@ -960,12 +956,12 @@ class ExperimentController(object):
                 warn_string = ('Stimulus max RMS ({}) exceeds stated RMS ({}) '
                                'by more than 6 dB.'.format(max_rms,
                                                            self._stim_rms))
-                psylog.warn(warn_string)
+                logger.warn(warn_string)
                 raise UserWarning(warn_string)
             elif max_rms < 0.5 * self._stim_rms:
                 warn_string = ('Stimulus max RMS is less than stated RMS by '
                                'more than 6 dB.')
-                psylog.warn(warn_string)
+                logger.warn(warn_string)
                 # raise UserWarning(warn_string)
 
         # always prepend a zero to deal with TDT reset of buffer position
@@ -1027,10 +1023,10 @@ class ExperimentController(object):
 
         diff = time_correction - self._time_corrections[clock_type]
         if np.abs(diff) > 10e-6:
-            psylog.warn('Expyfun: drift of > 10 microseconds ({}) '
+            logger.warn('Expyfun: drift of > 10 microseconds ({}) '
                         'between {} clock and EC master clock.'
                         ''.format(round(diff * 10e6), clock_type))
-        psylog.debug('Expyfun: time correction between {} clock and EC '
+        logger.debug('Expyfun: time correction between {} clock and EC '
                      'master clock is {}. This is a change of {}.'
                      ''.format(clock_type, time_correction, time_correction
                                - self._time_corrections[clock_type]))
@@ -1076,7 +1072,7 @@ class ExperimentController(object):
         """
         time_left = timestamp - self._master_clock()
         if time_left < 0:
-            psylog.warn('wait_until was called with a timestamp ({}) that had '
+            logger.warn('wait_until was called with a timestamp ({}) that had '
                         'already passed {} seconds prior.'
                         ''.format(timestamp, -time_left))
         else:
@@ -1105,13 +1101,13 @@ class ExperimentController(object):
         the stamping is complete.
         """
         self._trigger_handler.stamp_triggers(trigger_list, delay)
-        psylog.exp('Expyfun: Stamped: ' + str(trigger_list))
+        logger.exp('Expyfun: Stamped: ' + str(trigger_list))
 
     def flush_logs(self):
         """Flush logs (useful for debugging)
         """
         # pyflakes won't like this, but it's better here than outside class
-        psylog.flush()
+        flush_logger()
 
     def close(self):
         """Close all connections in experiment controller.
@@ -1119,7 +1115,7 @@ class ExperimentController(object):
         self.__exit__(None, None, None)
 
     def __enter__(self):
-        psylog.debug('Expyfun: Entering')
+        logger.debug('Expyfun: Entering')
         return self
 
     def __exit__(self, err_type, value, traceback):
@@ -1128,7 +1124,7 @@ class ExperimentController(object):
         -----
         err_type, value and traceback will be None when called by self.close()
         """
-        psylog.debug('Expyfun: Exiting cleanly')
+        logger.debug('Expyfun: Exiting cleanly')
 
         # do external cleanups
         cleanup_actions = [self.stop_noise, self.stop,
@@ -1146,7 +1142,7 @@ class ExperimentController(object):
         # clean up our API
         try:
             self._win.close()
-            #logging.flush()
+            self.flush_logs()
             for thisThread in threading.enumerate():
                 if hasattr(thisThread, 'stop') and \
                         hasattr(thisThread, 'running'):
@@ -1217,10 +1213,10 @@ def _get_dev_db(audio_controller):
         return 108
     elif audio_controller == 'RZ6':
         return 114
-    elif audio_controller in ['pyo', 'psychopy']:
+    elif audio_controller == 'pyo':
         return 90  # TODO: this value not yet calibrated, may vary by system
     else:
-        psylog.warn('Unknown audio controller: stim scaler may not work '
+        logger.warn('Unknown audio controller: stim scaler may not work '
                     'correctly. You may want to remove your headphones if this'
                     ' is the first run of your experiment.')
         return 90  # for untested TDT models

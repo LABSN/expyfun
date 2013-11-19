@@ -20,7 +20,7 @@ except ImportError:
     pylink = None  #analysis:ignore
 
 from .visual import Circle, RawImage, Line, Text
-from ._utils import get_config, verbose_dec, psylog
+from ._utils import get_config, verbose_dec, logger
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
@@ -105,7 +105,7 @@ class EyelinkController(object):
             os.mkdir(output_dir)
         self.output_dir = output_dir
         self._ec = ec
-        psylog.info('EyeLink: Initializing on {}'.format(link))
+        logger.info('EyeLink: Initializing on {}'.format(link))
         ec.flush_logs()
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
@@ -116,7 +116,7 @@ class EyelinkController(object):
             self._size = np.array([1920, 1200])
         self._ec.flush_logs()
         self.setup(fs)
-        psylog.debug('EyeLink: Setup complete')
+        logger.debug('EyeLink: Setup complete')
         self._ec.flush_logs()
 
     @property
@@ -137,7 +137,7 @@ class EyelinkController(object):
         # map the gaze positions from the tracker to screen pixel positions
         res = self._size
         res_str = '0 0 {0} {1}'.format(res[0] - 1, res[1] - 1)
-        psylog.debug('EyeLink: Setting display coordinates and saccade levels')
+        logger.debug('EyeLink: Setting display coordinates and saccade levels')
         self.command('screen_pixel_coords = ' + res_str)
         self._message('DISPLAY_COORDS ' + res_str)
 
@@ -153,12 +153,12 @@ class EyelinkController(object):
 
         # retrieve tracker version and tracker software version
         v = str(self.eyelink.getTrackerVersion())
-        psylog.info('Running experiment on a version ''{0}'' '
+        logger.info('Running experiment on a version ''{0}'' '
                     'tracker.'.format(v))
         v = LooseVersion(v).version
 
         # set EDF file contents
-        psylog.debug('EyeLink: Setting file and event filters')
+        logger.debug('EyeLink: Setting file and event filters')
         fef = 'LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT'
         self.eyelink.setFileEventFilter(fef)
         lef = ('LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,'
@@ -213,7 +213,7 @@ class EyelinkController(object):
         if len(file_name) > 8:
             raise RuntimeError('filename ("{0}") is too long!\n'
                                'Must be < 8 chars'.format(file_name))
-        psylog.info('Starting recording with filename {}'.format(file_name))
+        logger.info('Starting recording with filename {}'.format(file_name))
         self.eyelink.openDataFile(file_name)
         if self.eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
             raise RuntimeError('Recording could not be started')
@@ -232,7 +232,7 @@ class EyelinkController(object):
 
     def stop(self):
         """Stop Eyelink recording"""
-        psylog.info('Stopping recording')
+        logger.info('Stopping recording')
         if self.eyelink.isConnected():
             self.eyelink.stopRecording()
             self.eyelink.closeDataFile()
@@ -252,7 +252,7 @@ class EyelinkController(object):
         When calibrate is called, the stop() method is automatically
         executed before calibration begins.
         """
-        psylog.debug('EyeLink: Entering calibration')
+        logger.debug('EyeLink: Entering calibration')
         self._ec.flush_logs()
         # stop the recording
         self.stop()
@@ -265,7 +265,7 @@ class EyelinkController(object):
         self.eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
-        psylog.debug('EyeLink: Completed calibration')
+        logger.debug('EyeLink: Completed calibration')
         self._ec.flush_logs()
         # open file to record
         if start is True:
@@ -342,7 +342,7 @@ class EyelinkController(object):
         for remote_name in self._file_list:
             fname = op.join(self.output_dir, '{0}.edf'.format(remote_name))
             status = self.eyelink.receiveDataFile(remote_name, fname)
-            psylog.info('saving Eyelink file: {0}\tstatus: {1}'
+            logger.info('saving Eyelink file: {0}\tstatus: {1}'
                         ''.format(fname, status))
 
     def close(self):
@@ -600,7 +600,7 @@ class _Calibrate(super_class):
         return((0, 0), 0)
 
     def alert_printf(self, msg):
-        psylog.warn('EyeLink: alert_printf {}'.format(msg))
+        logger.warn('EyeLink: alert_printf {}'.format(msg))
 
     def setup_image_display(self, w, h):
         # convert w, h from pixels to relative units
