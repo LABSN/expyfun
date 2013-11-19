@@ -12,6 +12,8 @@ import warnings
 from os import path as op
 from functools import partial
 from scipy.signal import resample
+import StringIO
+from matplotlib import pyplot as mpl
 import pyglet
 from pyglet import gl as GL
 
@@ -543,8 +545,10 @@ class ExperimentController(object):
         w_pix = self.window_size_pix[0]
         h_pix = self.window_size_pix[1]
         d_cm = self._monitor['SCREEN_DISTANCE']
-        h_cm = self._monitor['SCREEN_HEIGHT']
         w_cm = self._monitor['SCREEN_WIDTH']
+        h_cm = self._monitor['SCREEN_HEIGHT']
+        w_prop = w_pix / float(self.monitor_size_pix[0])
+        h_prop = w_pix / float(self.monitor_size_pix[1])
         if 'pix' in [to, fro]:
             if 'pix' == to:
                 # norm to pixels
@@ -557,20 +561,40 @@ class ExperimentController(object):
             verts = np.dot(x, np.r_[verts, np.ones((1, verts.shape[1]))])
         elif 'deg' in [to, fro]:
             if 'deg' == to:
-                # norm to deg
-                x = np.arctan2(verts[0] * (w_cm / 2.), d_cm)
-                y = np.arctan2(verts[1] * (h_cm / 2.), d_cm)
+                # norm (window) to norm (whole screen), then to deg
+                x = np.arctan2(verts[0] * w_prop * (w_cm / 2.), d_cm)
+                y = np.arctan2(verts[1] * h_prop * (h_cm / 2.), d_cm)
                 verts = np.array([x, y])
                 verts *= (180. / np.pi)
             else:
-                # deg to norm
+                # deg to norm (whole screen), to norm (window)
                 verts *= (np.pi / 180.)
-                x = (d_cm * np.tan(verts[0])) / (w_cm / 2.)
-                y = (d_cm * np.tan(verts[1])) / (h_cm / 2.)
+                x = (d_cm * np.tan(verts[0])) / (w_cm / 2.) / w_prop
+                y = (d_cm * np.tan(verts[1])) / (h_cm / 2.) / h_prop
                 verts = np.array([x, y])
         else:
             raise KeyError('unknown conversion "{}" to "{}"'.format(fro, to))
         return verts
+
+    def screenshot(self):
+        """Capture the current displayed buffer
+
+        This method must be called *before* flipping, because it captures
+        the back buffer.
+
+        Returns
+        -------
+        scr : array
+            N x M x 3 array of screen pixel colors.
+        """
+        data = pyglet.image.get_buffer_manager().get_color_buffer()
+        # easiest just to dump to a "file"
+        data = self._win.context.image_buffer_manager.color_buffer
+        fid = StringIO.StringIO()
+        data.save('.png', fid)
+        fid.seek(0)
+        data = mpl.imread(fid)
+        return data
 
     @property
     def on_next_flip_functions(self):
@@ -615,25 +639,29 @@ class ExperimentController(object):
             y = int(win.screen.height / 2. - win.height / 2.)
             win.set_location(x, y)
         self._win = win
-
-        """
         # with the context set up, do GL stuff
-        GL.glClearColor(0.0, 0.0, 0.0, 1.0)
-        GL.glClearDepth(1.0)
+        GL.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
+        GL.glClearDepth(1.0)  # clear value for the depth buffer
+        # set the viewport size
         GL.glViewport(0, 0, int(self.window_size_pix[0]),
                       int(self.window_size_pix[1]))
-        GL.glMatrixMode(GL.GL_PROJECTION)  # Reset The Projection Matrix
+        # set the projection matrix
+        GL.glMatrixMode(GL.GL_PROJECTION)
         GL.glLoadIdentity()
         GL.gluOrtho2D(-1, 1, -1, 1)
-        GL.glMatrixMode(GL.GL_MODELVIEW)  # Reset The Projection Matrix
+        # set the model matrix
+        GL.glMatrixMode(GL.GL_MODELVIEW)
         GL.glLoadIdentity()
+        # disable depth testing
         GL.glDisable(GL.GL_DEPTH_TEST)
+        # enable blending
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-        GL.glShadeModel(GL.GL_SMOOTH)  # Color Shading (FLAT or SMOOTH)
+        # set color shading (FLAT or SMOOTH)
+        GL.glShadeModel(GL.GL_SMOOTH)
         GL.glEnable(GL.GL_POINT_SMOOTH)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        """
+        win.dispatch_events()
         self.flip()
 
     def flip(self):
@@ -652,15 +680,13 @@ class ExperimentController(object):
         """
         psylog.info('Expyfun: Flipping screen')
         call_list = self._on_next_flip + self._on_every_flip
-        GL.glTranslatef(0.0, 0.0, -5.0)
-        #for dispatcher in self._eventDispatchers:
-        #    dispatcher.dispatch_events()
         self._win.dispatch_events()
         self._win.flip()
+        GL.glTranslatef(0.0, 0.0, -5.0)
         GL.glLoadIdentity()
         #waitBlanking
         GL.glBegin(GL.GL_POINTS)
-        GL.glColor4f(0, 0, 0, 0)
+        GL.glColor4f(1.0, 1.0, 1.0, 1.0)  # using black can corrupt rendering
         GL.glVertex2i(10, 10)
         GL.glEnd()
         GL.glFinish()

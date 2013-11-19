@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs
 from expyfun._utils import _TempDir, interactive_test, tdt_test
@@ -26,6 +26,7 @@ def test_unit_conversions():
         verts = np.random.rand(2, 4)
         for to in ['norm', 'pix', 'deg']:
             for fro in ['norm', 'pix', 'deg']:
+                print (to, fro)
                 v2 = ec._convert_units(verts, fro, to)
                 v2 = ec._convert_units(v2, to, fro)
                 assert_allclose(verts, v2)
@@ -36,7 +37,7 @@ def test_unit_conversions():
         verts = np.zeros((2, 1))
         v1 = ec._convert_units(verts, 'deg', 'pix')
         v2 = v0 - v1  # must check deviation from zero position
-        assert_array_equal(v2[0], v2[1])
+        assert_allclose(v2[0], v2[1])
 
 
 def test_no_output():
@@ -71,6 +72,7 @@ def test_data_line():
     with open(fname) as fid:
         lines = fid.readlines()
     # check the header
+    print lines
     assert_equal(len(lines), len(entries) + 3)
     assert_equal(lines[0][0], '#')  # first line is a comment
     for x in ['timestamp', 'event', 'value']:  # second line is col header
@@ -86,13 +88,13 @@ def test_data_line():
         assert_equal(len(outs), 3)
         # check timestamping
         if len(ent) == 3 and ent[2] is not None:
-            assert_true(outs[0] == str(ent[2]))
+            assert_equal(outs[0], str(ent[2]))
         else:
             ts.append(float(outs[0]))
         # check events
-        assert_true(outs[1] == ent[0])
+        assert_equal(outs[1], ent[0])
         # check values
-        assert_true(outs[2] == gv)
+        assert_equal(outs[2], gv)
     # make sure we got monotonically increasing timestamps
     ts = np.array(ts)
     assert_true(np.all(ts[1:] >= ts[:-1]))

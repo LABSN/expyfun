@@ -54,7 +54,7 @@ class Text(object):
 # Triangulations
 
 class _Triangular(object):
-    """Super class for objects that use trianglulations"""
+    """Super class for objects that use trianglulations and/or lines"""
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
         self._ec = ec
         self.set_fill_color(fill_color)
@@ -117,7 +117,7 @@ class _Triangular(object):
             if self._line_loop:
                 gl_cmd = pyglet.gl.GL_LINE_LOOP
             else:
-                gl_cmd = pyglet.gl.GL_LINES
+                gl_cmd = pyglet.gl.GL_LINE_STRIP
             pyglet.graphics.draw(len(self._line_points) / 2,
                                  gl_cmd,
                                  ('v2f', self._line_points),
@@ -125,16 +125,45 @@ class _Triangular(object):
 
 
 class Line(_Triangular):
+    """A connected set of line segments
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    coords : array-like
+        2 x N set of X, Y coordinates.
+    units : str
+        Units to use.
+    line_color : matplotlib Color
+        Color of the line.
+    line_width : float
+        Line width in pixels.
+    line_loop : bool
+        If True, the last point will be joined to the first in a loop.
+
+    Returns
+    -------
+    line : instance of Line
+        The line object.
+    """
     def __init__(self, ec, coords, units='norm', line_color='white',
-                 line_width=1.0):
+                 line_width=1.0, line_loop=False):
         _Triangular.__init__(self, ec, fill_color=None, line_color=line_color,
-                             line_width=line_width, line_loop=False)
+                             line_width=line_width, line_loop=line_loop)
         self._points = None
         self._tris = None
         self.set_coords(coords, units)
         self.set_line_color(line_color)
 
     def set_coords(self, coords, units='norm'):
+        """Set line coordinates
+
+        Parameters
+        ----------
+        coords : array-like
+            2 x N set of X, Y coordinates.
+        """
         coords = np.array(coords, dtype=float)
         if coords.ndim == 1:
             coords = coords[:, np.newaxis]
@@ -146,6 +175,28 @@ class Line(_Triangular):
 
 
 class Rectangle(_Triangular):
+    """A rectangle
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    pos : array-like
+        4-element array-like with X, Y center and width, height.
+    units : str
+        Units to use.
+    fill_color : matplotlib Color | None
+        Color to fill with. None is transparent.
+    line_color : matplotlib Color | None
+        Color of the border line. None is transparent.
+    line_width : float
+        Line width in pixels.
+
+    Returns
+    -------
+    line : instance of Rectangle
+        The rectangle object.
+    """
     def __init__(self, ec, pos, units='norm', fill_color='white',
                  line_color=None, line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
@@ -183,6 +234,33 @@ class Rectangle(_Triangular):
 
 
 class Circle(_Triangular):
+    """A circle or ellipse
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    radius : float | array-like
+        Radius of the circle. Can be array-like with two elements to
+        make an ellipse.
+    pos : array-like
+        2-element array-like with X, Y center positions.
+    units : str
+        Units to use.
+    n_edges : int
+        Number of edges to use (must be >= 4) to approximate a circle.
+    fill_color : matplotlib Color | None
+        Color to fill with. None is transparent.
+    line_color : matplotlib Color | None
+        Color of the border line. None is transparent.
+    line_width : float
+        Line width in pixels.
+
+    Returns
+    -------
+    circle : instance of Circle
+        The circle object.
+    """
     def __init__(self, ec, radius=1, pos=[0, 0], units='norm',
                  n_edges=200, fill_color='white', line_color=None,
                  line_width=1.0):
@@ -266,9 +344,79 @@ class Circle(_Triangular):
 # Image display
 
 class RawImage(object):
-    def __init__(self, ec, image_buffer, pos=(0, 0), size=(1, 1),
-                 units='norm'):
-        pass
+    """Create image from array for on-screen display
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    image_buffer : array
+        N x M x 3 (or 4) array. Color values should range between 0 and 1.
+    pos : array-like
+        4-element array-like with X, Y (center) and width, height arguments.
+
+    Returns
+    -------
+    img : instance of RawImage
+        The image object.
+    """
+    def __init__(self, ec, image_buffer, pos=(0, 0, 1, 1), units='norm'):
+        self._ec = ec
+        self.set_image(image_buffer)
+        self.set_pos(pos, units)
+
+    def set_image(self, image_buffer):
+        """Set image buffer data
+
+        Parameters
+        ----------
+        image_buffer : array
+            N x M x 3 (or 4) array. Color values should range between 0 and 1.
+        """
+        image_buffer = np.array(image_buffer, dtype=float)
+        if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
+            raise RuntimeError('image_buffer incorrect size: {}'
+                               ''.format(image_buffer.shape))
+        if image_buffer.max() > 1 or image_buffer.min() < 0:
+            raise ValueError('all values must be between 0 and 1')
+
+        # add alpha channel if necessary
+        if image_buffer.shape[2] == 3:
+            alpha = np.ones_like(image_buffer[:, :, 0])[:, :, np.newaxis]
+            image_buffer = np.concatenate((image_buffer, alpha), axis=2)
+        # convert from numpy array to OpenGL RGBA
+        dims = image_buffer.shape
+        image_buffer.shape = -1
+        image_buffer = (image_buffer * 255).astype('uint8')
+        data = (pyglet.gl.GLubyte * image_buffer.size)(*image_buffer)
+        img = pyglet.image.ImageData(dims[1], dims[0], 'RGBA', data,
+                                     pitch=dims[1] * 4)
+        self._img = img
+
+    def set_pos(self, pos, units='norm'):
+        """Create image from array for on-screen display
+
+        Parameters
+        ----------
+        ec : instance of ExperimentController
+            Parent EC.
+        image_buffer : array
+            N x M x 3 (or 4) array. Color values should range between 0 and 1.
+        pos : array-like
+            4-element array-like with X, Y (center) and width, height
+            arguments.
+        """
+        pos = np.array(pos, float)
+        if pos.ndim != 1 or pos.size != 4:
+            raise ValueError('pos must be a 4-element array')
+        pos = np.reshape(pos, (2, 2)).T
+        pos = self._ec._convert_units(pos, units, 'pix')
+        ctr = self._ec._convert_units(np.zeros((2, 1)), 'norm', 'pix')[:, 0]
+        pos = np.r_[pos[:, 0], pos[:, 1] - ctr]
+        self._pos = pos
 
     def draw(self):
-        pass
+        """Draw the image to the buffer"""
+        self._img.blit(self._pos[0] - self._pos[2] / 2.,
+                       self._pos[1] - self._pos[3] / 2.,
+                       width=self._pos[2], height=self._pos[3])

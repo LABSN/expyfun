@@ -544,8 +544,9 @@ class _Calibrate(super_class):
         self.label = Text(self.ec, 'Eye Label',
                           pos=(0, -self.img_span[1] / 2.),
                           v_align='top', height=0.05, color='white')
-        self.img = RawImage(self.ec, self.image_buffer, pos=(0, 0),
-                            size=self.img_span, units='norm')
+        self.img = RawImage(self.ec, np.zeros((1, 2, 3)),
+                            pos=(0, 0, self.img_span[0], self.img_span[1]),
+                            units='norm')
 
         def on_key_press(symbol, modifiers):
             key_trans_dict = _get_key_trans_dict()
@@ -617,7 +618,7 @@ class _Calibrate(super_class):
             self.image_buffer = np.empty((totlines, width, 3), np.uint8)
         self.image_buffer[line - 1, :, :] = self.palette[buff, :]
         if line == totlines:
-            self.img.setImage(Image.fromarray(self.image_buffer), log=False)
+            self.img.set_image(self.image_buffer)
             self.img.draw()
             self.label.draw()
             self.ec.flip()
