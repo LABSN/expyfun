@@ -47,7 +47,6 @@ def exp(self, message, *args, **kwargs):
     self.log(EXP, message, *args, **kwargs)
 logging.Logger.exp = exp
 
-logging.basicConfig()
 logger = logging.getLogger('expyfun')
 
 
