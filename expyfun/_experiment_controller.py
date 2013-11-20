@@ -332,10 +332,10 @@ class ExperimentController(object):
 
         # finish initialization
         logger.info('Expyfun: Initialization complete')
-        logger.info('Expyfun: Subject: {0}'
-                    ''.format(self._exp_info['participant']))
-        logger.info('Expyfun: Session: {0}'
-                    ''.format(self._exp_info['session']))
+        logger.exp('Expyfun: Subject: {0}'
+                   ''.format(self._exp_info['participant']))
+        logger.exp('Expyfun: Session: {0}'
+                   ''.format(self._exp_info['session']))
         self.flush_logs()
 
     def __repr__(self):
@@ -455,7 +455,7 @@ class ExperimentController(object):
         added with ``on_next_flip``, followed by functions added with
         ``on_every_flip``.
         """
-        logger.info('Expyfun: Flipping screen and playing audio')
+        logger.exp('Expyfun: Flipping screen and playing audio')
         # ensure self._play comes first in list:
         self._on_next_flip = [self._play] + self._on_next_flip
         flip_time = self.flip()
@@ -842,7 +842,7 @@ class ExperimentController(object):
     def clear_buffer(self):
         """Clear audio data from the audio buffer."""
         self._ac.clear_buffer()
-        logger.info('Expyfun: Buffer cleared')
+        logger.exp('Expyfun: Buffer cleared')
 
     def load_buffer(self, samples):
         """Load audio data into the audio buffer.
@@ -854,8 +854,8 @@ class ExperimentController(object):
             numpy array with dtype float32.
         """
         samples = self._validate_audio(samples) * self._stim_scaler
-        logger.info('Expyfun: Loading {} samples to buffer'
-                    ''.format(samples.size))
+        logger.exp('Expyfun: Loading {} samples to buffer'
+                   ''.format(samples.size))
         self._ac.load_buffer(samples)
 
     def _play(self):
@@ -870,7 +870,7 @@ class ExperimentController(object):
         """
         self._ac.stop()
         self.write_data_line('stop')
-        logger.info('Expyfun: Audio stopped and reset.')
+        logger.exp('Expyfun: Audio stopped and reset.')
 
     def set_noise_db(self, new_db):
         """Set the level of the background noise.
@@ -957,8 +957,9 @@ class ExperimentController(object):
                 logger.warn(warn_string)
                 warnings.warn(warn_string)
             elif max_rms < 0.5 * self._stim_rms:
-                warn_string = ('Stimulus max RMS is less than stated RMS by '
-                               'more than 6 dB.')
+                warn_string = ('Stimulus max RMS ({}) is less than stated RMS '
+                               '({}) by more than 6 dB.'
+                               ''.format(max_rms, self._stim_rms))
                 logger.warn(warn_string)
 
         # always prepend a zero to deal with TDT reset of buffer position

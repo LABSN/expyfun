@@ -30,23 +30,60 @@ def _replicate_color(color, pts):
 # Text
 
 class Text(object):
-    def __init__(self, ec, text, pos=[0, 0], color='white',
+    """A text object
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    text : str
+        The text to display. Accepts a subset of HTML commands (see pyglet
+        doc).
+    pos : array
+        2-element array consisting of X- and Y-position coordinates.
+    color : matplotlib Color
+        Color of the text.
+    font_name : str
+        Font to use.
+    font_size : float
+        Font size (points) to use.
+    height : float | None
+        Height of the text region. None will automatically allocate the
+        necessary size.
+    width : float | None | str
+        Width (in pixels) of the text region. `'auto'` will allocate 80% of
+        the screen width, useful for instructions. None will automatically
+        allocate sufficient space, but not that this disables text wrapping.
+    anchor_x : str
+        Horizontal text anchor (e.g., `'center'`).
+    anchor_y : str
+        Vertical text anchor (e.g., `'center'`).
+
+    Returns
+    -------
+    line : instance of Line
+        The line object.
+    """
+    def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
-                 v_align='center'):
+                 width='auto', anchor_x='center', anchor_y='center'):
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, 'norm', 'pix')
-        width = float(ec.window_size_pix[0]) * 0.8
-        #pos -= np.array([width / 2., height / 2.])[:, np.newaxis]
+        if width == 'auto':
+            width = float(ec.window_size_pix[0]) * 0.8
+        elif isinstance(width, basestring):
+            raise ValueError('"width", if str, must be "auto"')
         self._text = pyglet.text.HTMLLabel(text + ' ', x=pos[0], y=pos[1],
-                                           width=width, height=None,
+                                           width=width, height=height,
                                            multiline=True, dpi=int(ec.dpi),
-                                           anchor_x='center',
-                                           anchor_y='center')
+                                           anchor_x=anchor_x,
+                                           anchor_y=anchor_y)
         self._text.color = tuple(_convert_color(color))
         self._text.font_name = font_name
         self._text.font_size = font_size
 
     def draw(self):
+        """Draw the object to the display buffer"""
         self._text.draw()
 
 
@@ -88,7 +125,7 @@ class _Triangular(object):
         else:
             self._line_color = None
 
-    def set_line_width(self, line_width, units='norm'):
+    def set_line_width(self, line_width):
         """Set the line width in pixels
 
         Parameters
@@ -354,6 +391,8 @@ class RawImage(object):
         N x M x 3 (or 4) array. Color values should range between 0 and 1.
     pos : array-like
         4-element array-like with X, Y (center) and width, height arguments.
+    units : str
+        Units to use.
 
     Returns
     -------
@@ -400,11 +439,11 @@ class RawImage(object):
         ----------
         ec : instance of ExperimentController
             Parent EC.
-        image_buffer : array
-            N x M x 3 (or 4) array. Color values should range between 0 and 1.
         pos : array-like
             4-element array-like with X, Y (center) and width, height
             arguments.
+        units : str
+            Units to use.
         """
         pos = np.array(pos, float)
         if pos.ndim != 1 or pos.size != 4:

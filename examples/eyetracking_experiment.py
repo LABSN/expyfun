@@ -23,12 +23,13 @@ link = None  # or '100.1.1.1' for real eye tracking
 with ExperimentController('testExp', full_screen=True, participant='foo',
                           session='001', output_dir=None) as ec:
     el = EyelinkController(ec, link=link)
-    ec.screen_prompt('Welcome to the experiment!\n\nFirst, we will '
-                     'perform a screen calibration.\n\nPress a button '
+    ec.screen_prompt('Welcome to the experiment!<br><br>First, we will '
+                     'perform a screen calibration.<br><br>Press a button '
                      'to continue.')
     el.calibrate()  # by default this starts recording EyeLink data
     ec.screen_prompt('Excellent! Now, follow the red circle around the edge '
-                     'of the big white circle.\n\nPress a button to continue')
+                     'of the big white circle.<br><br>Press a button to '
+                     'continue')
 
     # make some circles to be drawn
     radius = 7.5  # degrees
@@ -36,7 +37,8 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     theta = np.linspace(np.pi / 2., 2.5 * np.pi, 200)
     x_pos, y_pos = radius * np.cos(theta), radius * np.sin(theta)
     big_circ = visual.Circle(ec, radius, (0, 0), units='deg',
-                             fill_color=None, line_color='white')
+                             fill_color=None, line_color='white',
+                             line_width=3.0)
     targ_circ = visual.Circle(ec, targ_rad, (x_pos[0], y_pos[0]),
                               units='deg', fill_color='red')
 

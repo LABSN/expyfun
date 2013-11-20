@@ -20,7 +20,6 @@ from expyfun import ExperimentController
 from expyfun._utils import set_log_level
 import expyfun.analyze as ea
 
-from .generate_stimuli import generate_stimuli
 
 set_log_level('INFO')
 
@@ -36,10 +35,10 @@ isi = 0.2
 running_total = 0
 
 # if the stimuli have not been made, let's make them in examples dir
-stimulus_dir = op.split(__file__)[0]
-stimulus_file = op.join(stimulus_dir, 'equally_spaced_sinewaves.mat')
+stimulus_file = 'equally_spaced_sinewaves.mat'
 if not op.isfile(stimulus_file):
-    generate_stimuli(output_dir=stimulus_dir, fs=fs)
+    from generate_stimuli import generate_stimuli
+    generate_stimuli(output_dir='.', fs=fs)
 
 # load stimuli (from a call to generate_stimuli() from generate_stimuli.py)
 stims = sio.loadmat('equally_spaced_sinewaves.mat')

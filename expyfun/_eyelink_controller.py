@@ -543,7 +543,7 @@ class _Calibrate(super_class):
     def setup_event_handlers(self):
         self.label = Text(self.ec, 'Eye Label',
                           pos=(0, -self.img_span[1] / 2.),
-                          v_align='top', height=0.05, color='white')
+                          anchor_y='top', color='white')
         self.img = RawImage(self.ec, np.zeros((1, 2, 3)),
                             pos=(0, 0, self.img_span[0], self.img_span[1]),
                             units='norm')
