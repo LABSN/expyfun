@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import warnings
+import scipy as sp
 from psychopy import logging as psylog
 import os
 import os.path as op
@@ -211,6 +212,11 @@ def verbose_dec(function):
 
 
 requires_pylink = skipif(has_pylink is False, 'Requires functional pylink')
+
+
+def _has_scipy_version(version):
+    return (LooseVersion(sp.__version__) >= LooseVersion(version))
+
 
 ###############################################################################
 # LOGGING

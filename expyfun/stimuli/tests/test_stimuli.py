@@ -4,7 +4,7 @@ import warnings
 from nose.tools import assert_raises, assert_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from expyfun._utils import _TempDir
+from expyfun._utils import _TempDir, _has_scipy_version
 from expyfun.stimuli import read_wav, write_wav, rms
 
 warnings.simplefilter('always')
@@ -28,17 +28,31 @@ def test_read_write_wav():
     # test our overwrite check
     assert_raises(IOError, write_wav, fname, data, fs)
 
-    # Use 32-bit float: better
-    write_wav(fname, data, fs, dtype=np.float32, overwrite=True)
+    # Use 64-bit int: not supported
+    assert_raises(RuntimeError, write_wav, fname, data, fs, dtype=np.int64,
+                  overwrite=True)
+
+    # Use 32-bit int: better
+    write_wav(fname, data, fs, dtype=np.int32, overwrite=True)
     data_read, fs_read = read_wav(fname)
     assert_equal(fs_read, fs)
     assert_array_almost_equal(data[np.newaxis, :], data_read, 7)
 
-    # Use 64-bit float: perfect
-    write_wav(fname, data, fs, dtype=np.float64, overwrite=True)
-    data_read, fs_read = read_wav(fname)
-    assert_equal(fs_read, fs)
-    assert_array_equal(data[np.newaxis, :], data_read)
+    if _has_scipy_version('0.13'):
+        # Use 32-bit float: better
+        write_wav(fname, data, fs, dtype=np.float32, overwrite=True)
+        data_read, fs_read = read_wav(fname)
+        assert_equal(fs_read, fs)
+        assert_array_almost_equal(data[np.newaxis, :], data_read, 7)
+
+        # Use 64-bit float: perfect
+        write_wav(fname, data, fs, dtype=np.float64, overwrite=True)
+        data_read, fs_read = read_wav(fname)
+        assert_equal(fs_read, fs)
+        assert_array_equal(data[np.newaxis, :], data_read)
+    else:
+        assert_raises(RuntimeError, write_wav, fname, data, fs,
+                      dtype=np.float32, overwrite=True)
 
     # Now try multi-dimensional data
     data = np.tile(data[np.newaxis, :], (2, 1))

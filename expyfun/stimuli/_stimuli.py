@@ -5,7 +5,7 @@ import numpy as np
 from scipy.io import wavfile
 from os import path as op
 
-from .._utils import verbose_dec, psylog
+from .._utils import verbose_dec, psylog, _has_scipy_version
 
 
 def rms(data, axis=-1):
@@ -23,10 +23,10 @@ def rms(data, axis=-1):
 
 def _get_dtype_norm(dtype):
     """Helper to get normalization factor for a given datatype"""
-    if np.issubdtype(dtype, int):
+    if np.dtype(dtype).kind == 'i':
         info = np.iinfo(dtype)
         maxval = min(-info.min, info.max)
-    else:
+    else:  # == 'f'
         maxval = 1.0
     return maxval
 
@@ -87,11 +87,19 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
         raise IOError('File {} exists, overwrite=True must be '
                       'used'.format(op.basename(fname)))
     data = np.atleast_2d(data)
-    _print_wav_info('Writing', data, data.dtype)
-    if np.issubdtype(data.dtype, np.float64):
-        if np.issubdtype(dtype, int) and np.max(np.abs(data)) > 1.:
+    if np.dtype(dtype).kind not in ['i', 'f']:
+        raise TypeError('dtype must be integer or float')
+    if np.dtype(dtype).kind == 'f':
+        if not _has_scipy_version('0.13'):
+            raise RuntimeError('cannot write float datatype unless '
+                               'scipy >= 0.13 is installed')
+    elif np.dtype(dtype).itemsize == 8:
+        raise RuntimeError('Writing 64-bit integers is not supported')
+    if np.dtype(data.dtype).kind == 'f':
+        if np.dtype(dtype).kind == 'i' and np.max(np.abs(data)) > 1.:
             raise ValueError('Data must be between -1 and +1 when saving'
                              'with an integer dtype')
+    _print_wav_info('Writing', data, data.dtype)
     max_val = _get_dtype_norm(dtype)
     data = (data * max_val).astype(dtype)
     wavfile.write(fname, fs, data.T)
