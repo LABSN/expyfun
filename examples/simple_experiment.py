@@ -18,7 +18,9 @@ from scipy import io as sio
 
 from expyfun import ExperimentController
 from expyfun._utils import set_log_level
-from generate_stimuli import generate_stimuli
+import expyfun.analyze as ea
+
+from .generate_stimuli import generate_stimuli
 
 set_log_level('INFO')
 
@@ -79,6 +81,7 @@ with ExperimentController('testExp', ac, screen_num=0,
 
     # show instructions until all buttons have been pressed at least once
     ec.screen_text(instructions)
+    screenshot = ec.screenshot()
     ec.flip()
     while len(not_yet_pressed) > 0:
         pressed, timestamp = ec.wait_one_press(live_keys=live_keys)
@@ -163,3 +166,7 @@ with ExperimentController('testExp', ac, screen_num=0,
     ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '
                      'any key to close.'.format(running_total, num_trials),
                      max_wait=feedback_dur)
+
+import matplotlib.pyplot as plt
+plt.ion()
+ea.plot_screen(screenshot)

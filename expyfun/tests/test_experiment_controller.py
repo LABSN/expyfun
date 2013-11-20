@@ -246,8 +246,10 @@ def test_button_presses_and_window_size():
                               participant='foo', session='01')
     assert_equal(ec.screen_prompt('press 1', live_keys=['1']), '1')
     ec.screen_text('press 1 again')
+    ec.flip()
     assert_equal(ec.wait_one_press(live_keys=[1])[0], '1')
     ec.screen_text('press 1 one last time')
+    ec.flip()
     out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
     if len(out) > 0:
         assert_equal(out[0], '1')

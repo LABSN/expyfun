@@ -13,6 +13,8 @@ in the ExperimentController class.
 print __doc__
 
 from expyfun import ExperimentController
+import expyfun.analyze as ea
+
 
 isi = 0.5
 wait_dur = 3.0
@@ -42,6 +44,8 @@ with ExperimentController('KeypressDemo', screen_num=0,
     # wait_for_presses
     ec.screen_text('press some keys\n\nwait_for_presses(max_wait={})'
                    ''.format(wait_dur))
+    screenshot = ec.screenshot()
+    ec.flip()
     pressed = ec.wait_for_presses(wait_dur)
     ec.write_data_line('wait_for_presses', pressed)
     if not len(pressed):
@@ -57,6 +61,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
     # wait_for_presses, relative to master clock
     ec.screen_text('press some keys\n\nwait_for_presses(max_wait={},\n'
                    'relative_to=0.0)'.format(wait_dur))
+    ec.flip()
     pressed = ec.wait_for_presses(wait_dur, relative_to=0.0)
     ec.write_data_line('wait_for_presses relative_to 0.0', pressed)
     if not len(pressed):
@@ -72,6 +77,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
     # listen_presses / wait_secs / get_presses
     ec.screen_text('press some keys\n\nlisten_presses()\nwait_secs({0}, '
                    'hog_cpu_time={0})\nget_presses()'.format(wait_dur))
+    ec.flip()
     ec.listen_presses()
     ec.wait_secs(wait_dur, hog_cpu_time=wait_dur)
     pressed = ec.get_presses()  # relative_to=0.0
@@ -90,6 +96,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
     ec.screen_text('press a few keys\n\nlisten_presses()\nwait_secs({0}, '
                    'hog_cpu_time={0})\nget_presses(relative_to=0.0)'
                    ''.format(wait_dur))
+    ec.flip()
     ec.listen_presses()
     ec.wait_secs(wait_dur, hog_cpu_time=wait_dur)
     pressed = ec.get_presses(relative_to=0.0)
@@ -110,6 +117,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
     ec.call_on_next_flip(ec.listen_presses)
     ec.screen_text('press some keys\n\nlisten_presses()\nwhile loop {}\n'
                    'get_presses()'.format(disp_time))
+    ec.flip()
     while ec.current_time < countdown:
         cur_time = round(countdown - ec.current_time, 1)
         if cur_time != disp_time:
@@ -117,6 +125,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
             # redraw text with updated disp_time
             ec.screen_text('press some keys\n\nlisten_presses()\n'
                            'while loop {}\nget_presses()'.format(disp_time))
+            ec.flip()
     pressed = ec.get_presses()
     ec.write_data_line('listen / while / get_presses', pressed)
     if not len(pressed):
@@ -135,6 +144,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
     ec.call_on_next_flip(ec.listen_presses)
     ec.screen_text('press some keys\n\nlisten_presses()\nwhile loop {}\n'
                    'get_presses(relative_to=0.0)'.format(disp_time))
+    ec.flip()
     while ec.current_time < countdown:
         cur_time = round(countdown - ec.current_time, 1)
         if cur_time != disp_time:
@@ -142,6 +152,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
             # redraw text with updated disp_time
             ec.screen_text('press some keys\n\nlisten_presses()\nwhile loop {}'
                            '\nget_presses(relative_to=0.0)'.format(disp_time))
+            ec.flip()
     pressed = ec.get_presses(relative_to=0.0)
     ec.write_data_line('listen / while / get_presses relative_to 0.0', pressed)
     if not len(pressed):
@@ -151,3 +162,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
                    ''.format(key, round(time, 4)) for key, time in pressed]
         message = '\n'.join(message)
     ec.screen_prompt(message, msg_dur)
+
+import matplotlib.pyplot as plt
+plt.ion()
+ea.plot_screen(screenshot)

@@ -29,7 +29,7 @@ from timeit import default_timer as clock
 pyglet.options['debug_gl'] = False
 
 try:
-    import pylink
+    import pylink  # analysis:ignore
 except ImportError:
     has_pylink = False
 else:

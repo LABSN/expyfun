@@ -12,8 +12,10 @@ using eye-tracking simpler.
 
 print __doc__
 
-from expyfun import ExperimentController, EyelinkController, visual
 import numpy as np
+
+from expyfun import ExperimentController, EyelinkController, visual
+import expyfun.analyze as ea
 
 link = None  # or '100.1.1.1' for real eye tracking
 
@@ -46,6 +48,7 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     # start out by waiting for a 1 sec fixation at the start
     big_circ.draw()
     targ_circ.draw()
+    screenshot = ec.screenshot()
     ec.flip()
     if not el.wait_for_fix(fix_pos, 1., max_wait=5., units='deg'):
         print 'Initial fixation failed'
@@ -59,3 +62,7 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     el.stop()  # stop recording to save the file
     ec.screen_prompt('All done!', max_wait=1.0)
     # eyelink auto-closes (el.close()) because it gets registered with EC
+
+import matplotlib.pyplot as plt
+plt.ion()
+ea.plot_screen(screenshot)

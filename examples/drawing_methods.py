@@ -11,6 +11,7 @@ expyfun provides multiple methods for drawing simple screen objects.
 
 import numpy as np
 from expyfun import visual, ExperimentController
+import expyfun.analyze as ea
 
 
 with ExperimentController('test', session='1', participant='2',
@@ -33,15 +34,10 @@ with ExperimentController('test', session='1', participant='2',
     # do the drawing, then flip
     img.draw()
     circle.draw()
-    screen = ec.screenshot()  # must be called *before* the flip
+    screenshot = ec.screenshot()  # must be called *before* the flip
     ec.flip()
     ec.wait_for_presses(0.5)
 
-import matplotlib.pyplot as mpl
-mpl.ion()
-ax = mpl.axes()
-ax.imshow(screen)
-mpl.box('off')
-ax.set_title('Captured screen')
-ax.set_xticks([])
-ax.set_yticks([])
+import matplotlib.pyplot as plt
+plt.ion()
+ea.plot_screen(screenshot)

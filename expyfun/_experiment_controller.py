@@ -672,7 +672,6 @@ class ExperimentController(object):
         added with ``on_every_flip``, followed by functions added with
         ``on_next_flip``.
         """
-        logger.info('Expyfun: Flipping screen')
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
         self._win.flip()
