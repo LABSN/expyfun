@@ -139,6 +139,15 @@ def set_log_file(fname=None,
 ###############################################################################
 # RANDOM UTILITIES
 
+class ZeroClock(object):
+    """Clock that uses "clock" function but starts at zero on init"""
+    def __init__(self):
+        self._start_time = clock()
+
+    def get_time(self):
+        return clock() - self._start_time
+
+
 is_linux = (platform.system() == 'Linux')
 
 

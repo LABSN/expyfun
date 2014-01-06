@@ -17,7 +17,7 @@ import pyglet
 from pyglet import gl as GL
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
-                     running_rms, _sanitize, logger, clock, date_str,
+                     running_rms, _sanitize, logger, ZeroClock, date_str,
                      _check_units, set_log_file, flush_logger)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
@@ -127,7 +127,6 @@ class ExperimentController(object):
         self._on_next_flip = []
         # placeholder for extra actions to run on close
         self._extra_cleanup_fun = []
-        # some hardcoded parameters...
 
         # assure proper formatting for force-quit keys
         if force_quit is None:
@@ -139,7 +138,9 @@ class ExperimentController(object):
                         'recommended because it has special status in pyglet.')
 
         # set up timing
-        self._master_clock = clock
+        # Use ZeroClock, which uses the "clock" fn but starts at zero
+        self._clock = ZeroClock()
+        self._master_clock = self._clock.get_time
         self._time_corrections = dict()
         self._time_correction_fxns = dict()
 
@@ -461,6 +462,20 @@ class ExperimentController(object):
         flip_time = self.flip()
         return flip_time
 
+    def play(self):
+        """Start audio playback
+
+        Returns
+        -------
+        play_time : float
+            The timestamp of the audio playback.
+        """
+        logger.exp('Expyfun: Playing audio')
+        # ensure self._play comes first in list:
+        self._play()
+        play_time = self._clock.get_time()
+        return play_time
+
     def call_on_next_flip(self, function, *args, **kwargs):
         """Add a function to be executed on next flip only.
 
@@ -684,7 +699,7 @@ class ExperimentController(object):
         GL.glEnd()
         # this waits until everything is called, including last draw
         GL.glFinish()
-        flip_time = clock()
+        flip_time = self._clock.get_time()
         for function in call_list:
             function()
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)

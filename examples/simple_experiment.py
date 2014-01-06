@@ -87,7 +87,7 @@ with ExperimentController('testExp', ac, screen_num=0,
         for p in pressed:
             p = int(p)
             ec.load_buffer(wavs[p - 1])
-            ec.flip_and_play()
+            ec.play()
             ec.wait_secs(len(wavs[p - 1]) / float(ec.fs))
             ec.stop()
             if p in not_yet_pressed:
