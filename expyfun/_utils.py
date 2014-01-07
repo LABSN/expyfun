@@ -36,7 +36,7 @@ else:
     has_pylink = True
 
 try:
-    import pandas # analysis:ignore
+    import pandas  # analysis:ignore
 except ImportError:
     has_pandas = False
 else:

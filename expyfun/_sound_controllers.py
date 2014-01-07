@@ -52,8 +52,9 @@ class PyoSound(object):
             with HidePyoOutput():
                 with HideAlsaOutput():
                     self._pyo_server.boot()
-            if not self._pyo_server.getIsBooted():
-                raise RuntimeError('pyo sound server could not be booted')
+            if hasattr(self._pyo_server, 'getIsBooted'):
+                if not self._pyo_server.getIsBooted():
+                    raise RuntimeError('pyo sound server could not be booted')
             wait_secs(0.1)
             self._pyo_server.start()
             if not self._pyo_server.getIsStarted():
