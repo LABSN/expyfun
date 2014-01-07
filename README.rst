@@ -1,7 +1,9 @@
 .. -*- mode: rst -*-
 
-.. image:: https://travis-ci.org/LABSN/expyfun.png :target: https://travis-ci.org/LABSN/expyfun/
-.. image:: https://coveralls.io/repos/LABSN/expyfun/badge.png :target: https://coveralls.io/r/LABSN/expyfun
+.. image:: https://travis-ci.org/LABSN/expyfun.png
+  :target: https://travis-ci.org/LABSN/expyfun/
+.. image:: https://coveralls.io/repos/LABSN/expyfun/badge.png
+  :target: https://coveralls.io/r/LABSN/expyfun
 
 `expyfun`_
 =========
