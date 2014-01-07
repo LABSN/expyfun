@@ -16,6 +16,14 @@ Note that lab calibration logs can be stored here:
 
 https://github.com/LABSN/expyfun/wiki/Calibration-log
 
+Requirements:
+
+- numpy/scipy
+- matplotlib
+- pyglet
+- pyo
+- pandas (optional)
+
 
 Licensing
 ^^^^^^^^^
