@@ -4,7 +4,13 @@
 =========
 
 This package is designed for audio-visual experiments with precise timing,
-and includes functionality for Eyelink control.
+and includes functionality for Eyelink control. This package is designed
+with the purpose that it be used by LABS^N at the University of Washington.
+It is not designed for public use.
+
+Therefore, while we welcome bug reports and suggestions from others,
+NO SUPPORT IS GUARANTEED. Moreover, we can and will change the API as
+necessary to suit the needs of the lab. Thus, use at your own risk.
 
 Note that lab calibration logs can be stored here:
 
