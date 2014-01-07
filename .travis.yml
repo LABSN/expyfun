@@ -3,7 +3,7 @@ language: python
 env:
     # Enable python 2 and python 3 builds
     - PYTHON=2.7
-    # - PYTHON=3.3
+    # PYTHON=3.3
 # Setup anaconda
 before_install:
   - wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh
