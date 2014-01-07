@@ -81,7 +81,7 @@ def create_system_config(verbose=None):
         tdt_circuit = raw_input('Type or paste in the path to your TDT '
                                 'circuit: ')
     else:
-        tdt_type = 'psychopy'
+        tdt_type = 'pyo'
         tdt_interface = None
         tdt_circuit = None
 

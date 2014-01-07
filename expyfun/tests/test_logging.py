@@ -12,27 +12,26 @@ std_kwargs = dict(participant='foo', session='01', full_screen=False,
                   window_size=(1, 1))
 
 
-def test_logging(ac='psychopy'):
-    """Test logging to file (PsychoPy)
+def test_logging(ac='pyo'):
+    """Test logging to file (Pyo)
     """
     os.chdir(tempdir)
-    ec = ExperimentController(*std_args, audio_controller=ac, **std_kwargs)
-    test_name = ec._log_file
-    stamp = ec.current_time
-    ec.wait_until(stamp)  # wait_until called with already passed timestamp
-    try:
-        ec.load_buffer([1., -1., 1., -1., 1., -1.])  # RMS warning
-    except UserWarning:
-        pass
-    ec.close()
+    with ExperimentController(*std_args, audio_controller=ac,
+                              **std_kwargs) as ec:
+        test_name = ec._log_file
+        stamp = ec.current_time
+        ec.wait_until(stamp)  # wait_until called with already passed timestamp
+        with warnings.catch_warnings(True):
+            ec.load_buffer([1., -1., 1., -1., 1., -1.])  # RMS warning
+
     with open(test_name) as fid:
         data = '\n'.join(fid.readlines())
 
     # check for various expected log messages (TODO: add more)
     should_have = ['Subject: foo', 'Session: 01', 'wait_until was called',
                    'Stimulus max RMS (']
-    if ac == 'psychopy':
-        should_have.append('PsychoPy')
+    if ac == 'pyo':
+        should_have.append('Pyo')
     else:
         should_have.append('TDT')
 

@@ -15,6 +15,8 @@ Experiment Control
 
 .. currentmodule:: expyfun
 
+Classes:
+
 .. autosummary::
    :toctree: generated/
    :template: class.rst
@@ -22,32 +24,61 @@ Experiment Control
    ExperimentController
    EyelinkController
 
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   wait_secs
+
+Experiment Design
+=================
+
+.. currentmodule:: expyfun.stimuli
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   read_wav
+   rms
+   write_wav
+
+.. currentmodule:: expyfun.visual
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   Circle
+   Line
+   RawImage
+   Rectangle
+   Text
+
 Analysis
 ========
 
 .. currentmodule:: expyfun.analyze
 
+Functions:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
+   barplot
    dprime
    dprime_2afc
+   plot_screen
 
 Logging and Configuration
 =========================
-
-.. currentmodule:: expyfun
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   set_log_level
-   set_config
-
-Miscellaneous functions
-=======================
 
 .. currentmodule:: expyfun
 
@@ -57,4 +88,5 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
-   wait_secs
+   set_log_level
+   set_config

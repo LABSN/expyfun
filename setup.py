@@ -7,19 +7,20 @@ import os
 from os import path as op
 import expyfun
 
-import setuptools  # we are using a setuptools namespace
+# we are using a setuptools namespace
+import setuptools  # analysis:ignore
 from numpy.distutils.core import setup
 
 descr = """Experiment controller functions."""
 
-DISTNAME            = 'expyfun'
-DESCRIPTION         = descr
-MAINTAINER          = 'Dan McCloy'
-MAINTAINER_EMAIL    = 'drmccloy@uw.edu'
-URL                 = 'http://github.com/LABSN/expyfun'
-LICENSE             = 'BSD (3-clause)'
-DOWNLOAD_URL        = 'http://github.com/LABSN/expyfun'
-VERSION             = expyfun.__version__
+DISTNAME = 'expyfun'
+DESCRIPTION = descr
+MAINTAINER = 'Dan McCloy'
+MAINTAINER_EMAIL = 'drmccloy@uw.edu'
+URL = 'http://github.com/LABSN/expyfun'
+LICENSE = 'BSD (3-clause)'
+DOWNLOAD_URL = 'http://github.com/LABSN/expyfun'
+VERSION = expyfun.__version__
 
 
 if __name__ == "__main__":
@@ -49,7 +50,9 @@ if __name__ == "__main__":
                        'Operating System :: MacOS'],
           platforms='any',
           packages=['expyfun', 'expyfun.tests',
-                    'expyfun.analyze', 'expyfun.analyze.tests'],
-          package_data={'expyfun': [op.join('tdt-circuits','*.rcx'),
+                    'expyfun.analyze', 'expyfun.analyze.tests',
+                    'expyfun.stimuli', 'expyfun.stimuli',
+                    'expyfun.visual', 'expyfun.visual.tests'],
+          package_data={'expyfun': [op.join('tdt-circuits', '*.rcx'),
                                     op.join('tests', 'data', '*')]},
           scripts=[])

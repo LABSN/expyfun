@@ -1,3 +1,10 @@
+"""
+=======================
+Generate sample stimuli
+=======================
+
+This shows how to generate some simple stimuli.
+"""
 from os import path as op
 import numpy as np
 from scipy.io import savemat, wavfile
@@ -94,3 +101,10 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
                           wav_dict[n])
     else:  # save_as 'dict'
         return wav_dict
+
+
+if __name__ == '__main__':
+    wav_dict = generate_stimuli(save_as='dict', fs=44100)
+    import matplotlib.pyplot as plt
+    plt.ion()
+    plt.plot(wav_dict['stim_0_500'][:1000])

@@ -18,12 +18,13 @@ from scipy import io as sio
 
 from expyfun import ExperimentController
 from expyfun._utils import set_log_level
-from generate_stimuli import generate_stimuli
+import expyfun.analyze as ea
+
 
 set_log_level('INFO')
 
 # set configuration
-ac = 'psychopy'  # change to 'RM1' or 'RP2' for TDT use
+ac = 'pyo'  # change to 'RM1' or 'RP2' for TDT use
 fs = 44100
 noise_db = 45  # dB for background noise
 stim_db = 65  # dB for stimuli
@@ -34,10 +35,10 @@ isi = 0.2
 running_total = 0
 
 # if the stimuli have not been made, let's make them in examples dir
-stimulus_dir = op.split(__file__)[0]
-stimulus_file = op.join(stimulus_dir, 'equally_spaced_sinewaves.mat')
+stimulus_file = 'equally_spaced_sinewaves.mat'
 if not op.isfile(stimulus_file):
-    generate_stimuli(output_dir=stimulus_dir, fs=fs)
+    from generate_stimuli import generate_stimuli
+    generate_stimuli(output_dir='.', fs=fs)
 
 # load stimuli (from a call to generate_stimuli() from generate_stimuli.py)
 stims = sio.loadmat('equally_spaced_sinewaves.mat')
@@ -64,13 +65,14 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
                   'thing. There will be background noise.')
 
 # select audio controller
-if ac != 'psychopy':
+if ac != 'pyo':
     ac = dict(TYPE='tdt', TDT_MODEL=ac)
 
 with ExperimentController('testExp', ac, screen_num=0,
                           window_size=[800, 600], full_screen=False,
                           stim_db=stim_db, noise_db=noise_db, stim_fs=fs,
-                          participant='foo', session='001') as ec:
+                          participant='foo', session='001',
+                          verbose=True) as ec:
 
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]
@@ -78,12 +80,14 @@ with ExperimentController('testExp', ac, screen_num=0,
 
     # show instructions until all buttons have been pressed at least once
     ec.screen_text(instructions)
+    screenshot = ec.screenshot()
+    ec.flip()
     while len(not_yet_pressed) > 0:
         pressed, timestamp = ec.wait_one_press(live_keys=live_keys)
         for p in pressed:
             p = int(p)
             ec.load_buffer(wavs[p - 1])
-            ec.flip_and_play()
+            ec.play()
             ec.wait_secs(len(wavs[p - 1]) / float(ec.fs))
             ec.stop()
             if p in not_yet_pressed:
@@ -98,7 +102,8 @@ with ExperimentController('testExp', ac, screen_num=0,
     ec.wait_secs(isi)
 
     ec.call_on_next_flip(ec.start_noise())
-    ec.screen_prompt('OK, here we go!', max_wait=feedback_dur, live_keys=None)
+    ec.screen_prompt('<center>OK, here we go!</center>',
+                     max_wait=feedback_dur, live_keys=None)
     ec.wait_secs(isi)
 
     single_trial_order = trial_order[range(len(trial_order) / 2)]
@@ -144,17 +149,23 @@ with ExperimentController('testExp', ac, screen_num=0,
     ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])
     ec.flip_and_play()
     ec.wait_secs(len(concat_wavs) / float(ec.stim_fs))
-    ec.screen_text('Go!')
+    ec.screen_text('<center>Go!</center>')
+    ec.flip()
     pressed = ec.wait_for_presses(max_resp_time + 1, min_resp_time,
                                   live_keys, False)
     answers = [str(x + 1) for x in mass_trial_order]
     correct = [press == ans for press, ans in zip(pressed, answers)]
     running_total += sum(correct)
     ec.call_on_next_flip(ec.stop_noise())
-    ec.screen_prompt('You got {0} out of {1} correct.'.format(sum(correct),
-                     len(answers)), max_wait=feedback_dur)
+    ec.screen_prompt('You got {0} out of {1} correct.'
+                     ''.format(sum(correct), len(answers)),
+                     max_wait=feedback_dur)
 
     # end experiment
     ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '
                      'any key to close.'.format(running_total, num_trials),
                      max_wait=feedback_dur)
+
+import matplotlib.pyplot as plt
+plt.ion()
+ea.plot_screen(screenshot)

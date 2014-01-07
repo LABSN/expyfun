@@ -6,7 +6,6 @@
 
 import warnings
 import scipy as sp
-from psychopy import logging as psylog
 import os
 import os.path as op
 from functools import wraps
@@ -22,9 +21,15 @@ import platform
 from numpy import sqrt, convolve, ones
 from numpy.testing.decorators import skipif
 import ctypes
-from psychopy import core
+import logging
+import datetime
+from timeit import default_timer as clock
+
+# set this first thing to make sure it "takes"
+pyglet.options['debug_gl'] = False
+
 try:
-    import pylink
+    import pylink  # analysis:ignore
 except ImportError:
     has_pylink = False
 else:
@@ -32,9 +37,129 @@ else:
 
 
 ###############################################################################
+# LOGGING
+
+EXP = 25
+logging.addLevelName(EXP, 'EXP')
+
+
+def exp(self, message, *args, **kwargs):
+    self.log(EXP, message, *args, **kwargs)
+logging.Logger.exp = exp
+
+logger = logging.getLogger('expyfun')
+
+
+def flush_logger():
+    """Flush expyfun logger"""
+    for handler in logger.handlers:
+        handler.flush()
+
+
+def set_log_level(verbose=None, return_old_level=False):
+    """Convenience function for setting the logging level
+
+    Parameters
+    ----------
+    verbose : bool, str, int, or None
+        The verbosity of messages to print. If a str, it can be either DEBUG,
+        INFO, WARNING, ERROR, or CRITICAL. Note that these are for
+        convenience and are equivalent to passing in logging.DEBUG, etc.
+        For bool, True is the same as 'INFO', False is the same as 'WARNING'.
+        If None, the environment variable EXPYFUN_LOG_LEVEL is read, and if
+        it doesn't exist, defaults to INFO.
+    return_old_level : bool
+        If True, return the old verbosity level.
+    """
+    if verbose is None:
+        verbose = get_config('EXPYFUN_LOGGING_LEVEL', 'INFO')
+    elif isinstance(verbose, bool):
+        if verbose is True:
+            verbose = 'INFO'
+        else:
+            verbose = 'WARNING'
+    if isinstance(verbose, basestring):
+        verbose = verbose.upper()
+        logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
+                             WARNING=logging.WARNING, ERROR=logging.ERROR,
+                             CRITICAL=logging.CRITICAL)
+        if not verbose in logging_types:
+            raise ValueError('verbose must be of a valid type')
+        verbose = logging_types[verbose]
+
+    old_verbose = logger.level
+    logger.setLevel(verbose)
+    return (old_verbose if return_old_level else None)
+
+
+def set_log_file(fname=None,
+                 output_format='%(asctime)s - %(levelname)s - %(message)s',
+                 overwrite=None):
+    """Convenience function for setting the log to print to a file
+
+    Parameters
+    ----------
+    fname : str, or None
+        Filename of the log to print to. If None, stdout is used.
+        To suppress log outputs, use set_log_level('WARN').
+    output_format : str
+        Format of the output messages. See the following for examples:
+            http://docs.python.org/dev/howto/logging.html
+        e.g., "%(asctime)s - %(levelname)s - %(message)s".
+    overwrite : bool, or None
+        Overwrite the log file (if it exists). Otherwise, statements
+        will be appended to the log (default). None is the same as False,
+        but additionally raises a warning to notify the user that log
+        entries will be appended.
+    """
+    handlers = logger.handlers
+    for h in handlers:
+        if isinstance(h, logging.FileHandler):
+            h.close()
+        logger.removeHandler(h)
+    if fname is not None:
+        if op.isfile(fname) and overwrite is None:
+            warnings.warn('Log entries will be appended to the file. Use '
+                          'overwrite=False to avoid this message in the '
+                          'future.')
+        mode = 'w' if overwrite is True else 'a'
+        lh = logging.FileHandler(fname, mode=mode)
+    else:
+        """ we should just be able to do:
+                lh = logging.StreamHandler(sys.stdout)
+            but because doctests uses some magic on stdout, we have to do this:
+        """
+        lh = logging.StreamHandler(WrapStdOut())
+
+    lh.setFormatter(logging.Formatter(output_format))
+    # actually add the stream handler
+    logger.addHandler(lh)
+
+
+###############################################################################
 # RANDOM UTILITIES
 
+class ZeroClock(object):
+    """Clock that uses "clock" function but starts at zero on init"""
+    def __init__(self):
+        self._start_time = clock()
+
+    def get_time(self):
+        return clock() - self._start_time
+
+
 is_linux = (platform.system() == 'Linux')
+
+
+def date_str():
+    """Produce a date string for the current date and time
+
+    Returns
+    -------
+    datestr : str
+        The date string.
+    """
+    return str(datetime.datetime.today())
 
 
 class WrapStdOut(object):
@@ -71,6 +196,13 @@ class _TempDir(str):
                 print 'Deleting %s ...' % self._path
             rmtree(self._path, ignore_errors=True)
 
+
+def _check_units(units):
+    """Helper to make sure user passed in valid units type"""
+    good_units = ['norm', 'pix', 'deg']
+    if units not in good_units:
+        raise ValueError('"units" must be one of {}, not {}'
+                         ''.format(good_units, units))
 
 ###############################################################################
 # DECORATORS
@@ -219,46 +351,6 @@ def _has_scipy_version(version):
 
 
 ###############################################################################
-# LOGGING
-
-def set_log_level(verbose=None, return_old_level=False):
-    """Convenience function for setting the logging level
-
-    Parameters
-    ----------
-    verbose : bool, str, int, or None
-        The verbosity of messages to print. If a str, it can be either DEBUG,
-        INFO, WARNING, ERROR, or CRITICAL. Note that these are for
-        convenience and are equivalent to passing in logging.DEBUG, etc.
-        For bool, True is the same as 'INFO', False is the same as 'WARNING'.
-        If None, the environment variable EXPYFUN_LOG_LEVEL is read, and if
-        it doesn't exist, defaults to INFO.
-    return_old_level : bool
-        If True, return the old verbosity level.
-    """
-    if verbose is None:
-        verbose = get_config('EXPYFUN_LOGGING_LEVEL', 'INFO')
-    elif isinstance(verbose, bool):
-        if verbose is True:
-            verbose = 'INFO'
-        else:
-            verbose = 'WARNING'
-    if isinstance(verbose, basestring):
-        verbose = verbose.upper()
-        logging_types = dict(DEBUG=psylog.DEBUG, INFO=psylog.INFO,
-                             WARNING=psylog.WARNING, ERROR=psylog.ERROR,
-                             CRITICAL=psylog.CRITICAL)
-        if not verbose in logging_types:
-            raise ValueError('verbose must be of a valid type')
-        verbose = logging_types[verbose]
-
-    logger = psylog.console
-    old_verbose = logger.level
-    logger.setLevel(verbose)
-    return (old_verbose if return_old_level else None)
-
-
-###############################################################################
 # CONFIG / PREFS
 
 def get_config_path():
@@ -384,7 +476,7 @@ def set_config(key, value):
             config = json.load(fid)
     else:
         config = dict()
-        psylog.info('Attempting to create new expyfun configuration '
+        logger.info('Attempting to create new expyfun configuration '
                     'file:\n%s' % config_path)
     if value is None:
         config.pop(key, None)
@@ -417,42 +509,29 @@ def _check_pyglet_version(raise_error=False):
 interactive_test = skipif(get_config('EXPYFUN_INTERACTIVE_TESTING', 'False') !=
                           'True', 'Interactive testing disabled.')
 
-tdt_test = skipif(get_config('AUDIO_CONTROLLER', 'psychopy') != 'tdt',
+tdt_test = skipif(get_config('AUDIO_CONTROLLER', 'pyo') != 'tdt',
                   'TDT not set in system config.')
 
 
-def wait_secs(secs, hog_cpu_time=0.2):
+def wait_secs(secs):
     """Wait a specified number of seconds.
 
     Parameters
     ----------
     secs : float
         Number of seconds to wait.
-    hog_cpu_time : float
-        Amount of CPU time to hog. See Notes.
 
     Notes
     -----
-    From the PsychoPy documentation:
-    If secs=10 and hogCPU=0.2 then for 9.8s python's time.sleep function
-    will be used, which is not especially precise, but allows the cpu to
-    perform housekeeping. In the final hogCPUperiod the more precise method
-    of constantly polling the clock is used for greater precision.
-
-    If you want to obtain key-presses during the wait, be sure to use
-    pyglet and to hogCPU for the entire time, and then call
-    psychopy.event.getKeys() after calling wait().
-
-    If you want to suppress checking for pyglet events during the wait, do
-    this once:
-        core.checkPygletDuringWait = False
-    and from then on you can do:
-        core.wait(sec)
-    This will preserve terminal-window focus during command line usage.
+    This function uses a while loop. Although this slams the CPU, it will
+    guarantee that events (keypresses, etc.) are processed.
     """
-    if any([secs < 0.2, secs < hog_cpu_time]):
-        hog_cpu_time = secs
-    core.wait(secs, hogCPUperiod=hog_cpu_time)
+    #hog the cpu, checking time
+    t0 = clock()
+    wins = pyglet.window.get_platform().get_default_display().get_windows()
+    while (clock() - t0) < secs:
+        for win in wins:
+            win.dispatch_events()
 
 
 def running_rms(signal, win_length):

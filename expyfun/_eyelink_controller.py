@@ -12,15 +12,15 @@ import os
 from os import path as op
 import time
 import Image
-from psychopy import visual
-from psychopy import logging as psylog
 import pyglet
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink
 except ImportError:
     pylink = None  #analysis:ignore
-from ._utils import get_config, verbose_dec
+
+from .visual import Circle, RawImage, Line, Text
+from ._utils import get_config, verbose_dec, logger
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
@@ -105,18 +105,18 @@ class EyelinkController(object):
             os.mkdir(output_dir)
         self.output_dir = output_dir
         self._ec = ec
-        psylog.info('EyeLink: Initializing on {}'.format(link))
+        logger.info('EyeLink: Initializing on {}'.format(link))
         ec.flush_logs()
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
         if self._ec is not None:
-            self._size = np.array(self._ec.window.monitor.getSizePix())
+            self._size = np.array(self._ec.window_size_pix)
             self._ec._extra_cleanup_fun += [self.close]
         else:
             self._size = np.array([1920, 1200])
         self._ec.flush_logs()
         self.setup(fs)
-        psylog.debug('EyeLink: Setup complete')
+        logger.debug('EyeLink: Setup complete')
         self._ec.flush_logs()
 
     @property
@@ -137,7 +137,7 @@ class EyelinkController(object):
         # map the gaze positions from the tracker to screen pixel positions
         res = self._size
         res_str = '0 0 {0} {1}'.format(res[0] - 1, res[1] - 1)
-        psylog.debug('EyeLink: Setting display coordinates and saccade levels')
+        logger.debug('EyeLink: Setting display coordinates and saccade levels')
         self.command('screen_pixel_coords = ' + res_str)
         self._message('DISPLAY_COORDS ' + res_str)
 
@@ -153,12 +153,12 @@ class EyelinkController(object):
 
         # retrieve tracker version and tracker software version
         v = str(self.eyelink.getTrackerVersion())
-        psylog.info('Running experiment on a version ''{0}'' '
+        logger.info('Running experiment on a version ''{0}'' '
                     'tracker.'.format(v))
         v = LooseVersion(v).version
 
         # set EDF file contents
-        psylog.debug('EyeLink: Setting file and event filters')
+        logger.debug('EyeLink: Setting file and event filters')
         fef = 'LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT'
         self.eyelink.setFileEventFilter(fef)
         lef = ('LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,'
@@ -213,7 +213,7 @@ class EyelinkController(object):
         if len(file_name) > 8:
             raise RuntimeError('filename ("{0}") is too long!\n'
                                'Must be < 8 chars'.format(file_name))
-        psylog.info('Starting recording with filename {}'.format(file_name))
+        logger.info('Starting recording with filename {}'.format(file_name))
         self.eyelink.openDataFile(file_name)
         if self.eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
             raise RuntimeError('Recording could not be started')
@@ -232,7 +232,7 @@ class EyelinkController(object):
 
     def stop(self):
         """Stop Eyelink recording"""
-        psylog.info('Stopping recording')
+        logger.info('Stopping recording')
         if self.eyelink.isConnected():
             self.eyelink.stopRecording()
             self.eyelink.closeDataFile()
@@ -252,7 +252,7 @@ class EyelinkController(object):
         When calibrate is called, the stop() method is automatically
         executed before calibration begins.
         """
-        psylog.debug('EyeLink: Entering calibration')
+        logger.debug('EyeLink: Entering calibration')
         self._ec.flush_logs()
         # stop the recording
         self.stop()
@@ -265,7 +265,7 @@ class EyelinkController(object):
         self.eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
-        psylog.debug('EyeLink: Completed calibration')
+        logger.debug('EyeLink: Completed calibration')
         self._ec.flush_logs()
         # open file to record
         if start is True:
@@ -342,7 +342,7 @@ class EyelinkController(object):
         for remote_name in self._file_list:
             fname = op.join(self.output_dir, '{0}.edf'.format(remote_name))
             status = self.eyelink.receiveDataFile(remote_name, fname)
-            psylog.info('saving Eyelink file: {0}\tstatus: {1}'
+            logger.info('saving Eyelink file: {0}\tstatus: {1}'
                         ''.format(fname, status))
 
     def close(self):
@@ -352,7 +352,8 @@ class EyelinkController(object):
             self.eyelink.closeDataFile()
         self.eyelink.close()
 
-    def wait_for_fix(self, fix_pos, fix_time=0., tol=100., max_wait=np.inf):
+    def wait_for_fix(self, fix_pos, fix_time=0., tol=100., max_wait=np.inf,
+                     check_interval=0.001, units='norm'):
         """Wait for gaze to settle within a defined region
 
         Parameters
@@ -365,6 +366,10 @@ class EyelinkController(object):
             The tolerance (in pixels) to consider the target hit.
         max_wait : float
             Maximum time to wait (seconds) before returning.
+        check_interval : float
+            Time to use between position checks (seconds).
+        units : str
+            Units for `fix_pos`.
 
         Returns
         -------
@@ -377,18 +382,22 @@ class EyelinkController(object):
         # sample eye position for el.fix_hold seconds
         time_in = time.time()
         time_out = time_in + max_wait
+        fix_pos = np.array(fix_pos)
+        if not fix_pos.ndim == 1 and fix_pos.size == 2:
+            raise ValueError('fix_pos must be a 2-element array-like vector')
+        fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
+        fix_pos = fix_pos[:, 0]
         while (time.time() < time_out and not
                (fix_success and time.time() - time_in >= fix_time)):
             # sample eye position
-            eye_pos = self.get_eye_position()
-            # print (np.round(fix_pos), np.round(eye_pos))
+            eye_pos = self.get_eye_position()  # in pixels
             if _within_distance(eye_pos, fix_pos, tol):
                 fix_success = True
             else:
                 fix_success = False
                 time_in = time.time()
-            self._ec._check_force_quit()
-            self._ec.wait_secs(0.001)
+            self._ec._response_handler.check_force_quit()
+            self._ec.wait_secs(check_interval)
 
         return fix_success
 
@@ -500,28 +509,25 @@ class _Calibrate(super_class):
     def __init__(self, ec, beep=False):
         # set some useful parameters
         self.flush_logs = ec.flush_logs
-        self.win = ec.window
-        self.size = np.array(ec.window.monitor.getSizePix())
+        self.ec = ec
+        self.size = np.array(ec.window_size_pix)
         self.keys = []
         self.aspect = float(self.size[0]) / self.size[1]
         self.img_span = (1.0, 1.0 * self.aspect)
 
         # set up reusable objects
-        rad = [7, 7]
-        self.targ_circ = visual.Circle(self.win, radius=rad, edges=100,
-                                       units='pix', fillColor=(1., 1., 1.),
-                                       lineWidth=0.0, lineColor=(1., 1., 1.))
-        rad = [2, 2]
-        self.targ_ctr = visual.Circle(self.win, radius=rad, edges=100,
-                                      units='pix', fillColor=(-1., -1., -1.),
-                                      lineWidth=0.0, lineColor=(-1., -1., -1.))
-        self.loz_circ = visual.Circle(self.win, radius=[5, 5], edges=100,
-                                      units='pix', fillColor=None,
-                                      lineWidth=2.0, lineColor=(1., 1., 1.,))
-        self.render_disc = visual.Circle(self.win, radius=[1, 1], edges=100,
-                                         units='deg', fillColor=None,
-                                         lineWidth=5.0,
-                                         lineColor=(1., -1., -1.))
+        self.targ_circ = Circle(self.ec, radius=[7, 7],
+                                units='pix', fill_color='white',
+                                line_color=None)
+        self.targ_ctr = Circle(self.ec, radius=[2, 2],
+                               units='pix', fill_color='black',
+                               line_color=None)
+        self.loz_circ = Circle(self.ec, radius=[2, 2],
+                               units='pix', fill_color=None,
+                               line_width=2.0, line_color='white')
+        self.render_disc = Circle(self.ec, radius=[2, 2],
+                                  units='deg', fill_color=None,
+                                  line_width=5.0, line_color='red')
         self.palette = None
         self.image_buffer = None
 
@@ -535,30 +541,28 @@ class _Calibrate(super_class):
         self.beep = beep
 
     def setup_event_handlers(self):
-        self.label = visual.TextStim(self.win, 'Eye Label',
-                                     pos=(0, -self.img_span[1] / 2.),
-                                     alignVert='top',
-                                     height=0.05, color=(1.0, 1.0, 0.0),
-                                     autoLog=False)
-        self.img = visual.ImageStim(self.win, units='norm',
-                                    image=self.image_buffer,
-                                    pos=(0, 0), size=self.img_span,
-                                    colorSpace='rgb', autoLog=False)
+        self.label = Text(self.ec, 'Eye Label',
+                          pos=(0, -self.img_span[1] / 2.),
+                          anchor_y='top', color='white')
+        self.img = RawImage(self.ec, np.zeros((1, 2, 3)),
+                            pos=(0, 0, self.img_span[0], self.img_span[1]),
+                            units='norm')
 
         def on_key_press(symbol, modifiers):
             key_trans_dict = _get_key_trans_dict()
             key = key_trans_dict.get(str(symbol), symbol)
             self.keys += [pylink.KeyInput(key, modifiers)]
 
-        self.win.winHandle.push_handlers(on_key_press=on_key_press)
+        # create new handler at top of handling stack
+        self.ec.window.push_handlers(on_key_press=on_key_press)
 
     def release_event_handlers(self):
-        self.win.winHandle.pop_handlers()
+        self.ec.window.pop_handlers()  # should detacch top-level handler
         del self.label
         del self.img
 
     def clear_display(self):
-        self.win.flip()
+        self.ec.flip()
 
     def record_abort_hide(self):
         pass
@@ -571,7 +575,7 @@ class _Calibrate(super_class):
         self.targ_ctr.setPos(self.recenter((x, y)), log=True)
         self.targ_circ.draw()
         self.targ_ctr.draw()
-        self.win.flip()
+        self.ec.flip()
 
     def render(self, x, y):
         raise NotImplementedError  # need to check this
@@ -584,7 +588,7 @@ class _Calibrate(super_class):
             print '\a',
 
     def get_input_key(self):
-        self.win.winHandle.dispatch_events()
+        self.ec.window.dispatch_events()
         if len(self.keys) > 0:
             k = self.keys
             self.keys = []
@@ -596,7 +600,7 @@ class _Calibrate(super_class):
         return((0, 0), 0)
 
     def alert_printf(self, msg):
-        psylog.warn('EyeLink: alert_printf {}'.format(msg))
+        logger.warn('EyeLink: alert_printf {}'.format(msg))
 
     def setup_image_display(self, w, h):
         # convert w, h from pixels to relative units
@@ -614,10 +618,10 @@ class _Calibrate(super_class):
             self.image_buffer = np.empty((totlines, width, 3), np.uint8)
         self.image_buffer[line - 1, :, :] = self.palette[buff, :]
         if line == totlines:
-            self.img.setImage(Image.fromarray(self.image_buffer), log=False)
+            self.img.set_image(self.image_buffer)
             self.img.draw()
             self.label.draw()
-            self.win.flip()
+            self.ec.flip()
 
     def draw_line(self, x1, y1, x2, y2, colorindex):
         # XXX check this
@@ -625,9 +629,8 @@ class _Calibrate(super_class):
         color_dict = _get_color_dict()
         color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
         x11, x22, y11, y22 = self._get_rltb(1, x1, x2, y1, y2)
-        line = visual.Line(self.win, [x11, y11], [x22, y22],
-                           lineColor=color[:3], units='pixels',
-                           autoLog=False)
+        line = Line(self.ec, [x11, y11], [x22, y22],
+                    lineColor=color[:3], units='pix')
         line.draw()
 
     def _get_rltb(self, asp, x1, x2, y1, y2):

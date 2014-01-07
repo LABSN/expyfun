@@ -9,13 +9,12 @@ if 'Windows' in platform.platform():
         connect_rpcox, connect_zbus = None, None  #analysis:ignore
 else:
     connect_rpcox, connect_zbus = None, None
-from psychopy import logging as psylog
 
-from ._utils import get_config, wait_secs
-from ._input_controllers import BaseKeyboard
+from ._utils import get_config, wait_secs, logger
+from ._input_controllers import Keyboard
 
 
-class TDTController(BaseKeyboard):
+class TDTController(Keyboard):
     """Interface for TDT audio output, stamping, and responses
 
     Parameters
@@ -87,35 +86,35 @@ class TDTController(BaseKeyboard):
                               '(TDT message: "{}")'.format(self._model, exp))
 
             if self.rpcox is not None:
-                psylog.info('Expyfun: RPcoX connection established')
+                logger.info('Expyfun: RPcoX connection established')
             else:
                 raise IOError('Problem initializing RPcoX.')
             """
             # start zBUS (may be needed for devices other than RM1)
             self.zbus = connect_zbus(interface=interface)
             if self.zbus is not None:
-                psylog.info('Expyfun: zBUS connection established')
+                logger.info('Expyfun: zBUS connection established')
             else:
                 raise ExperimentError('Problem initializing zBUS.')
             """
             # load circuit
             if self.rpcox.LoadCOF(self.circuit):
-                psylog.info('Expyfun: TDT circuit loaded')
+                logger.info('Expyfun: TDT circuit loaded')
             else:
-                psylog.debug('Expyfun: Problem loading circuit. Clearing...')
+                logger.debug('Expyfun: Problem loading circuit. Clearing...')
                 try:
                     if self.rpcox.ClearCOF():
-                        psylog.debug('Expyfun: TDT circuit cleared')
+                        logger.debug('Expyfun: TDT circuit cleared')
                     time.sleep(0.25)
                     if self.rpcox.LoadCOF(self.circuit):
-                        psylog.info('Expyfun: TDT circuit loaded')
+                        logger.info('Expyfun: TDT circuit loaded')
                 except:
                     raise IOError('Expyfun: Problem loading circuit.')
-            psylog.info('Expyfun: Circuit {0} loaded to {1} via {2}.'
+            logger.info('Expyfun: Circuit {0} loaded to {1} via {2}.'
                         ''.format(self.circuit, self.model, self.interface))
             # run circuit
             if self.rpcox.Run():
-                psylog.info('Expyfun: TDT circuit running')
+                logger.info('Expyfun: TDT circuit running')
             else:
                 raise SystemError('Expyfun: Problem starting TDT circuit.')
             time.sleep(0.25)
@@ -124,7 +123,7 @@ class TDTController(BaseKeyboard):
 
         # do BaseKeyboard init last, to make sure circuit is running
         if as_kb is True:
-            BaseKeyboard.__init__(self, ec, force_quit_keys)
+            Keyboard.__init__(self, ec, force_quit_keys)
 
 ################################ AUDIO METHODS ###############################
     def load_buffer(self, data):
@@ -150,7 +149,7 @@ class TDTController(BaseKeyboard):
         """
         self.rpcox.SetTagVal('trgname', 1)
         self._trigger(1)
-        psylog.debug('Expyfun: Starting TDT ring buffer')
+        logger.debug('Expyfun: Starting TDT ring buffer')
 
     def stop(self):
         """Stop playback and reset the buffer position"""
@@ -161,19 +160,19 @@ class TDTController(BaseKeyboard):
         """Send the soft trigger to stop the ring buffer playback.
         """
         self._trigger(2)
-        psylog.debug('Stopping TDT audio')
+        logger.debug('Stopping TDT audio')
 
     def start_noise(self):
         """Send the soft trigger to start the noise generator.
         """
         self._trigger(3)
-        psylog.debug('Expyfun: Starting TDT noise')
+        logger.debug('Expyfun: Starting TDT noise')
 
     def stop_noise(self):
         """Send the soft trigger to stop the noise generator.
         """
         self._trigger(4)
-        psylog.debug('Expyfun: Stopping TDT noise')
+        logger.debug('Expyfun: Stopping TDT noise')
 
     def set_noise_level(self, new_level):
         """Set the amplitude of stationary background noise.
@@ -184,7 +183,7 @@ class TDTController(BaseKeyboard):
         """Send the soft trigger to reset the ring buffer to start position.
         """
         self._trigger(5)
-        psylog.debug('Expyfun: Resetting TDT ring buffer')
+        logger.debug('Expyfun: Resetting TDT ring buffer')
 
 ################################ TRIGGER METHODS #############################
     def stamp_triggers(self, triggers, delay):
@@ -213,11 +212,11 @@ class TDTController(BaseKeyboard):
             Trigger number to send to TDT.
         """
         if not self.rpcox.SoftTrg(trig):
-            psylog.warn('SoftTrg failure for trigger: {}'.format(trig))
+            logger.warn('SoftTrg failure for trigger: {}'.format(trig))
 
 ################################ KEYBOARD METHODS ############################
 
-    def _get_keyboard_timebase(self):
+    def _get_timebase(self):
         """Return time since circuit was started (in seconds).
         """
         return self.rpcox.GetTagVal('masterclock') / float(self.fs)
@@ -226,10 +225,12 @@ class TDTController(BaseKeyboard):
         """Clear keyboard buffers.
         """
         self._trigger(7)
+        self._clear_keyboard_events()
 
     def _retrieve_events(self, live_keys):
         """Values and timestamps currently in keyboard buffer.
         """
+        # get values from the tdt
         press_count = int(round(self.rpcox.GetTagVal('npressabs')))
         if press_count > 0:
             # this one is indexed from zero
@@ -241,14 +242,17 @@ class TDTController(BaseKeyboard):
             press_times = np.array(press_times[0], float) / self.fs
             press_vals = np.log2(np.array(press_vals[0], float)) + 1
             press_vals = [str(int(round(p))) for p in press_vals]
-            return [(v, t) for v, t in zip(press_vals, press_times)]
+            presses = [(v, t) for v, t in zip(press_vals, press_times)]
         else:
-            return []
+            presses = []
+        # adds force_quit presses
+        presses.extend(self._retrieve_keyboard_events([]))
+        return presses
 
     def halt(self):
         """Wrapper for tdt.util.RPcoX.Halt()."""
         self.rpcox.Halt()
-        psylog.debug('Expyfun: Halting TDT circuit')
+        logger.debug('Expyfun: Halting TDT circuit')
 
 ############################# READ-ONLY PROPERTIES ###########################
     @property

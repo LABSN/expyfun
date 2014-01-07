@@ -5,12 +5,13 @@
 #
 # License: BSD (3-clause)
 
+import numpy as np
 import platform
 
 from ._utils import wait_secs, verbose_dec
 
 
-class PsychTrigger(object):
+class ParallelTrigger(object):
     """Parallel port and dummy triggering support
 
     IMPORTANT: When using the parallel port, note that calling
@@ -51,25 +52,42 @@ class PsychTrigger(object):
                  verbose=None):
         self.parallel = None
         if mode == 'parallel':
-            # use nested import in case parallel isn't used
-            from psychopy import parallel
             self._stamp_trigger = self._parallel_trigger
-            # Psychopy has some legacy methods (e.g., parallel.setData()),
-            # but we triage here to save time when time-critical stamping
-            # may be used
             if 'Linux' in platform.system():
                 address = '/dev/parport0' if address is None else address
                 try:
                     import parallel as _p
-                    assert _p
                 except ImportError:
                     raise ImportError('must have module "parallel" installed '
                                       'to use parallel triggering on Linux')
                 else:
-                    self.parallel = parallel.PParallelLinux(address)
+                    self._port = _p.Parallel(address)
+                    self._set_data = self._port.setData
             elif 'Windows' in platform.system():
-                address = 0x0378 if address is None else float(address)
-                self.parallel = parallel.PParallelInpOut32(address)
+                from ctypes import windll
+                if not hasattr(windll, 'inpout32'):
+                    raise SystemError('Must have inpout32 installed')
+
+                addr = 0x0378 if address is None else address
+                if isinstance(addr, basestring) and addr.startswith('0x'):
+                    base = int(addr, 16)
+                else:
+                    base = addr
+
+                self._port = windll.inpout32
+                mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
+                # Use ECP to put the port into byte mode
+                val = int((self._port.Inp32(base + 0x402) & ~mask) | (1 << 5))
+                self.port.Out32(base + 0x402, val)
+
+                # Now to make sure the port is in output mode we need to make
+                # sure that bit 5 of the control register is not set
+                val = int(self._port.Inp32(base + 2) & ~np.uint8(1 << 5))
+                self._port.Out32(base + 2, val)
+
+                def _set_data(data):
+                    return self._port.Out32(base, data)
+                self._set_data = _set_data
             else:
                 raise NotImplementedError
         else:  # mode == 'dummy':
@@ -83,9 +101,9 @@ class PsychTrigger(object):
 
     def _parallel_trigger(self, trig):
         """Stamp a single byte via parallel port"""
-        self.parallel.setData(int(trig))
+        self._set_data(int(trig))
         wait_secs(self.high_duration)
-        self.parallel.setData(0)
+        self._set_data(0)
 
     def stamp_triggers(self, triggers, delay):
         """Stamp a list of triggers with a given inter-trigger delay
@@ -108,3 +126,8 @@ class PsychTrigger(object):
         """
         if self.parallel is not None:
             del self.parallel
+
+    def __del__(self):
+        """Nice cleanup"""
+        if hasattr(self, '_port'):
+            del self._port
