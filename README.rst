@@ -1,4 +1,7 @@
 .. -*- mode: rst -*-
+
+..image https://travis-ci.org/LABSN/expyfun.png
+
 `expyfun`_
 =========
 
