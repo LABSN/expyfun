@@ -4,12 +4,13 @@ from nose.tools import assert_raises
 import warnings
 
 import expyfun.analyze as ea
-from expyfun._utils import _TempDir
+from expyfun._utils import _TempDir, requires_pandas
 
 warnings.simplefilter('always')
 temp_dir = _TempDir()
 
 
+@requires_pandas
 def test_barplot():
     """Test bar plot function
     """

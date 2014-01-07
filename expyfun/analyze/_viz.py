@@ -2,7 +2,6 @@
 """
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from itertools import chain
 
@@ -53,6 +52,7 @@ def barplot(df, grouping=None, fix_bar_width=True, xlab=None, group_names=None,
     ax : matplotlib.axes.Axes
         The plot object.
     """
+    import pandas as pd
     if err_bars is not None:
         if not isinstance(err_bars, basestring):
             raise TypeError()
