@@ -10,46 +10,54 @@ from scipy import fftpack
 import sys
 
 from ._utils import (HidePyoOutput, HideAlsaOutput, logger, wait_secs,
-                     flush_logger)
+                     flush_logger, get_config)
 
 
 class PyoSound(object):
     """Use Pyo audio capabilities"""
     def __init__(self, ec, stim_fs, buffer_size=128):
+        # This is a hack for Travis, since it doesn't allow "audio" group on
+        # linux, we need some way to fake audio calls
         logger.info('Expyfun: Setting up Pyo audio')
-        self._pyo_server = None
-        # nest the pyo import, in case we have a sys with just TDT
-        try:
+        if get_config('_EXPYFUN_PYO_DUMMY_MODE', 'false') == 'true':
+            self.Sound = DummySound
+            self.fs = stim_fs
+        else:
+            self.Sound = Sound  # use real sound
+            self._pyo_server = None
+            # nest the pyo import, in case we have a sys with just TDT
+            try:
+                with HidePyoOutput():
+                    import pyo
+            except Exception as exp:
+                raise RuntimeError('Cannot init pyo sound: {}'
+                                   ''.format(str(exp)))
+
+            driver_dict = dict(darwin='coreaudio', linux2='jack')
+            audio = driver_dict.get(sys.platform, 'portaudio')
+            self._pyo_server = pyo.Server(sr=44100, nchnls=2, audio=audio,
+                                          buffersize=buffer_size)
+            self._pyo_server.setVerbosity(1)  # error
+
+            if sys.platform == 'win32':
+                names, ids = pyo.pa_get_output_devices()
+                driver, id_ = _best_driver_win32(names, ids)
+                if not id_:
+                    raise RuntimeError('No audio outputs found')
+                logger.info('Using sound driver: {} (ID={})'
+                            ''.format(driver, id_))
+                self._pyo_server.setOutputDevice(id_)
+            self._pyo_server.setDuplex(False)
             with HidePyoOutput():
-                import pyo
-        except Exception as exp:
-            raise RuntimeError('Cannot init pyo sound: {}'.format(str(exp)))
-
-        driver_dict = dict(darwin='coreaudio', linux2='jack')
-        audio = driver_dict.get(sys.platform, 'portaudio')
-        self._pyo_server = pyo.Server(sr=44100, nchnls=2, audio=audio,
-                                      buffersize=buffer_size)
-        self._pyo_server.setVerbosity(1)  # error
-
-        if sys.platform == 'win32':
-            names, ids = pyo.pa_get_output_devices()
-            driver, id_ = _best_driver_win32(names, ids)
-            if not id_:
-                raise RuntimeError('No audio outputs found')
-            logger.info('Using sound driver: {} (ID={})'
-                        ''.format(driver, id_))
-            self._pyo_server.setOutputDevice(id_)
-        self._pyo_server.setDuplex(False)
-        with HidePyoOutput():
-            with HideAlsaOutput():
-                self._pyo_server.boot()
-        if not self._pyo_server.getIsBooted():
-            raise RuntimeError('pyo sound server could not be booted')
-        wait_secs(0.1)
-        self._pyo_server.start()
-        if not self._pyo_server.getIsStarted():
-            raise RuntimeError('pyo sound server could not be started')
-        self.fs = int(self._pyo_server.getSamplingRate())
+                with HideAlsaOutput():
+                    self._pyo_server.boot()
+            if not self._pyo_server.getIsBooted():
+                raise RuntimeError('pyo sound server could not be booted')
+            wait_secs(0.1)
+            self._pyo_server.start()
+            if not self._pyo_server.getIsStarted():
+                raise RuntimeError('pyo sound server could not be started')
+            self.fs = int(self._pyo_server.getSamplingRate())
 
         # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
@@ -64,7 +72,7 @@ class PyoSound(object):
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
         noise = noise / np.sqrt(np.mean(noise * noise))
         self.noise_array = np.array(np.c_[noise, -1.0 * noise], order='C')
-        self.noise = Sound(self.noise_array, loop=True)
+        self.noise = self.Sound(self.noise_array, loop=True)
         self.clear_buffer()  # initializes self.audio
         self.ec = ec
         logger.debug('Expyfun: Pyo sound server started')
@@ -77,10 +85,10 @@ class PyoSound(object):
         self.noise.stop()
 
     def clear_buffer(self):
-        self.audio = Sound(np.zeros((1, 2)))
+        self.audio = self.Sound(np.zeros((1, 2)))
 
     def load_buffer(self, samples):
-        self.audio = Sound(samples)
+        self.audio = self.Sound(samples)
 
     def play(self):
         self.audio.play()
@@ -90,7 +98,7 @@ class PyoSound(object):
         self.audio.stop()
 
     def set_noise_level(self, level):
-        new_noise = Sound(self.noise_array * level, loop=True)
+        new_noise = self.Sound(self.noise_array * level, loop=True)
         self.noise.stop()
         new_noise.play()
         self.noise = new_noise
@@ -112,8 +120,7 @@ def _best_driver_win32(devices, ids):
 
 
 class Sound(object):
-    """Create a sound object, from one of MANY ways.
-    """
+    """Create a sound object from numpy array"""
     def __init__(self, data, loop=False):
         import pyo
         _snd_table = pyo.DataTable(size=data.shape[0],
@@ -129,3 +136,15 @@ class Sound(object):
     def stop(self, log=True):
         """Stops the sound immediately"""
         self._snd.stop()
+
+
+class DummySound(object):
+    """Create a dummy sound object from numpy array"""
+    def __init__(self, data, loop=False):
+        pass
+
+    def play(self):
+        pass
+
+    def stop(self, log=True):
+        pass

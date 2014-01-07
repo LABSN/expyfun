@@ -35,6 +35,13 @@ except ImportError:
 else:
     has_pylink = True
 
+try:
+    import pandas # analysis:ignore
+except ImportError:
+    has_pandas = False
+else:
+    has_pandas = True
+
 
 ###############################################################################
 # LOGGING
@@ -344,6 +351,7 @@ def verbose_dec(function):
 
 
 requires_pylink = skipif(has_pylink is False, 'Requires functional pylink')
+requires_pandas = skipif(has_pandas is False, 'Requires pandas')
 
 
 def _has_scipy_version(version):
@@ -389,7 +397,8 @@ known_config_types = ['RESPONSE_DEVICE',
                       'SCREEN_DISTANCE',
                       'SCREEN_SIZE_PIX',
                       'EXPYFUN_INTERACTIVE_TESTING',
-                      'EXPYFUN_LOGGING_LEVEL'
+                      'EXPYFUN_LOGGING_LEVEL',
+                      '_EXPYFUN_PYO_DUMMY_MODE',
                       ]
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed
