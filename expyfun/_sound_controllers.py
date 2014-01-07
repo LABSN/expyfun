@@ -19,13 +19,14 @@ class PyoSound(object):
         # This is a hack for Travis, since it doesn't allow "audio" group on
         # linux, we need some way to fake audio calls
         logger.info('Expyfun: Setting up Pyo audio')
+        self._pyo_server = None
         if get_config('_EXPYFUN_PYO_DUMMY_MODE', 'false') == 'true':
+            # Use fake sound
             self.Sound = DummySound
             self.fs = stim_fs
         else:
-            self.Sound = Sound  # use real sound
-            self._pyo_server = None
             # nest the pyo import, in case we have a sys with just TDT
+            self.Sound = Sound  # use real sound
             try:
                 with HidePyoOutput():
                     import pyo
