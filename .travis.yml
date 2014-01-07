@@ -1,0 +1,48 @@
+language: python
+
+env:
+    # Enable python 2 and python 3 builds
+    - PYTHON=2.7
+    # - PYTHON=3.3
+# Setup anaconda
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/anaconda/bin:$PATH
+  - conda update --yes conda
+  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
+  - sudo rm -rf /dev/shm
+  - sudo ln -s /run/shm /dev/shm
+
+install:
+    - conda create -n testenv --yes pip python=$PYTHON
+    - source activate testenv
+    - conda install --yes ipython==1.1.0 numpy scipy nose matplotlib
+    - pip install pyglet
+    - pip install pyo
+    - pip install coverage; pip install coveralls; pip install nose-timer
+    - python setup.py install
+    - SRC_DIR=$(pwd)
+    - cd ~
+    - EXPYFUN_DIR=$(python -c 'import expyfun;print(expyfun.__path__[0])')
+    - ln -s ${SRC_DIR}/setup.cfg ${EXPYFUN_DIR}/../setup.cfg
+    - ln -s ${SRC_DIR}/.coveragerc ${EXPYFUN_DIR}/../.coveragerc
+    # Link coverage to src dir, coveralls should be run from there (needs git calls)
+    - ln -s ${EXPYFUN_DIR}/../.coverage ${EXPYFUN_DIR}/.coverage
+
+script:
+    - cd ${EXPYFUN_DIR}/../
+    - # Nose-timer has bugs on 3+ as of Jan 2014
+    - if [ "{PYTHON}" == "2.7" ]; then
+        nosetests --with-timer --timer-top-n 20;
+      else
+        nosetests;
+      fi
+
+after_success:
+    # Need to run from source dir to exectue "git" commands
+    - if [ "${PYTHON}" == "2.7" ]; then
+        cd ${SRC_DIR};
+        coveralls;
+      fi;
