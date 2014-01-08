@@ -27,12 +27,21 @@ with ExperimentController('test', session='1', participant='2',
         img_buffer[ii * 10:(ii + 1) * 10, :, ii] = 1.0
     img = visual.RawImage(ec, img_buffer)
 
+    # make a line
+    line = visual.Line(ec, [[-2, 2, 2, -2], [-2, 2, -2, -2]], units='deg',
+                       line_color='w', line_width=2.0)
+
+    # make a rectangle
+    rect = visual.Rectangle(ec, [0, 0, 2, 2], units='deg', fill_color='k')
+
     # make a circle
-    circle = visual.Circle(ec, 1, units='deg', line_color='k', fill_color='w',
+    circle = visual.Circle(ec, 1, units='deg', line_color='w', fill_color='k',
                            line_width=2.0)
 
     # do the drawing, then flip
     img.draw()
+    line.draw()
+    rect.draw()
     circle.draw()
     screenshot = ec.screenshot()  # must be called *before* the flip
     ec.flip()

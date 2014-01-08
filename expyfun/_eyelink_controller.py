@@ -11,7 +11,6 @@ from distutils.version import LooseVersion
 import os
 from os import path as op
 import time
-import Image
 import pyglet
 # don't prevent basic functionality for folks who don't use EL
 try:
@@ -90,6 +89,7 @@ class EyelinkController(object):
     @verbose_dec
     def __init__(self, ec=None, output_dir=None, link='default', fs=1000,
                  verbose=None):
+        print('init')
         if pylink is None:
             raise ImportError('Could not import pylink, please ensure it '
                               'is installed correctly')
@@ -107,7 +107,10 @@ class EyelinkController(object):
         self._ec = ec
         logger.info('EyeLink: Initializing on {}'.format(link))
         ec.flush_logs()
+        print('Trying')
+        print(link)
         self.eyelink = pylink.EyeLink(link)
+        print('eh')
         self._file_list = []
         if self._ec is not None:
             self._size = np.array(self._ec.window_size_pix)
@@ -115,6 +118,7 @@ class EyelinkController(object):
         else:
             self._size = np.array([1920, 1200])
         self._ec.flush_logs()
+        print('setup')
         self.setup(fs)
         logger.debug('EyeLink: Setup complete')
         self._ec.flush_logs()

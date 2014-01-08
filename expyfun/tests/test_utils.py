@@ -27,6 +27,7 @@ def test_config():
     assert_equal(len(w), 3)
     if old_val is not None:
         os.environ[key] = old_val
+    assert_raises(ValueError, get_config, 1)
 
 
 @deprecated('message')
@@ -34,9 +35,20 @@ def deprecated_func():
     pass
 
 
+@deprecated('message')
+class deprecated_class(object):
+    def __init__(self):
+        pass
+
+
 def test_deprecated():
     """Test deprecated function
     """
     with warnings.catch_warnings(True) as w:
+        warnings.simplefilter('always')
         deprecated_func()
+    assert_true(len(w) == 1)
+    with warnings.catch_warnings(True) as w:
+        warnings.simplefilter('always')
+        deprecated_class()
     assert_true(len(w) == 1)
