@@ -86,6 +86,10 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
     if not overwrite and op.isfile(fname):
         raise IOError('File {} exists, overwrite=True must be '
                       'used'.format(op.basename(fname)))
+    if not np.dtype(type(fs)) == 'i':
+        fs = int(fs)
+        logger.warn('Warning: sampling rate is being cast to integer and may '
+                    'be truncated.')
     data = np.atleast_2d(data)
     if np.dtype(dtype).kind not in ['i', 'f']:
         raise TypeError('dtype must be integer or float')
