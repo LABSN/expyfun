@@ -155,7 +155,6 @@ class _Triangular(object):
                 gl_cmd = pyglet.gl.GL_LINE_LOOP
             else:
                 gl_cmd = pyglet.gl.GL_LINE_STRIP
-            print self._line_points[:10]
             pyglet.graphics.draw(len(self._line_points) / 2,
                                  gl_cmd,
                                  ('v2f', self._line_points),
