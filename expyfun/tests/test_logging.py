@@ -9,7 +9,7 @@ warnings.simplefilter('always')
 tempdir = _TempDir()
 std_args = ['test']
 std_kwargs = dict(participant='foo', session='01', full_screen=False,
-                  window_size=(1, 1))
+                  window_size=(1, 1), verbose=True)
 
 
 def test_logging(ac='pyo'):
