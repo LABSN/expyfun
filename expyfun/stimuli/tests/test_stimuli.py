@@ -29,8 +29,9 @@ def test_read_write_wav():
     assert_raises(IOError, write_wav, fname, data, fs)
 
     # test forcing fs dtype to int
-    with warnings.catch_warnings(True):
+    with warnings.catch_warnings(True) as w:
         write_wav(fname, data, float(fs), overwrite=True)
+        assert_equal(len(w), 1)
 
     # Use 64-bit int: not supported
     assert_raises(RuntimeError, write_wav, fname, data, fs, dtype=np.int64,
