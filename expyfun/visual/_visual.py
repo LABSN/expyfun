@@ -201,6 +201,7 @@ class Line(_Triangular):
         coords : array-like
             2 x N set of X, Y coordinates.
         """
+        _check_units(units)
         coords = np.array(coords, dtype=float)
         if coords.ndim == 1:
             coords = coords[:, np.newaxis]
@@ -208,7 +209,8 @@ class Line(_Triangular):
             raise ValueError('coords must be a vector of length 2, or an '
                              'array with 2 dimensions (with first dimension '
                              'having length 2')
-        self._line_points = coords
+        coords = self._ec._convert_units(coords, units, 'pix')
+        self._line_points = coords.T.flatten()
 
 
 class Rectangle(_Triangular):
@@ -254,7 +256,7 @@ class Rectangle(_Triangular):
         _check_units(units)
         # do this in normalized units, then convert
         pos = np.array(pos)
-        if not pos.ndim == 1 and pos.size == 4:
+        if not (pos.ndim == 1 and pos.size == 4):
             raise ValueError('pos must be a 4-element array-like vector')
         self._pos = pos
         w = self._pos[2]
@@ -265,7 +267,7 @@ class Rectangle(_Triangular):
                            [w / 2., -h / 2.]]).T
         points += np.array(self._pos[:2])[:, np.newaxis]
         points = self._ec._convert_units(points, units, 'pix')
-        self._points = points.T.ravel()
+        self._points = points.T.flatten()
         self._tris = np.array([0, 1, 2, 0, 2, 3])
         self._line_points = self._points  # all 4 points used for line drawing
 
@@ -335,7 +337,8 @@ class Circle(_Triangular):
         _check_units(units)
         radius = np.atleast_1d(radius).astype(float)
         if not radius.ndim == 1 or radius.size > 2:
-            raise ValueError('pos must be a 2-element array-like vector')
+            raise ValueError('radius must be a 1- or 2-element '
+                             'array-like vector')
         if radius.size == 1:
             radius = np.r_[radius, radius]
         # convert to pixel (OpenGL) units
@@ -358,7 +361,7 @@ class Circle(_Triangular):
         """
         _check_units(units)
         pos = np.array(pos, dtype=float)
-        if not pos.ndim == 1 and pos.size == 2:
+        if not (pos.ndim == 1 and pos.size == 2):
             raise ValueError('pos must be a 2-element array-like vector')
         # convert to pixel (OpenGL) units
         self._pos = self._ec._convert_units(pos[:, np.newaxis],

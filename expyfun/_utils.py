@@ -36,7 +36,7 @@ else:
     has_pylink = True
 
 try:
-    import pandas # analysis:ignore
+    import pandas  # analysis:ignore
 except ImportError:
     has_pandas = False
 else:
@@ -398,7 +398,6 @@ known_config_types = ['RESPONSE_DEVICE',
                       'SCREEN_SIZE_PIX',
                       'EXPYFUN_INTERACTIVE_TESTING',
                       'EXPYFUN_LOGGING_LEVEL',
-                      '_EXPYFUN_PYO_DUMMY_MODE',
                       ]
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed

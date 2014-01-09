@@ -11,7 +11,6 @@ from distutils.version import LooseVersion
 import os
 from os import path as op
 import time
-import Image
 import pyglet
 # don't prevent basic functionality for folks who don't use EL
 try:

@@ -13,7 +13,7 @@ temp_dir = _TempDir()
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
-                  stim_fs=48000)
+                  stim_fs=48000, verbose=True)
 
 
 def dummy_print(string):
@@ -42,6 +42,8 @@ def test_unit_conversions():
         v1 = ec._convert_units(verts, 'deg', 'pix')
         v2 = v0 - v1  # must check deviation from zero position
         assert_allclose(v2[0], v2[1])
+        assert_raises(ValueError, ec._convert_units, verts, 'deg', 'nothing')
+        assert_raises(RuntimeError, ec._convert_units, verts[0], 'deg', 'pix')
 
 
 def test_no_output():
@@ -210,11 +212,21 @@ def test_ec(ac=None):
         ec.call_on_every_flip(dummy_print, 'called on flip and play')
         ec.flip_and_play()
         ec.flip()
+        ec.play()
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
         ec.flip_and_play()
         ec.call_on_next_flip(ec.stop_noise())
         ec.flip_and_play()
+        ec.get_mouse_position()
+        ec.toggle_cursor(False)
+        ec.toggle_cursor(True, True)
+        ec.wait_secs(0.001)
+        print ec.stim_db
+        print ec.noise_db
+        print ec.on_next_flip_functions
+        print ec.on_every_flip_functions
+        print ec.window
         data = ec.screenshot()
         assert_allclose(data.shape[:2], std_kwargs['window_size'])
         print ec.fs  # test fs support
@@ -231,9 +243,24 @@ def test_visual(ac=None):
     """
     with ExperimentController(*std_args, audio_controller=ac,
                               **std_kwargs) as ec:
+        assert_raises(TypeError, visual.Circle, ec, n_edges=3.5)
+        assert_raises(ValueError, visual.Circle, ec, n_edges=3)
         circ = visual.Circle(ec)
-        rect = visual.Rectangle(ec, [0, 0, 1, 1])
+        circ.draw()
+        assert_raises(ValueError, circ.set_radius, [1, 2, 3])
+        assert_raises(ValueError, circ.set_pos, [1])
+        rect = visual.Rectangle(ec, [0, 0, 1, 1], line_width=1.0)
+        rect.draw()
+        assert_raises(ValueError, rect.set_pos, [0, 1, 2])
         img = visual.RawImage(ec, np.ones((3, 3, 4)))
+        img.draw()
+        line = visual.Line(ec, [[0, 1], [1, 0]])
+        line.draw()
+        assert_raises(ValueError, line.set_line_width, 100)
+        line.set_line_width(2)
+        line.draw()
+        assert_raises(ValueError, line.set_coords, [0])
+        line.set_coords([0, 1])
 
 
 @interactive_test
