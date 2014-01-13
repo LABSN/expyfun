@@ -6,6 +6,35 @@ import numpy as np
 import scipy.stats as ss
 
 
+def logit(prop, max_events=None):
+    """Convert proportion (expressed in the range [0, 1]) to logit.
+
+    Parameters
+    ----------
+    pct : float | array-like
+        the occurrence proportion.
+    max_events : int | None
+        the number of events used to calculate ``pct``.  Used in a correction
+        factor for cases when ``pct`` is 0 or 1, to prevent returning ``inf``.
+        If ``None``, no correction is done, and ``inf`` or ``-inf`` may result.
+
+    Returns
+    -------
+    numpy.array, with shape matching np.array(prop).shape
+    """
+    prop = np.asanyarray(prop, dtype=float)
+    if np.any([prop > 1, prop < 0]):
+        raise ValueError('Proportions must be in the range [0, 1].')
+    if max_events is not None:
+        # add equivalent of half an event to 0s, and subtract same from 1s
+        corr_factor = 0.5 / max_events
+        for loc in zip(*np.where(prop == 0)):
+            prop[loc] = corr_factor
+        for loc in zip(*np.where(prop == 1)):
+            prop[loc] = 1 - corr_factor
+    return np.log(prop / (np.ones_like(prop) - prop))
+
+
 def dprime(hmfc, zero_correction=True):
     """Estimates d-prime, with optional correction factor to avoid infinites.
 
