@@ -6,6 +6,48 @@ import matplotlib.pyplot as plt
 from itertools import chain
 
 
+def format_pval(pval, latex=True, scheme='default'):
+    """Format a p-value using one of several schemes.
+
+    Parameters
+    ----------
+    pval : float | array-like
+        The raw p-value(s).
+    latex : bool
+        Whether to use LaTeX wrappers suitable for use with matplotlib.
+    scheme : str
+        A keyword indicating the formatting scheme (future functionality).
+
+    Returns
+    -------
+    np.objectarray : an array of strings of formatted p-values.
+    """
+    pval = np.asanyarray(pval)
+    expon = np.trunc(np.log10(pval)).astype(int)  # exponents
+    pv = np.zeros_like(pval, dtype=object)
+    if latex:
+        wrap = '$'
+        brac = '{{'
+        brak = '}}'
+    else:
+        wrap = ''
+        brac = ''
+        brak = ''
+    if scheme == 'default':
+        pv[pval > 0.05] = wrap + 'n.s.' + wrap
+        pv[pval <= 0.05] = wrap + 'p < 0.05' + wrap
+        pv[pval <= 0.01] = wrap + 'p < 0.01' + wrap
+        pv[pval <= 0.001] = wrap + 'p < 0.001' + wrap
+        pv[pval <= 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak
+                              for x in expon[pval <= 0.0001]]
+    else:  # scheme == 'ross'
+        pv[pval > 0.0001] = [wrap + 'p = {}'.format(x) + wrap
+                             for x in pval[pval > 0.0001]]
+        pv[pval <= 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak
+                              for x in expon[pval <= 0.0001]]
+    return(pv)
+
+
 def barplot(df, grouping=None, fix_bar_width=True, xlab=None, group_names=None,
             lines=False, err_bars=None, filename=None, bar_kwargs=None,
             err_kwargs=None, line_kwargs=None):
