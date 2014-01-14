@@ -40,17 +40,17 @@ def format_pval(pval, latex=True, scheme='default'):
         brac = ''
         brak = ''
     if scheme == 'default':
-        pv[pval > 0.05] = wrap + 'n.s.' + wrap
-        pv[pval <= 0.05] = wrap + 'p < 0.05' + wrap
-        pv[pval <= 0.01] = wrap + 'p < 0.01' + wrap
-        pv[pval <= 0.001] = wrap + 'p < 0.001' + wrap
-        pv[pval <= 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak
-                              for x in expon[pval <= 0.0001]]
+        pv[pval >= 0.05] = wrap + 'n.s.' + wrap
+        pv[pval < 0.05] = wrap + 'p < 0.05' + wrap
+        pv[pval < 0.01] = wrap + 'p < 0.01' + wrap
+        pv[pval < 0.001] = wrap + 'p < 0.001' + wrap
+        pv[pval < 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak +
+                             wrap for x in expon[pval < 0.0001]]
     else:  # scheme == 'ross' (exact value up to 4 decimal places)
-        pv[pval > 0.0001] = [wrap + 'p = {:.4f}'.format(x) + wrap
-                             for x in pval[pval > 0.0001]]
-        pv[pval <= 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak
-                              for x in expon[pval <= 0.0001]]
+        pv[pval >= 0.0001] = [wrap + 'p = {:.4f}'.format(x) + wrap
+                              for x in pval[pval > 0.0001]]
+        pv[pval < 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak +
+                             wrap for x in expon[pval < 0.0001]]
     if single_value:
         pv = pv[0]
     return(pv)
