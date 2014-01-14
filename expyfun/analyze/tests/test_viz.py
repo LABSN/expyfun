@@ -1,6 +1,6 @@
 import numpy as np
 from os import path as op
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_equal
 import warnings
 
 import expyfun.analyze as ea
@@ -34,3 +34,10 @@ def test_plot_screen():
     assert_raises(ValueError, ea.plot_screen, tmp)
     tmp = np.ones((10, 20, 3))
     ea.plot_screen(tmp)
+
+
+def test_format_pval():
+    """Test p-value formatting
+    """
+    foo = ea.format_pval(1e-10, latex=False, scheme='ross')
+    assert_equal(foo, 'p < 10^-9')

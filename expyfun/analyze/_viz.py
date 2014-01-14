@@ -20,9 +20,15 @@ def format_pval(pval, latex=True, scheme='default'):
 
     Returns
     -------
-    np.objectarray : an array of strings of formatted p-values.
+    str | np.objectarray
+        A string or array of strings of formatted p-values. If a list output is
+        preferred, users may call ``.tolist()`` on the output of the function.
     """
-    pval = np.asanyarray(pval)
+    if np.array(pval).shape == ():
+        single_value = True
+    pval = np.atleast_1d(np.asanyarray(pval))
+    # add a tiny amount to handle cases where p is exactly a power of ten
+    pval = pval + np.finfo(pval.dtype).eps
     expon = np.trunc(np.log10(pval)).astype(int)  # exponents
     pv = np.zeros_like(pval, dtype=object)
     if latex:
@@ -40,11 +46,13 @@ def format_pval(pval, latex=True, scheme='default'):
         pv[pval <= 0.001] = wrap + 'p < 0.001' + wrap
         pv[pval <= 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak
                               for x in expon[pval <= 0.0001]]
-    else:  # scheme == 'ross'
-        pv[pval > 0.0001] = [wrap + 'p = {}'.format(x) + wrap
+    else:  # scheme == 'ross' (exact value up to 4 decimal places)
+        pv[pval > 0.0001] = [wrap + 'p = {:.4f}'.format(x) + wrap
                              for x in pval[pval > 0.0001]]
         pv[pval <= 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak
                               for x in expon[pval <= 0.0001]]
+    if single_value:
+        pv = pv[0]
     return(pv)
 
 
