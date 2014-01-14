@@ -16,7 +16,8 @@ def format_pval(pval, latex=True, scheme='default'):
     latex : bool
         Whether to use LaTeX wrappers suitable for use with matplotlib.
     scheme : str
-        A keyword indicating the formatting scheme (future functionality).
+        A keyword indicating the formatting scheme. Currently supports "ross"
+        and "default"; any other string will yield the same as "default".
 
     Returns
     -------
@@ -39,16 +40,16 @@ def format_pval(pval, latex=True, scheme='default'):
         wrap = ''
         brac = ''
         brak = ''
-    if scheme == 'default':
+    if scheme == 'ross':  # (exact value up to 4 decimal places)
+        pv[pval >= 0.0001] = [wrap + 'p = {:.4f}'.format(x) + wrap
+                              for x in pval[pval > 0.0001]]
+        pv[pval < 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak +
+                             wrap for x in expon[pval < 0.0001]]
+    else:  # scheme == 'default'
         pv[pval >= 0.05] = wrap + 'n.s.' + wrap
         pv[pval < 0.05] = wrap + 'p < 0.05' + wrap
         pv[pval < 0.01] = wrap + 'p < 0.01' + wrap
         pv[pval < 0.001] = wrap + 'p < 0.001' + wrap
-        pv[pval < 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak +
-                             wrap for x in expon[pval < 0.0001]]
-    else:  # scheme == 'ross' (exact value up to 4 decimal places)
-        pv[pval >= 0.0001] = [wrap + 'p = {:.4f}'.format(x) + wrap
-                              for x in pval[pval > 0.0001]]
         pv[pval < 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak +
                              wrap for x in expon[pval < 0.0001]]
     if single_value:
