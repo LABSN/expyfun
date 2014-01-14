@@ -11,11 +11,11 @@ def logit(prop, max_events=None):
 
     Parameters
     ----------
-    pct : float | array-like
+    prop : float | array-like
         the occurrence proportion.
     max_events : int | None
-        the number of events used to calculate ``pct``.  Used in a correction
-        factor for cases when ``pct`` is 0 or 1, to prevent returning ``inf``.
+        the number of events used to calculate ``prop``. Used in a correction
+        factor for cases when ``prop`` is 0 or 1, to prevent returning ``inf``.
         If ``None``, no correction is done, and ``inf`` or ``-inf`` may result.
 
     Returns
@@ -42,11 +42,17 @@ def dprime(hmfc, zero_correction=True):
     ----------
     hmfc : array-like
         Hits, misses, false-alarms, and correct-rejections, in that order, as a
-        four-element list, tuple, or numpy array.  If an Nx4 array is provided,
-        it will return an array of dimension (N,).
+        four-element list, tuple, or numpy array, or an Nx4 array.
     zero_correction : bool
         Whether to add a correction factor of 0.5 to each category to prevent
         division-by-zero leading to infinite d-prime values.
+
+    Returns
+    -------
+    float | array
+        If ``hmfc`` is a four-element list, tuple, or array, returns a single
+        float value. If ``hmfc`` is an Nx4 array, returns an array of dimension
+        (N,).
 
     Notes
     -----
@@ -84,6 +90,13 @@ def dprime_2afc(hm, zero_correction=True):
     zero_correction : bool
         Whether to add a correction factor of 0.5 to each category to prevent
         division-by-zero leading to infinite d-prime values.
+
+    Returns
+    -------
+    float | array
+        If ``hm`` is a two-element list, tuple, or array, returns a single
+        float value. If ``hm`` is an Nx2 array, returns an array of dimension
+        (N,).
     """
     hmfc = _check_dprime_inputs(hm, True)
     return dprime(hmfc, zero_correction)
