@@ -250,7 +250,10 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
               **bar_kwargs)
 
     # within-subject lines
-    max_pts = np.max(h, axis)
+    if two_d:
+        max_pts = np.max(h, axis)
+    else:
+        max_pts = heights
     if lines:
         if axis == 0:
             xy = [(bar_centers, hts) for hts in h]
