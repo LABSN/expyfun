@@ -17,16 +17,19 @@ def test_barplot():
     """
     grp1 = np.arange(4).reshape((2, 2))
     grp2 = [[0, 1, 2], [3]]
+    tmp = np.arange(4)
     tmp1 = np.arange(20).reshape((4, 5))
     tmp2 = pd.DataFrame(tmp1, columns=['a', 'b', 'c', 'd', 'e'],
                         index=['one', 'two', 'three', 'four'])
-    tmp3 = np.arange(4)
+    br = [(0, 1)]
+    bt = ['foo', 'bar']
+    ea.barplot(tmp1, lines=True, ylim=(0,2))
+    ea.barplot(tmp1, groups=grp1, err_bars='ci', group_names=['a', 'b'])
     ea.barplot(tmp2, axis=0, lines=True, err_bars='sd',
-               brackets=[(0, 1), (2, 3)], bracket_text=['foo', 'bar'])
+               brackets=[(0, 1), (2, 3)], bracket_text=bt)
     ea.barplot(tmp2, err_bars='se', groups=grp1,
                brackets=[([0], 2)], bracket_text=['foo'])
-    ea.barplot(tmp1, groups=grp1, err_bars='ci', group_names=['a', 'b'])
-    ea.barplot(tmp3, groups=grp2, eq_group_widths=True, err_bars=tmp3)
+    ea.barplot(tmp, groups=grp2, eq_group_widths=True, err_bars=tmp)
     extns = ['eps', 'jpg', 'pdf', 'png', 'raw', 'svg', 'tif']
     for ext in extns:
         fname = op.join(temp_dir, 'temp.' + ext)
@@ -35,6 +38,9 @@ def test_barplot():
     assert_raises(ValueError, ea.barplot, tmp1, err_bars='foo')
     assert_raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
     assert_raises(ValueError, ea.barplot, np.arange(4), err_bars=np.arange(3))
+    assert_raises(ValueError, ea.barplot, tmp, brackets=br, bracket_text=bt)
+    assert_raises(ValueError, ea.barplot, tmp, brackets=[(1,)], bracket_text=['foo'])
+    assert_raises(ValueError, ea.barplot, tmp, err_bars='sd')
 
 
 def test_plot_screen():
