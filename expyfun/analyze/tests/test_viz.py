@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from os import path as op
 from nose.tools import assert_raises, assert_equal
 import warnings
@@ -14,17 +15,26 @@ temp_dir = _TempDir()
 def test_barplot():
     """Test bar plot function
     """
-    tmp = np.arange(12).reshape((3, 4))
     grp1 = np.arange(4).reshape((2, 2))
     grp2 = [[0, 1, 2], [3]]
-    assert_raises(TypeError, ea.barplot, tmp, err_bars=True)
-    assert_raises(ValueError, ea.barplot, tmp, err_bars='foo')
-    ea.barplot(tmp, lines=True, err_bars='sd')
-    ea.barplot(tmp, grp1, err_bars='se', group_names=['a', 'b'])
-    fname = op.join(temp_dir, 'temp.pdf')
-    ea.barplot(tmp, grp2, False, err_bars='ci', group_names=['a', 'b'],
-               filename=fname)
-    del tmp, grp1, grp2
+    tmp1 = np.arange(20).reshape((4, 5))
+    tmp2 = pd.DataFrame(tmp1, columns=['a', 'b', 'c', 'd', 'e'],
+                        index=['one', 'two', 'three', 'four'])
+    tmp3 = np.arange(4)
+    ea.barplot(tmp2, axis=0, lines=True, err_bars='sd',
+               brackets=[(0, 1), (2, 3)], bracket_text=['foo', 'bar'])
+    ea.barplot(tmp2, err_bars='se', groups=grp1,
+               brackets=[([0], 2)], bracket_text=['foo'])
+    ea.barplot(tmp1, groups=grp1, err_bars='ci', group_names=['a', 'b'])
+    ea.barplot(tmp3, groups=grp2, eq_group_widths=True, err_bars=tmp3)
+    extns = ['eps', 'jpg', 'pdf', 'png', 'raw', 'svg', 'tif']
+    for ext in extns:
+        fname = op.join(temp_dir, 'temp.' + ext)
+        ea.barplot(tmp2, groups=grp2, err_bars='ci', filename=fname)
+    assert_raises(ValueError, ea.barplot, tmp1, gap_size=1.1)
+    assert_raises(ValueError, ea.barplot, tmp1, err_bars='foo')
+    assert_raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
+    assert_raises(ValueError, ea.barplot, np.arange(4), err_bars=np.arange(3))
 
 
 def test_plot_screen():
@@ -39,5 +49,7 @@ def test_plot_screen():
 def test_format_pval():
     """Test p-value formatting
     """
-    foo = ea.format_pval(1e-10, latex=False, scheme='ross')
+    foo = ea.format_pval(1e-10, latex=False)
+    bar = ea.format_pval(1e-10, latex=True, scheme='ross')
     assert_equal(foo, 'p < 10^-9')
+    assert_equal(bar, '$p < 10^{{-9}}$')
