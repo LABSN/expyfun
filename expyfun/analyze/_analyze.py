@@ -20,7 +20,7 @@ def logit(prop, max_events=None):
 
     Returns
     -------
-    numpy.array, with shape matching np.array(prop).shape
+    lgt : ``numpy.ndarray``, with shape matching ``numpy.array(prop).shape``.
     """
     prop = np.asanyarray(prop, dtype=float)
     if np.any([prop > 1, prop < 0]):
@@ -49,7 +49,7 @@ def dprime(hmfc, zero_correction=True):
 
     Returns
     -------
-    float | array
+    dp : float | array
         If ``hmfc`` is a four-element list, tuple, or array, returns a single
         float value. If ``hmfc`` is an Nx4 array, returns an array of dimension
         (N,).
@@ -93,7 +93,7 @@ def dprime_2afc(hm, zero_correction=True):
 
     Returns
     -------
-    float | array
+    dp : float | array
         If ``hm`` is a two-element list, tuple, or array, returns a single
         float value. If ``hm`` is an Nx2 array, returns an array of dimension
         (N,).

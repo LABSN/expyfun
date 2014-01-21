@@ -42,6 +42,13 @@ except ImportError:
 else:
     has_pandas = True
 
+try:
+    import matplotlib  # analysis:ignore
+except ImportError:
+    has_mpl = False
+else:
+    has_mpl = True
+
 
 ###############################################################################
 # LOGGING
@@ -352,6 +359,7 @@ def verbose_dec(function):
 
 requires_pylink = skipif(has_pylink is False, 'Requires functional pylink')
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
+requires_mpl = skipif(has_mpl is False, 'Requires matplotlib')
 
 
 def _has_scipy_version(version):

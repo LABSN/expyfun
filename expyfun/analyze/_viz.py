@@ -2,12 +2,16 @@
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import rcParams
-from matplotlib.transforms import Bbox
-from pandas.core.frame import DataFrame
 from itertools import chain
-import warnings
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib import rcParams
+except ImportError:
+    plt = None
+try:
+    from pandas.core.frame import DataFrame
+except ImportError:
+    DataFrame = None
 
 
 def format_pval(pval, latex=True, scheme='default'):
@@ -25,7 +29,7 @@ def format_pval(pval, latex=True, scheme='default'):
 
     Returns
     -------
-    str | np.objectarray
+    pv : str | np.objectarray
         A string or array of strings of formatted p-values. If a list output is
         preferred, users may call ``.tolist()`` on the output of the function.
     """
@@ -65,7 +69,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
             eq_group_widths=False, brackets=None, bracket_text=None,
             gap_size=0.2, bar_names=None, group_names=None, bar_kwargs=None,
             err_kwargs=None, line_kwargs=None, bracket_kwargs=None,
-            figure_kwargs=None, smart_defaults=True, filename=None):
+            figure_kwargs=None, smart_defaults=True, fname=None, ax=None):
     """Makes barplots w/ optional line overlays, grouping, & signif. brackets.
 
     Parameters
@@ -132,15 +136,18 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
     smart_defaults : bool
         Whether to use pyplot default colors (``False``), or something more
         pleasing to the eye (``True``).
-    filename : str | None
-        Path and name of output file. Type is inferred from ``filename`` and
+    fname : str | None
+        Path and name of output file. Type is inferred from ``fname`` and
         should work for any of the types supported by pyplot (pdf, ps, eps,
         svg, pgf, png, jpg, tiff, bmp)
+    ax : matplotlib.pyplot.axes | None
+        A ``matplotlib.pyplot.axes`` instance.  If none, a new figure with a
+        single subplot will be created.
 
     Returns
     -------
-    tuple : 3-element tuple of handles for the ``matplotlib.pyplot.figure``,
-        ``subplot``, and ``bar`` instances.
+    p : handle for the ``matplotlib.pyplot.subplot`` instance.
+    b : handle for the ``matplotlib.pyplot.bar`` instance.
 
     Notes
     -----
@@ -150,12 +157,16 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         line color: black
         bracket color: dark gray (30%)
     """
+    # check matplotlib
+    if plt is None:
+        raise ImportError('Barplot requires matplotlib.pyplot.')
     # be nice to pandas
-    if isinstance(h, DataFrame) and bar_names is None:
-        if axis == 0:
-            bar_names = h.columns.tolist()
-        else:
-            bar_names = h.index.tolist()
+    if DataFrame is not None:
+        if isinstance(h, DataFrame) and bar_names is None:
+            if axis == 0:
+                bar_names = h.columns.tolist()
+            else:
+                bar_names = h.index.tolist()
     # check arg errors
     if gap_size < 0 or gap_size >= 1:
         raise ValueError('Barplot argument "gap_size" must be in the range '
@@ -176,6 +187,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         bracket_kwargs = dict()
     if figure_kwargs is None:
         figure_kwargs = dict()
+    # user-supplied Axes
+    if ax is not None:
+        bar_kwargs['axes'] = ax
     # smart defaults
     if smart_defaults:
         if 'color' not in bar_kwargs.keys():
@@ -243,8 +257,11 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
     else:  # still must define err (for signif. brackets)
         err = np.zeros(num_bars)
     # plot (bars and error bars)
-    f = plt.figure()
-    p = plt.subplot(1, 1, 1)
+    if ax is None:
+        f = plt.figure(**figure_kwargs)
+        p = plt.subplot(1, 1, 1)
+    else:
+        p = ax
     b = p.bar(bar_edges, heights, bar_widths, error_kw=err_kwargs,
               **bar_kwargs)
     # within-subject lines
@@ -321,13 +338,13 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
     if ylim is not None:
         p.set_ylim(ylim)
     # output file
-    if filename is not None:
+    if fname is not None:
         from os.path import splitext
-        fmt = splitext(filename)[-1][1:]
-        plt.savefig(filename, format=fmt, transparent=True)
-    # return handles for figure, subplot, and barplot instance
+        fmt = splitext(fname)[-1][1:]
+        plt.savefig(fname, format=fmt, transparent=True)
+    # return handles for subplot and barplot instances
     plt.draw()
-    return (f, p, b)
+    return (p, b)
 
 
 def box_off(ax):
