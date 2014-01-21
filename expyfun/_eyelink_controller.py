@@ -16,7 +16,7 @@ import pyglet
 try:
     import pylink
 except ImportError:
-    pylink = None  #analysis:ignore
+    pylink = None  # analysis:ignore
 
 from .visual import Circle, RawImage, Line, Text
 from ._utils import get_config, verbose_dec, logger
