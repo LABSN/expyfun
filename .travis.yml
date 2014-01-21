@@ -4,8 +4,8 @@ python:
     - "2.7"
 
 env:
-	- DEPS=full
-	- DEPS=minimal
+    - DEPS=full
+    - DEPS=minimal
 
 virtualenv:
     system_site_packages: true
@@ -33,7 +33,7 @@ before_install:
     # mpl & pandas
     - if ["${DEPS}" == "full"]; then
         sudo apt-get install python-matplotlib python-pandas;
-	  fi;
+      fi;
 
 install:
     - python setup.py install
