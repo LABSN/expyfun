@@ -73,7 +73,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
     h : array-like
         If ``h`` is 2-dimensional, heights will be calculated as means along
         the axis given by ``axis``. If ``h`` is of lower dimension, it is
-        treated as raw height values.
+        treated as raw height values. If ``h`` is a pandas ``DataFrame`` and
+        ``bar_names`` is None, ``bar_names`` will be inferred from the
+        ``DataFrame``'s ``column`` labels (if ``axis=0``) or ``index`` labels.
     axis : int
         The axis along which to calculate mean values to determine bar heights.
         Ignored if ``h`` is 0- or 1-dimensional.
