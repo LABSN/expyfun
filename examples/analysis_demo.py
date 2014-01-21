@@ -35,8 +35,7 @@ test_dprime = ea.dprime_2afc(data[['test_hit', 'test_miss']])
 results = pd.DataFrame(dict(ctrl=ctrl_dprime, test=test_dprime))
 # plot
 plt.ion()
-fig, subplt, barplt = ea.barplot(results, axis=0, err_bars='sd', lines=True,
-                                 brackets=[(0, 1)],
-                                 bracket_text=[r'$p < 10^{-9}$'])
+subplt, barplt = ea.barplot(results, axis=0, err_bars='sd', lines=True,
+                            brackets=[(0, 1)], bracket_text=[r'$p < 10^{-9}$'])
 subplt.yaxis.set_label(u'd-prime ± 1 s.d.')
 subplt.set_title('Each line represents a different subject')
