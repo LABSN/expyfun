@@ -11,8 +11,6 @@ import warnings
 from os import path as op
 from functools import partial
 from scipy.signal import resample
-import StringIO
-from matplotlib import pyplot as mpl
 import pyglet
 from pyglet import gl as GL
 
@@ -597,13 +595,13 @@ class ExperimentController(object):
         scr : array
             N x M x 3 array of screen pixel colors.
         """
+        # next line must be done in order to instantiate image_buffer_manager
         data = pyglet.image.get_buffer_manager().get_color_buffer()
-        # easiest just to dump to a "file"
-        data = self._win.context.image_buffer_manager.color_buffer
-        fid = StringIO.StringIO()
-        data.save('.png', fid)
-        fid.seek(0)
-        data = mpl.imread(fid)
+        data = self._win.context.image_buffer_manager.color_buffer.image_data
+        data = data.get_data(data.format, data.pitch)
+        data = np.fromstring(data, dtype=np.uint8)
+        data.shape = (self._win.width, self._win.height, 4)
+        data = np.flipud(data)
         return data
 
     @property

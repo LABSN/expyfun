@@ -1,30 +1,53 @@
 import numpy as np
 from os import path as op
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_equal
 import warnings
 
 import expyfun.analyze as ea
-from expyfun._utils import _TempDir, requires_pandas
+from expyfun._utils import _TempDir, requires_pandas, requires_mpl
 
 warnings.simplefilter('always')
 temp_dir = _TempDir()
 
 
 @requires_pandas
+def test_barplot_with_pandas():
+    import pandas as pd
+    tmp = pd.DataFrame(np.arange(20).reshape((4, 5)),
+                       columns=['a', 'b', 'c', 'd', 'e'],
+                       index=['one', 'two', 'three', 'four'])
+    ea.barplot(tmp)
+    ea.barplot(tmp, axis=0, lines=True)
+
+
+@requires_mpl
 def test_barplot():
     """Test bar plot function
     """
-    tmp = np.arange(12).reshape((3, 4))
-    grp1 = np.arange(4).reshape((2, 2))
-    grp2 = [[0, 1, 2], [3]]
-    assert_raises(TypeError, ea.barplot, tmp, err_bars=True)
-    assert_raises(ValueError, ea.barplot, tmp, err_bars='foo')
-    ea.barplot(tmp, lines=True, err_bars='sd')
-    ea.barplot(tmp, grp1, err_bars='se', group_names=['a', 'b'])
-    fname = op.join(temp_dir, 'temp.pdf')
-    ea.barplot(tmp, grp2, False, err_bars='ci', group_names=['a', 'b'],
-               filename=fname)
-    del tmp, grp1, grp2
+    import matplotlib.pyplot as plt
+    ax = plt.subplot(1, 1, 1)
+    tmp1 = np.arange(4)  # 1-Dim
+    tmp2 = np.arange(20).reshape((4, 5))  # 2-Dim
+    ea.barplot(tmp1, err_bars=tmp1, brackets=[(0, 1), (2, 3)],
+               bracket_text=['foo', 'bar'], ax=ax)
+    ea.barplot(tmp1, groups=[[0, 1, 2], [3]], eq_group_widths=True,
+               brackets=[([0], 3)], bracket_text=['foo'])
+    ea.barplot(tmp2, lines=True, ylim=(0, 2), err_bars='se')
+    ea.barplot(tmp2, groups=[[0, 1], [2, 3]], err_bars='ci',
+               group_names=['foo', 'bar'])
+    extns = ['eps', 'jpg', 'pdf', 'png', 'raw', 'svg', 'tif']
+    for ext in extns:
+        fname = op.join(temp_dir, 'temp.' + ext)
+        ea.barplot(tmp2, groups=[[0, 1, 2], [3]], err_bars='sd', fname=fname)
+    assert_raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
+    assert_raises(ValueError, ea.barplot, tmp2, err_bars='foo')
+    assert_raises(ValueError, ea.barplot, tmp2, gap_size=1.1)
+    assert_raises(ValueError, ea.barplot, tmp1, err_bars=np.arange(3))
+    assert_raises(ValueError, ea.barplot, tmp1, err_bars='sd')
+    assert_raises(ValueError, ea.barplot, tmp1, brackets=[(0, 1)],
+                  bracket_text=['foo', 'bar'])
+    assert_raises(ValueError, ea.barplot, tmp1, brackets=[(1,)],
+                  bracket_text=['foo'])
 
 
 def test_plot_screen():
@@ -34,3 +57,12 @@ def test_plot_screen():
     assert_raises(ValueError, ea.plot_screen, tmp)
     tmp = np.ones((10, 20, 3))
     ea.plot_screen(tmp)
+
+
+def test_format_pval():
+    """Test p-value formatting
+    """
+    foo = ea.format_pval(1e-10, latex=False)
+    bar = ea.format_pval(1e-10, latex=True, scheme='ross')
+    assert_equal(foo, 'p < 10^-9')
+    assert_equal(bar, '$p < 10^{{-9}}$')

@@ -3,6 +3,10 @@ language: python
 python:
     - "2.7"
 
+env:
+    - DEPS=full
+    - DEPS=minimal
+
 virtualenv:
     system_site_packages: true
 
@@ -19,13 +23,17 @@ before_install:
     # travis_retry sudo apt-get upgrade -y
     # travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg
     # python -c 'import pylink; pylink.EyeLink(None); print("good")'
-    - travis_retry sudo apt-get install -qq -y python-nose python-coverage python-scipy python-matplotlib python-pandas
+    - travis_retry sudo apt-get install -qq -y python-nose python-coverage python-scipy python-matplotlib
     - travis_retry sudo pip install coveralls nose-timer https://pyglet.googlecode.com/files/pyglet-1.2alpha1.zip
     # Pyo (not in Precise system packages, so take from Quantal)
     - travis_retry sudo apt-get install -qq -y libsndfile1 libportaudio2 libportmidi0 liblo7 jackd2
     - travis_retry wget -q http://mirrors.kernel.org/ubuntu/pool/universe/p/python-pyo/python-pyo_0.6.2-1_amd64.deb
     - sudo dpkg -i python-pyo_0.6.2-1_amd64.deb
     - sudo usermod -G $(groups | tr " " ","),audio $USER
+    # mpl & pandas
+    - if [ "${DEPS}" == "full" ]; then
+        sudo apt-get install python-pandas;
+      fi;
 
 install:
     - python setup.py install

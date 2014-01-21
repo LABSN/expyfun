@@ -1,4 +1,9 @@
 from nose.tools import assert_raises, assert_equal
+from numpy.testing import assert_allclose
+try:
+    from scipy.special import logit as splogit
+except ImportError:
+    splogit = None
 import numpy as np
 import warnings
 
@@ -21,3 +26,16 @@ def test_dprime():
     assert_raises(ValueError, ea.dprime, (1, 2, 3))
     assert_raises(ValueError, ea.dprime_2afc, (1, 2, 3))
     assert_equal(np.sum(ea.dprime_2afc([[5, 1], [1, 5]])), 0)
+
+
+def test_logit():
+    """Test logit calculations
+    """
+    assert_raises(ValueError, ea.logit, 2)
+    assert_equal(ea.logit(0), -np.inf)
+    assert_equal(ea.logit(1), np.inf)
+    assert_equal(ea.logit(0.5), 0)
+    if splogit is not None:
+        # Travis doesn't support scipy.special.logit, but this passes locally:
+        foo = np.random.rand(5)
+        assert_allclose(ea.logit(foo), splogit(foo))
