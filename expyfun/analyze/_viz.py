@@ -150,14 +150,12 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         line color: black
         bracket color: dark gray (30%)
     """
-
     # be nice to pandas
     if isinstance(h, DataFrame) and bar_names is None:
         if axis == 0:
             bar_names = h.columns.tolist()
         else:
             bar_names = h.index.tolist()
-
     # check arg errors
     if gap_size < 0 or gap_size >= 1:
         raise ValueError('Barplot argument "gap_size" must be in the range '
@@ -233,8 +231,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
                 err = 1.96 * h.std(axis) / np.sqrt(h.shape[axis])
         else:  # two_d == False
             if isinstance(err_bars, basestring):
-                warnings.warn('string arguments to "err_bars" ignored when '
-                              '"h" has fewer than 2 dimensions.')
+                raise ValueError('string arguments to "err_bars" ignored when '
+                                 '"h" has fewer than 2 dimensions.')
             else:
                 err_bars = np.atleast_1d(err_bars)
                 if not h.shape == err_bars.shape:
@@ -244,15 +242,16 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         bar_kwargs['yerr'] = err
     else:  # still must define err (for signif. brackets)
         err = np.zeros(num_bars)
-
     # plot (bars and error bars)
-    f = plt.figure()  # (figsize=figsize)
+    f = plt.figure()
     p = plt.subplot(1, 1, 1)
     b = p.bar(bar_edges, heights, bar_widths, error_kw=err_kwargs,
               **bar_kwargs)
-
     # within-subject lines
-    max_pts = np.max(h, axis)
+    if two_d:
+        max_pts = np.max(h, axis)
+    else:
+        max_pts = heights
     if lines:
         if axis == 0:
             xy = [(bar_centers, hts) for hts in h]
@@ -262,7 +261,6 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
             p.plot(subj[0], subj[1], **line_kwargs)
     else:
         max_pts.fill(0)
-
     # significance brackets
     apices = np.max(np.r_[np.atleast_2d(heights + err),
                           np.atleast_2d(max_pts)], axis=0)
