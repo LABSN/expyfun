@@ -93,8 +93,8 @@ with ExperimentController('KeypressDemo', screen_num=0,
 
     ####################################################################
     # listen_presses / wait_secs / get_presses, relative to master clock
-    ec.screen_text('press a few keys<br><br>listen_presses()<br>wait_secs({0})<br>'
-                   'get_presses(relative_to=0.0)'
+    ec.screen_text('press a few keys<br><br>listen_presses()'
+                   '<br>wait_secs({0})<br>get_presses(relative_to=0.0)'
                    ''.format(wait_dur))
     ec.flip()
     ec.listen_presses()
@@ -115,8 +115,8 @@ with ExperimentController('KeypressDemo', screen_num=0,
     disp_time = wait_dur
     countdown = ec.current_time + disp_time
     ec.call_on_next_flip(ec.listen_presses)
-    ec.screen_text('press some keys<br><br>listen_presses()<br>while loop {}<br>'
-                   'get_presses()'.format(disp_time))
+    ec.screen_text('press some keys<br><br>listen_presses()'
+                   '<br>while loop {}<br>get_presses()'.format(disp_time))
     ec.flip()
     while ec.current_time < countdown:
         cur_time = round(countdown - ec.current_time, 1)

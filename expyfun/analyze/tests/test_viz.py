@@ -4,7 +4,7 @@ from nose.tools import assert_raises, assert_equal
 import warnings
 
 import expyfun.analyze as ea
-from expyfun._utils import _TempDir, requires_pandas, requires_mpl
+from expyfun._utils import _TempDir, requires_pandas
 
 warnings.simplefilter('always')
 temp_dir = _TempDir()
@@ -20,7 +20,6 @@ def test_barplot_with_pandas():
     ea.barplot(tmp, axis=0, lines=True)
 
 
-@requires_mpl
 def test_barplot():
     """Test bar plot function
     """

@@ -24,7 +24,7 @@ before_install:
     # travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg
     # python -c 'import pylink; pylink.EyeLink(None); print("good")'
     - travis_retry sudo apt-get install -qq -y python-nose python-coverage python-scipy python-matplotlib
-    - travis_retry sudo pip install coveralls nose-timer https://pyglet.googlecode.com/files/pyglet-1.2alpha1.zip
+    - travis_retry sudo pip install -q coveralls nose-timer https://pyglet.googlecode.com/files/pyglet-1.2alpha1.zip flake8
     # Pyo (not in Precise system packages, so take from Quantal)
     - travis_retry sudo apt-get install -qq -y libsndfile1 libportaudio2 libportmidi0 liblo7 jackd2
     - travis_retry wget -q http://mirrors.kernel.org/ubuntu/pool/universe/p/python-pyo/python-pyo_0.6.2-1_amd64.deb
@@ -57,7 +57,12 @@ script:
     # Note that this gets executed OUTSIDE the source'd virtualenv, but it's
     # okay since we installed external packages as `sudo`.
     - sudo -E su $USER -c 'nosetests --with-timer --timer-top-n=5'
+    # Test pyflakes/PEP8
+    - cd ${SRC_DIR}
+    - flake8 --exclude=__init__.py expyfun examples;
 
 after_success:
-    - cd ${SRC_DIR}
-    - coveralls
+    - if [ "${DEPS}" == "full" ]; then
+        cd ${SRC_DIR};
+        coveralls;
+      fi;

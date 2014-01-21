@@ -6,7 +6,7 @@ if 'Windows' in platform.platform():
     try:
         from tdt.util import connect_rpcox, connect_zbus
     except ImportError:
-        connect_rpcox, connect_zbus = None, None  #analysis:ignore
+        connect_rpcox, connect_zbus = None, None  # analysis:ignore
 else:
     connect_rpcox, connect_zbus = None, None
 
