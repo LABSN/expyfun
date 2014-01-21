@@ -16,7 +16,8 @@ def test_barplot_with_pandas():
     tmp = pd.DataFrame(np.arange(20).reshape((4, 5)),
                        columns=['a', 'b', 'c', 'd', 'e'],
                        index=['one', 'two', 'three', 'four'])
-    ea.barplot(tmp, axis=0)
+    ea.barplot(tmp)
+    ea.barplot(tmp, axis=0, lines=True)
 
 
 @requires_mpl

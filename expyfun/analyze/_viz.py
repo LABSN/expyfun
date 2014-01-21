@@ -258,7 +258,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         err = np.zeros(num_bars)
     # plot (bars and error bars)
     if ax is None:
-        f = plt.figure(**figure_kwargs)
+        plt.figure(**figure_kwargs)
         p = plt.subplot(1, 1, 1)
     else:
         p = ax
