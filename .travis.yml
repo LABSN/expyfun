@@ -59,10 +59,10 @@ script:
     - sudo -E su $USER -c 'nosetests --with-timer --timer-top-n=5'
     # Test pyflakes/PEP8
     - cd ${SRC_DIR}
-    - flake8 --exclude=__init__.py, expyfun examples;
+    - flake8 --exclude=__init__.py expyfun examples;
 
 after_success:
-    - cd ${SRC_DIR}
     - if [ "${DEPS}" == "full" ]; then
+        cd ${SRC_DIR};
         coveralls;
       fi;
