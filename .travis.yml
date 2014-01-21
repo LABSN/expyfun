@@ -31,7 +31,7 @@ before_install:
     - sudo dpkg -i python-pyo_0.6.2-1_amd64.deb
     - sudo usermod -G $(groups | tr " " ","),audio $USER
     # mpl & pandas
-    - if ["${DEPS}" == "full"]; then
+    - if [ "${DEPS}" == "full" ]; then
         sudo apt-get install python-matplotlib python-pandas;
       fi;
 
