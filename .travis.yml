@@ -10,7 +10,7 @@ before_install:
     - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore.tar.gz
     - tar xzf lib.eyelinkcore.tar.gz
     - ls ${PWD}/lib/*so*
-    - gcc simpleexample.c -leyelink_core -lm -o se -L${PWD}/lib
+    - gcc simpleexample.c -L${PWD}/lib -leyelink_core -lm -o se
 
 script:
     # sudo ifdown venet0
