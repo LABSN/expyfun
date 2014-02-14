@@ -1,68 +1,16 @@
-language: python
-
-python:
-    - "2.7"
-
-env:
-    - DEPS=full
-    - DEPS=minimal
-
-virtualenv:
-    system_site_packages: true
+language: c
 
 before_install:
-    # Pylink
-    - wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/pylink4python2.7_linux_x64.tar.gz
-    - tar xzf pylink4python2.7_linux_x64.tar.gz
-    - mv pylink4python2.7_linux_x64/pylink2.7 pylink4python2.7_linux_x64/pylink
-    # sudo mv pylink4python2.7_linux_x64/pylink /usr/lib/python2.7/
     - echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list
     - echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list
-    # Easy dependencies
-    - travis_retry sudo apt-get update -qq
-    # travis_retry sudo apt-get upgrade -y
-    # travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg
-    # python -c 'import pylink; pylink.EyeLink(None); print("good")'
-    - travis_retry sudo apt-get install -qq -y python-nose python-coverage python-scipy python-matplotlib
-    - travis_retry sudo pip install -q coveralls nose-timer https://pyglet.googlecode.com/files/pyglet-1.2alpha1.zip flake8
-    # Pyo (not in Precise system packages, so take from Quantal)
-    - travis_retry sudo apt-get install -qq -y libsndfile1 libportaudio2 libportmidi0 liblo7 jackd2
-    - travis_retry wget -q http://mirrors.kernel.org/ubuntu/pool/universe/p/python-pyo/python-pyo_0.6.2-1_amd64.deb
-    - sudo dpkg -i python-pyo_0.6.2-1_amd64.deb
-    - sudo usermod -G $(groups | tr " " ","),audio $USER
-    # mpl & pandas
-    - if [ "${DEPS}" == "full" ]; then
-        sudo apt-get install python-pandas;
-      fi;
-
-install:
-    - python setup.py install
-    - SRC_DIR=${PWD}
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq -y --force-yes eyelink-display-software1.9
     - cd ~
-    - EXPYFUN_DIR=$(python -c 'import expyfun;print(expyfun.__path__[0])')
-    - ln -s ${SRC_DIR}/setup.cfg ${EXPYFUN_DIR}/../setup.cfg
-    - ln -s ${SRC_DIR}/.coveragerc ${EXPYFUN_DIR}/../.coveragerc
-    # Link coverage to src dir, coveralls should be run from there (needs git calls)
-    - ln -s ${EXPYFUN_DIR}/../.coverage ${SRC_DIR}/.coverage
-
-before_script:
-    # We need to create a (fake) display on Travis, let's use a funny resolution
-    - export DISPLAY=:99.0
-    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-    # Now we start jackd: no realtime, dummy mode
-    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jack.pid --make-pidfile --background --exec /usr/bin/jackd -- --silent --no-mlock --no-realtime -d dummy
+    - wget http://faculty.washington.edu/larsoner/simpleexample.c
+    - gcc simpleexample.c -leyelink_core -lm -o se
 
 script:
-    - cd ${EXPYFUN_DIR}/../
-    # Note that this gets executed OUTSIDE the source'd virtualenv, but it's
-    # okay since we installed external packages as `sudo`.
-    - sudo -E su $USER -c 'nosetests --with-timer --timer-top-n=5'
-    # Test pyflakes/PEP8
-    - cd ${SRC_DIR}
-    - flake8 --exclude=__init__.py expyfun examples;
-
-after_success:
-    - if [ "${DEPS}" == "full" ]; then
-        cd ${SRC_DIR};
-        coveralls;
-      fi;
+    # sudo ifdown venet0
+    # ifconfig
+    - ./se
+    # sudo ifup venet0
