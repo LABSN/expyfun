@@ -10,7 +10,7 @@ before_install:
     - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore.tar.gz
     - tar xzf lib.eyelinkcore.tar.gz
     - ls ${PWD}/lib/*so*
-    - gcc simpleexample.c -L${PWD}/lib -leyelink_core -lm -o se
+    - gcc simpleexample.c -m32 -L${PWD}/lib -leyelink_core -lm -o se
     - ldd ./se
 
 script:
