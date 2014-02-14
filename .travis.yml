@@ -11,6 +11,7 @@ before_install:
     - tar xzf lib.eyelinkcore.tar.gz
     - ls ${PWD}/lib/*so*
     - gcc simpleexample.c -L${PWD}/lib -leyelink_core -lm -o se
+    - ldd ./se
 
 script:
     # sudo ifdown venet0
