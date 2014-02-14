@@ -10,9 +10,8 @@ before_install:
     - wget http://faculty.washington.edu/larsoner/simpleexample.c
     - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore.tar.gz
     - tar xzf lib.eyelinkcore.tar.gz
-    - export LD_LIBRARY_PATH=${PWD}/lib
+    - sudo mv ${PWD}/lib/*so* /usr/lib
     - sudo ldconfig
-    - ls ${PWD}/lib/*so*
     - gcc simpleexample.c -m32 -leyelink_core -lm -o se
     - ldd ./se
 
