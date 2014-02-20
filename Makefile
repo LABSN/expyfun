@@ -23,12 +23,20 @@ clean-ctags:
 
 clean: clean-build clean-pyc clean-so clean-ctags
 
+flake:
+	if command -v flake8 > /dev/null; then \
+		flake8 --count expyfun examples; \
+	fi
+
 in: inplace # just a shortcut
 inplace:
 	$(PYTHON) setup.py build_ext -i
 
-test:
+nosetests:
+	rm -f .coverage
 	$(NOSETESTS) expyfun
+
+test: clean nosetests flake
 
 test-doc:
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/

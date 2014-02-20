@@ -13,7 +13,7 @@ temp_dir = _TempDir()
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
-                  stim_fs=48000, verbose=True)
+                  stim_fs=44100, verbose=True)
 
 
 def dummy_print(string):
