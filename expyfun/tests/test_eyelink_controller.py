@@ -26,7 +26,10 @@ def test_eyelink_methods():
     x = el.wait_for_fix([-10000, -10000], max_wait=0.1)
     assert_true(x is False)
     assert el.eye_used
+    # run much of the calibration code, but don't *actually* do it
+    el._fake_calibration = True
     el.calibrate()
+    el._fake_calibration = False
     # missing el_id
     assert_raises(KeyError, ec.identify_trial, ec_id='foo', ttl_id=[0])
     ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=1)

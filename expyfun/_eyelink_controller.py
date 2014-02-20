@@ -119,6 +119,7 @@ class EyelinkController(object):
             raise RuntimeError('Cannot use setup opened EL twice on EC')
         self._ec._id_call_dict['el_id'] = self._stamp_trial_id
         self._ec._ofp_critical_funs.append(self._stamp_trial_start)
+        self._fake_calibration = False  # Only used for testing
         logger.debug('EyeLink: Setup complete')
         self._ec.flush_logs()
 
@@ -279,7 +280,7 @@ class EyelinkController(object):
         pylink.openGraphicsEx(cal)
         cal.setup_event_handlers()
         cal.play_beep(0)
-        if not self._is_dummy_mode:
+        if not self._is_dummy_mode and not self._fake_calibration:
             self.eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
