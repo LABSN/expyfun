@@ -10,11 +10,13 @@ before_install:
     # sudo apt-get install gcc-multilib
     # wget http://faculty.washington.edu/larsoner/lib.eyelinkcore.tar.gz
     # tar xzf lib.eyelinkcore.tar.gz
-    - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore\(4\).tar.gz
-    - tar xzf lib.eyelinkcore\(4\).tar.gz
+    - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore\(6\).tar.gz
+    - tar xzf lib.eyelinkcore\(6\).tar.gz
     - sudo mv ${PWD}/lib/*so* /usr/lib
     - sudo ldconfig
     # gcc simpleexample.c -m32 -leyelink_core -lm -o se
+    - hostname
+    - domainname
     - gcc simpleexample.c -leyelink_core -lm -o se
     - ldd ./se
 
