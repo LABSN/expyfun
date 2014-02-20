@@ -18,7 +18,7 @@ from pyglet import gl as GL
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
                      _check_units, set_log_file, flush_logger,
-                     string_types)
+                     string_types, input)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PyoSound

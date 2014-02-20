@@ -224,6 +224,7 @@ def test_ec(ac=None):
         ec.toggle_cursor(False)
         ec.toggle_cursor(True, True)
         ec.wait_secs(0.001)
+        print(ec.id_types)
         print(ec.stim_db)
         print(ec.noise_db)
         print(ec.on_next_flip_functions)

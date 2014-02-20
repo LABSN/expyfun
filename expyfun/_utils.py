@@ -43,10 +43,15 @@ else:
     has_pandas = True
 
 
-try:  # for py3k (eventually)
+# for py3k (eventually)
+try:
     string_types = basestring  # noqa
 except NameError:
     string_types = str  # noqa
+try:
+    input = raw_input
+except NameError:
+    pass  # input is raw_input in py3k
 
 ###############################################################################
 # LOGGING
