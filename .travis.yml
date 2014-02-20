@@ -12,7 +12,7 @@ before_install:
     # tar xzf lib.eyelinkcore.tar.gz
     - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore\(6\).tar.gz
     - tar xzf lib.eyelinkcore\(6\).tar.gz
-    - sudo mv ${PWD}/lib/*so* /usr/lib
+    - sudo mv ${PWD}/DEBIAN/*so* /usr/lib
     - sudo ldconfig
     # gcc simpleexample.c -m32 -leyelink_core -lm -o se
     - gcc simpleexample.c -leyelink_core -lm -o se
