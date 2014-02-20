@@ -10,7 +10,7 @@ the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 from os import path as op
 import numpy as np
@@ -113,6 +113,7 @@ with ExperimentController('testExp', ac, screen_num=0,
         ec.write_data_line('one-tone trial', stim_num + 1)
         ec.clear_buffer()
         ec.load_buffer(wavs[stim_num])
+        ec.identify_trial(ec_id=stim_num, ttl_id=[0, 0])
         ec.flip_and_play()
         pressed, timestamp = ec.wait_one_press(max_resp_time, min_resp_time,
                                                live_keys)
@@ -147,6 +148,7 @@ with ExperimentController('testExp', ac, screen_num=0,
     ec.clear_buffer()
     ec.load_buffer(concat_wavs)
     ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])
+    ec.identify_trial(ec_id='multi-tone', ttl_id=[0, 1])
     ec.flip_and_play()
     ec.wait_secs(len(concat_wavs) / float(ec.stim_fs))
     ec.screen_text('<center>Go!</center>')

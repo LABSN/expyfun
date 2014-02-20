@@ -17,7 +17,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 
 
 def dummy_print(string):
-    print string
+    print(string)
 
 
 def test_unit_conversions():
@@ -30,7 +30,7 @@ def test_unit_conversions():
             verts = np.random.rand(2, 4)
             for to in ['norm', 'pix', 'deg']:
                 for fro in ['norm', 'pix', 'deg']:
-                    print (ws, to, fro)
+                    print((ws, to, fro))
                     v2 = ec._convert_units(verts, fro, to)
                     v2 = ec._convert_units(v2, to, fro)
                     assert_allclose(verts, v2)
@@ -103,12 +103,6 @@ def test_data_line():
     # make sure we got monotonically increasing timestamps
     ts = np.array(ts)
     assert_true(np.all(ts[1:] >= ts[:-1]))
-
-
-def test_stamping():
-    """Test EC stamping support"""
-    with ExperimentController(*std_args, **std_kwargs) as ec:
-        ec.stamp_triggers([1, 2])
 
 
 @tdt_test
@@ -210,29 +204,37 @@ def test_ec(ac=None):
 
         ec.stop()
         ec.call_on_every_flip(dummy_print, 'called on flip and play')
+        assert_raises(RuntimeError, ec.flip_and_play)
+        ec.flip_and_play(start_of_trial=False)  # should work
+        assert_raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
+        # only binary for TTL
+        assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
+        assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
+        ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
+        assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
         ec.flip_and_play()
         ec.flip()
         ec.play()
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
-        ec.flip_and_play()
+        ec.flip_and_play(start_of_trial=False)
         ec.call_on_next_flip(ec.stop_noise())
-        ec.flip_and_play()
+        ec.flip_and_play(start_of_trial=False)
         ec.get_mouse_position()
         ec.toggle_cursor(False)
         ec.toggle_cursor(True, True)
         ec.wait_secs(0.001)
-        print ec.stim_db
-        print ec.noise_db
-        print ec.on_next_flip_functions
-        print ec.on_every_flip_functions
-        print ec.window
+        print(ec.stim_db)
+        print(ec.noise_db)
+        print(ec.on_next_flip_functions)
+        print(ec.on_every_flip_functions)
+        print(ec.window)
         data = ec.screenshot()
         assert_allclose(data.shape[:2], std_kwargs['window_size'])
-        print ec.fs  # test fs support
+        print(ec.fs)  # test fs support
         wait_secs(0.01)
         test_pix = (11.3, 0.5, 110003)
-        print test_pix
+        print(test_pix)
         # test __repr__
         assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     del ec

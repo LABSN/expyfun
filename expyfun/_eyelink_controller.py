@@ -19,7 +19,7 @@ except ImportError:
     pylink = None  # analysis:ignore
 
 from .visual import Circle, RawImage, Line, Text
-from ._utils import get_config, verbose_dec, logger
+from ._utils import get_config, verbose_dec, logger, string_types
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
@@ -98,7 +98,7 @@ class EyelinkController(object):
             raise ValueError('fs must be 250, 500, 1000, or 2000')
         if output_dir is None:
             output_dir = os.getcwd()
-        if not isinstance(output_dir, basestring):
+        if not isinstance(output_dir, string_types):
             raise TypeError('output_dir must be a string')
         if not op.isdir(output_dir):
             os.mkdir(output_dir)
@@ -115,6 +115,10 @@ class EyelinkController(object):
             self._size = np.array([1920, 1200])
         self._ec.flush_logs()
         self.setup(fs)
+        if 'el_id' in self._ec._id_call_dict:
+            raise RuntimeError('Cannot use setup opened EL twice on EC')
+        self._ec._id_call_dict['el_id'] = self._stamp_trial_id
+        self._ec._ofp_critical_funs.append(self._stamp_trial_start)
         logger.debug('EyeLink: Setup complete')
         self._ec.flush_logs()
 
@@ -152,7 +156,7 @@ class EyelinkController(object):
 
         # retrieve tracker version and tracker software version
         v = str(self.eyelink.getTrackerVersion())
-        logger.info('Running experiment on a version ''{0}'' '
+        logger.info('Eyelink: Running experiment on a version ''{0}'' '
                     'tracker.'.format(v))
         v = LooseVersion(v).version
 
@@ -212,7 +216,8 @@ class EyelinkController(object):
         if len(file_name) > 8:
             raise RuntimeError('filename ("{0}") is too long!\n'
                                'Must be < 8 chars'.format(file_name))
-        logger.info('Starting recording with filename {}'.format(file_name))
+        logger.info('Eyelink: Starting recording with filename {}'
+                    ''.format(file_name))
         self.eyelink.openDataFile(file_name)
         if self.eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
             raise RuntimeError('Recording could not be started')
@@ -231,46 +236,61 @@ class EyelinkController(object):
 
     def stop(self):
         """Stop Eyelink recording"""
-        logger.info('Stopping recording')
+        logger.info('Eyelink: Stopping recording')
         if self.eyelink.isConnected():
             self.eyelink.stopRecording()
             self.eyelink.closeDataFile()
         self._toggle_dummy_cursor(False)
 
-    def calibrate(self, start=True, beep=True):
+    def calibrate(self, start='before', stop='before', beep=True):
         """Calibrate the eyetracker
 
         Parameters
         ----------
-        start : bool
-            If True, the recording will be started as soon as calibration
-            is complete.
+        start : str | None
+            If ``'before'`` or ``'after'``, the recording will be started
+            before or after (respectively) the calibration. If None,
+            recording is not started before or afterward (manual control).
+        stop : str | None
+            If ``'before'`` or ``'after'``, the recording will be started
+            before or after (respectively) the calibration. If None,
+            recording is not started before or afterward (manual control).
 
         Notes
         -----
-        When calibrate is called, the stop() method is automatically
-        executed before calibration begins.
+        It is recommended to use ``start = stop = 'before'`` (the default),
+        as this will create new files every time a new calibration done
+        (typically leading to sane file sizes) and ensure that calibrations
+        are saved with the data, which is nice for post-hoc analyses.
         """
+        # open file to record *before* running calibration so it gets saved!
+        if start not in ['before', 'after', None]:
+            raise ValueError('"start" must be "before", "after", or None, '
+                             'not "{}"'.format(start))
+        if stop == 'before':
+            self.stop()
+        if start == 'before':
+            self.start()
         logger.debug('EyeLink: Entering calibration')
         self._ec.flush_logs()
-        # stop the recording
-        self.stop()
         # enter Eyetracker camera setup mode, calibration and validation
         self._ec.flip()
         cal = _Calibrate(self._ec, beep)
         pylink.openGraphicsEx(cal)
         cal.setup_event_handlers()
         cal.play_beep(0)
-        self.eyelink.doTrackerSetup()
+        if not self._is_dummy_mode:
+            self.eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
         logger.debug('EyeLink: Completed calibration')
         self._ec.flush_logs()
-        # open file to record
-        if start is True:
+        if stop == 'after':
+            self.stop()
+        if start == 'after':
             self.start()
 
-    def stamp_trial_id(self, ids):
+    def _stamp_trial_id(self, ids):
         """Send trial id message
 
         These will be stamped as "TRIALID # # #", the suggested format.
@@ -303,7 +323,7 @@ class EyelinkController(object):
         msg = 'TRIALID {}'.format(ids)
         self._message(msg)
 
-    def stamp_trial_start(self):
+    def _stamp_trial_start(self):
         """Signal the start of a trial
 
         This is a timing-critical operation used to synchronize the
@@ -341,7 +361,7 @@ class EyelinkController(object):
         for remote_name in self._file_list:
             fname = op.join(self.output_dir, '{0}.edf'.format(remote_name))
             status = self.eyelink.receiveDataFile(remote_name, fname)
-            logger.info('saving Eyelink file: {0}\tstatus: {1}'
+            logger.info('Eyelink: saving Eyelink file: {0}\tstatus: {1}'
                         ''.format(fname, status))
 
     def close(self):
@@ -350,6 +370,10 @@ class EyelinkController(object):
             self.eyelink.stopRecording()
             self.eyelink.closeDataFile()
         self.eyelink.close()
+        if 'el_id' in self._ec._id_call_dict:
+            del self._ec._id_call_dict['el_id']
+            idx = self._ec._ofp_critical_funs.index(self._stamp_trial_start)
+            self._ec._ofp_critical_funs.pop(idx)
 
     def wait_for_fix(self, fix_pos, fix_time=0., tol=100., max_wait=np.inf,
                      check_interval=0.001, units='norm'):
@@ -584,7 +608,7 @@ class _Calibrate(super_class):
     def play_beep(self, eepid):
         """Play a sound during calibration/drift correct."""
         if self.beep is True:
-            print '\a',
+            print('\a')
 
     def get_input_key(self):
         self.ec.window.dispatch_events()
@@ -624,7 +648,7 @@ class _Calibrate(super_class):
 
     def draw_line(self, x1, y1, x2, y2, colorindex):
         # XXX check this
-        print 'draw_line ({0}, {1}, {2}, {3})'.format(x1, y1, x2, y2)
+        print('draw_line ({0}, {1}, {2}, {3})'.format(x1, y1, x2, y2))
         color_dict = _get_color_dict()
         color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
         x11, x22, y11, y22 = self._get_rltb(1, x1, x2, y1, y2)
@@ -646,7 +670,7 @@ class _Calibrate(super_class):
 
     def draw_lozenge(self, x, y, width, height, colorindex):
         # XXX check this
-        print 'draw lozenge ({0}, {1}, {2}, {3})'.format(x, y, width, height)
+        print('draw lozenge ({0}, {1}, {2}, {3})'.format(x, y, width, height))
         color_dict = _get_color_dict()
         color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
         width = int((float(width) / self.img_size[0]) * self.img_size[0])

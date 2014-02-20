@@ -11,7 +11,7 @@ import numpy as np
 import pyglet
 from matplotlib.colors import colorConverter
 
-from .._utils import _check_units
+from .._utils import _check_units, string_types
 
 
 def _convert_color(color):
@@ -71,7 +71,7 @@ class Text(object):
         pos = ec._convert_units(pos, 'norm', 'pix')
         if width == 'auto':
             width = float(ec.window_size_pix[0]) * 0.8
-        elif isinstance(width, basestring):
+        elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
         self._text = pyglet.text.HTMLLabel(text + ' ', x=pos[0], y=pos[1],
                                            width=width, height=height,

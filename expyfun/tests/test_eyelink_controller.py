@@ -27,11 +27,18 @@ def test_eyelink_methods():
     assert_true(x is False)
     assert el.eye_used
     el.start()
-    el.stamp_trial_id(1)
-    el.stamp_trial_id([1, 1])
-    el.stamp_trial_id(['hello', 1, 12])
-    assert_raises(ValueError, el.stamp_trial_id, [1, dict()])
-    assert_raises(ValueError, el.stamp_trial_id, 'y' * 13)
+    # missing el_id
+    assert_raises(KeyError, ec.identify_trial, ec_id='foo', ttl_id=[0])
+    ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=1)
+    ec.flip_and_play()
+    ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=[1, 1])
+    ec.flip_and_play()
+    ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=['hello', 1, 12])
+    ec.flip_and_play()
+    assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[0],
+                  el_id=[1, dict()])
+    assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[0],
+                  el_id=[0] * 13)
     #el.calibrate()
     assert_raises(TypeError, el._message, 1)
     el.stop()

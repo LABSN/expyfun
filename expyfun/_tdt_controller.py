@@ -186,7 +186,7 @@ class TDTController(Keyboard):
         logger.debug('Expyfun: Resetting TDT ring buffer')
 
 ################################ TRIGGER METHODS #############################
-    def stamp_triggers(self, triggers, delay):
+    def stamp_triggers(self, triggers, delay=0.03):
         """Stamp a list of triggers with a given inter-trigger delay
 
         Parameters

@@ -8,7 +8,7 @@
 import numpy as np
 import platform
 
-from ._utils import wait_secs, verbose_dec
+from ._utils import wait_secs, verbose_dec, string_types
 
 
 class ParallelTrigger(object):
@@ -69,7 +69,7 @@ class ParallelTrigger(object):
                     raise SystemError('Must have inpout32 installed')
 
                 addr = 0x0378 if address is None else address
-                if isinstance(addr, basestring) and addr.startswith('0x'):
+                if isinstance(addr, string_types) and addr.startswith('0x'):
                     base = int(addr, 16)
                 else:
                     base = addr
@@ -105,7 +105,7 @@ class ParallelTrigger(object):
         wait_secs(self.high_duration)
         self._set_data(0)
 
-    def stamp_triggers(self, triggers, delay):
+    def stamp_triggers(self, triggers, delay=0.03):
         """Stamp a list of triggers with a given inter-trigger delay
 
         Parameters

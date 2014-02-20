@@ -5,6 +5,9 @@ Generate sample stimuli
 
 This shows how to generate some simple stimuli.
 """
+
+print(__doc__)
+
 from os import path as op
 import numpy as np
 from scipy.io import savemat, wavfile

@@ -43,6 +43,11 @@ else:
     has_pandas = True
 
 
+try:  # for py3k (eventually)
+    string_types = basestring  # noqa
+except NameError:
+    string_types = str  # noqa
+
 ###############################################################################
 # LOGGING
 
@@ -85,7 +90,7 @@ def set_log_level(verbose=None, return_old_level=False):
             verbose = 'INFO'
         else:
             verbose = 'WARNING'
-    if isinstance(verbose, basestring):
+    if isinstance(verbose, string_types):
         verbose = verbose.upper()
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
@@ -100,7 +105,7 @@ def set_log_level(verbose=None, return_old_level=False):
 
 
 def set_log_file(fname=None,
-                 output_format='%(asctime)s - %(levelname)s - %(message)s',
+                 output_format='%(asctime)s - %(levelname)-5s - %(message)s',
                  overwrite=None):
     """Convenience function for setting the log to print to a file
 
@@ -200,7 +205,7 @@ class _TempDir(str):
     def cleanup(self):
         if self._del_after is True:
             if self._print_del is True:
-                print 'Deleting %s ...' % self._path
+                print('Deleting %s ...' % self._path)
             rmtree(self._path, ignore_errors=True)
 
 
@@ -424,7 +429,7 @@ def get_config(key, default=None, raise_error=False):
         The preference key value.
     """
 
-    if not isinstance(key, basestring):
+    if not isinstance(key, string_types):
         raise ValueError('key must be a string')
 
     # first, check to see if key is in env
@@ -467,11 +472,11 @@ def set_config(key, value):
         deleted.
     """
 
-    if not isinstance(key, basestring):
+    if not isinstance(key, string_types):
         raise ValueError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
-    if not isinstance(value, basestring) and value is not None:
+    if not isinstance(value, string_types) and value is not None:
         raise ValueError('value must be a string or None')
     if not key in known_config_types and not \
             any(k in key for k in known_config_wildcards):
@@ -598,7 +603,7 @@ class HidePyoOutput(object):
 def _get_c_err_handler():
     """Helper for hiding Alsa output"""
     def _py_error_handler(self, filename, line, function, err, fmt):
-        print 'messages are yummy'
+        print('Passing error')
     err_handler = ctypes.CFUNCTYPE(None, ctypes.c_char_p, ctypes.c_int,
                                    ctypes.c_char_p, ctypes.c_int,
                                    ctypes.c_char_p)

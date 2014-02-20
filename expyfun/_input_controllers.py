@@ -9,7 +9,7 @@ import numpy as np
 from functools import partial
 import pyglet
 
-from ._utils import wait_secs, clock
+from ._utils import wait_secs, clock, string_types
 
 
 class Keyboard(object):
@@ -76,7 +76,7 @@ class Keyboard(object):
         """Handler for on_key_press pyglet events"""
         key_time = clock()
         if emulated:
-            this_key = unicode(symbol)
+            this_key = str(symbol)
         else:
             this_key = pyglet.window.key.symbol_string(symbol).lower()
             this_key = this_key.lstrip('_').lstrip('NUM_')
@@ -144,7 +144,7 @@ class Keyboard(object):
             # only grab the force-quit keys
             keys = self._retrieve_keyboard_events([])
         else:
-            if isinstance(keys, basestring):
+            if isinstance(keys, string_types):
                 keys = [keys]
             if isinstance(keys, list):
                 keys = [k for k in keys if k in self.force_quit_keys]
