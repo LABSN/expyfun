@@ -10,7 +10,7 @@ before_install:
     # sudo apt-get install gcc-multilib
     # wget http://faculty.washington.edu/larsoner/lib.eyelinkcore.tar.gz
     # tar xzf lib.eyelinkcore.tar.gz
-    - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore\(2\).tar.gz
+    - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore\(3\).tar.gz
     - tar xzf lib.eyelinkcore\(2\).tar.gz
     - sudo mv ${PWD}/lib/*so* /usr/lib
     - sudo ldconfig
