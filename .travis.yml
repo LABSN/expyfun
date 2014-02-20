@@ -56,7 +56,7 @@ script:
     - cd ${EXPYFUN_DIR}/../
     # Note that this gets executed OUTSIDE the source'd virtualenv, but it's
     # okay since we installed external packages as `sudo`.
-    - sudo -E su $USER -c 'nosetests --with-coverage --with-timer --timer-top-n=5'
+    - sudo -E su $USER -c 'nosetests --with-timer --timer-top-n=5'
     # Test pyflakes/PEP8
     - cd ${SRC_DIR}
     - make flake
