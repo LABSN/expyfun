@@ -12,17 +12,19 @@ virtualenv:
 
 before_install:
     # Pylink
-    - wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/pylink4python2.7_linux_x64.tar.gz
-    - tar xzf pylink4python2.7_linux_x64.tar.gz
-    - mv pylink4python2.7_linux_x64/pylink2.7 pylink4python2.7_linux_x64/pylink
-    # sudo mv pylink4python2.7_linux_x64/pylink /usr/lib/python2.7/
-    - echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list
-    - echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list
+    - if [ "${DEPS}" == "full" ]; then
+        wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/pylink4python2.7_linux_x64.tar.gz;
+        tar xzf pylink4python2.7_linux_x64.tar.gz;
+        mv pylink4python2.7_linux_x64/pylink2.7 pylink4python2.7_linux_x64/pylink;
+        sudo mv pylink4python2.7_linux_x64/pylink /usr/lib/python2.7/;
+        echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list;
+        echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list;
+        travis_retry sudo apt-get update -qq;
+        travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg;
+      else
+        travis_retry sudo apt-get update -qq;
+      fi;
     # Easy dependencies
-    - travis_retry sudo apt-get update -qq
-    # travis_retry sudo apt-get upgrade -y
-    # travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg
-    # python -c 'import pylink; pylink.EyeLink(None); print("good")'
     - travis_retry sudo apt-get install -qq -y python-nose python-coverage python-scipy python-matplotlib
     - travis_retry sudo pip install -q coveralls nose-timer https://pyglet.googlecode.com/files/pyglet-1.2alpha1.zip flake8
     # Pyo (not in Precise system packages, so take from Quantal)
@@ -51,6 +53,9 @@ before_script:
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
     # Now we start jackd: no realtime, dummy mode
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jack.pid --make-pidfile --background --exec /usr/bin/jackd -- --silent --no-mlock --no-realtime -d dummy
+    # Deal with EL stupidity
+    - OLD_NAME=$HOSTNAME && sudo hostname test-expyfun-hn && sudo sed -i "s/${OLD_NAME}/test-expyfun-hn/g" /etc/hosts
+    - cat /etc/hosts
 
 script:
     - cd ${EXPYFUN_DIR}/../
@@ -60,6 +65,9 @@ script:
     # Test pyflakes/PEP8
     - cd ${SRC_DIR}
     - flake8 --exclude=__init__.py expyfun examples;
+
+after_script:
+    - sudo sed -i "s/test-expyfun-hn/${OLD_NAME}g" /etc/hosts && sudo hostname $OLD_NAME
 
 after_success:
     - if [ "${DEPS}" == "full" ]; then
