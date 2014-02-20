@@ -11,8 +11,18 @@ virtualenv:
     system_site_packages: true
 
 before_install:
-    # Pylink
+    # Easy dependencies
+    - travis_retry sudo apt-get update -qq;
+    - travis_retry sudo apt-get install -qq -y python-nose python-coverage python-scipy python-matplotlib
+    - travis_retry sudo pip install -q coveralls nose-timer https://pyglet.googlecode.com/files/pyglet-1.2alpha1.zip flake8
+    # Pyo (not in Precise system packages, so take from Quantal)
+    - travis_retry sudo apt-get install -qq -y libsndfile1 libportaudio2 libportmidi0 liblo7 jackd2
+    - travis_retry wget -q http://mirrors.kernel.org/ubuntu/pool/universe/p/python-pyo/python-pyo_0.6.2-1_amd64.deb
+    - sudo dpkg -i python-pyo_0.6.2-1_amd64.deb
+    - sudo usermod -G $(groups | tr " " ","),audio $USER
+    # pandas & Pylink
     - if [ "${DEPS}" == "full" ]; then
+        sudo apt-get install python-pandas;
         wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/pylink4python2.7_linux_x64.tar.gz;
         tar xzf pylink4python2.7_linux_x64.tar.gz;
         mv pylink4python2.7_linux_x64/pylink2.7 pylink4python2.7_linux_x64/pylink;
@@ -21,20 +31,6 @@ before_install:
         echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list;
         travis_retry sudo apt-get update -qq;
         travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg;
-      else
-        travis_retry sudo apt-get update -qq;
-      fi;
-    # Easy dependencies
-    - travis_retry sudo apt-get install -qq -y python-nose python-coverage python-scipy python-matplotlib
-    - travis_retry sudo pip install -q coveralls nose-timer https://pyglet.googlecode.com/files/pyglet-1.2alpha1.zip flake8
-    # Pyo (not in Precise system packages, so take from Quantal)
-    - travis_retry sudo apt-get install -qq -y libsndfile1 libportaudio2 libportmidi0 liblo7 jackd2
-    - travis_retry wget -q http://mirrors.kernel.org/ubuntu/pool/universe/p/python-pyo/python-pyo_0.6.2-1_amd64.deb
-    - sudo dpkg -i python-pyo_0.6.2-1_amd64.deb
-    - sudo usermod -G $(groups | tr " " ","),audio $USER
-    # mpl & pandas
-    - if [ "${DEPS}" == "full" ]; then
-        sudo apt-get install python-pandas;
       fi;
 
 install:
@@ -53,24 +49,23 @@ before_script:
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
     # Now we start jackd: no realtime, dummy mode
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jack.pid --make-pidfile --background --exec /usr/bin/jackd -- --silent --no-mlock --no-realtime -d dummy
-    # Deal with EL stupidity
+    # Deal with EL hostname stupidity
     - OLD_NAME=$HOSTNAME && sudo hostname test-expyfun-hn && sudo sed -i "s/${OLD_NAME}/test-expyfun-hn/g" /etc/hosts
-    - cat /etc/hosts
 
 script:
     - cd ${EXPYFUN_DIR}/../
     # Note that this gets executed OUTSIDE the source'd virtualenv, but it's
     # okay since we installed external packages as `sudo`.
-    - sudo -E su $USER -c 'nosetests --with-timer --timer-top-n=5'
+    - sudo -E su $USER -c 'nosetests --with-coverage --with-timer --timer-top-n=5'
     # Test pyflakes/PEP8
     - cd ${SRC_DIR}
-    - flake8 --exclude=__init__.py expyfun examples;
+    - make flake
 
 after_script:
-    - sudo sed -i "s/test-expyfun-hn/${OLD_NAME}g" /etc/hosts && sudo hostname $OLD_NAME
-
-after_success:
-    - if [ "${DEPS}" == "full" ]; then
+    # Always want to do this
+    - sudo sed -i "s/test-expyfun-hn/${OLD_NAME}/g" /etc/hosts && sudo hostname $OLD_NAME
+    # Only on success do this
+    - if [ "${TRAVIS_TEST_RESULT}" == "0" ] && [ "${DEPS}" == "full" ]; then
         cd ${SRC_DIR};
         coveralls;
       fi;
