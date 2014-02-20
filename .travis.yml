@@ -15,7 +15,4 @@ before_install:
     - ldd ./se
 
 script:
-    - ORIG_NAME=$HOSTNAME
-    - sudo hostname test
     - ./se
-    - sudo hostname $ORIG_NAME
