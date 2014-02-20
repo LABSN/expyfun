@@ -7,21 +7,15 @@ before_install:
     - sudo apt-get install -qq -y --force-yes eyelink-display-software1.9
     - cd ~
     - wget http://faculty.washington.edu/larsoner/simpleexample.c
-    # sudo apt-get install gcc-multilib
-    # wget http://faculty.washington.edu/larsoner/lib.eyelinkcore.tar.gz
-    # tar xzf lib.eyelinkcore.tar.gz
     - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore\(6\).tar.gz
     - tar xzf lib.eyelinkcore\(6\).tar.gz
     - sudo mv ${PWD}/DEBIAN/*so* /usr/lib
     - sudo ldconfig
-    # gcc simpleexample.c -m32 -leyelink_core -lm -o se
     - gcc simpleexample.c -leyelink_core -lm -o se
     - ldd ./se
 
 script:
-    # sudo ifdown venet0
-    # ifconfig
-    - hostname
-    - domainname
+    - ORIG_NAME=$HOSTNAME
+    - sudo hostname test
     - ./se
-    # sudo ifup venet0
+    - sudo hostname $ORIG_NAME
