@@ -32,8 +32,10 @@ def test_logit():
     """Test logit calculations
     """
     assert_raises(ValueError, ea.logit, 2)
-    assert_equal(ea.logit(0), -np.inf)
-    assert_equal(ea.logit(1), np.inf)
+    # On some versions, this throws warnings about divide-by-zero
+    with warnings.catch_warnings(record=True):
+        assert_equal(ea.logit(0), -np.inf)
+        assert_equal(ea.logit(1), np.inf)
     assert_equal(ea.logit(0.5), 0)
     if splogit is not None:
         # Travis doesn't support scipy.special.logit, but this passes locally:

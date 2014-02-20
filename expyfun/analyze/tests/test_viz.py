@@ -12,6 +12,7 @@ temp_dir = _TempDir()
 
 @requires_pandas
 def test_barplot_with_pandas():
+    """Test bar plot function pandas support"""
     import pandas as pd
     tmp = pd.DataFrame(np.arange(20).reshape((4, 5)),
                        columns=['a', 'b', 'c', 'd', 'e'],
