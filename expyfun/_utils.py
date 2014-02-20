@@ -210,7 +210,7 @@ class _TempDir(str):
     def cleanup(self):
         if self._del_after is True:
             if self._print_del is True:
-                print('Deleting %s ...' % self._path)
+                print('Deleting {} ...'.format(self._path))
             rmtree(self._path, ignore_errors=True)
 
 

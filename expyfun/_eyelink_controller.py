@@ -87,7 +87,7 @@ class EyelinkController(object):
         The Eyelink control interface.
     """
     @verbose_dec
-    def __init__(self, ec=None, output_dir=None, link='default', fs=1000,
+    def __init__(self, ec, output_dir=None, link='default', fs=1000,
                  verbose=None):
         if pylink is None:
             raise ImportError('Could not import pylink, please ensure it '
@@ -104,19 +104,16 @@ class EyelinkController(object):
             os.mkdir(output_dir)
         self.output_dir = output_dir
         self._ec = ec
+        if 'el_id' in self._ec._id_call_dict:
+            raise RuntimeError('Cannot use initialize EL twice')
         logger.info('EyeLink: Initializing on {}'.format(link))
         ec.flush_logs()
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
-        if self._ec is not None:
-            self._size = np.array(self._ec.window_size_pix)
-            self._ec._extra_cleanup_fun += [self.close]
-        else:
-            self._size = np.array([1920, 1200])
+        self._size = np.array(self._ec.window_size_pix)
+        self._ec._extra_cleanup_fun += [self.close]
         self._ec.flush_logs()
         self.setup(fs)
-        if 'el_id' in self._ec._id_call_dict:
-            raise RuntimeError('Cannot use setup opened EL twice on EC')
         self._ec._id_call_dict['el_id'] = self._stamp_trial_id
         self._ec._ofp_critical_funs.append(self._stamp_trial_start)
         self._fake_calibration = False  # Only used for testing
@@ -213,10 +210,9 @@ class EyelinkController(object):
         recordings anywhere near once per second.
         """
         file_name = datetime.datetime.now().strftime('%H%M%S')
-        # make absolutely sure we don't break this
-        if len(file_name) > 8:
-            raise RuntimeError('filename ("{0}") is too long!\n'
-                               'Must be < 8 chars'.format(file_name))
+        # make absolutely sure we don't break this, but it shouldn't ever
+        # be wrong
+        assert len(file_name) <= 8
         logger.info('Eyelink: Starting recording with filename {}'
                     ''.format(file_name))
         self.eyelink.openDataFile(file_name)
@@ -255,7 +251,9 @@ class EyelinkController(object):
         stop : str | None
             If ``'before'`` or ``'after'``, the recording will be started
             before or after (respectively) the calibration. If None,
-            recording is not started before or afterward (manual control).
+            recording is not stopped before or afterward (manual control).
+        beep : bool
+            If True, beep when calibration begins.
 
         Notes
         -----
@@ -268,6 +266,9 @@ class EyelinkController(object):
         if start not in ['before', 'after', None]:
             raise ValueError('"start" must be "before", "after", or None, '
                              'not "{}"'.format(start))
+        if stop not in ['before', 'after', None]:
+            raise ValueError('"start" must be "before", "after", or None, '
+                             'not "{}"'.format(stop))
         if stop == 'before':
             self.stop()
         if start == 'before':
@@ -279,8 +280,9 @@ class EyelinkController(object):
         cal = _Calibrate(self._ec, beep)
         pylink.openGraphicsEx(cal)
         cal.setup_event_handlers()
-        cal.play_beep(0)
-        if not self._is_dummy_mode and not self._fake_calibration:
+        if beep:
+            cal.play_beep(0)
+        if not (self._is_dummy_mode or self._fake_calibration):
             self.eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
@@ -303,7 +305,7 @@ class EyelinkController(object):
         ids : list | str | int | float
             The ids to stamp. The first ID must contain at most 12
             characters when converted to a string, and the rest should
-            be numbers.
+            be numbers (up to 12 of them).
         """
         # From the Pylink doc:
         #    The message should contain numbers ant text separated by spaces,
@@ -312,15 +314,11 @@ class EyelinkController(object):
         #    such as one number for each trial independent variable.
         if not isinstance(ids, list):
             ids = [ids]
-        if len(str(ids[0])) > 12:
-            raise ValueError('The string representation of ids[0]="{}" must '
-                             'not be more than 12 characters'
-                             ''.format(str(ids[0])))
-        if not all([np.isscalar(x) for x in ids[1:]]):
+        if not all([np.isscalar(x) for x in ids]):
             raise ValueError('All ids after the first must be numeric')
-        ids = ' '.join([str(ii) for ii in ids])
         if len(ids) > 12:
-            raise ValueError('ids must not have more than 12 characters')
+            raise ValueError('ids must not have more than 12 entries')
+        ids = ' '.join([str(int(ii)) for ii in ids])
         msg = 'TRIALID {}'.format(ids)
         self._message(msg)
 
@@ -407,7 +405,7 @@ class EyelinkController(object):
         time_in = time.time()
         time_out = time_in + max_wait
         fix_pos = np.array(fix_pos)
-        if not fix_pos.ndim == 1 and fix_pos.size == 2:
+        if not (fix_pos.ndim == 1 and fix_pos.size == 2):
             raise ValueError('fix_pos must be a 2-element array-like vector')
         fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
         fix_pos = fix_pos[:, 0]
