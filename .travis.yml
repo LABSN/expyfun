@@ -15,13 +15,13 @@ before_install:
     - sudo mv ${PWD}/lib/*so* /usr/lib
     - sudo ldconfig
     # gcc simpleexample.c -m32 -leyelink_core -lm -o se
-    - hostname
-    - domainname
     - gcc simpleexample.c -leyelink_core -lm -o se
     - ldd ./se
 
 script:
     # sudo ifdown venet0
     # ifconfig
+    - hostname
+    - domainname
     - ./se
     # sudo ifup venet0
