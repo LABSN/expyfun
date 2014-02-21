@@ -13,7 +13,7 @@ temp_dir = _TempDir()
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
-                  stim_fs=44100, verbose=True)
+                  verbose=True)
 
 
 def dummy_print(string):
@@ -25,6 +25,7 @@ def test_unit_conversions():
     """
     for ws in [(2, 1), (1, 1)]:
         kwargs = deepcopy(std_kwargs)
+        kwargs['stim_fs'] = 44100
         kwargs['window_size'] = ws
         with ExperimentController(*std_args, **kwargs) as ec:
             verts = np.random.rand(2, 4)
@@ -52,7 +53,8 @@ def test_no_output():
     old_val = std_kwargs['output_dir']
     std_kwargs['output_dir'] = None
     try:
-        with ExperimentController(*std_args, **std_kwargs) as ec:
+        with ExperimentController(*std_args, stim_fs=44100,
+                                  **std_kwargs) as ec:
             ec.write_data_line('hello')
     except:
         raise
@@ -71,7 +73,7 @@ def test_data_line():
     goal_vals = ['None', 'bar\\tbar', 'bar\\\\tbar', 'None']
     assert_equal(len(entries), len(goal_vals))
 
-    with ExperimentController(*std_args, **std_kwargs) as ec:
+    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         for ent in entries:
             ec.write_data_line(*ent)
         fname = ec._data_file.name
@@ -117,36 +119,38 @@ def test_ec(ac=None):
     if ac is None:
         # test type/value checking for audio_controller
         assert_raises(TypeError, ExperimentController, *std_args,
-                      audio_controller=1, **std_kwargs)
+                      audio_controller=1, stim_fs=44100, **std_kwargs)
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='foo', **std_kwargs)
+                      audio_controller='foo', stim_fs=44100, **std_kwargs)
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller=dict(TYPE='foo'), **std_kwargs)
+                      audio_controller=dict(TYPE='foo'), stim_fs=44100,
+                      **std_kwargs)
 
         # test type checking for 'session'
         std_kwargs['session'] = 1
         assert_raises(TypeError, ExperimentController, *std_args,
-                      audio_controller='pyo', **std_kwargs)
+                      audio_controller='pyo', stim_fs=44100, **std_kwargs)
         std_kwargs['session'] = '01'
 
         # test value checking for trigger controller
         assert_raises(ValueError, ExperimentController, *std_args,
                       audio_controller='pyo', trigger_controller='foo',
-                      **std_kwargs)
+                      stim_fs=44100, **std_kwargs)
 
         # test value checking for RMS checker
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='pyo', check_rms=True,
+                      audio_controller='pyo', check_rms=True, stim_fs=44100,
                       **std_kwargs)
 
         # run rest of test with audio_controller == 'pyo'
         this_ac = 'pyo'
-
+        this_fs = 44100
     else:
         # run rest of test with audio_controller == 'tdt'
         this_ac = ac
+        this_fs = 24414
     with ExperimentController(*std_args, audio_controller=this_ac,
-                              **std_kwargs) as ec:
+                              stim_fs=this_fs, **std_kwargs) as ec:
         stamp = ec.current_time
         ec.write_data_line('hello')
         ec.wait_until(stamp + 0.02)
@@ -243,7 +247,11 @@ def test_ec(ac=None):
 def test_visual(ac=None):
     """Test EC visual methods
     """
-    with ExperimentController(*std_args, audio_controller=ac,
+    if ac == 'tdt':
+        this_fs = 24414
+    else:
+        this_fs = 44100
+    with ExperimentController(*std_args, audio_controller=ac, stim_fs=this_fs,
                               **std_kwargs) as ec:
         assert_raises(TypeError, visual.Circle, ec, n_edges=3.5)
         assert_raises(ValueError, visual.Circle, ec, n_edges=3)
