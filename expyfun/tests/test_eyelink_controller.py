@@ -21,9 +21,6 @@ def test_eyelink_methods():
     assert_raises(TypeError, EyelinkController, ec, output_dir=1)
     assert_raises(ValueError, EyelinkController, ec, fs=999,
                   output_dir=temp_dir)
-    el = EyelinkController(ec)  # use cwd as output dir
-    el.close()
-    el.close()  # make sure it doesn't cause problems
     el = EyelinkController(ec, output_dir=op.join(temp_dir, 'test'))
     assert_raises(RuntimeError, EyelinkController, ec)  # can't have two open
     assert_raises(TypeError, el.custom_calibration, 'blah')
