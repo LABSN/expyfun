@@ -1272,6 +1272,8 @@ def _get_dev_db(audio_controller):
         return 114
     elif audio_controller == 'pyo':
         return 90  # TODO: this value not yet calibrated, may vary by system
+    elif audio_controller == 'dummy':  # only used for testing
+        return 90
     else:
         logger.warn('Expyfun: Unknown audio controller: stim scaler may not '
                     'work correctly. You may want to remove your headphones '

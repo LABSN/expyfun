@@ -117,6 +117,7 @@ class EyelinkController(object):
         self._ec._id_call_dict['el_id'] = self._stamp_trial_id
         self._ec._ofp_critical_funs.append(self._stamp_trial_start)
         self._fake_calibration = False  # Only used for testing
+        self._closed = False  # to prevent double-closing
         logger.debug('EyeLink: Setup complete')
         self._ec.flush_logs()
 
@@ -368,7 +369,9 @@ class EyelinkController(object):
         if self.eyelink.isConnected():
             self.eyelink.stopRecording()
             self.eyelink.closeDataFile()
-        self.eyelink.close()
+        if not self._closed:
+            self.eyelink.close()
+            self._closed = True
         if 'el_id' in self._ec._id_call_dict:
             del self._ec._id_call_dict['el_id']
             idx = self._ec._ofp_critical_funs.index(self._stamp_trial_start)

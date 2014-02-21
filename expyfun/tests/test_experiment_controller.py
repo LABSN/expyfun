@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose
 from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import _TempDir, interactive_test, tdt_test
+from expyfun._utils import _TempDir, interactive_test
 
 warnings.simplefilter('always')
 
@@ -105,9 +105,8 @@ def test_data_line():
     assert_true(np.all(ts[1:] >= ts[:-1]))
 
 
-@tdt_test
 def test_tdt():
-    """Test EC with TDT if possible
+    """Test EC with TDT
     """
     test_ec('tdt')
 
@@ -182,11 +181,11 @@ def test_ec(ac=None):
         # test RMS checking
         assert_raises(ValueError, ec.set_rms_checking, 'foo')
         # click: RMS 0.0135, should pass 'fullfile' and fail 'windowed'
-        click = np.zeros((ec.fs / 4,))  # 250 ms
+        click = np.zeros((int(ec.fs / 4),))  # 250 ms
         click[len(click) / 2] = 1.
         click[len(click) / 2 + 1] = -1.
         # noise: RMS 0.03, should fail both 'fullfile' and 'windowed'
-        noise = np.random.normal(scale=0.03, size=(ec.fs / 4,))
+        noise = np.random.normal(scale=0.03, size=(int(ec.fs / 4),))
         ec.set_rms_checking(None)
         ec.load_buffer(click)  # should go unchecked
         ec.load_buffer(noise)  # should go unchecked

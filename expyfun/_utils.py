@@ -527,9 +527,6 @@ def _check_pyglet_version(raise_error=False):
 interactive_test = skipif(get_config('EXPYFUN_INTERACTIVE_TESTING', 'False') !=
                           'True', 'Interactive testing disabled.')
 
-tdt_test = skipif(get_config('AUDIO_CONTROLLER', 'pyo') != 'tdt',
-                  'TDT not set in system config.')
-
 
 def wait_secs(secs):
     """Wait a specified number of seconds.

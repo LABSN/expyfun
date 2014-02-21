@@ -54,5 +54,5 @@ def test_eyelink_methods():
                   el_id=[0] * 13)
     assert_raises(TypeError, el._message, 1)
     el.stop()
-    el.save()  # auto-calls el.close()
-    ec.close()
+    el.save()
+    ec.close()  # auto-calls el.close()
