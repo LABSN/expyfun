@@ -11,12 +11,14 @@ import warnings
 from os import path as op
 from functools import partial
 from scipy.signal import resample
+import traceback as tb
 import pyglet
 from pyglet import gl as GL
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
-                     _check_units, set_log_file, flush_logger)
+                     _check_units, set_log_file, flush_logger,
+                     string_types, input)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PyoSound
@@ -125,11 +127,12 @@ class ExperimentController(object):
         self._on_next_flip = []
         # placeholder for extra actions to run on close
         self._extra_cleanup_fun = []
+        self._id_call_dict = dict(ec_id=self._stamp_ec_id)
 
         # assure proper formatting for force-quit keys
         if force_quit is None:
             force_quit = ['lctrl', 'rctrl']
-        elif isinstance(force_quit, (int, basestring)):
+        elif isinstance(force_quit, (int, string_types)):
             force_quit = [str(force_quit)]
         if 'escape' in force_quit:
             logger.warn('Expyfun: using "escape" as a force-quit key is not '
@@ -150,7 +153,7 @@ class ExperimentController(object):
         fixed_list = ['exp_name', 'date']  # things not user-editable in GUI
         for key, value in self._exp_info.iteritems():
             if key not in fixed_list and value is not None:
-                if not isinstance(value, basestring):
+                if not isinstance(value, string_types):
                     raise TypeError('{} must be string or None'.format(value))
                 fixed_list.append(key)
 
@@ -216,7 +219,7 @@ class ExperimentController(object):
         if audio_controller is None:
             audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
                                                    'pyo')}
-        elif isinstance(audio_controller, basestring):
+        elif isinstance(audio_controller, string_types):
             if audio_controller.lower() in ['pyo', 'tdt']:
                 audio_controller = {'TYPE': audio_controller.lower()}
             else:
@@ -260,17 +263,18 @@ class ExperimentController(object):
 
         if self._fs_mismatch:
             if self._suppress_resamp:
-                logger.warn('Mismatch between reported stim sample rate ({0}) '
-                            'and device sample rate ({1}). Nothing will be '
-                            'done about this because suppress_resamp is "True"'
-                            '.'.format(self.stim_fs, self.fs))
+                logger.warn('Expyfun: Mismatch between reported stim sample '
+                            'rate ({0}) and device sample rate ({1}). Nothing '
+                            'will be done about this because suppress_resamp '
+                            'is "True".'.format(self.stim_fs, self.fs))
             else:
-                logger.warn('Mismatch between reported stim sample rate ({0}) '
-                            'and device sample rate ({1}). Experiment'
-                            'Controller will resample for you, but that takes '
-                            'a non-trivial amount of processing time and may '
-                            'compromise your experimental timing and/or cause '
-                            'artifacts.'.format(self.stim_fs, self.fs))
+                logger.warn('Expyfun: Mismatch between reported stim sample '
+                            'rate ({0}) and device sample rate ({1}). '
+                            'Experiment Controller will resample for you, but '
+                            'this takes a non-trivial amount of processing '
+                            'time and may compromise your experimental '
+                            'timing and/or cause artifacts.'
+                            ''.format(self.stim_fs, self.fs))
 
         #
         # set up visual window (must be done before keyboard and mouse)
@@ -304,27 +308,28 @@ class ExperimentController(object):
         #
         if trigger_controller is None:
             trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
-        if isinstance(trigger_controller, basestring):
+        if isinstance(trigger_controller, string_types):
             trigger_controller = dict(type=trigger_controller)
-        logger.info('Initializing {} triggering mode'
+        logger.info('Expyfun: Initializing {} triggering mode'
                     ''.format(trigger_controller['type']))
         if trigger_controller['type'] == 'tdt':
             if not self._tdt_init:
                 raise ValueError('trigger_controller can only be "tdt" if '
                                  'tdt is used for audio')
-            self._trigger_handler = self._ac
+            _ttl_stamp_func = self._ac.stamp_triggers
         elif trigger_controller['type'] in ['parallel', 'dummy']:
             if 'address' not in trigger_controller['type']:
                 trigger_controller['address'] = get_config('TRIGGER_ADDRESS')
             out = ParallelTrigger(trigger_controller['type'],
                                   trigger_controller.get('address'))
-            self._trigger_handler = out
-            self._extra_cleanup_fun.append(self._trigger_handler.close)
+            _ttl_stamp_func = out.stamp_triggers
+            self._extra_cleanup_fun.append(out.close)
         else:
             raise ValueError('trigger_controller type must be '
                              '"parallel", "dummy", or "tdt", not '
                              '{0}'.format(trigger_controller['type']))
-        self._trigger_controller = trigger_controller['type']
+        self._id_call_dict['ttl_id'] = self._stamp_binary_id
+        self._ttl_stamp_func = _ttl_stamp_func
 
         # other basic components
         self._mouse_handler = Mouse(self._win)
@@ -336,6 +341,8 @@ class ExperimentController(object):
         logger.exp('Expyfun: Session: {0}'
                    ''.format(self._exp_info['session']))
         self.flush_logs()
+        self._trial_identified = False
+        self._ofp_critical_funs = list()
 
     def __repr__(self):
         """Return a useful string representation of the experiment
@@ -406,7 +413,7 @@ class ExperimentController(object):
         """
         if not isinstance(text, list):
             text = [text]
-        if not all([isinstance(t, basestring) for t in text]):
+        if not all([isinstance(t, string_types) for t in text]):
             raise TypeError('text must be a string or list of strings')
         for t in text:
             self.screen_text(t)
@@ -440,8 +447,15 @@ class ExperimentController(object):
         rect.draw()
         return rect
 
-    def flip_and_play(self):
+    def flip_and_play(self, start_of_trial=True):
         """Flip screen, play audio, then run any "on-flip" functions.
+
+        Parameters
+        ----------
+        start_of_trial : bool
+            If True, it checks to make sure that the trial ID has been
+            stamped appropriately. Set to False only in cases where
+            ``flip_and_play`` is to be used mid-trial (should be rare!).
 
         Returns
         -------
@@ -454,9 +468,16 @@ class ExperimentController(object):
         added with ``on_next_flip``, followed by functions added with
         ``on_every_flip``.
         """
+        if start_of_trial:
+            if not self._trial_identified:
+                raise RuntimeError('Trial ID must be stamped before starting '
+                                   'the trial')
+            self._trial_identified = False
         logger.exp('Expyfun: Flipping screen and playing audio')
-        # ensure self._play comes first in list:
-        self._on_next_flip = [self._play] + self._on_next_flip
+        # ensure self._play comes first in list, followed by other critical
+        # private functions (e.g., EL stamping), then user functions:
+        self._on_next_flip = ([self._play] + self._ofp_critical_funs +
+                              self._on_next_flip)
         flip_time = self.flip()
         return flip_time
 
@@ -941,7 +962,7 @@ class ExperimentController(object):
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
-            logger.warn('Resampling {} seconds of audio'
+            logger.warn('Expyfun: Resampling {} seconds of audio'
                         ''.format(round(len(samples) / self.stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self.stim_fs)
             samples = resample(samples, int(num_samples), window='boxcar')
@@ -964,14 +985,14 @@ class ExperimentController(object):
                 chan_rms = [running_rms(x, win_length) for x in chans]
                 max_rms = max([max(x) for x in chan_rms])
             if max_rms > 2 * self._stim_rms:
-                warn_string = ('Stimulus max RMS ({}) exceeds stated RMS ({}) '
-                               'by more than 6 dB.'.format(max_rms,
-                                                           self._stim_rms))
+                warn_string = ('Expyfun: Stimulus max RMS ({}) exceeds stated '
+                               'RMS ({}) by more than 6 dB.'
+                               ''.format(max_rms, self._stim_rms))
                 logger.warn(warn_string)
                 warnings.warn(warn_string)
             elif max_rms < 0.5 * self._stim_rms:
-                warn_string = ('Stimulus max RMS ({}) is less than stated RMS '
-                               '({}) by more than 6 dB.'
+                warn_string = ('Expyfun: Stimulus max RMS ({}) is less than '
+                               'stated RMS ({}) by more than 6 dB.'
                                ''.format(max_rms, self._stim_rms))
                 logger.warn(warn_string)
 
@@ -1083,36 +1104,61 @@ class ExperimentController(object):
         """
         time_left = timestamp - self._master_clock()
         if time_left < 0:
-            logger.warn('wait_until was called with a timestamp ({}) that had '
-                        'already passed {} seconds prior.'
+            logger.warn('Expyfun: wait_until was called with a timestamp ({}) '
+                        'that had already passed {} seconds prior.'
                         ''.format(timestamp, -time_left))
         else:
             wait_secs(time_left)
         return time_left
 
-    def stamp_triggers(self, trigger_list, delay=0.03):
-        """Stamp experiment ID triggers
+    def identify_trial(self, **ids):
+        """Identify trial type before beginning the trial
 
         Parameters
         ----------
-        trigger_list : list
-            List of numbers to stamp.
-        delay : float
-            Delay to use between sequential triggers.
-
-        Notes
-        -----
-        Depending on how EC was initialized, stamping could be done
-        using different pieces of hardware (e.g., parallel port or TDT).
-        Also note that it is critical that the input is a list, and
-        that all elements are integers. No input checking is done to
-        ensure responsiveness.
-
-        Also note that control will not be returned to the script until
-        the stamping is complete.
+        **ids : keyword arguments
+            Ids to stamp, e.g. ``ec_id='TL90,MR45'. Use ``ec.id_types``
+            to see valid options. Typical choices are ``ec_id``, ``el_id``,
+            and ``ttl_id`` for experiment controller, eyelink, and TDT
+            (or parallel port) respectively.
         """
-        self._trigger_handler.stamp_triggers(trigger_list, delay)
-        logger.exp('Expyfun: Stamped: ' + str(trigger_list))
+        if self._trial_identified:
+            raise RuntimeError('Cannot identify a trial twice')
+        call_set = set(self._id_call_dict.keys())
+        passed_set = set(ids.keys())
+        if not call_set == passed_set:
+            raise KeyError('All keys passed in {0} must match the set of '
+                           'keys required {1}'.format(passed_set, call_set))
+        ll = max([len(key) for key in ids.keys()])
+        for key, id_ in ids.items():
+            logger.exp('Expyfun: Stamp trial ID to {0} : {1}'
+                       ''.format(key.ljust(ll), str(id_)))
+            self._id_call_dict[key](id_)
+        self._trial_identified = True
+
+    def _stamp_ec_id(self, id_):
+        """Stamp id -- currently anything allowed"""
+        self.write_data_line('trial_id', id_)
+
+    def _stamp_binary_id(self, id_):
+        """Helper for ec to stamp a set of IDs using binary controller
+
+        This makes TDT and parallel port give the same output. Eventually
+        we may want to customize it so that parallel could work differently,
+        but for now it's unified."""
+        if not isinstance(id_, (list, tuple, np.ndarray)):
+            raise TypeError('id must be array-like')
+        id_ = np.array(id_)
+        if not np.all(np.logical_or(id_ == 1, id_ == 0)):
+            raise ValueError('All values of id must be 0 or 1')
+        id_ = 2 ** (id_.astype(int) + 2)  # 4's and 8's
+        # Put 8, 8 on ends
+        id_ = np.concatenate(([8], id_, [8]))
+        self._stamp_ttl_triggers(id_)
+
+    def _stamp_ttl_triggers(self, ids):
+        """Helper to stamp triggers without input checking"""
+        self._ttl_stamp_func(ids)
 
     def flush_logs(self):
         """Flush logs (useful for debugging)
@@ -1146,21 +1192,28 @@ class ExperimentController(object):
         for action in cleanup_actions:
             try:
                 action()
-            except Exception as exc:
-                print exc
-                continue
+            except Exception:
+                tb.print_exc()
+                pass
 
         # clean up our API
         try:
             self._win.close()
             self.flush_logs()
-        except Exception as exc:
-            print exc
+        except Exception:
+            tb.print_exc()
+            pass
 
         if any([x is not None for x in (err_type, value, traceback)]):
-            raise err_type, value, traceback
+            return False
+        return True
 
 ############################# READ-ONLY PROPERTIES ###########################
+    @property
+    def id_types(self):
+        """Trial ID types needed for each trial"""
+        return list(self._id_call_dict.keys())
+
     @property
     def fs(self):
         """Playback frequency of the audio controller (samples / second).
@@ -1200,12 +1253,12 @@ class ExperimentController(object):
 
 def _get_items(d, fixed, title):
     """Helper to get items for an experiment"""
-    print title
+    print(title)
     for key, val in d.iteritems():
         if key in fixed:
-            print '{0}: {1}'.format(key, val)
+            print('{0}: {1}'.format(key, val))
         else:
-            d[key] = raw_input('{0}: '.format(key))
+            d[key] = input('{0}: '.format(key))
 
 
 def _get_dev_db(audio_controller):
@@ -1219,8 +1272,10 @@ def _get_dev_db(audio_controller):
         return 114
     elif audio_controller == 'pyo':
         return 90  # TODO: this value not yet calibrated, may vary by system
+    elif audio_controller == 'dummy':  # only used for testing
+        return 90
     else:
-        logger.warn('Unknown audio controller: stim scaler may not work '
-                    'correctly. You may want to remove your headphones if this'
-                    ' is the first run of your experiment.')
+        logger.warn('Expyfun: Unknown audio controller: stim scaler may not '
+                    'work correctly. You may want to remove your headphones '
+                    'if this is the first run of your experiment.')
         return 90  # for untested TDT models

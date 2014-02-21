@@ -1,7 +1,7 @@
 import os
 import warnings
 
-from expyfun._utils import _TempDir, tdt_test
+from expyfun._utils import _TempDir
 from expyfun import ExperimentController
 
 warnings.simplefilter('always')
@@ -40,7 +40,6 @@ def test_logging(ac='pyo'):
             raise ValueError('Missing data: "{0}" in:\n{1}'.format(s, data))
 
 
-@tdt_test
 def test_logging_tdt():
     """Test logging to file (TDT)
     """

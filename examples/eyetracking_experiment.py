@@ -10,7 +10,7 @@ using eye-tracking simpler.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 
@@ -41,26 +41,23 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
                              line_width=3.0)
     targ_circ = visual.Circle(ec, targ_rad, (x_pos[0], y_pos[0]),
                               units='deg', fill_color='red')
-
-    el.stamp_trial_id(1)  # stamp this trial ID to the file
-    # now let's make it so the SYNC message gets stamped when we flip
-    ec.call_on_next_flip(el.stamp_trial_start)
     fix_pos = (x_pos[0], y_pos[0])
 
     # start out by waiting for a 1 sec fixation at the start
     big_circ.draw()
     targ_circ.draw()
     screenshot = ec.screenshot()
-    ec.flip()
+    ec.identify_trial(ec_id='Circle', ttl_id=[0, 0], el_id=[0, 0])
+    ec.flip_and_play()  # automatically stamps to EL
     if not el.wait_for_fix(fix_pos, 1., max_wait=5., units='deg'):
-        print 'Initial fixation failed'
+        print('Initial fixation failed')
     for ii, (x, y) in enumerate(zip(x_pos[1:], y_pos[1:])):
         targ_circ.set_pos((x, y), units='deg')
         big_circ.draw()
         targ_circ.draw()
         ec.flip()
         if not el.wait_for_fix([x, y], max_wait=5., units='deg'):
-            print 'Fixation {0} failed'.format(ii + 1)
+            print('Fixation {0} failed'.format(ii + 1))
     el.stop()  # stop recording to save the file
     ec.screen_prompt('All done!', max_wait=1.0)
     # eyelink auto-closes (el.close()) because it gets registered with EC

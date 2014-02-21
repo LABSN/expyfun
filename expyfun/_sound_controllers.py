@@ -88,7 +88,7 @@ class PyoSound(object):
 
     def play(self):
         self.audio.play()
-        self.ec.stamp_triggers([1])
+        self.ec._stamp_ttl_triggers([1])
 
     def stop(self):
         self.audio.stop()

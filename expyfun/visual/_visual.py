@@ -11,7 +11,7 @@ import numpy as np
 import pyglet
 from matplotlib.colors import colorConverter
 
-from .._utils import _check_units
+from .._utils import _check_units, string_types
 
 
 def _convert_color(color):
@@ -71,7 +71,7 @@ class Text(object):
         pos = ec._convert_units(pos, 'norm', 'pix')
         if width == 'auto':
             width = float(ec.window_size_pix[0]) * 0.8
-        elif isinstance(width, basestring):
+        elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
         self._text = pyglet.text.HTMLLabel(text + ' ', x=pos[0], y=pos[1],
                                            width=width, height=height,
@@ -426,6 +426,7 @@ class RawImage(object):
         if image_buffer.shape[2] == 3:
             alpha = np.ones_like(image_buffer[:, :, 0])[:, :, np.newaxis]
             image_buffer = np.concatenate((image_buffer, alpha), axis=2)
+        image_buffer = np.ascontiguousarray(image_buffer)
         # convert from numpy array to OpenGL RGBA
         dims = image_buffer.shape
         image_buffer.shape = -1

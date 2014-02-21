@@ -10,7 +10,7 @@ in the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 from expyfun import ExperimentController
 import expyfun.analyze as ea

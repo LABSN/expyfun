@@ -13,6 +13,8 @@ try:
 except ImportError:
     DataFrame = None
 
+from .._utils import string_types
+
 
 def format_pval(pval, latex=True, scheme='default'):
     """Format a p-value using one of several schemes.
@@ -172,7 +174,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         raise ValueError('Barplot argument "gap_size" must be in the range '
                          '[0, 1).')
     if err_bars is not None:
-        if isinstance(err_bars, basestring) and \
+        if isinstance(err_bars, string_types) and \
                 err_bars not in ['sd', 'se', 'ci']:
             raise ValueError('err_bars must be "sd", "se", or "ci" (or an '
                              'array of error bar magnitudes).')
@@ -216,8 +218,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         groups = [[x] for x in range(num_bars)]
     num_groups = len(groups)
     if eq_group_widths:
-        group_widths = [1 - gap_size for _ in xrange(num_groups)]
-        group_edges = [x + gap_size for x in xrange(num_groups)]
+        group_widths = [1 - gap_size for _ in range(num_groups)]
+        group_edges = [x + gap_size for x in range(num_groups)]
         bar_widths = [[(1 - gap_size) / len(x) for _ in enumerate(x)]
                       for x in groups]
         bar_edges = [[gap_size / 2 + grp + (1 - gap_size) * bar / len(x) for
@@ -244,7 +246,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
             else:  # 95% conf int
                 err = 1.96 * h.std(axis) / np.sqrt(h.shape[axis])
         else:  # two_d == False
-            if isinstance(err_bars, basestring):
+            if isinstance(err_bars, string_types):
                 raise ValueError('string arguments to "err_bars" ignored when '
                                  '"h" has fewer than 2 dimensions.')
             else:

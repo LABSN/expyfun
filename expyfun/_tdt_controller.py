@@ -2,6 +2,7 @@ import time
 import numpy as np
 import platform
 from os import path as op
+from functools import partial
 if 'Windows' in platform.platform():
     try:
         from tdt.util import connect_rpcox, connect_zbus
@@ -10,8 +11,26 @@ if 'Windows' in platform.platform():
 else:
     connect_rpcox, connect_zbus = None, None
 
+
 from ._utils import get_config, wait_secs, logger
 from ._input_controllers import Keyboard
+
+
+def _dummy_fun(self, name, ret, *args, **kwargs):
+    logger.info('dummy-tdt: {0} {1}'.format(name, str(args) + str(kwargs)))
+    return ret
+
+
+class DummyRPcoX(object):
+    def __init__(self, model, interface):
+        self.model = model
+        self.interface = interface
+        names = ['LoadCOF', 'ClearCOF', 'Run', 'ZeroTag', 'SetTagVal',
+                 'GetSFreq', 'GetTagV', 'WriteTagV', 'Halt', 'SoftTrg']
+        returns = [True, True, True, True, True,
+                   24414.0125, 0.0, True, True, True]
+        for name, ret in zip(names, returns):
+            setattr(self, name, partial(_dummy_fun, self, name, ret))
 
 
 class TDTController(Keyboard):
@@ -46,7 +65,7 @@ class TDTController(Keyboard):
             raise TypeError('tdt_params must be a dictionary.')
         for k in legal_keys:
             if k not in tdt_params.keys() and k != 'TYPE':
-                tdt_params[k] = get_config(k)
+                tdt_params[k] = get_config(k, 'dummy')
         for k in tdt_params.keys():
             if k not in legal_keys:
                 raise KeyError('Unrecognized key in tdt_params: {0}'.format(k))
@@ -59,7 +78,7 @@ class TDTController(Keyboard):
                                     '.rcx')
         else:
             self._circuit = tdt_params['TDT_CIRCUIT_PATH']
-        if not op.isfile(self._circuit):
+        if self._model != 'dummy' and not op.isfile(self._circuit):
             raise IOError('Could not find file {}'.format(self._circuit))
         if tdt_params['TDT_INTERFACE'] is None:
             tdt_params['TDT_INTERFACE'] = 'USB'
@@ -84,41 +103,42 @@ class TDTController(Keyboard):
             except Exception as exp:
                 raise OSError('Could not connect to {}, is it turned on? '
                               '(TDT message: "{}")'.format(self._model, exp))
+        else:
+            self.rpcox = DummyRPcoX(self._model, self._interface)
 
-            if self.rpcox is not None:
-                logger.info('Expyfun: RPcoX connection established')
-            else:
-                raise IOError('Problem initializing RPcoX.')
-            """
-            # start zBUS (may be needed for devices other than RM1)
-            self.zbus = connect_zbus(interface=interface)
-            if self.zbus is not None:
-                logger.info('Expyfun: zBUS connection established')
-            else:
-                raise ExperimentError('Problem initializing zBUS.')
-            """
-            # load circuit
-            if self.rpcox.LoadCOF(self.circuit):
-                logger.info('Expyfun: TDT circuit loaded')
-            else:
-                logger.debug('Expyfun: Problem loading circuit. Clearing...')
-                try:
-                    if self.rpcox.ClearCOF():
-                        logger.debug('Expyfun: TDT circuit cleared')
-                    time.sleep(0.25)
-                    if self.rpcox.LoadCOF(self.circuit):
-                        logger.info('Expyfun: TDT circuit loaded')
-                except:
-                    raise IOError('Expyfun: Problem loading circuit.')
-            logger.info('Expyfun: Circuit {0} loaded to {1} via {2}.'
-                        ''.format(self.circuit, self.model, self.interface))
-            # run circuit
-            if self.rpcox.Run():
-                logger.info('Expyfun: TDT circuit running')
-            else:
-                raise SystemError('Expyfun: Problem starting TDT circuit.')
-            time.sleep(0.25)
-
+        if self.rpcox is not None:
+            logger.info('Expyfun: RPcoX connection established')
+        else:
+            raise IOError('Problem initializing RPcoX.')
+        """
+        # start zBUS (may be needed for devices other than RM1)
+        self.zbus = connect_zbus(interface=interface)
+        if self.zbus is not None:
+            logger.info('Expyfun: zBUS connection established')
+        else:
+            raise ExperimentError('Problem initializing zBUS.')
+        """
+        # load circuit
+        if self.rpcox.LoadCOF(self.circuit):
+            logger.info('Expyfun: TDT circuit loaded')
+        else:
+            logger.debug('Expyfun: Problem loading circuit. Clearing...')
+            try:
+                if self.rpcox.ClearCOF():
+                    logger.debug('Expyfun: TDT circuit cleared')
+                time.sleep(0.25)
+                if self.rpcox.LoadCOF(self.circuit):
+                    logger.info('Expyfun: TDT circuit loaded')
+            except:
+                raise IOError('Expyfun: Problem loading circuit.')
+        logger.info('Expyfun: Circuit {0} loaded to {1} via {2}.'
+                    ''.format(self.circuit, self.model, self.interface))
+        # run circuit
+        if self.rpcox.Run():
+            logger.info('Expyfun: TDT circuit running')
+        else:
+            raise SystemError('Expyfun: Problem starting TDT circuit.')
+        time.sleep(0.25)
         self.clear_buffer()
 
         # do BaseKeyboard init last, to make sure circuit is running
@@ -186,7 +206,7 @@ class TDTController(Keyboard):
         logger.debug('Expyfun: Resetting TDT ring buffer')
 
 ################################ TRIGGER METHODS #############################
-    def stamp_triggers(self, triggers, delay):
+    def stamp_triggers(self, triggers, delay=0.03):
         """Stamp a list of triggers with a given inter-trigger delay
 
         Parameters

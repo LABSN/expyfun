@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose
 from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import _TempDir, interactive_test, tdt_test
+from expyfun._utils import _TempDir, interactive_test
 
 warnings.simplefilter('always')
 
@@ -13,11 +13,11 @@ temp_dir = _TempDir()
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
-                  stim_fs=44100, verbose=True)
+                  verbose=True)
 
 
 def dummy_print(string):
-    print string
+    print(string)
 
 
 def test_unit_conversions():
@@ -25,12 +25,13 @@ def test_unit_conversions():
     """
     for ws in [(2, 1), (1, 1)]:
         kwargs = deepcopy(std_kwargs)
+        kwargs['stim_fs'] = 44100
         kwargs['window_size'] = ws
         with ExperimentController(*std_args, **kwargs) as ec:
             verts = np.random.rand(2, 4)
             for to in ['norm', 'pix', 'deg']:
                 for fro in ['norm', 'pix', 'deg']:
-                    print (ws, to, fro)
+                    print((ws, to, fro))
                     v2 = ec._convert_units(verts, fro, to)
                     v2 = ec._convert_units(v2, to, fro)
                     assert_allclose(verts, v2)
@@ -52,7 +53,8 @@ def test_no_output():
     old_val = std_kwargs['output_dir']
     std_kwargs['output_dir'] = None
     try:
-        with ExperimentController(*std_args, **std_kwargs) as ec:
+        with ExperimentController(*std_args, stim_fs=44100,
+                                  **std_kwargs) as ec:
             ec.write_data_line('hello')
     except:
         raise
@@ -71,7 +73,7 @@ def test_data_line():
     goal_vals = ['None', 'bar\\tbar', 'bar\\\\tbar', 'None']
     assert_equal(len(entries), len(goal_vals))
 
-    with ExperimentController(*std_args, **std_kwargs) as ec:
+    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         for ent in entries:
             ec.write_data_line(*ent)
         fname = ec._data_file.name
@@ -105,15 +107,8 @@ def test_data_line():
     assert_true(np.all(ts[1:] >= ts[:-1]))
 
 
-def test_stamping():
-    """Test EC stamping support"""
-    with ExperimentController(*std_args, **std_kwargs) as ec:
-        ec.stamp_triggers([1, 2])
-
-
-@tdt_test
 def test_tdt():
-    """Test EC with TDT if possible
+    """Test EC with TDT
     """
     test_ec('tdt')
 
@@ -124,36 +119,38 @@ def test_ec(ac=None):
     if ac is None:
         # test type/value checking for audio_controller
         assert_raises(TypeError, ExperimentController, *std_args,
-                      audio_controller=1, **std_kwargs)
+                      audio_controller=1, stim_fs=44100, **std_kwargs)
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='foo', **std_kwargs)
+                      audio_controller='foo', stim_fs=44100, **std_kwargs)
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller=dict(TYPE='foo'), **std_kwargs)
+                      audio_controller=dict(TYPE='foo'), stim_fs=44100,
+                      **std_kwargs)
 
         # test type checking for 'session'
         std_kwargs['session'] = 1
         assert_raises(TypeError, ExperimentController, *std_args,
-                      audio_controller='pyo', **std_kwargs)
+                      audio_controller='pyo', stim_fs=44100, **std_kwargs)
         std_kwargs['session'] = '01'
 
         # test value checking for trigger controller
         assert_raises(ValueError, ExperimentController, *std_args,
                       audio_controller='pyo', trigger_controller='foo',
-                      **std_kwargs)
+                      stim_fs=44100, **std_kwargs)
 
         # test value checking for RMS checker
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='pyo', check_rms=True,
+                      audio_controller='pyo', check_rms=True, stim_fs=44100,
                       **std_kwargs)
 
         # run rest of test with audio_controller == 'pyo'
         this_ac = 'pyo'
-
+        this_fs = 44100
     else:
         # run rest of test with audio_controller == 'tdt'
         this_ac = ac
+        this_fs = 24414
     with ExperimentController(*std_args, audio_controller=this_ac,
-                              **std_kwargs) as ec:
+                              stim_fs=this_fs, **std_kwargs) as ec:
         stamp = ec.current_time
         ec.write_data_line('hello')
         ec.wait_until(stamp + 0.02)
@@ -188,11 +185,11 @@ def test_ec(ac=None):
         # test RMS checking
         assert_raises(ValueError, ec.set_rms_checking, 'foo')
         # click: RMS 0.0135, should pass 'fullfile' and fail 'windowed'
-        click = np.zeros((ec.fs / 4,))  # 250 ms
+        click = np.zeros((int(ec.fs / 4),))  # 250 ms
         click[len(click) / 2] = 1.
         click[len(click) / 2 + 1] = -1.
         # noise: RMS 0.03, should fail both 'fullfile' and 'windowed'
-        noise = np.random.normal(scale=0.03, size=(ec.fs / 4,))
+        noise = np.random.normal(scale=0.03, size=(int(ec.fs / 4),))
         ec.set_rms_checking(None)
         ec.load_buffer(click)  # should go unchecked
         ec.load_buffer(noise)  # should go unchecked
@@ -210,29 +207,38 @@ def test_ec(ac=None):
 
         ec.stop()
         ec.call_on_every_flip(dummy_print, 'called on flip and play')
+        assert_raises(RuntimeError, ec.flip_and_play)
+        ec.flip_and_play(start_of_trial=False)  # should work
+        assert_raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
+        # only binary for TTL
+        assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
+        assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
+        ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
+        assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
         ec.flip_and_play()
         ec.flip()
         ec.play()
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
-        ec.flip_and_play()
+        ec.flip_and_play(start_of_trial=False)
         ec.call_on_next_flip(ec.stop_noise())
-        ec.flip_and_play()
+        ec.flip_and_play(start_of_trial=False)
         ec.get_mouse_position()
         ec.toggle_cursor(False)
         ec.toggle_cursor(True, True)
         ec.wait_secs(0.001)
-        print ec.stim_db
-        print ec.noise_db
-        print ec.on_next_flip_functions
-        print ec.on_every_flip_functions
-        print ec.window
+        print(ec.id_types)
+        print(ec.stim_db)
+        print(ec.noise_db)
+        print(ec.on_next_flip_functions)
+        print(ec.on_every_flip_functions)
+        print(ec.window)
         data = ec.screenshot()
         assert_allclose(data.shape[:2], std_kwargs['window_size'])
-        print ec.fs  # test fs support
+        print(ec.fs)  # test fs support
         wait_secs(0.01)
         test_pix = (11.3, 0.5, 110003)
-        print test_pix
+        print(test_pix)
         # test __repr__
         assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     del ec
@@ -241,7 +247,11 @@ def test_ec(ac=None):
 def test_visual(ac=None):
     """Test EC visual methods
     """
-    with ExperimentController(*std_args, audio_controller=ac,
+    if ac == 'tdt':
+        this_fs = 24414
+    else:
+        this_fs = 44100
+    with ExperimentController(*std_args, audio_controller=ac, stim_fs=this_fs,
                               **std_kwargs) as ec:
         assert_raises(TypeError, visual.Circle, ec, n_edges=3.5)
         assert_raises(ValueError, visual.Circle, ec, n_edges=3)

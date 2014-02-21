@@ -9,6 +9,8 @@ expyfun provides multiple methods for drawing simple screen objects.
 #
 # License: BSD (3-clause)
 
+print(__doc__)
+
 import numpy as np
 from expyfun import visual, ExperimentController
 import expyfun.analyze as ea
