@@ -21,6 +21,7 @@ before_install:
     - sudo dpkg -i python-pyo_0.6.2-1_amd64.deb
     - sudo usermod -G $(groups | tr " " ","),audio $USER
     # pandas & Pylink
+    # The
     - if [ "${DEPS}" == "full" ]; then
         sudo apt-get install python-pandas;
         wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/pylink4python2.7_linux_x64.tar.gz;
@@ -32,7 +33,7 @@ before_install:
         travis_retry sudo apt-get update -qq;
         travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg;
 
-        wget http://faculty.washington.edu/larsoner/libeyelink.tar.gz;
+        wget https://lester.ilabs.uw.edu/expyfun/libeyelink.tar.gz;
         tar xzf libeyelink.tar.gz;
         sudo mv ${PWD}/lib/*so* /usr/lib;
         sudo ldconfig;
