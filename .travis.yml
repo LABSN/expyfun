@@ -7,8 +7,8 @@ before_install:
     - sudo apt-get install -qq -y --force-yes eyelink-display-software1.9
     - cd ~
     - wget http://faculty.washington.edu/larsoner/simpleexample.c
-    - wget http://faculty.washington.edu/larsoner/lib.eyelinkcore\(7\).tar.gz
-    - tar xzf lib.eyelinkcore\(7\).tar.gz
+    - wget http://faculty.washington.edu/larsoner/libeyelink.tar.gz
+    - tar xzf libeyelink.tar.gz
     - sudo mv ${PWD}/lib/*so* /usr/lib
     - sudo ldconfig
     - gcc simpleexample.c -leyelink_core -lm -o se
