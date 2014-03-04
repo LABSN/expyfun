@@ -31,6 +31,11 @@ before_install:
         echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list;
         travis_retry sudo apt-get update -qq;
         travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg;
+
+        wget http://faculty.washington.edu/larsoner/libeyelink.tar.gz;
+        tar xzf libeyelink.tar.gz;
+        sudo mv ${PWD}/lib/*so* /usr/lib;
+        sudo ldconfig;
       fi;
 
 install:
@@ -49,8 +54,6 @@ before_script:
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
     # Now we start jackd: no realtime, dummy mode
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jack.pid --make-pidfile --background --exec /usr/bin/jackd -- --silent --no-mlock --no-realtime -d dummy
-    # Deal with EL hostname stupidity
-    - OLD_NAME=$HOSTNAME && sudo hostname test-expyfun-hn && sudo sed -i "s/${OLD_NAME}/test-expyfun-hn/g" /etc/hosts
 
 script:
     - cd ${EXPYFUN_DIR}/../
@@ -62,8 +65,6 @@ script:
     - make flake
 
 after_script:
-    # Always want to do this
-    - sudo sed -i "s/test-expyfun-hn/${OLD_NAME}/g" /etc/hosts && sudo hostname $OLD_NAME
     # Only on success do this
     - if [ "${TRAVIS_TEST_RESULT}" == "0" ] && [ "${DEPS}" == "full" ]; then
         cd ${SRC_DIR};
