@@ -21,7 +21,9 @@ before_install:
     - sudo dpkg -i python-pyo_0.6.2-1_amd64.deb
     - sudo usermod -G $(groups | tr " " ","),audio $USER
     # pandas & Pylink
-    # The
+    # Use a custom version of EL software until a patch is released XXX
+    - SRC_DIR=${PWD}
+    - cd ~
     - if [ "${DEPS}" == "full" ]; then
         sudo apt-get install python-pandas;
         wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/pylink4python2.7_linux_x64.tar.gz;
@@ -33,15 +35,15 @@ before_install:
         travis_retry sudo apt-get update -qq;
         travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg;
 
-        wget https://lester.ilabs.uw.edu/expyfun/libeyelink.tar.gz;
+        wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/libeyelink.tar.gz;
         tar xzf libeyelink.tar.gz;
         sudo mv ${PWD}/lib/*so* /usr/lib;
         sudo ldconfig;
       fi;
 
 install:
+    - cd ${SRC_DIR}
     - python setup.py install
-    - SRC_DIR=${PWD}
     - cd ~
     - EXPYFUN_DIR=$(python -c 'import expyfun;print(expyfun.__path__[0])')
     - ln -s ${SRC_DIR}/setup.cfg ${EXPYFUN_DIR}/../setup.cfg
