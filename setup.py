@@ -56,5 +56,7 @@ if __name__ == "__main__":
                     'expyfun.stimuli', 'expyfun.stimuli.tests',
                     'expyfun.visual', 'expyfun.visual.tests'],
           package_data={'expyfun': [op.join('tdt-circuits', '*.rcx'),
-                                    op.join('tests', 'data', '*')]},
+                                    op.join('tests', 'data', '*'),
+                                    op.join('data', '*'),
+                                    ]},
           scripts=[])

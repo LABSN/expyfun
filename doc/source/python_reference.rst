@@ -44,8 +44,10 @@ Functions:
    :template: function.rst
 
    convolve_hrtf
+   compute_mls_impulse_response
    play_sound
    read_wav
+   repeated_mls
    rms
    window_edges
    write_wav
