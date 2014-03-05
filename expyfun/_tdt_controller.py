@@ -83,7 +83,7 @@ class TDTController(Keyboard):
                 raise KeyError('Unrecognized key in tdt_params: {0}'.format(k))
         self._model = tdt_params['TDT_MODEL']
 
-        if tdt_params['TDT_CIRCUIT_PATH'] is None:
+        if tdt_params['TDT_CIRCUIT_PATH'] is None and self._model != 'dummy':
             cl = dict(RM1='RM1', RP2='RM1', RZ6='RZ6')
             self._circuit = op.join(op.split(__file__)[0], 'tdt-circuits',
                                     'expCircuitF32_' + cl[self._model] +
