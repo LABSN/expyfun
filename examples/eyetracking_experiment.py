@@ -17,12 +17,10 @@ import numpy as np
 from expyfun import ExperimentController, EyelinkController, visual
 import expyfun.analyze as ea
 
-link = None  # or '100.1.1.1' for real eye tracking
-
 
 with ExperimentController('testExp', full_screen=True, participant='foo',
                           session='001', output_dir=None) as ec:
-    el = EyelinkController(ec, link=link)
+    el = EyelinkController(ec)
     ec.screen_prompt('Welcome to the experiment!<br><br>First, we will '
                      'perform a screen calibration.<br><br>Press a button '
                      'to continue.')

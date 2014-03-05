@@ -59,14 +59,25 @@ class TDTController(Keyboard):
         The object containing all relevant info about the TDT in use.
     """
     def __init__(self, tdt_params, ec, as_kb, force_quit_keys):
-        legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE']
+        legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE',
+                      'TDT_DELAY']
         if tdt_params is None:
             tdt_params = {'TYPE': 'tdt'}
         if not isinstance(tdt_params, dict):
             raise TypeError('tdt_params must be a dictionary.')
         for k in legal_keys:
             if k not in tdt_params.keys() and k != 'TYPE':
-                tdt_params[k] = get_config(k, 'dummy')
+                tdt_params[k] = get_config(k, None)
+
+        # Fix a couple keys
+        if tdt_params['TDT_DELAY'] is None:
+            tdt_params['TDT_DELAY'] = '0'
+        tdt_params['TDT_DELAY'] = int(tdt_params['TDT_DELAY'])
+        tdt_params['TDT_DELAY'] = int(tdt_params['TDT_DELAY'])
+        if tdt_params['TDT_MODEL'] is None:
+            tdt_params['TDT_MODEL'] = 'dummy'
+
+        # Check keys
         for k in tdt_params.keys():
             if k not in legal_keys:
                 raise KeyError('Unrecognized key in tdt_params: {0}'.format(k))
@@ -120,19 +131,17 @@ class TDTController(Keyboard):
             raise ExperimentError('Problem initializing zBUS.')
         """
         # load circuit
-        if self.rpcox.LoadCOF(self.circuit):
-            logger.info('Expyfun: TDT circuit loaded')
-        else:
+        if not self.rpcox.LoadCOF(self.circuit):
             logger.debug('Expyfun: Problem loading circuit. Clearing...')
             try:
                 if self.rpcox.ClearCOF():
                     logger.debug('Expyfun: TDT circuit cleared')
                 time.sleep(0.25)
-                if self.rpcox.LoadCOF(self.circuit):
-                    logger.info('Expyfun: TDT circuit loaded')
+                if not self.rpcox.LoadCOF(self.circuit):
+                    raise RuntimeError('Second loading attempt failed')
             except:
                 raise IOError('Expyfun: Problem loading circuit.')
-        logger.info('Expyfun: Circuit {0} loaded to {1} via {2}.'
+        logger.info('Expyfun: Circuit loaded to {1} via {2}:\n{0}'
                     ''.format(self.circuit, self.model, self.interface))
         # run circuit
         if self.rpcox.Run():
@@ -141,6 +150,7 @@ class TDTController(Keyboard):
             raise SystemError('Expyfun: Problem starting TDT circuit.')
         time.sleep(0.25)
         self.clear_buffer()
+        self._set_delay(tdt_params['TDT_DELAY'])
 
         # do BaseKeyboard init last, to make sure circuit is running
         if as_kb is True:
@@ -205,6 +215,13 @@ class TDTController(Keyboard):
         """
         self._trigger(5)
         logger.debug('Expyfun: Resetting TDT ring buffer')
+
+    def _set_delay(self, delay):
+        """Set the delay (in ms) of the system
+        """
+        assert isinstance(delay, int)  # this should never happen
+        self.rpcox.SetTagVal('onsetdel', delay)
+        logger.info('Expyfun: Setting TDT delay to %s' % delay)
 
 ################################ TRIGGER METHODS #############################
     def stamp_triggers(self, triggers, delay=0.03):
