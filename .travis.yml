@@ -21,6 +21,9 @@ before_install:
     - sudo dpkg -i python-pyo_0.6.2-1_amd64.deb
     - sudo usermod -G $(groups | tr " " ","),audio $USER
     # pandas & Pylink
+    # Use a custom version of EL software until a patch is released XXX
+    - SRC_DIR=${PWD}
+    - cd ~
     - if [ "${DEPS}" == "full" ]; then
         sudo apt-get install python-pandas;
         wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/pylink4python2.7_linux_x64.tar.gz;
@@ -31,11 +34,16 @@ before_install:
         echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list;
         travis_retry sudo apt-get update -qq;
         travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg;
+
+        wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/libeyelink.tar.gz;
+        tar xzf libeyelink.tar.gz;
+        sudo mv ${PWD}/lib/*so* /usr/lib;
+        sudo ldconfig;
       fi;
 
 install:
+    - cd ${SRC_DIR}
     - python setup.py install
-    - SRC_DIR=${PWD}
     - cd ~
     - EXPYFUN_DIR=$(python -c 'import expyfun;print(expyfun.__path__[0])')
     - ln -s ${SRC_DIR}/setup.cfg ${EXPYFUN_DIR}/../setup.cfg
@@ -49,8 +57,6 @@ before_script:
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
     # Now we start jackd: no realtime, dummy mode
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jack.pid --make-pidfile --background --exec /usr/bin/jackd -- --silent --no-mlock --no-realtime -d dummy
-    # Deal with EL hostname stupidity
-    - OLD_NAME=$HOSTNAME && sudo hostname test-expyfun-hn && sudo sed -i "s/${OLD_NAME}/test-expyfun-hn/g" /etc/hosts
 
 script:
     - cd ${EXPYFUN_DIR}/../
@@ -62,8 +68,6 @@ script:
     - make flake
 
 after_script:
-    # Always want to do this
-    - sudo sed -i "s/test-expyfun-hn/${OLD_NAME}/g" /etc/hosts && sudo hostname $OLD_NAME
     # Only on success do this
     - if [ "${TRAVIS_TEST_RESULT}" == "0" ] && [ "${DEPS}" == "full" ]; then
         cd ${SRC_DIR};
