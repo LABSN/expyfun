@@ -66,9 +66,10 @@ class Text(object):
     """
     def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
-                 width='auto', anchor_x='center', anchor_y='center'):
+                 width='auto', anchor_x='center', anchor_y='center',
+                 units='norm'):
         pos = np.array(pos)[:, np.newaxis]
-        pos = ec._convert_units(pos, 'norm', 'pix')
+        pos = ec._convert_units(pos, units, 'pix')
         if width == 'auto':
             width = float(ec.window_size_pix[0]) * 0.8
         elif isinstance(width, string_types):
@@ -460,6 +461,8 @@ class RawImage(object):
 
     def draw(self):
         """Draw the image to the buffer"""
-        self._img.blit(self._pos[0] - self._pos[2] / 2.,
-                       self._pos[1] - self._pos[3] / 2.,
-                       width=self._pos[2], height=self._pos[3])
+        width = self._pos[2]
+        height = self._pos[3]
+        x = self._pos[0] - self._pos[2] / 2.
+        y = self._pos[1] - self._pos[3] / 2.
+        self._img.blit(x, y, width=width, height=height)

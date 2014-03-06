@@ -10,8 +10,14 @@ import datetime
 from distutils.version import LooseVersion
 import os
 from os import path as op
+import sys
+import subprocess
 import time
 import pyglet
+
+# TODO:
+# 1. Fix RawImage -- use shaders?
+
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink
@@ -108,6 +114,12 @@ class EyelinkController(object):
             raise RuntimeError('Cannot use initialize EL twice')
         logger.info('EyeLink: Initializing on {}'.format(link))
         ec.flush_logs()
+        if link is not None:
+            iswin = ('win' in sys.platform)
+            cmd = 'ping -n 1 -w 100' if iswin else 'fping -c 1 -t100'
+            if subprocess.Popen('%s %s' % (cmd, link)).returncode:
+                raise RuntimeError('could not connect to Eyelink @ %s, '
+                                   'is it turned on?' % link)
         self.eyelink = pylink.EyeLink(link)
         self._file_list = []
         self._size = np.array(self._ec.window_size_pix)
@@ -566,7 +578,7 @@ class _Calibrate(super_class):
         self.beep = beep
 
     def setup_event_handlers(self):
-        self.label = Text(self.ec, 'Eye Label',
+        self.label = Text(self.ec, 'Eye Label', units='norm',
                           pos=(0, -self.img_span[1] / 2.),
                           anchor_y='top', color='white')
         self.img = RawImage(self.ec, np.zeros((1, 2, 3)),
@@ -592,19 +604,16 @@ class _Calibrate(super_class):
     def record_abort_hide(self):
         pass
 
-    def recenter(self, xy):
-        return np.asarray(xy, float) - (self.size / 2.)
-
     def draw_cal_target(self, x, y):
-        self.targ_circ.setPos(self.recenter((x, y)), log=True)
-        self.targ_ctr.setPos(self.recenter((x, y)), log=True)
+        self.targ_circ.set_pos((x, y), units='pix')
+        self.targ_ctr.set_pos((x, y), units='pix')
         self.targ_circ.draw()
         self.targ_ctr.draw()
         self.ec.flip()
 
     def render(self, x, y):
         raise NotImplementedError  # need to check this
-        self.render_disc.setPos((x, y), units='px', log=False)
+        self.render_disc.set_pos((x, y), units='px')
         self.render_disc.draw()
 
     def play_beep(self, eepid):
@@ -633,15 +642,17 @@ class _Calibrate(super_class):
         self.clear_display()
 
     def image_title(self, text):
-        self.label.setText(text, log=False)
+        self.label = Text(self.ec, text, units='norm',
+                          pos=(0, -self.img_span[1] / 2.),
+                          anchor_y='top', color='white')
 
     def set_image_palette(self, r, g, b):
         self.palette = (np.array([r, g, b], np.uint8).T).copy()
 
     def draw_image_line(self, width, line, totlines, buff):
         if self.image_buffer is None:
-            self.image_buffer = np.empty((totlines, width, 3), np.uint8)
-        self.image_buffer[line - 1, :, :] = self.palette[buff, :]
+            self.image_buffer = np.empty((totlines, width, 3), float)
+        self.image_buffer[line - 1, :, :] = self.palette[buff, :] / 255.
         if line == totlines:
             self.img.set_image(self.image_buffer)
             self.img.draw()
@@ -649,7 +660,7 @@ class _Calibrate(super_class):
             self.ec.flip()
 
     def draw_line(self, x1, y1, x2, y2, colorindex):
-        # XXX check this
+        raise NotImplementedError  # need to check this
         print('draw_line ({0}, {1}, {2}, {3})'.format(x1, y1, x2, y2))
         color_dict = _get_color_dict()
         color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
@@ -671,7 +682,7 @@ class _Calibrate(super_class):
         return (x11, x22, y11, y22)
 
     def draw_lozenge(self, x, y, width, height, colorindex):
-        # XXX check this
+        raise NotImplementedError  # need to check this
         print('draw lozenge ({0}, {1}, {2}, {3})'.format(x, y, width, height))
         color_dict = _get_color_dict()
         color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
@@ -683,9 +694,9 @@ class _Calibrate(super_class):
         rad = float(min(xw, yw) * 0.5)
         x = float(min(l, r) + rad)
         y = float(min(t, b) + rad)
-        self.loz_circ.setColor(color)
-        self.loz_circ.setPos(x, y, log=False)
-        self.loz_circ.setRadius(rad, log=False)
+        self.loz_circ.set_fill_color(color)
+        self.loz_circ.set_pos((x, y))
+        self.loz_circ.set_radius(rad)
         self.loz_circ.draw()
 
 

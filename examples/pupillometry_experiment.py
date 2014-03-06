@@ -27,11 +27,11 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
 
     ec.screen_prompt('Excellent! Now, we will determine the dynamic '
                      'range of your pupil.<br><br>Press a button to continue.')
-    range_ = find_pupil_dynamic_range()
+    range_ = find_pupil_dynamic_range(ec, el)
 
     ec.screen_prompt('Now, we will determine the impulse response '
                      'of your pupil.<br><br>Press a button to continue.')
-    impulse_response = find_pupil_impulse_response()
+    impulse_response = find_pupil_impulse_response(ec, el)
 
 import matplotlib.pyplot as plt
 plt.ion()
