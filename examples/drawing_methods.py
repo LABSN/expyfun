@@ -22,19 +22,19 @@ with ExperimentController('test', session='1', participant='2',
     ec.screen_text('hello')
 
     # make an image with  alpha the x-dimension (columns), RGB upward
-    img_buffer = np.zeros((30, 100, 4))
+    img_buffer = np.zeros((120, 100, 4))
     img_buffer[:, :50, 3] = 1.0
     img_buffer[:, 50:, 3] = 0.5
     for ii in range(3):
-        img_buffer[ii * 10:(ii + 1) * 10, :, ii] = 1.0
-    img = visual.RawImage(ec, img_buffer)
+        img_buffer[ii * 40:(ii + 1) * 40, :, ii] = 1.0
+    img = visual.RawImage(ec, img_buffer, scale=2.)
 
     # make a line
     line = visual.Line(ec, [[-2, 2, 2, -2], [-2, 2, -2, -2]], units='deg',
                        line_color='w', line_width=2.0)
 
     # make a rectangle
-    rect = visual.Rectangle(ec, [0, 0, 2, 2], units='deg', fill_color='k')
+    rect = visual.Rectangle(ec, [0, 0, 2, 2], units='deg', fill_color='y')
 
     # make a circle
     circle = visual.Circle(ec, 1, units='deg', line_color='w', fill_color='k',

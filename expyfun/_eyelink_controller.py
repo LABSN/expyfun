@@ -582,8 +582,7 @@ class _Calibrate(super_class):
                           pos=(0, -self.img_span[1] / 2.),
                           anchor_y='top', color='white')
         self.img = RawImage(self.ec, np.zeros((1, 2, 3)),
-                            pos=(0, 0, self.img_span[0], self.img_span[1]),
-                            units='norm')
+                            pos=(0, 0), units='norm')
 
         def on_key_press(symbol, modifiers):
             key_trans_dict = _get_key_trans_dict()

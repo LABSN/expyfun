@@ -10,6 +10,7 @@
 import numpy as np
 import pyglet
 from matplotlib.colors import colorConverter
+from pyglet import gl as gl
 
 from .._utils import _check_units, string_types
 
@@ -58,6 +59,8 @@ class Text(object):
         Horizontal text anchor (e.g., `'center'`).
     anchor_y : str
         Vertical text anchor (e.g., `'center'`).
+    units : str
+        Units to use.
 
     Returns
     -------
@@ -145,17 +148,17 @@ class _Triangular(object):
         if self._fill_color is not None:
             color = _replicate_color(self._fill_color, self._points)
             pyglet.graphics.draw_indexed(len(self._points) // 2,
-                                         pyglet.gl.GL_TRIANGLES,
+                                         gl.GL_TRIANGLES,
                                          self._tris,
                                          ('v2f', self._points),
                                          ('c4B', color))
         if self._line_color is not None and self._line_width > 0.0:
             color = _replicate_color(self._line_color, self._line_points)
-            pyglet.gl.glLineWidth(self._line_width)
+            gl.glLineWidth(self._line_width)
             if self._line_loop:
-                gl_cmd = pyglet.gl.GL_LINE_LOOP
+                gl_cmd = gl.GL_LINE_LOOP
             else:
-                gl_cmd = pyglet.gl.GL_LINE_STRIP
+                gl_cmd = gl.GL_LINE_STRIP
             pyglet.graphics.draw(len(self._line_points) // 2,
                                  gl_cmd,
                                  ('v2f', self._line_points),
@@ -394,19 +397,23 @@ class RawImage(object):
     image_buffer : array
         N x M x 3 (or 4) array. Color values should range between 0 and 1.
     pos : array-like
-        4-element array-like with X, Y (center) and width, height arguments.
+        2-element array-like with X, Y (center) arguments.
+    scale : float
+        The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
+        large, etc.
     units : str
-        Units to use.
+        Units to use for the position.
 
     Returns
     -------
     img : instance of RawImage
         The image object.
     """
-    def __init__(self, ec, image_buffer, pos=(0, 0, 1, 1), units='norm'):
+    def __init__(self, ec, image_buffer, pos=(0, 0), scale=1., units='norm'):
         self._ec = ec
         self.set_image(image_buffer)
         self.set_pos(pos, units)
+        self.set_scale(scale)
 
     def set_image(self, image_buffer):
         """Set image buffer data
@@ -432,12 +439,31 @@ class RawImage(object):
         dims = image_buffer.shape
         image_buffer.shape = -1
         image_buffer = (image_buffer * 255).astype('uint8')
-        data = (pyglet.gl.GLubyte * image_buffer.size)(*image_buffer)
+        data = (gl.GLubyte * image_buffer.size)(*image_buffer)
         img = pyglet.image.ImageData(dims[1], dims[0], 'RGBA', data,
                                      pitch=dims[1] * 4)
-        self._img = img
+        sprite = pyglet.sprite.Sprite(img)
+        self._sprite = sprite
 
     def set_pos(self, pos, units='norm'):
+        """Set image position
+
+        Parameters
+        ----------
+        ec : instance of ExperimentController
+            Parent EC.
+        pos : array-like
+            2-element array-like with X, Y (center) arguments.
+        units : str
+            Units to use.
+        """
+        pos = np.array(pos, float)
+        if pos.ndim != 1 or pos.size != 2:
+            raise ValueError('pos must be a 4-element array')
+        pos = np.reshape(pos, (2, 1))
+        self._pos = self._ec._convert_units(pos, units, 'pix').ravel()
+
+    def set_scale(self, scale):
         """Create image from array for on-screen display
 
         Parameters
@@ -445,24 +471,16 @@ class RawImage(object):
         ec : instance of ExperimentController
             Parent EC.
         pos : array-like
-            4-element array-like with X, Y (center) and width, height
-            arguments.
+            2-element array-like with X, Y (center) arguments.
         units : str
             Units to use.
         """
-        pos = np.array(pos, float)
-        if pos.ndim != 1 or pos.size != 4:
-            raise ValueError('pos must be a 4-element array')
-        pos = np.reshape(pos, (2, 2)).T
-        pos = self._ec._convert_units(pos, units, 'pix')
-        ctr = self._ec._convert_units(np.zeros((2, 1)), 'norm', 'pix')[:, 0]
-        pos = np.r_[pos[:, 0], pos[:, 1] - ctr]
-        self._pos = pos
+        scale = float(scale)
+        self._scale = scale
 
     def draw(self):
         """Draw the image to the buffer"""
-        width = self._pos[2]
-        height = self._pos[3]
-        x = self._pos[0] - self._pos[2] / 2.
-        y = self._pos[1] - self._pos[3] / 2.
-        self._img.blit(x, y, width=width, height=height)
+        self._sprite.scale = self._scale
+        pos = self._pos - [self._sprite.width / 2., self._sprite.height / 2.]
+        self._sprite.set_position(pos[0], pos[1])
+        self._sprite.draw()
