@@ -20,18 +20,18 @@ from expyfun.codeblocks import (find_pupil_dynamic_range,
 with ExperimentController('testExp', full_screen=True, participant='foo',
                           session='001', output_dir=None) as ec:
     el = EyelinkController(ec)
-    ec.screen_prompt('Welcome to the experiment!<br><br>First, we will '
-                     'perform a screen calibration.<br><br>Press a button '
-                     'to continue.')
-    el.calibrate()  # by default this starts recording EyeLink data
+    #ec.screen_prompt('Welcome to the experiment!<br><br>First, we will '
+    #                 'perform a screen calibration.<br><br>Press a button '
+    #                 'to continue.')
+    #el.calibrate()  # by default this starts recording EyeLink data
 
     ec.screen_prompt('Excellent! Now, we will determine the dynamic '
                      'range of your pupil.<br><br>Press a button to continue.')
-    range_ = find_pupil_dynamic_range(ec, el)
+    lin_reg = find_pupil_dynamic_range(ec, el, 0.01)  # XXX TOO SHORT
 
     ec.screen_prompt('Now, we will determine the impulse response '
                      'of your pupil.<br><br>Press a button to continue.')
-    impulse_response = find_pupil_impulse_response(ec, el)
+    impulse_response = find_pupil_impulse_response(ec, el, lin_reg)
 
 import matplotlib.pyplot as plt
 plt.ion()

@@ -134,7 +134,7 @@ class EyelinkController(object):
         self._ec.flush_logs()
 
     @property
-    def _is_dummy_mode(self):
+    def dummy_mode(self):
         return self.eyelink.getDummyMode()
 
     def setup(self, fs=1000):
@@ -237,7 +237,7 @@ class EyelinkController(object):
         #if not self.eyelink.isRecording():
         #    raise RuntimeError('Eyelink is not recording')
         recording = self.eyelink.getCurrentMode() == pylink.IN_RECORD_MODE
-        if not self._is_dummy_mode and not recording:
+        if not self.dummy_mode and not recording:
             raise RuntimeError('Eyelink is not recording '
                                '{}'.format(self.eyelink.getCurrentMode()))
         self._file_list += [file_name]
@@ -295,7 +295,7 @@ class EyelinkController(object):
         cal.setup_event_handlers()
         if beep:
             cal.play_beep(0)
-        if not (self._is_dummy_mode or self._fake_calibration):
+        if not (self.dummy_mode or self._fake_calibration):
             self.eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
@@ -496,7 +496,7 @@ class EyelinkController(object):
             The current eye position. Will be [np.inf, np.inf] if the
             eye is lost.
         """
-        if not self._is_dummy_mode:
+        if not self.dummy_mode:
             sample = self.eyelink.getNewestSample()
             if sample is None:
                 raise RuntimeError('No sample data, consider starting a '
@@ -518,7 +518,7 @@ class EyelinkController(object):
 
     def _toggle_dummy_cursor(self, visibility):
         """Show the cursor for dummy mode"""
-        if self._is_dummy_mode:
+        if self.dummy_mode:
             self._ec.toggle_cursor(visibility)
 
     @property

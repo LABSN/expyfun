@@ -13,7 +13,7 @@ from functools import partial
 from scipy.signal import resample
 import traceback as tb
 import pyglet
-from pyglet import gl as GL
+from pyglet import gl
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
@@ -656,43 +656,53 @@ class ExperimentController(object):
 
 ############################### OPENGL METHODS ###############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
-        config = GL.Config(depth_size=8, double_buffer=True,
+        config = gl.Config(depth_size=8, double_buffer=True,
                            stencil_size=0, stereo=False)
-        win = pyglet.window.Window(width=window_size[0],
-                                   height=window_size[1],
-                                   caption=exp_name,
-                                   fullscreen=full_screen,
-                                   config=config,
-                                   screen=screen_num,
-                                   style='borderless',
-                                   visible=False)
+        max_try = 5  # sometimes it fails for unknown reasons
+        for ii in range(max_try):
+            try:
+                win = pyglet.window.Window(width=window_size[0],
+                                           height=window_size[1],
+                                           caption=exp_name,
+                                           fullscreen=full_screen,
+                                           config=config,
+                                           screen=screen_num,
+                                           style='borderless',
+                                           visible=False)
+            except pyglet.gl.ContextException:
+                if ii == max_try - 1:
+                    raise
+                else:
+                    pass
+            else:
+                break
         if not full_screen:
             x = int(win.screen.width / 2. - win.width / 2.)
             y = int(win.screen.height / 2. - win.height / 2.)
             win.set_location(x, y)
         self._win = win
         # with the context set up, do basic GL initialization
-        GL.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
-        GL.glClearDepth(1.0)  # clear value for the depth buffer
+        gl.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
+        gl.glClearDepth(1.0)  # clear value for the depth buffer
         # set the viewport size
-        GL.glViewport(0, 0, int(self.window_size_pix[0]),
+        gl.glViewport(0, 0, int(self.window_size_pix[0]),
                       int(self.window_size_pix[1]))
         # set the projection matrix
-        GL.glMatrixMode(GL.GL_PROJECTION)
-        GL.glLoadIdentity()
-        GL.gluOrtho2D(-1, 1, -1, 1)
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        gl.gluOrtho2D(-1, 1, -1, 1)
         # set the model matrix
-        GL.glMatrixMode(GL.GL_MODELVIEW)
-        GL.glLoadIdentity()
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glLoadIdentity()
         # disable depth testing
-        GL.glDisable(GL.GL_DEPTH_TEST)
+        gl.glDisable(gl.GL_DEPTH_TEST)
         # enable blending
-        GL.glEnable(GL.GL_BLEND)
-        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         # set color shading (FLAT or SMOOTH)
-        GL.glShadeModel(GL.GL_SMOOTH)
-        GL.glEnable(GL.GL_POINT_SMOOTH)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        gl.glShadeModel(gl.GL_SMOOTH)
+        gl.glEnable(gl.GL_POINT_SMOOTH)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
         win.set_visible(v_)
         win.dispatch_events()
@@ -714,19 +724,19 @@ class ExperimentController(object):
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
         self._win.flip()
-        GL.glTranslatef(0.0, 0.0, -5.0)
-        GL.glLoadIdentity()
+        gl.glTranslatef(0.0, 0.0, -5.0)
+        gl.glLoadIdentity()
         #waitBlanking
-        GL.glBegin(GL.GL_POINTS)
-        GL.glColor4f(0.0, 0.0, 0.0, 0.0)  # transparent
-        GL.glVertex2i(10, 10)
-        GL.glEnd()
+        gl.glBegin(gl.GL_POINTS)
+        gl.glColor4f(0.0, 0.0, 0.0, 0.0)  # transparent
+        gl.glVertex2i(10, 10)
+        gl.glEnd()
         # this waits until everything is called, including last draw
-        GL.glFinish()
+        gl.glFinish()
         flip_time = self._clock.get_time()
         for function in call_list:
             function()
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         self.write_data_line('flip', flip_time)
         self._on_next_flip = []
         return flip_time
