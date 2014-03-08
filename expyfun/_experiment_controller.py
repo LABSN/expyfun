@@ -198,15 +198,12 @@ class ExperimentController(object):
             mon_size = get_config('SCREEN_SIZE_PIX', mon_size).split(',')
             mon_size = [int(p) for p in mon_size]
             monitor['SCREEN_SIZE_PIX'] = mon_size
-        else:
-            if not isinstance(monitor, dict):
-                raise TypeError('monitor must be a dict')
-            if not all([key in monitor for key in ['SCREEN_WIDTH',
-                                                   'SCREEN_DISTANCE',
-                                                   'SCREEN_SIZE_PIX']]):
-                raise KeyError('monitor must have keys "SCREEN_WIDTH", '
-                               '"SCREEN_DISTANCE", and "SCREEN_SIZE_PIX"')
-            mon_size = monitor['SCREEN_SIZE_PIX']
+        if not isinstance(monitor, dict):
+            raise TypeError('monitor must be a dict')
+        req_mon_keys = ['SCREEN_WIDTH', 'SCREEN_DISTANCE', 'SCREEN_SIZE_PIX']
+        if not all([key in monitor for key in req_mon_keys]):
+            raise KeyError('monitor must have keys {0}'.format(req_mon_keys))
+        mon_size = monitor['SCREEN_SIZE_PIX']
         monitor['SCREEN_DPI'] = (monitor['SCREEN_SIZE_PIX'][0] /
                                  (monitor['SCREEN_WIDTH'] * 0.393701))
         monitor['SCREEN_HEIGHT'] = (monitor['SCREEN_WIDTH']
@@ -741,6 +738,27 @@ class ExperimentController(object):
         self._on_next_flip = []
         return flip_time
 
+    def estimate_screen_fs(self, n_rep=10):
+        """Estimate screen refresh rate using repeated flip() calls
+
+        Useful for verifying that a system is operating at the proper
+        sample rate.
+
+        Parameters
+        ----------
+        n_rep : int
+            Number of flips to use. The higher the number, the more accurate
+            the estimate but the more time will be consumed.
+
+        Returns
+        -------
+        screen_fs : float
+            The screen refresh rate.
+        """
+        n_rep = int(n_rep)
+        times = [self.flip() for _ in range(n_rep)]
+        return 1. / np.median(np.diff(times[1:]))
+
 ############################ KEYPRESS METHODS ############################
     def listen_presses(self):
         """Start listening for keypresses.
@@ -847,6 +865,11 @@ class ExperimentController(object):
         # after it retrieves some button presses
         for key, stamp in pressed:
             self.write_data_line('keypress', key, stamp)
+
+    def check_force_quit(self):
+        """Check to see if any force quit keys were pressed
+        """
+        self._response_handler.check_force_quit()
 
 ############################# MOUSE METHODS ##################################
     def get_mouse_position(self, units='pix'):

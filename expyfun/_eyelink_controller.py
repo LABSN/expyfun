@@ -24,7 +24,7 @@ try:
 except ImportError:
     pylink = None  # analysis:ignore
 
-from .visual import Circle, RawImage, Line, Text
+from .visual import FixationDot, Circle, RawImage, Line, Text
 from ._utils import get_config, verbose_dec, logger, string_types
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
@@ -198,6 +198,13 @@ class EyelinkController(object):
         # otherwise you may lose a few msec of data
         time.sleep(0.1)
         self._file_list = []
+        self._fs = fs
+
+    @property
+    def fs(self):
+        """The recording sample rate
+        """
+        return self._fs
 
     def command(self, cmd):
         """Send Eyelink a command
@@ -216,6 +223,11 @@ class EyelinkController(object):
 
     def start(self):
         """Start Eyelink recording
+
+        Returns
+        -------
+        file_name : str
+            The filename on the Eyelink system.
 
         Notes
         -----
@@ -243,6 +255,7 @@ class EyelinkController(object):
         self._file_list += [file_name]
         self._ec.flush_logs()
         self._toggle_dummy_cursor(True)
+        return file_name
 
     def stop(self):
         """Stop Eyelink recording"""
@@ -268,6 +281,12 @@ class EyelinkController(object):
         beep : bool
             If True, beep when calibration begins.
 
+        Returns
+        -------
+        fname : str | None
+            Filename on the Eyelink of the started data file.
+            Will be None if start is None.
+
         Notes
         -----
         It is recommended to use ``start = stop = 'before'`` (the default),
@@ -282,10 +301,11 @@ class EyelinkController(object):
         if stop not in ['before', 'after', None]:
             raise ValueError('"start" must be "before", "after", or None, '
                              'not "{}"'.format(stop))
+        fname = None
         if stop == 'before':
             self.stop()
         if start == 'before':
-            self.start()
+            fname = self.start()
         logger.debug('EyeLink: Entering calibration')
         self._ec.flush_logs()
         # enter Eyetracker camera setup mode, calibration and validation
@@ -304,7 +324,8 @@ class EyelinkController(object):
         if stop == 'after':
             self.stop()
         if start == 'after':
-            self.start()
+            fname = self.start()
+        return fname
 
     def _stamp_trial_id(self, ids):
         """Send trial id message
@@ -325,7 +346,7 @@ class EyelinkController(object):
         #    with the first item containing up to 12 numbers and letters that
         #    uniquely identify the trial for analysis. Other data may follow,
         #    such as one number for each trial independent variable.
-        if not isinstance(ids, list):
+        if not isinstance(ids, (list, tuple)):
             ids = [ids]
         if not all([np.isscalar(x) for x in ids]):
             raise ValueError('All ids after the first must be numeric')
@@ -367,14 +388,36 @@ class EyelinkController(object):
         close : bool
             If True, the close() method will be called to shut down the
             Eyelink before transferring data.
+
+        Returns
+        -------
+        filenames : list
+            List of strings of the resulting filenames on the local machine.
         """
         if close is True:
             self.close()
-        for remote_name in self._file_list:
-            fname = op.join(self.output_dir, '{0}.edf'.format(remote_name))
-            status = self.eyelink.receiveDataFile(remote_name, fname)
-            logger.info('Eyelink: saving Eyelink file: {0}\tstatus: {1}'
-                        ''.format(fname, status))
+        fnames = [self.transfer_remote_file(remote_name)
+                  for remote_name in self._file_list]
+        return fnames
+
+    def transfer_remote_file(self, remote_name):
+        """Pull remote file (from Eyelink) to local machine
+
+        Parameters
+        ----------
+        remote_name : str
+            The filename on the Eyelink.
+
+        Returns
+        -------
+        fname : str
+            The filename on the local machine following the transfer.
+        """
+        fname = op.join(self.output_dir, '{0}.edf'.format(remote_name))
+        status = self.eyelink.receiveDataFile(remote_name, fname)
+        logger.info('Eyelink: saving Eyelink file: {0}\tstatus: {1}'
+                    ''.format(fname, status))
+        return fname
 
     def close(self):
         """Close file and shutdown Eyelink"""
@@ -553,12 +596,7 @@ class _Calibrate(super_class):
         self.img_span = (1.0, 1.0 * self.aspect)
 
         # set up reusable objects
-        self.targ_circ = Circle(self.ec, radius=[7, 7],
-                                units='pix', fill_color='white',
-                                line_color=None)
-        self.targ_ctr = Circle(self.ec, radius=[2, 2],
-                               units='pix', fill_color='black',
-                               line_color=None)
+        self.targ_circ = FixationDot(self.ec)
         self.loz_circ = Circle(self.ec, radius=[2, 2],
                                units='pix', fill_color=None,
                                line_width=2.0, line_color='white')
@@ -605,9 +643,7 @@ class _Calibrate(super_class):
 
     def draw_cal_target(self, x, y):
         self.targ_circ.set_pos((x, y), units='pix')
-        self.targ_ctr.set_pos((x, y), units='pix')
         self.targ_circ.draw()
-        self.targ_ctr.draw()
         self.ec.flip()
 
     def render(self, x, y):

@@ -384,6 +384,63 @@ class Circle(_Triangular):
         self._line_points = self._points[2:]  # omit center point for lines
 
 
+class FixationDot(object):
+    """A fixation dot
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    inner_radius : float
+        Inner radius of the circle.
+    outer_radius : float
+        Outer radius of the circle.
+    pos : array-like
+        2-element array-like with X, Y center positions.
+    units : str
+        Units to use.
+    n_edges : int
+        Number of edges to use (must be >= 4) to approximate a circle.
+    fill_color : matplotlib Color | None
+        Color to fill with. None is transparent.
+    line_color : matplotlib Color | None
+        Color of the border line. None is transparent.
+    line_width : float
+        Line width in pixels.
+
+    Returns
+    -------
+    circle : instance of Circle
+        The circle object.
+    """
+    def __init__(self, ec, inner_radius=0.05, outer_radius=0.1, pos=[0, 0],
+                 units='deg', inner_color='k', outer_color='w'):
+        # need to set a dummy value here so recalculation doesn't fail
+        self._inner = Circle(ec, inner_radius, pos, units,
+                             fill_color=inner_color, line_width=0)
+        self._outer = Circle(ec, outer_radius, pos, units,
+                             fill_color=outer_color, line_width=0)
+
+    def set_pos(self, pos, units='norm'):
+        """Set the position and radius of the circle
+
+        Parameters
+        ----------
+        pos : array-like
+            X, Y center of the circle.
+        units : str
+            Units to use.
+        """
+        self._inner.set_pos(pos, units)
+        self._outer.set_pos(pos, units)
+
+    def draw(self):
+        """Draw the fixation dot
+        """
+        self._outer.draw()
+        self._inner.draw()
+
+
 ##############################################################################
 # Image display
 
