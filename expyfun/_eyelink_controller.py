@@ -16,7 +16,8 @@ import time
 import pyglet
 
 # TODO:
-# 1. Fix RawImage -- use shaders?
+# 1. Fix Calibration: lozenge etc.
+# 2. Get pupils methods to work
 
 # don't prevent basic functionality for folks who don't use EL
 try:

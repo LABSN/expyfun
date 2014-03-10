@@ -10,7 +10,7 @@
 import numpy as np
 import pyglet
 from matplotlib.colors import colorConverter
-from pyglet import gl as gl
+from pyglet import gl
 
 from .._utils import _check_units, string_types
 
