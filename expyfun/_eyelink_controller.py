@@ -265,7 +265,8 @@ class EyelinkController(object):
             self.eyelink.closeDataFile()
         self._toggle_dummy_cursor(False)
 
-    def calibrate(self, start='before', stop='before', beep=True):
+    def calibrate(self, start='before', stop='before', beep=True,
+                  prompt=True):
         """Calibrate the eyetracker
 
         Parameters
@@ -280,6 +281,8 @@ class EyelinkController(object):
             recording is not stopped before or afterward (manual control).
         beep : bool
             If True, beep when calibration begins.
+        prompt : bool
+            If True, a standard screen prompt will be shown.
 
         Returns
         -------
@@ -301,6 +304,9 @@ class EyelinkController(object):
         if stop not in ['before', 'after', None]:
             raise ValueError('"start" must be "before", "after", or None, '
                              'not "{}"'.format(stop))
+        if prompt:
+            self._ec.screen_prompt('We will now perform a screen calibration.'
+                                   '<br><br>Press a button to continue.')
         fname = None
         if stop == 'before':
             self.stop()

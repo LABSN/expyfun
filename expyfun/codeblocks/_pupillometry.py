@@ -40,7 +40,7 @@ def _load_raw(el, fname):
 
 
 @verbose_dec
-def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None,
+def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
                              verbose=None):
     """Find pupil dynamic range
 
@@ -56,6 +56,8 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None,
     fname : str | None
         If str, the filename will be used to process the data from the
         eyelink. If None, a recording will be started using el.start().
+    prompt : bool
+        If True, a standard prompt message will be displayed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -76,18 +78,22 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None,
     is extracted.
     """
     _check_pyeparse()
+    if prompt:
+        ec.screen_prompt('We will now determine the dynamic '
+                         'range of your pupil.<br><br>'
+                         'Press a button to continue.')
     fname = _check_fname(el, fname)
     levels = np.concatenate((np.linspace(0, 1, 10), np.linspace(1, 0, 10)))
-    circ = FixationDot(ec, inner_color='k', outer_color='w')
-    rect = ec.draw_background_color('k')
+    fix = FixationDot(ec)
+    bgrect = ec.draw_background_color('k')
     ec.clear_buffer()
     ec.wait_secs(2.0)
     for ii, lev in enumerate(levels):
         ec.identify_trial(ec_id='FPDR_%02i' % (ii + 1),
                           el_id=(ii + 1), ttl_id=())
-        rect.set_fill_color(np.ones(3) * lev)
-        rect.draw()
-        circ.draw()
+        bgrect.set_fill_color(np.ones(3) * lev)
+        bgrect.draw()
+        fix.draw()
         ec.flip_and_play()
         ec.wait_secs(settle_time)
         ec.check_force_quit()
@@ -115,9 +121,10 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None,
 
 
 @verbose_dec
-def find_pupil_impulse_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
-                                n_repeats=10, fname=None, verbose=None):
-    """Find pupil impulse response
+def find_pupil_light_mls_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
+                                  n_repeats=10, fname=None, prompt=True,
+                                  verbose=None):
+    """Find pupil impulse response to light
 
     An MLS sequence will be used, which will be flashy. Be careful!
 
@@ -137,23 +144,31 @@ def find_pupil_impulse_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
     fname : str | None
         If str, the filename will be used to process the data from the
         eyelink. If None, a recording will be started using el.start().
+    prompt : bool
+        If True, a standard prompt message will be displayed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
     Returns
     -------
     prf : array
-        The pupil response function.
+        The pupil response function to light.
     screen_fs : float
         The screen refresh rate used to estimate the pupil response.
+    t : array
+        The time points for the response function.
     """
     _check_pyeparse()
-    fname = _check_fname(el, fname)
     limits = np.array(limits).ravel()
     if limits.size != 2:
         raise ValueError('limits must be 2-element array-like')
     if limits.min() < 0 or limits.max() > 1 or limits[0] >= limits[1]:
         raise ValueError('limits must be increasing between 0 and 1')
+    if prompt:
+        ec.screen_prompt('We will now determine the response '
+                         'of your pupil to light changes.<br><br>'
+                         'Press a button to continue.')
+    fname = _check_fname(el, fname)
     logger.info('Pupillometry: Using span {0} to find PRF using MLS'
                 ''.format(limits))
     n_repeats = int(n_repeats)
@@ -164,9 +179,9 @@ def find_pupil_impulse_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
 
     # let's put the initial color up to allow the system to settle
     ec.clear_buffer()
-    rect = ec.draw_background_color(colors[0])
-    circ = FixationDot(ec, inner_color='k', outer_color='w')
-    circ.draw()
+    bgrect = ec.draw_background_color(colors[0])
+    fix = FixationDot(ec)
+    fix.draw()
     ec.flip()
 
     # now let's do some calculations and identify the trial
@@ -180,9 +195,9 @@ def find_pupil_impulse_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
     ec.wait_secs(max_dur * 2)
     flip_times = list()
     for ii, idx in enumerate(mls_idx):
-        rect.set_fill_color(colors[idx])
-        rect.draw()
-        circ.draw()
+        bgrect.set_fill_color(colors[idx])
+        bgrect.draw()
+        fix.draw()
         if ii == 0:
             flip_times.append(ec.flip_and_play())
         else:
@@ -190,9 +205,10 @@ def find_pupil_impulse_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
         ec.check_force_quit()
 
     flip_times = np.array(flip_times)
-    if not np.allclose(np.diff(flip_times),
-                       ifi * np.ones(len(flip_times) - 1), rtol=0.1):
-        raise RuntimeError('Bad flipping')
+    diffs = np.diff(flip_times)
+    bads = np.where(diffs > 1.5 * ifi)[0]
+    if len(bads) > 0:
+        raise RuntimeError('Bad flipping: %s' % diffs[bads])
     el.stop()  # stop the recording
 
     if el.dummy_mode:
@@ -207,4 +223,108 @@ def find_pupil_impulse_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
         response = raw['ps', events[0, 1] + raw.time_as_index(times)]
         assert response.shape == (n_resp,)
     impulse_response = compute_mls_impulse_response(response, mls, n_repeats)
-    return impulse_response, sfs
+    t = np.arange(len(impulse_response)).astype(float) / sfs
+    return impulse_response, t, sfs
+
+
+def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
+                                     verbose=None):
+    """Find pupil impulse response using responses to tones
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        The experiment controller.
+    el : instance of EyelinkController
+        The Eyelink controller.
+    bgcolor : color
+        Background color to use.
+    fname : str | None
+        If str, the filename will be used to process the data from the
+        eyelink. If None, a recording will be started using el.start().
+    prompt : bool
+        If True, a standard prompt message will be displayed.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see expyfun.verbose).
+
+    Returns
+    -------
+    srf : array
+        The pupil response function to sound.
+    t : array
+        The time points for the response function.
+    """
+    _check_pyeparse()
+    if prompt:
+        ec.screen_prompt('We will now determine the response '
+                         'of your pupil to sound changes.<br><br>'
+                         'Press the response button each time you hear the '
+                         'tone "wobble" instead of staying constant.<br><br>'
+                         'Press a button to continue.')
+    fname = _check_fname(el, fname)
+
+    # let's put the initial color up to allow the system to settle
+    ec.clear_buffer()
+    bgrect = ec.draw_background_color(bgcolor)
+    fix = FixationDot(ec)
+    fix.draw()
+    ec.flip()
+
+    # now let's do some calculations
+    n_stimuli = 20
+    targ_prop = 0.25
+    stim_dur = 100e-3
+    f0 = 500.  # Hz
+
+    rng = np.random.RandomState(1)
+    delay_range = np.array((3.0, 4.5))
+    isis = (rng.rand(n_stimuli) * np.diff(delay_range)
+            + delay_range[0])
+    targs = np.zeros(n_stimuli)
+    n_targs = int(targ_prop * n_stimuli)
+    while(True):  # ensure no two targets in a row
+        idx = np.sort(rng.permutation(np.arange(n_stimuli))[:n_targs])
+        if (not np.any(np.diff(idx) == 1)) and idx[0] != 0:
+            targs[idx] = 1
+            break
+
+    # generate stimuli
+    fs = ec.stim_fs
+    n_samp = int(fs * stim_dur)
+    freqs = np.ones(n_samp) * f0
+    t = np.arange(n_samp).astype(float) / fs
+    tone_stim = np.sin(2 * np.pi * freqs * t)
+    freqs = 100 * np.sin(2 * np.pi * (1 / stim_dur) * t) + f0
+    sweep_stim = np.sin(2 * np.pi * np.cumsum(freqs) / fs)
+    tone_stim *= (ec._stim_rms * np.sqrt(2))
+    sweep_stim *= (ec._stim_rms * np.sqrt(2))
+
+    ec.wait_secs(3.0)
+    flip_times = list()
+    presses = list()
+    for ii, (isi, targ) in enumerate(zip(isis, targs)):
+        bgrect.draw()
+        fix.draw()
+        ec.load_buffer(sweep_stim if targ else tone_stim)
+        ec.identify_trial(ec_id='TONE_{0}'.format(int(targ)),
+                          el_id=[int(targ)], ttl_id=[int(targ)])
+        flip_times.append(ec.flip_and_play())
+        presses.append(ec.wait_for_presses(isi))
+
+    flip_times = np.array(flip_times)
+    el.stop()  # stop the recording
+    tmin = -0.5
+    if el.dummy_mode:
+        pk = pyeparse.utils.pupil_kernel(el.fs, delay_range[0] - tmin)
+        response = np.zeros((n_stimuli, len(pk)))
+        offset = int(el.fs * 0.5)
+        response[:, offset:] = pk[:-offset][np.newaxis, :]
+    else:
+        raw, events = _load_raw(el, fname)
+        assert len(events) == n_stimuli
+        epochs = pyeparse.Epochs(raw, events, tmin=tmin, tmax=delay_range[0])
+        response = epochs['ps']
+        assert response.shape[0] == n_stimuli
+    impulse_response = np.mean(response, axis=0)
+    t = np.arange(len(impulse_response)).astype(float) / el.fs + tmin
+    return impulse_response, t
