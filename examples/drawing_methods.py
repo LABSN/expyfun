@@ -25,6 +25,7 @@ with ExperimentController('test', session='1', participant='2',
     img_buffer = np.zeros((120, 100, 4))
     img_buffer[:, :50, 3] = 1.0
     img_buffer[:, 50:, 3] = 0.5
+    img_buffer[0] = 1
     for ii in range(3):
         img_buffer[ii * 40:(ii + 1) * 40, :, ii] = 1.0
     img = visual.RawImage(ec, img_buffer, scale=2.)

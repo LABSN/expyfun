@@ -605,7 +605,7 @@ class _Calibrate(super_class):
         self.size = np.array(ec.window_size_pix)
         self.keys = []
         self.aspect = float(self.size[0]) / self.size[1]
-        self.img_span = (1.0, 1.0 * self.aspect)
+        self.img_span = (1.5 * self.aspect, 1.5)
 
         # set up reusable objects
         self.targ_circ = FixationDot(self.ec)
@@ -648,6 +648,7 @@ class _Calibrate(super_class):
         del self.img
 
     def clear_display(self):
+        self.ec.toggle_cursor(False)
         self.ec.flip()
 
     def record_abort_hide(self):
@@ -686,7 +687,11 @@ class _Calibrate(super_class):
     def setup_image_display(self, w, h):
         # convert w, h from pixels to relative units
         self.img_size = np.array([w, h], float) / self.size
+        x = np.array([[0, 0], [0, self.img_span[1]]], float)
+        x = np.diff(self.ec._convert_units(x, 'norm', 'pix')[1]) / h
+        self.img.set_scale(x)
         self.clear_display()
+        self.ec.toggle_cursor(True)
 
     def image_title(self, text):
         self.label = Text(self.ec, text, units='norm',

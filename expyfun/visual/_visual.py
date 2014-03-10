@@ -491,7 +491,7 @@ class RawImage(object):
         if image_buffer.shape[2] == 3:
             alpha = np.ones_like(image_buffer[:, :, 0])[:, :, np.newaxis]
             image_buffer = np.concatenate((image_buffer, alpha), axis=2)
-        image_buffer = np.ascontiguousarray(image_buffer)
+        image_buffer = np.ascontiguousarray(image_buffer[::-1])
         # convert from numpy array to OpenGL RGBA
         dims = image_buffer.shape
         image_buffer.shape = -1
