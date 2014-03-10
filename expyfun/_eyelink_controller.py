@@ -565,6 +565,12 @@ class EyelinkController(object):
             self._ec.toggle_cursor(visibility)
 
     @property
+    def file_list(self):
+        """The list of files started on the EyeLink
+        """
+        return self._file_list
+
+    @property
     def eye_used(self):
         """Return the eye used 'left' or 'right'
 
