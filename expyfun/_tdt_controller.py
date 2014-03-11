@@ -45,20 +45,13 @@ class TDTController(Keyboard):
         'TDT_MODEL' (String name of the TDT model ('RM1', 'RP2', etc));
         'TDT_CIRCUIT_PATH' (Path to the TDT circuit); and
         'TDT_INTERFACE' (Type of connection, either 'USB' or 'GB').
-    ec : instance of ExperimentController
-        The parent EC.
-    as_kb : boolean
-        Initialize the TDT as a keyboard / response device.
-    force_quit_keys : list | None
-        Keys to use to quit when initializing in keyboard mode. If False,
-        don't bother initializing as a keyboard.
 
     Returns
     -------
     tdt_obj : instance of a TDTObject.
         The object containing all relevant info about the TDT in use.
     """
-    def __init__(self, tdt_params, ec, as_kb, force_quit_keys):
+    def __init__(self, tdt_params):
         legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE',
                       'TDT_DELAY']
         if tdt_params is None:
@@ -152,9 +145,10 @@ class TDTController(Keyboard):
         self.clear_buffer()
         self._set_delay(tdt_params['TDT_DELAY'])
 
+    def _add_keyboard_init(self, ec, force_quit_keys):
+        """Helper to init as keyboard"""
         # do BaseKeyboard init last, to make sure circuit is running
-        if as_kb is True:
-            Keyboard.__init__(self, ec, force_quit_keys)
+        Keyboard.__init__(self, ec, force_quit_keys)
 
 ################################ AUDIO METHODS ###############################
     def load_buffer(self, data):

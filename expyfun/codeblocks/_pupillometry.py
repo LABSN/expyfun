@@ -8,15 +8,12 @@ from ..analyze import sigmoid, fit_sigmoid
 from ..stimuli import repeated_mls, compute_mls_impulse_response
 from .._utils import logger, verbose_dec
 
-try:
-    import pyeparse
-except ImportError:
-    pyeparse = None
-
 
 def _check_pyeparse():
     """Helper to ensure package is available"""
-    if pyeparse is None:
+    try:
+        import pyeparse  # noqa
+    except ImportError:
         raise ImportError('Cannot run, requires "pyeparse" package')
 
 
@@ -29,6 +26,7 @@ def _check_fname(el, fname):
 
 def _load_raw(el, fname):
     """Helper to load some pupil data"""
+    import pyeparse
     logger.info('Pupillometry: Grabbing remote file "{0}"'.format(fname))
     fname = el.transfer_remote_file(fname)
     # Load and parse data
@@ -78,6 +76,7 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
     is extracted.
     """
     _check_pyeparse()
+    import pyeparse
     if prompt:
         ec.screen_prompt('We will now determine the dynamic '
                          'range of your pupil.<br><br>'
@@ -159,6 +158,7 @@ def find_pupil_light_mls_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
         The time points for the response function.
     """
     _check_pyeparse()
+    import pyeparse
     limits = np.array(limits).ravel()
     if limits.size != 2:
         raise ValueError('limits must be 2-element array-like')
@@ -202,7 +202,7 @@ def find_pupil_light_mls_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
             flip_times.append(ec.flip_and_play())
         else:
             flip_times.append(ec.flip())
-        ec.check_force_quit()
+    ec.check_force_quit()
 
     flip_times = np.array(flip_times)
     diffs = np.diff(flip_times)
@@ -255,6 +255,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
         The time points for the response function.
     """
     _check_pyeparse()
+    import pyeparse
     if prompt:
         ec.screen_prompt('We will now determine the response '
                          'of your pupil to sound changes.<br><br>'
@@ -310,6 +311,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
                           el_id=[int(targ)], ttl_id=[int(targ)])
         flip_times.append(ec.flip_and_play())
         presses.append(ec.wait_for_presses(isi))
+        ec.stop()
 
     flip_times = np.array(flip_times)
     el.stop()  # stop the recording

@@ -243,13 +243,10 @@ class ExperimentController(object):
         #
 
         # Audio (and for TDT, potentially keyboard)
-        self._tdt_init = False
         if self._audio_type == 'tdt':
             logger.info('Expyfun: Setting up TDT')
-            as_kb = True if self._response_device == 'tdt' else False
-            self._ac = TDTController(audio_controller, self, as_kb, force_quit)
+            self._ac = TDTController(audio_controller)
             self._audio_type = self._ac.model
-            self._tdt_init = True
         elif self._audio_type == 'pyglet':
             self._ac = PygletSoundController(self, self.stim_fs)
         else:
@@ -297,10 +294,11 @@ class ExperimentController(object):
         if response_device == 'keyboard':
             self._response_handler = Keyboard(self, force_quit)
         if response_device == 'tdt':
-            if not self._tdt_init:
+            if not isinstance(self._ac, TDTController):
                 raise ValueError('response_device can only be "tdt" if '
                                  'tdt is used for audio')
             self._response_handler = self._ac
+            self._ac._add_keyboard_init(self, force_quit)
 
         #
         # set up trigger controller
@@ -312,7 +310,7 @@ class ExperimentController(object):
         logger.info('Expyfun: Initializing {} triggering mode'
                     ''.format(trigger_controller['type']))
         if trigger_controller['type'] == 'tdt':
-            if not self._tdt_init:
+            if not isinstance(self._ac, TDTController):
                 raise ValueError('trigger_controller can only be "tdt" if '
                                  'tdt is used for audio')
             _ttl_stamp_func = self._ac.stamp_triggers
