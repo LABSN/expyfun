@@ -27,7 +27,6 @@ def _check_fname(el, fname):
 def _load_raw(el, fname):
     """Helper to load some pupil data"""
     import pyeparse
-    logger.info('Pupillometry: Grabbing remote file "{0}"'.format(fname))
     fname = el.transfer_remote_file(fname)
     # Load and parse data
     logger.info('Pupillometry: Parsing local file "{0}"'.format(fname))

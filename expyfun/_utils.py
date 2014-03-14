@@ -624,7 +624,7 @@ def _sanitize(text_like):
 ##############################################################################
 # OUTPUT CONTROL
 
-class HidePyoOutput(object):
+class HideOutput(object):
     """
     A context manager that block stdout for its scope, usage:
 

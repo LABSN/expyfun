@@ -26,7 +26,8 @@ except ImportError:
     pylink = None  # analysis:ignore
 
 from .visual import FixationDot, Circle, RawImage, Line, Text
-from ._utils import get_config, verbose_dec, logger, string_types
+from ._utils import (get_config, verbose_dec, logger, string_types,
+                     HideOutput)
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
@@ -255,7 +256,7 @@ class EyelinkController(object):
         file_name = self._open_file()
         if self.eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
             raise RuntimeError('Recording could not be started')
-        self.eyelink.waitForModeReady(100)
+        #self.eyelink.waitForModeReady(100)
         if not self.eyelink.waitForBlockStart(100, 1, 0):
             raise RuntimeError('No link samples received')
         if not self.recording:
@@ -450,9 +451,10 @@ class EyelinkController(object):
             The filename on the local machine following the transfer.
         """
         fname = op.join(self.output_dir, '{0}.edf'.format(remote_name))
-        status = self.eyelink.receiveDataFile(remote_name, fname)
-        logger.info('Eyelink: saving Eyelink file: {0}\tstatus: {1}'
-                    ''.format(fname, status))
+        logger.info('Eyelink: saving Eyelink file: {0}'.format(remote_name))
+        with HideOutput():
+            status = self.eyelink.receiveDataFile(remote_name, fname)
+        logger.info('Eyelink: saved wtih status {0}'.format(status))
         return fname
 
     def close(self):
@@ -525,8 +527,9 @@ class EyelinkController(object):
         params : dict | None
             Type of calibration to use. Must have entries 'type' (must be
             'HV5') and h_pix, v_pix for total span in both directions. If
-            h_pix and v_pix are not defined, 2/3 of the screen will be used.
-            If params is None, a simple HV5 calibration will be used.
+            h_pix and v_pix are not defined, 2/3 andn 1/3 of the screen
+            will be used, respectively. If params is None, a simple HV5
+            calibration will be used.
         """
         if params is None:
             params = dict(type='HV5')
@@ -546,7 +549,7 @@ class EyelinkController(object):
             else:
                 h_pix = params['h_pix']
             if 'v_pix' not in params:
-                v_pix = self._size[1] * 2. / 3.
+                v_pix = self._size[1] * 1. / 3.
             else:
                 v_pix = params['v_pix']
             # make the locations
