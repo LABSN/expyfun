@@ -272,13 +272,13 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
     ec.flip()
 
     # now let's do some calculations
-    n_stimuli = 20
+    n_stimuli = 40
+    delay_range = np.array((2.5, 3.5))
     targ_prop = 0.25
     stim_dur = 100e-3
     f0 = 500.  # Hz
 
     rng = np.random.RandomState(1)
-    delay_range = np.array((3.0, 4.5))
     isis = (rng.rand(n_stimuli) * np.diff(delay_range)
             + delay_range[0])
     targs = np.zeros(n_stimuli)
@@ -324,8 +324,9 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
     else:
         raw, events = _load_raw(el, fname)
         assert len(events) == n_stimuli
-        epochs = pyeparse.Epochs(raw, events, tmin=tmin, tmax=delay_range[0])
-        response = epochs['ps']
+        epochs = pyeparse.Epochs(raw, events, 1,
+                                 tmin=tmin, tmax=delay_range[0])
+        response = np.reshape(epochs.get_data('ps'))
         assert response.shape[0] == n_stimuli
     impulse_response = np.mean(response, axis=0)
     t = np.arange(len(impulse_response)).astype(float) / el.fs + tmin

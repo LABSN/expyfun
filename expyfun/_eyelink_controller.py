@@ -131,6 +131,7 @@ class EyelinkController(object):
         self._ec._ofp_critical_funs.append(self._stamp_trial_start)
         self._fake_calibration = False  # Only used for testing
         self._closed = False  # to prevent double-closing
+        self._file_open = None
         logger.debug('EyeLink: Setup complete')
         self._ec.flush_logs()
 
@@ -222,6 +223,22 @@ class EyelinkController(object):
         """
         return self.eyelink.sendCommand(cmd)
 
+    def _open_file(self):
+        """Returns current or new remote filename"""
+        if self._file_open is None:
+            file_name = datetime.datetime.now().strftime('%H%M%S')
+            # make absolutely sure we don't break this, but it shouldn't ever
+            # be wrong
+            assert len(file_name) <= 8
+            logger.info('Eyelink: Opening remote file with filename {}'
+                        ''.format(file_name))
+            val = self.eyelink.openDataFile(file_name)
+            if val != pylink.TRIAL_OK:
+                raise RuntimeError('Remote file "{0}" could not be opened: {1}'
+                                   ''.format(file_name, val))
+            self._file_open = file_name
+        return self._file_open
+
     def start(self):
         """Start Eyelink recording
 
@@ -235,35 +252,46 @@ class EyelinkController(object):
         Filenames are saved by HHMMSS format, DO NOT start and stop
         recordings anywhere near once per second.
         """
-        file_name = datetime.datetime.now().strftime('%H%M%S')
-        # make absolutely sure we don't break this, but it shouldn't ever
-        # be wrong
-        assert len(file_name) <= 8
-        logger.info('Eyelink: Starting recording with filename {}'
-                    ''.format(file_name))
-        self.eyelink.openDataFile(file_name)
+        file_name = self._open_file()
         if self.eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
             raise RuntimeError('Recording could not be started')
-        #self.eyelink.waitForModeReady(1000)
+        self.eyelink.waitForModeReady(100)
         if not self.eyelink.waitForBlockStart(100, 1, 0):
             raise RuntimeError('No link samples received')
-        #if not self.eyelink.isRecording():
-        #    raise RuntimeError('Eyelink is not recording')
-        recording = self.eyelink.getCurrentMode() == pylink.IN_RECORD_MODE
-        if not self.dummy_mode and not recording:
-            raise RuntimeError('Eyelink is not recording '
-                               '{}'.format(self.eyelink.getCurrentMode()))
+        if not self.recording:
+            raise RuntimeError('Eyelink is not recording')
+        # double-check
+        mode = self.eyelink.getCurrentMode()
+        if not self.dummy_mode and not (mode == pylink.IN_RECORD_MODE):
+            raise RuntimeError('Eyelink is not recording: {0}'.format(mode))
         self._file_list += [file_name]
         self._ec.flush_logs()
         self._toggle_dummy_cursor(True)
         return file_name
 
-    def stop(self):
-        """Stop Eyelink recording"""
+    @property
+    def recording(self):
+        """Returns boolean for whether or not the Eyelink is recording"""
+        return (self.eyelink.isRecording() == pylink.TRIAL_OK)
+
+    def stop(self, close=True):
+        """Stop Eyelink recording
+
+        Parameters
+        ----------
+        close : bool
+            If True, the currently opened file on the Eyelink will be closed.
+        """
         logger.info('Eyelink: Stopping recording')
         if self.eyelink.isConnected():
-            self.eyelink.stopRecording()
-            self.eyelink.closeDataFile()
+            val = self.eyelink.stopRecording()
+            if val != pylink.TRIAL_OK:
+                logger.warn('Recording could not be stopped: {0}'.format(val))
+            if close and self._file_open is not None:
+                val = self.eyelink.closeDataFile()
+                if val != pylink.TRIAL_OK:
+                    logger.warn('File could not be closed: {0}'.format(val))
+                self._file_open = None
         self._toggle_dummy_cursor(False)
 
     def calibrate(self, start='before', stop='before', beep=True,
@@ -330,8 +358,9 @@ class EyelinkController(object):
         self._ec.flush_logs()
         if stop == 'after':
             self.stop()
-        if start == 'after':
+        if start in ('after', 'before'):
             fname = self.start()
+            self._toggle_dummy_cursor(True)
         return fname
 
     def _stamp_trial_id(self, ids):
