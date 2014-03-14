@@ -110,17 +110,12 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  verbose=None, check_rms='windowed', suppress_resamp=False):
-
-        # Check Pyglet version for safety
-        _check_pyglet_version(raise_error=True)
-
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
-        self.set_rms_checking(check_rms)
         self._suppress_resamp = suppress_resamp
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
@@ -128,218 +123,237 @@ class ExperimentController(object):
         # placeholder for extra actions to run on close
         self._extra_cleanup_fun = []
         self._id_call_dict = dict(ec_id=self._stamp_ec_id)
-
-        # assure proper formatting for force-quit keys
-        if force_quit is None:
-            force_quit = ['lctrl', 'rctrl']
-        elif isinstance(force_quit, (int, string_types)):
-            force_quit = [str(force_quit)]
-        if 'escape' in force_quit:
-            logger.warning('Expyfun: using "escape" as a force-quit key is '
-                           'not recommended because it has special status in '
-                           'pyglet.')
-
-        # set up timing
-        # Use ZeroClock, which uses the "clock" fn but starts at zero
+        self._ac = None
+        self._data_file = None
         self._clock = ZeroClock()
         self._master_clock = self._clock.get_time
-        self._time_corrections = dict()
-        self._time_correction_fxns = dict()
 
-        # dictionary for experiment metadata
-        self._exp_info = {'participant': participant, 'session': session,
-                          'exp_name': exp_name, 'date': date_str()}
+        # put anything that could fail in this block to ensure proper cleanup!
+        try:
+            self.set_rms_checking(check_rms)
+            # Check Pyglet version for safety
+            _check_pyglet_version(raise_error=True)
+            # assure proper formatting for force-quit keys
+            if force_quit is None:
+                force_quit = ['lctrl', 'rctrl']
+            elif isinstance(force_quit, (int, string_types)):
+                force_quit = [str(force_quit)]
+            if 'escape' in force_quit:
+                logger.warn('Expyfun: using "escape" as a force-quit key is '
+                            'not recommended because it has special status in '
+                            'pyglet.')
 
-        # session start dialog, if necessary
-        fixed_list = ['exp_name', 'date']  # things not user-editable in GUI
-        for key, value in self._exp_info.items():
-            if key not in fixed_list and value is not None:
-                if not isinstance(value, string_types):
-                    raise TypeError('{} must be string or None'.format(value))
-                fixed_list.append(key)
+            # set up timing
+            # Use ZeroClock, which uses the "clock" fn but starts at zero
+            self._time_corrections = dict()
+            self._time_correction_fxns = dict()
 
-        if len(fixed_list) < len(self._exp_info):
-            _get_items(self._exp_info, fixed=fixed_list, title=exp_name)
+            # dictionary for experiment metadata
+            self._exp_info = {'participant': participant, 'session': session,
+                              'exp_name': exp_name, 'date': date_str()}
 
-        #
-        # initialize log file
-        #
-        if output_dir is not None:
-            output_dir = op.abspath(output_dir)
-            if not op.isdir(output_dir):
-                os.mkdir(output_dir)
-            basename = op.join(output_dir,
-                               '{}_{}'.format(self._exp_info['participant'],
-                                              self._exp_info['date']))
-            self._log_file = basename + '.log'
-            set_log_file(self._log_file)
-            # initialize data file
-            self._data_file = open(basename + '.tab', 'a')
-            self._data_file.write('# ' + str(self._exp_info) + '\n')
-            self.write_data_line('event', 'value', 'timestamp')
-        else:
-            set_log_file(None)
-            self._data_file = None
+            # session start dialog, if necessary
+            fixed_list = ['exp_name', 'date']  # things not editable in GUI
+            for key, value in self._exp_info.iteritems():
+                if key not in fixed_list and value is not None:
+                    if not isinstance(value, string_types):
+                        raise TypeError('{} must be string or None'
+                                        ''.format(value))
+                    fixed_list.append(key)
 
-        #
-        # set up monitor
-        #
-        if screen_num is None:
-            screen_num = int(get_config('SCREEN_NUM', '0'))
-        if monitor is None:
-            mon_size = pyglet.window.get_platform().get_default_display()
-            mon_size = mon_size.get_screens()[screen_num]
-            mon_size = [mon_size.width, mon_size.height]
-            mon_size = ','.join([str(d) for d in mon_size])
-            monitor = dict()
-            monitor['SCREEN_WIDTH'] = float(get_config('SCREEN_WIDTH', '51.0'))
-            monitor['SCREEN_DISTANCE'] = float(get_config('SCREEN_DISTANCE',
-                                               '48.0'))
-            mon_size = get_config('SCREEN_SIZE_PIX', mon_size).split(',')
-            mon_size = [int(p) for p in mon_size]
-            monitor['SCREEN_SIZE_PIX'] = mon_size
-        if not isinstance(monitor, dict):
-            raise TypeError('monitor must be a dict')
-        req_mon_keys = ['SCREEN_WIDTH', 'SCREEN_DISTANCE', 'SCREEN_SIZE_PIX']
-        if not all([key in monitor for key in req_mon_keys]):
-            raise KeyError('monitor must have keys {0}'.format(req_mon_keys))
-        mon_size = monitor['SCREEN_SIZE_PIX']
-        monitor['SCREEN_DPI'] = (monitor['SCREEN_SIZE_PIX'][0] /
-                                 (monitor['SCREEN_WIDTH'] * 0.393701))
-        monitor['SCREEN_HEIGHT'] = (monitor['SCREEN_WIDTH']
-                                    / float(monitor['SCREEN_SIZE_PIX'][0])
-                                    * float(monitor['SCREEN_SIZE_PIX'][1]))
-        self._monitor = monitor
+            if len(fixed_list) < len(self._exp_info):
+                _get_items(self._exp_info, fixed=fixed_list, title=exp_name)
 
-        #
-        # parse audio controller
-        #
-        if audio_controller is None:
-            audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
-                                                   'pyglet')}
-        elif isinstance(audio_controller, string_types):
-            if audio_controller.lower() in ['pyglet', 'tdt']:
-                audio_controller = {'TYPE': audio_controller.lower()}
+            #
+            # initialize log file
+            #
+            if output_dir is not None:
+                output_dir = op.abspath(output_dir)
+                if not op.isdir(output_dir):
+                    os.mkdir(output_dir)
+                basename = op.join(output_dir, '{}_{}'
+                                   ''.format(self._exp_info['participant'],
+                                             self._exp_info['date']))
+                self._log_file = basename + '.log'
+                set_log_file(self._log_file)
+                # initialize data file
+                self._data_file = open(basename + '.tab', 'a')
+                self._extra_cleanup_fun.append(self._data_file.close)
+                self._data_file.write('# ' + str(self._exp_info) + '\n')
+                self.write_data_line('event', 'value', 'timestamp')
             else:
-                raise ValueError('audio_controller must be \'pyglet\' or '
-                                 '\'tdt\' (or a dict including \'TYPE\':'
-                                 ' \'pyglet\' or \'TYPE\': \'tdt\').')
-        elif not isinstance(audio_controller, dict):
-            raise TypeError('audio_controller must be a str or dict.')
-        self._audio_type = audio_controller['TYPE'].lower()
+                set_log_file(None)
+                self._data_file = None
 
-        #
-        # parse response device
-        #
-        if response_device is None:
-            response_device = get_config('RESPONSE_DEVICE', 'keyboard')
-        if response_device not in ['keyboard', 'tdt']:
-            raise ValueError('response_device must be "keyboard", "tdt", or '
-                             'None')
-        self._response_device = response_device
+            #
+            # set up monitor
+            #
+            if screen_num is None:
+                screen_num = int(get_config('SCREEN_NUM', '0'))
+            if monitor is None:
+                mon_size = pyglet.window.get_platform().get_default_display()
+                mon_size = mon_size.get_screens()[screen_num]
+                mon_size = [mon_size.width, mon_size.height]
+                mon_size = ','.join([str(d) for d in mon_size])
+                monitor = dict()
+                width = float(get_config('SCREEN_WIDTH', '51.0'))
+                dist = float(get_config('SCREEN_DISTANCE', '48.0'))
+                monitor['SCREEN_WIDTH'] = width
+                monitor['SCREEN_DISTANCE'] = dist
+                mon_size = get_config('SCREEN_SIZE_PIX', mon_size).split(',')
+                mon_size = [int(p) for p in mon_size]
+                monitor['SCREEN_SIZE_PIX'] = mon_size
+            if not isinstance(monitor, dict):
+                raise TypeError('monitor must be a dict')
+            req_mon_keys = ['SCREEN_WIDTH', 'SCREEN_DISTANCE',
+                            'SCREEN_SIZE_PIX']
+            if not all([key in monitor for key in req_mon_keys]):
+                raise KeyError('monitor must have keys {0}'
+                               ''.format(req_mon_keys))
+            mon_size = monitor['SCREEN_SIZE_PIX']
+            monitor['SCREEN_DPI'] = (monitor['SCREEN_SIZE_PIX'][0] /
+                                     (monitor['SCREEN_WIDTH'] * 0.393701))
+            monitor['SCREEN_HEIGHT'] = (monitor['SCREEN_WIDTH']
+                                        / float(monitor['SCREEN_SIZE_PIX'][0])
+                                        * float(monitor['SCREEN_SIZE_PIX'][1]))
+            self._monitor = monitor
 
-        #
-        # Initialize devices
-        #
+            #
+            # parse audio controller
+            #
+            if audio_controller is None:
+                audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
+                                                       'pyglet')}
+            elif isinstance(audio_controller, string_types):
+                if audio_controller.lower() in ['pyglet', 'tdt']:
+                    audio_controller = {'TYPE': audio_controller.lower()}
+                else:
+                    raise ValueError('audio_controller must be \'pyglet\' or '
+                                     '\'tdt\' (or a dict including \'TYPE\':'
+                                     ' \'pyo\' or \'TYPE\': \'tdt\').')
+            elif not isinstance(audio_controller, dict):
+                raise TypeError('audio_controller must be a str or dict.')
+            self._audio_type = audio_controller['TYPE'].lower()
 
-        # Audio (and for TDT, potentially keyboard)
-        if self._audio_type == 'tdt':
-            logger.info('Expyfun: Setting up TDT')
-            self._ac = TDTController(audio_controller)
-            self._audio_type = self._ac.model
-        elif self._audio_type == 'pyglet':
-            self._ac = PygletSoundController(self, self.stim_fs)
-        else:
-            raise ValueError('audio_controller[\'TYPE\'] must be '
-                             '\'pyglet\' or \'tdt\'.')
-        # audio scaling factor; ensure uniform intensity across output devices
-        self.set_stim_db(self._stim_db)
-        self.set_noise_db(self._noise_db)
+            #
+            # parse response device
+            #
+            if response_device is None:
+                response_device = get_config('RESPONSE_DEVICE', 'keyboard')
+            if response_device not in ['keyboard', 'tdt']:
+                raise ValueError('response_device must be "keyboard", "tdt", '
+                                 'or None')
+            self._response_device = response_device
 
-        if self._fs_mismatch:
-            if self._suppress_resamp:
-                logger.warning('Expyfun: Mismatch between reported stim '
-                               'sample rate ({0}) and device sample rate '
-                               '({1}). Nothing will be done about this '
-                               'because suppress_resamp is "True".'
-                               ''.format(self.stim_fs, self.fs))
+            #
+            # Initialize devices
+            #
+
+            # Audio (and for TDT, potentially keyboard)
+            if self._audio_type == 'tdt':
+                logger.info('Expyfun: Setting up TDT')
+                self._ac = TDTController(audio_controller)
+                self._audio_type = self._ac.model
+            elif self._audio_type == 'pyo':
+                self._ac = PyoSound(self, self.stim_fs)
             else:
-                logger.warning('Expyfun: Mismatch between reported stim '
-                               'sample rate ({0}) and device sample rate '
-                               '({1}). Experiment Controller will resample '
-                               'for you, but this takes a non-trivial amount '
-                               'of processing time and may compromise your '
-                               'experimental timing and/or cause artifacts.'
-                               ''.format(self.stim_fs, self.fs))
+                raise ValueError('audio_controller[\'TYPE\'] must be '
+                                 '\'pyo\' or \'tdt\'.')
+            self._extra_cleanup_fun.append(self._ac.halt)
+            # audio scaling factor; ensure uniform intensity across devices
+            self.set_stim_db(self._stim_db)
+            self.set_noise_db(self._noise_db)
 
-        #
-        # set up visual window (must be done before keyboard and mouse)
-        #
-        logger.info('Expyfun: Setting up screen')
-        if full_screen:
-            window_size = monitor['SCREEN_SIZE_PIX']
-        else:
-            if window_size is None:
-                window_size = get_config('WINDOW_SIZE', '800,600').split(',')
-                window_size = [int(w) for w in window_size]
-        window_size = np.array(window_size)
-        if window_size.ndim != 1 or window_size.size != 2:
-            raise ValueError('window_size must be 2-element array-like or '
-                             'None')
+            if self._fs_mismatch:
+                if self._suppress_resamp:
+                    msg = ('Expyfun: Mismatch between reported stim sample '
+                           'rate ({0}) and device sample rate ({1}). Nothing '
+                           'will be done about this because suppress_resamp '
+                           'is "True".'.format(self.stim_fs, self.fs))
+                    logger.warn(msg)
+                else:
+                    msg = ('Expyfun: Mismatch between reported stim sample '
+                           'rate ({0}) and device sample rate ({1}). '
+                           'Experiment Controller will resample for you, but '
+                           'this takes a non-trivial amount of processing '
+                           'time and may compromise your experimental '
+                           'timing and/or cause artifacts.'
+                           ''.format(self.stim_fs, self.fs))
+                    logger.warn(msg)
 
-        # open window and setup GL config
-        self._setup_window(window_size, exp_name, full_screen, screen_num)
+            #
+            # set up visual window (must be done before keyboard and mouse)
+            #
+            logger.info('Expyfun: Setting up screen')
+            if full_screen:
+                window_size = monitor['SCREEN_SIZE_PIX']
+            else:
+                if window_size is None:
+                    window_size = get_config('WINDOW_SIZE',
+                                             '800,600').split(',')
+                    window_size = [int(w) for w in window_size]
+            window_size = np.array(window_size)
+            if window_size.ndim != 1 or window_size.size != 2:
+                raise ValueError('window_size must be 2-element array-like or '
+                                 'None')
 
-        # Keyboard
-        if response_device == 'keyboard':
-            self._response_handler = Keyboard(self, force_quit)
-        if response_device == 'tdt':
-            if not isinstance(self._ac, TDTController):
-                raise ValueError('response_device can only be "tdt" if '
-                                 'tdt is used for audio')
-            self._response_handler = self._ac
-            self._ac._add_keyboard_init(self, force_quit)
+            # open window and setup GL config
+            self._setup_window(window_size, exp_name, full_screen, screen_num)
 
-        #
-        # set up trigger controller
-        #
-        if trigger_controller is None:
-            trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
-        if isinstance(trigger_controller, string_types):
-            trigger_controller = dict(type=trigger_controller)
-        logger.info('Expyfun: Initializing {} triggering mode'
-                    ''.format(trigger_controller['type']))
-        if trigger_controller['type'] == 'tdt':
-            if not isinstance(self._ac, TDTController):
-                raise ValueError('trigger_controller can only be "tdt" if '
-                                 'tdt is used for audio')
-            _ttl_stamp_func = self._ac.stamp_triggers
-        elif trigger_controller['type'] in ['parallel', 'dummy']:
-            if 'address' not in trigger_controller['type']:
-                trigger_controller['address'] = get_config('TRIGGER_ADDRESS')
-            out = ParallelTrigger(trigger_controller['type'],
-                                  trigger_controller.get('address'))
-            _ttl_stamp_func = out.stamp_triggers
-            self._extra_cleanup_fun.append(out.close)
-        else:
-            raise ValueError('trigger_controller type must be '
-                             '"parallel", "dummy", or "tdt", not '
-                             '{0}'.format(trigger_controller['type']))
-        self._id_call_dict['ttl_id'] = self._stamp_binary_id
-        self._ttl_stamp_func = _ttl_stamp_func
+            # Keyboard
+            if response_device == 'keyboard':
+                self._response_handler = Keyboard(self, force_quit)
+            if response_device == 'tdt':
+                if not isinstance(self._ac, TDTController):
+                    raise ValueError('response_device can only be "tdt" if '
+                                     'tdt is used for audio')
+                self._response_handler = self._ac
+                self._ac._add_keyboard_init(self, force_quit)
 
-        # other basic components
-        self._mouse_handler = Mouse(self._win)
+            #
+            # set up trigger controller
+            #
+            if trigger_controller is None:
+                trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
+            if isinstance(trigger_controller, string_types):
+                trigger_controller = dict(type=trigger_controller)
+            logger.info('Expyfun: Initializing {} triggering mode'
+                        ''.format(trigger_controller['type']))
+            if trigger_controller['type'] == 'tdt':
+                if not isinstance(self._ac, TDTController):
+                    raise ValueError('trigger_controller can only be "tdt" if '
+                                     'tdt is used for audio')
+                _ttl_stamp_func = self._ac.stamp_triggers
+            elif trigger_controller['type'] in ['parallel', 'dummy']:
+                if 'address' not in trigger_controller['type']:
+                    addr = get_config('TRIGGER_ADDRESS')
+                    trigger_controller['address'] = addr
+                out = ParallelTrigger(trigger_controller['type'],
+                                      trigger_controller.get('address'))
+                _ttl_stamp_func = out.stamp_triggers
+                self._extra_cleanup_fun.append(out.close)
+            else:
+                raise ValueError('trigger_controller type must be '
+                                 '"parallel", "dummy", or "tdt", not '
+                                 '{0}'.format(trigger_controller['type']))
+            self._id_call_dict['ttl_id'] = self._stamp_binary_id
+            self._ttl_stamp_func = _ttl_stamp_func
 
-        # finish initialization
-        logger.info('Expyfun: Initialization complete')
-        logger.exp('Expyfun: Subject: {0}'
-                   ''.format(self._exp_info['participant']))
-        logger.exp('Expyfun: Session: {0}'
-                   ''.format(self._exp_info['session']))
-        self.flush_logs()
-        self._trial_identified = False
-        self._ofp_critical_funs = list()
+            # other basic components
+            self._mouse_handler = Mouse(self._win)
+
+            # finish initialization
+            logger.info('Expyfun: Initialization complete')
+            logger.exp('Expyfun: Subject: {0}'
+                       ''.format(self._exp_info['participant']))
+            logger.exp('Expyfun: Session: {0}'
+                       ''.format(self._exp_info['session']))
+            self.flush_logs()
+            self._trial_identified = False
+            self._ofp_critical_funs = list()
+        except Exception:
+            self.close()
+            raise
 
     def __repr__(self):
         """Return a useful string representation of the experiment
@@ -676,6 +690,7 @@ class ExperimentController(object):
             y = int(win.screen.height / 2. - win.height / 2.)
             win.set_location(x, y)
         self._win = win
+        self._extra_cleanup_fun.append(self._win.close)
         # with the context set up, do basic GL initialization
         gl.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
         gl.glClearDepth(1.0)  # clear value for the depth buffer
@@ -907,7 +922,8 @@ class ExperimentController(object):
 
     def stop_noise(self):
         """Stop the background masker noise."""
-        self._ac.stop_noise()
+        if self._ac is not None:  # check b/c used by __exit__
+            self._ac.stop_noise()
 
     def clear_buffer(self):
         """Clear audio data from the audio buffer."""
@@ -938,7 +954,8 @@ class ExperimentController(object):
     def stop(self):
         """Stop audio buffer playback and reset cursor to beginning of buffer.
         """
-        self._ac.stop()
+        if self._ac is not None:  # need to check b/c used in __exit__
+            self._ac.stop()
         self.write_data_line('stop')
         logger.exp('Expyfun: Audio stopped and reset.')
 
@@ -998,8 +1015,8 @@ class ExperimentController(object):
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
-            logger.warning('Expyfun: Resampling {} seconds of audio'
-                           ''.format(round(len(samples) / self.stim_fs), 2))
+            logger.warn('Expyfun: Resampling {} seconds of audio'
+                        ''.format(round(len(samples) / self.stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self.stim_fs)
             samples = resample(samples, int(num_samples), window='boxcar')
 
@@ -1220,10 +1237,7 @@ class ExperimentController(object):
         logger.debug('Expyfun: Exiting cleanly')
 
         # do external cleanups
-        cleanup_actions = [self.stop_noise, self.stop,
-                           self._ac.halt, self._win.close]
-        if self._data_file is not None:
-            cleanup_actions.append(self._data_file.close)
+        cleanup_actions = [self.stop_noise, self.stop]
         cleanup_actions.extend(self._extra_cleanup_fun)
         for action in cleanup_actions:
             try:
@@ -1234,7 +1248,6 @@ class ExperimentController(object):
 
         # clean up our API
         try:
-            self._win.close()
             self.flush_logs()
         except Exception:
             tb.print_exc()

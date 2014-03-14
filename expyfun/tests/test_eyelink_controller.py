@@ -38,8 +38,8 @@ def test_eyelink_methods():
     el._fake_calibration = True
     assert_raises(ValueError, el.calibrate, start='foo', beep=False)
     assert_raises(ValueError, el.calibrate, stop='foo', beep=False)
-    el.calibrate(beep=False)
-    el.calibrate(start='after', stop='after', beep=False)
+    el.calibrate(beep=False, prompt=False)
+    el.calibrate(start='after', stop='after', beep=False, prompt=False)
     el._fake_calibration = False
     # missing el_id
     assert_raises(KeyError, ec.identify_trial, ec_id='foo', ttl_id=[0])
