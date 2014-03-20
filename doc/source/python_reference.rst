@@ -43,6 +43,7 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   convolve_hrtf
    play_sound
    read_wav
    rms

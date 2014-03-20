@@ -58,6 +58,12 @@ try:
 except NameError:
     unicode = str
 
+try:
+    from urllib2 import urlopen
+except ImportError:
+    from urllib.request import urlopen
+
+
 ###############################################################################
 # LOGGING
 
@@ -376,6 +382,38 @@ def _has_scipy_version(version):
 ###############################################################################
 # CONFIG / PREFS
 
+
+def _get_user_home_path():
+    """Return standard preferences path"""
+    # this has been checked on OSX64, Linux64, and Win32
+    val = os.getenv('APPDATA' if 'nt' == os.name.lower() else 'HOME', None)
+    if val is None:
+        raise ValueError('expyfun config file path could '
+                         'not be determined, please report this '
+                         'error to expyfun developers')
+    return val
+
+
+def _fetch_data_file(fname):
+    """Location of expyfun-related data (e.g., HRTFs)"""
+    path = get_config('EXPYFUN_DATA_PATH', op.join(_get_user_home_path(),
+                                                   '.expyfun', 'data'))
+    fname_out = op.join(path, fname)
+    if not op.isdir(op.dirname(fname_out)):
+        os.makedirs(op.dirname(fname_out))
+    fname_url = 'https://lester.ilabs.uw.edu/files/{0}'.format(fname)
+    if not op.isfile(fname_out):
+        try:
+            with open(fname_out, 'wb') as fid:
+                www = urlopen(fname_url, timeout=3.0)
+                fid.write(www.read())
+                www.close()
+        except Exception:
+            os.remove(fname_out)
+            raise
+    return fname_out
+
+
 def get_config_path():
     """Get path to standard expyfun config file
 
@@ -386,15 +424,7 @@ def get_config_path():
         will be '%APPDATA%\.expyfun\expyfun.json'. On every other
         system, this will be $HOME/.expyfun/expyfun.json.
     """
-
-    # this has been checked on OSX64, Linux64, and Win32
-    val = os.getenv('APPDATA' if 'nt' == os.name.lower() else 'HOME', None)
-    if val is None:
-        raise ValueError('expyfun config file path could '
-                         'not be determined, please report this '
-                         'error to expyfun developers')
-
-    val = op.join(val, '.expyfun', 'expyfun.json')
+    val = op.join(_get_user_home_path(), '.expyfun', 'expyfun.json')
     return val
 
 

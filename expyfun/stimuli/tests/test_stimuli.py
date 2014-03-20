@@ -5,11 +5,33 @@ from nose.tools import assert_raises, assert_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from expyfun._utils import _TempDir, _has_scipy_version
-from expyfun.stimuli import read_wav, write_wav, rms, play_sound
+from expyfun.stimuli import (read_wav, write_wav, rms, play_sound,
+                             convolve_hrtf)
 
 warnings.simplefilter('always')
 
 tempdir = _TempDir()
+
+
+def test_hrtf_convolution():
+    """Test HRTF convolution
+    """
+    data = np.random.randn(2, 10000)
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0)
+    data = data[0]
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0.5)  # invalid angle
+    out = convolve_hrtf(data, 44100, 0)
+    out_2 = convolve_hrtf(data, 24414, 0)
+    assert_equal(out.ndim, 2)
+    assert_equal(out.shape[0], 2)
+    assert_true(out.shape[1] > data.size)
+    assert_true(out_2.shape[1] < out.shape[1])
+    # ensure that, at least for zero degrees, it's close
+    out = convolve_hrtf(data, 44100, 0)[:, 1024:-1024]
+    assert_allclose(np.mean(rms(out)), rms(data), rtol=1e-1)
+    out = convolve_hrtf(data, 44100, -90)
+    rmss = rms(out)
+    assert_true(rmss[0] > 4 * rmss[1])
 
 
 def test_read_write_wav():
