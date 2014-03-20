@@ -94,7 +94,6 @@ with ExperimentController('testExp', ac, screen_num=0,
                 not_yet_pressed.pop(not_yet_pressed.index(p))
     ec.clear_buffer()
     ec.flip()  # clears the screen
-    ec.flush_logs()  # let's print the logs thus far (useful for debugging)
     ec.wait_secs(isi)
 
     # show instructions finished screen
@@ -131,6 +130,7 @@ with ExperimentController('testExp', ac, screen_num=0,
                        '{1}.').format(pressed, stim_num + 1)
         ec.screen_prompt(message, max_wait=feedback_dur)
         ec.wait_secs(isi)
+        ec.trial_ok()
 
     # create 100 ms pause to play between stims and concatenate
     pause = np.zeros((int(ec.fs / 10), 2))
@@ -162,6 +162,7 @@ with ExperimentController('testExp', ac, screen_num=0,
     ec.screen_prompt('You got {0} out of {1} correct.'
                      ''.format(sum(correct), len(answers)),
                      max_wait=feedback_dur)
+    ec.trial_ok()
 
     # end experiment
     ec.screen_prompt('All done! You got {0} correct out of {1} tones. Press '

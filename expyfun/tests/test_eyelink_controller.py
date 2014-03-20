@@ -36,10 +36,7 @@ def test_eyelink_methods():
     print(el.file_list)
     # run much of the calibration code, but don't *actually* do it
     el._fake_calibration = True
-    assert_raises(ValueError, el.calibrate, start='foo', beep=False)
-    assert_raises(ValueError, el.calibrate, stop='foo', beep=False)
     el.calibrate(beep=False, prompt=False)
-    el.calibrate(start='after', stop='after', beep=False, prompt=False)
     el._fake_calibration = False
     # missing el_id
     assert_raises(KeyError, ec.identify_trial, ec_id='foo', ttl_id=[0])
@@ -53,5 +50,6 @@ def test_eyelink_methods():
                   el_id=[0] * 13)
     assert_raises(TypeError, el._message, 1)
     el.stop()
-    el.save()
+    assert_true(not el._closed)
     ec.close()  # auto-calls el.close()
+    assert_true(el._closed)

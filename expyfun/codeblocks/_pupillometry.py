@@ -5,7 +5,6 @@ import numpy as np
 
 from ..visual import FixationDot
 from ..analyze import sigmoid, fit_sigmoid
-from ..stimuli import repeated_mls, compute_mls_impulse_response
 from .._utils import logger, verbose_dec
 
 
@@ -81,20 +80,29 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
                          'range of your pupil.<br><br>'
                          'Press a button to continue.')
     fname = _check_fname(el, fname)
-    levels = np.concatenate((np.linspace(0, 1, 10), np.linspace(1, 0, 10)))
+    levels = 2 ** (np.linspace(-3, -0.5, 10))
+    n_rep = 2
+    iri = 10.0  # inter-rep interval (allow system to reset)
     fix = FixationDot(ec)
     bgrect = ec.draw_background_color('k')
     ec.clear_buffer()
     ec.wait_secs(2.0)
-    for ii, lev in enumerate(levels):
-        ec.identify_trial(ec_id='FPDR_%02i' % (ii + 1),
-                          el_id=(ii + 1), ttl_id=())
-        bgrect.set_fill_color(np.ones(3) * lev)
+    for ri in range(n_rep):
+        for ii, lev in enumerate(levels):
+            ec.identify_trial(ec_id='FPDR_%02i' % (ii + 1),
+                              el_id=(ii + 1), ttl_id=())
+            bgrect.set_fill_color(np.ones(3) * lev)
+            bgrect.draw()
+            fix.draw()
+            ec.flip_and_play()
+            ec.wait_secs(settle_time)
+            ec.check_force_quit()
+            ec.trial_ok()
+        bgrect.set_fill_color('k')
         bgrect.draw()
         fix.draw()
-        ec.flip_and_play()
-        ec.wait_secs(settle_time)
-        ec.check_force_quit()
+        ec.flip()
+        ec.wait_secs(iri)
     ec.wait_secs(2.0)  # ensure we have enough time
     el.stop()  # stop the recording
 
@@ -104,7 +112,7 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
     else:
         # Pull data locally
         raw, events = _load_raw(el, fname)
-        assert len(events) == len(levels)
+        assert len(events) == len(levels) * n_rep
         epochs = pyeparse.Epochs(raw, events, 1, -0.5, settle_time + 1.0)
         assert len(epochs) == len(levels)
         raise NotImplementedError
@@ -116,114 +124,6 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
     lin_reg = np.clip(lin_reg, 0, 1)
     logger.info('Pupillometry: Linear region: {0}'.format(str(lin_reg)))
     return lin_reg, levels, pupil_resp, fit_params
-
-
-@verbose_dec
-def find_pupil_light_mls_response(ec, el, limits=(0.1, 0.9), max_dur=3.0,
-                                  n_repeats=10, fname=None, prompt=True,
-                                  verbose=None):
-    """Find pupil impulse response to light
-
-    An MLS sequence will be used, which will be flashy. Be careful!
-
-    Parameters
-    ----------
-    ec : instance of ExperimentController
-        The experiment controller.
-    el : instance of EyelinkController
-        The Eyelink controller.
-    limits : array-like (2 elements)
-        Array containing the lower and upper levels (between 0 and 1) to
-        use for illumination. Should try to stay within the linear range
-        of the pupil response.
-    max_dur : float
-        Maximum expected duration of the impulse response. If this is too
-        short, the tail of the response will wrap to the head.
-    fname : str | None
-        If str, the filename will be used to process the data from the
-        eyelink. If None, a recording will be started using el.start().
-    prompt : bool
-        If True, a standard prompt message will be displayed.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see expyfun.verbose).
-
-    Returns
-    -------
-    prf : array
-        The pupil response function to light.
-    screen_fs : float
-        The screen refresh rate used to estimate the pupil response.
-    t : array
-        The time points for the response function.
-    """
-    _check_pyeparse()
-    import pyeparse
-    limits = np.array(limits).ravel()
-    if limits.size != 2:
-        raise ValueError('limits must be 2-element array-like')
-    if limits.min() < 0 or limits.max() > 1 or limits[0] >= limits[1]:
-        raise ValueError('limits must be increasing between 0 and 1')
-    if prompt:
-        ec.screen_prompt('We will now determine the response '
-                         'of your pupil to light changes.<br><br>'
-                         'Press a button to continue.')
-    fname = _check_fname(el, fname)
-    logger.info('Pupillometry: Using span {0} to find PRF using MLS'
-                ''.format(limits))
-    n_repeats = int(n_repeats)
-    if n_repeats <= 0:
-        raise ValueError('n_repeats must be >= 1, not {0}'.format(n_repeats))
-    colors = np.ones((2, 3)) * limits[:, np.newaxis]
-    sfs = ec.estimate_screen_fs()
-
-    # let's put the initial color up to allow the system to settle
-    ec.clear_buffer()
-    bgrect = ec.draw_background_color(colors[0])
-    fix = FixationDot(ec)
-    fix.draw()
-    ec.flip()
-
-    # now let's do some calculations and identify the trial
-    ifi = 1. / sfs
-    max_samp = int(np.ceil(sfs * max_dur))
-    mls, n_resp = repeated_mls(max_samp, n_repeats)  # 0's and 1's
-    mls_idx = mls.astype(int)
-    n_flip = len(mls)
-    ec.identify_trial(ec_id='MLS_{0:0.2f}Hz_{1}samp'.format(sfs, n_flip),
-                      el_id=(sfs, n_flip), ttl_id=())
-    ec.wait_secs(max_dur * 2)
-    flip_times = list()
-    for ii, idx in enumerate(mls_idx):
-        bgrect.set_fill_color(colors[idx])
-        bgrect.draw()
-        fix.draw()
-        if ii == 0:
-            flip_times.append(ec.flip_and_play())
-        else:
-            flip_times.append(ec.flip())
-    ec.check_force_quit()
-
-    flip_times = np.array(flip_times)
-    diffs = np.diff(flip_times)
-    bads = np.where(diffs > 1.5 * ifi)[0]
-    if len(bads) > 0:
-        raise RuntimeError('Bad flipping: %s' % diffs[bads])
-    el.stop()  # stop the recording
-
-    if el.dummy_mode:
-        crf = pyeparse.utils.pupil_kernel(sfs, max_dur)
-        response = np.zeros(n_resp)
-        response[:len(crf) + len(mls) - 1] = np.convolve(crf, mls)
-    else:
-        raw, events = _load_raw(el, fname)
-        assert len(events) == 1
-        dt = np.diff(flip_times[[0, -1]]) / len(flip_times)
-        times = np.arange(n_resp) * dt
-        response = raw['ps', events[0, 1] + raw.time_as_index(times)]
-        assert response.shape == (n_resp,)
-    impulse_response = compute_mls_impulse_response(response, mls, n_repeats)
-    t = np.arange(len(impulse_response)).astype(float) / sfs
-    return impulse_response, t, sfs
 
 
 def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
@@ -256,11 +156,10 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
     _check_pyeparse()
     import pyeparse
     if prompt:
-        ec.screen_prompt('We will now determine the response '
-                         'of your pupil to sound changes.<br><br>'
-                         'Press the response button each time you hear the '
-                         'tone "wobble" instead of staying constant.<br><br>'
-                         'Press a button to continue.')
+        ec.screen_prompt('We will now determine the response of your pupil '
+                         'to sound changes.<br><br>Count the number of times '
+                         'you hear the tone "wobble" instead of staying '
+                         'constant.<br><br>Press a button to continue.')
     fname = _check_fname(el, fname)
 
     # let's put the initial color up to allow the system to settle
@@ -271,7 +170,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
     ec.flip()
 
     # now let's do some calculations
-    n_stimuli = 40
+    n_stimuli = 50
     delay_range = np.array((2.5, 3.5))
     targ_prop = 0.25
     stim_dur = 100e-3
@@ -311,6 +210,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
         flip_times.append(ec.flip_and_play())
         presses.append(ec.wait_for_presses(isi))
         ec.stop()
+        ec.trial_ok()
 
     flip_times = np.array(flip_times)
     el.stop()  # stop the recording

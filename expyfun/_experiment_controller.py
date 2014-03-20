@@ -120,6 +120,7 @@ class ExperimentController(object):
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
         self._on_next_flip = []
+        self._on_trial_ok = []
         # placeholder for extra actions to run on close
         self._extra_cleanup_fun = []
         self._id_call_dict = dict(ec_id=self._stamp_ec_id)
@@ -348,7 +349,7 @@ class ExperimentController(object):
                        ''.format(self._exp_info['participant']))
             logger.exp('Expyfun: Session: {0}'
                        ''.format(self._exp_info['session']))
-            self.flush_logs()
+            self._on_trial_ok.append(self.flush)
             self._trial_identified = False
             self._ofp_critical_funs = list()
         except Exception:
@@ -690,7 +691,6 @@ class ExperimentController(object):
             y = int(win.screen.height / 2. - win.height / 2.)
             win.set_location(x, y)
         self._win = win
-        self._extra_cleanup_fun.append(self._win.close)
         # with the context set up, do basic GL initialization
         gl.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
         gl.glClearDepth(1.0)  # clear value for the depth buffer
@@ -1086,9 +1086,7 @@ class ExperimentController(object):
 
         Notes
         -----
-        Writing a data line causes the file to be flushed, which may take
-        some time (although it usually shouldn't), so avoid calling during
-        critical timing periods.
+        Writing a data line does not cause the file to be flushed.
         """
         if timestamp is None:
             timestamp = self._master_clock()
@@ -1096,7 +1094,6 @@ class ExperimentController(object):
                                               value]) + '\n'
         if self._data_file is not None:
             self._data_file.write(ll)
-            self._data_file.flush()  # make sure it's actually written out
 
     def _get_time_correction(self, clock_type):
         """Clock correction (seconds) for win.flip().
@@ -1189,6 +1186,15 @@ class ExperimentController(object):
             self._id_call_dict[key](id_)
         self._trial_identified = True
 
+    def trial_ok(self):
+        """Report that the trial was okay and do post-trial tasks.
+
+        For example, logs and data files can be flushed at the end of each
+        trial.
+        """
+        for func in self._on_trial_ok:
+            func()
+
     def _stamp_ec_id(self, id_):
         """Stamp id -- currently anything allowed"""
         self.write_data_line('trial_id', id_)
@@ -1213,11 +1219,12 @@ class ExperimentController(object):
         """Helper to stamp triggers without input checking"""
         self._ttl_stamp_func(ids)
 
-    def flush_logs(self):
-        """Flush logs (useful for debugging)
+    def flush(self):
+        """Flush logs and data files
         """
-        # pyflakes won't like this, but it's better here than outside class
         flush_logger()
+        if self._data_file is not None and not self._data_file.closed:
+            self._data_file.flush()
 
     def close(self):
         """Close all connections in experiment controller.
@@ -1239,6 +1246,9 @@ class ExperimentController(object):
         # do external cleanups
         cleanup_actions = [self.stop_noise, self.stop]
         cleanup_actions.extend(self._extra_cleanup_fun)
+        if hasattr(self, '_win'):
+            # do this last, as other methods may add/remove handlers
+            cleanup_actions.append(self._win.close)
         for action in cleanup_actions:
             try:
                 action()
@@ -1248,7 +1258,7 @@ class ExperimentController(object):
 
         # clean up our API
         try:
-            self.flush_logs()
+            self.flush()
         except Exception:
             tb.print_exc()
             pass

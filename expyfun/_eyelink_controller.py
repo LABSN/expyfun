@@ -115,7 +115,7 @@ class EyelinkController(object):
         if 'el_id' in self._ec._id_call_dict:
             raise RuntimeError('Cannot use initialize EL twice')
         logger.info('EyeLink: Initializing on {}'.format(link))
-        ec.flush_logs()
+        ec.flush()
         if link is not None:
             iswin = ('win' in sys.platform)
             cmd = 'ping -n 1 -w 100' if iswin else 'fping -c 1 -t100'
@@ -126,15 +126,16 @@ class EyelinkController(object):
         self._file_list = []
         self._size = np.array(self._ec.window_size_pix)
         self._ec._extra_cleanup_fun += [self.close]
-        self._ec.flush_logs()
+        self._ec.flush()
         self.setup(fs)
         self._ec._id_call_dict['el_id'] = self._stamp_trial_id
         self._ec._ofp_critical_funs.append(self._stamp_trial_start)
+        self._ec._on_trial_ok.append(self._stamp_trial_ok)
         self._fake_calibration = False  # Only used for testing
         self._closed = False  # to prevent double-closing
-        self._file_open = None
+        self._current_open_file = None
         logger.debug('EyeLink: Setup complete')
-        self._ec.flush_logs()
+        self._ec.flush()
 
     @property
     def dummy_mode(self):
@@ -224,36 +225,34 @@ class EyelinkController(object):
         """
         return self.eyelink.sendCommand(cmd)
 
+    @property
+    def _is_file_open(self):
+        return (self._current_open_file is not None)
+
     def _open_file(self):
-        """Returns current or new remote filename"""
-        if self._file_open is None:
+        """Opens a new file on the Eyelink"""
+        if self._is_file_open:
+            raise RuntimeError('Cannot start new file, old must be closed')
+        file_name = datetime.datetime.now().strftime('%H%M%S')
+        while file_name in self._file_list:
+            # This should succeed in under 1 second
             file_name = datetime.datetime.now().strftime('%H%M%S')
-            # make absolutely sure we don't break this, but it shouldn't ever
-            # be wrong
-            assert len(file_name) <= 8
-            logger.info('Eyelink: Opening remote file with filename {}'
-                        ''.format(file_name))
-            val = self.eyelink.openDataFile(file_name)
-            if val != pylink.TRIAL_OK:
-                raise RuntimeError('Remote file "{0}" could not be opened: {1}'
-                                   ''.format(file_name, val))
-            self._file_open = file_name
-        return self._file_open
+        # make absolutely sure we don't break this, but it shouldn't ever
+        # be wrong
+        assert len(file_name) <= 8
+        logger.info('Eyelink: Opening remote file with filename {}'
+                    ''.format(file_name))
+        val = self.eyelink.openDataFile(file_name)
+        if val != pylink.TRIAL_OK:
+            raise RuntimeError('Remote file "{0}" could not be opened: {1}'
+                               ''.format(file_name, val))
+        self._current_open_file = file_name
+        return self._current_open_file
 
-    def start(self):
-        """Start Eyelink recording
-
-        Returns
-        -------
-        file_name : str
-            The filename on the Eyelink system.
-
-        Notes
-        -----
-        Filenames are saved by HHMMSS format, DO NOT start and stop
-        recordings anywhere near once per second.
-        """
-        file_name = self._open_file()
+    def _start_recording(self):
+        """Start Eyelink recording"""
+        if not self._is_file_open:
+            raise RuntimeError('cannot start recording without file open')
         if self.eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
             raise RuntimeError('Recording could not be started')
         #self.eyelink.waitForModeReady(100)
@@ -265,50 +264,34 @@ class EyelinkController(object):
         mode = self.eyelink.getCurrentMode()
         if not self.dummy_mode and not (mode == pylink.IN_RECORD_MODE):
             raise RuntimeError('Eyelink is not recording: {0}'.format(mode))
-        self._file_list += [file_name]
-        self._ec.flush_logs()
+        self._ec.flush()
         self._toggle_dummy_cursor(True)
-        return file_name
 
     @property
     def recording(self):
         """Returns boolean for whether or not the Eyelink is recording"""
         return (self.eyelink.isRecording() == pylink.TRIAL_OK)
 
-    def stop(self, close=True):
-        """Stop Eyelink recording
-
-        Parameters
-        ----------
-        close : bool
-            If True, the currently opened file on the Eyelink will be closed.
-        """
+    def stop(self):
+        """Stop Eyelink recording and close current file"""
+        if not self.recording:
+            raise RuntimeError('Cannot stop, not currently recording')
         logger.info('Eyelink: Stopping recording')
-        if self.eyelink.isConnected():
-            val = self.eyelink.stopRecording()
-            if val != pylink.TRIAL_OK:
-                logger.warn('Recording could not be stopped: {0}'.format(val))
-            if close and self._file_open is not None:
-                val = self.eyelink.closeDataFile()
-                if val != pylink.TRIAL_OK:
-                    logger.warn('File could not be closed: {0}'.format(val))
-                self._file_open = None
+        val = self.eyelink.stopRecording()
+        if val != pylink.TRIAL_OK:
+            logger.warn('Recording could not be stopped: {0}'.format(val))
+        logger.info('Eyelink: Closing file')
+        val = self.eyelink.closeDataFile()
+        if val != pylink.TRIAL_OK:
+            logger.warn('File could not be closed: {0}'.format(val))
+        self._current_open_file = None
         self._toggle_dummy_cursor(False)
 
-    def calibrate(self, start='before', stop='before', beep=True,
-                  prompt=True):
+    def calibrate(self, beep=True, prompt=True):
         """Calibrate the eyetracker
 
         Parameters
         ----------
-        start : str | None
-            If ``'before'`` or ``'after'``, the recording will be started
-            before or after (respectively) the calibration. If None,
-            recording is not started before or afterward (manual control).
-        stop : str | None
-            If ``'before'`` or ``'after'``, the recording will be started
-            before or after (respectively) the calibration. If None,
-            recording is not stopped before or afterward (manual control).
         beep : bool
             If True, beep when calibration begins.
         prompt : bool
@@ -322,28 +305,20 @@ class EyelinkController(object):
 
         Notes
         -----
-        It is recommended to use ``start = stop = 'before'`` (the default),
-        as this will create new files every time a new calibration done
-        (typically leading to sane file sizes) and ensure that calibrations
-        are saved with the data, which is nice for post-hoc analyses.
+        When running a calibration, the previous Eyelink file will be closed,
+        and a new one will be opened.
         """
+        # stop recording and close old file (if open), then start new one
+        if self.recording:
+            self.stop()
         # open file to record *before* running calibration so it gets saved!
-        if start not in ['before', 'after', None]:
-            raise ValueError('"start" must be "before", "after", or None, '
-                             'not "{}"'.format(start))
-        if stop not in ['before', 'after', None]:
-            raise ValueError('"start" must be "before", "after", or None, '
-                             'not "{}"'.format(stop))
+        fname = self._open_file()
         if prompt:
             self._ec.screen_prompt('We will now perform a screen calibration.'
                                    '<br><br>Press a button to continue.')
         fname = None
-        if stop == 'before':
-            self.stop()
-        if start == 'before':
-            fname = self.start()
         logger.debug('EyeLink: Entering calibration')
-        self._ec.flush_logs()
+        self._ec.flush()
         # enter Eyetracker camera setup mode, calibration and validation
         self._ec.flip()
         cal = _Calibrate(self._ec, beep)
@@ -356,12 +331,9 @@ class EyelinkController(object):
         cal.release_event_handlers()
         self._ec.flip()
         logger.debug('EyeLink: Completed calibration')
-        self._ec.flush_logs()
-        if stop == 'after':
-            self.stop()
-        if start in ('after', 'before'):
-            fname = self.start()
-            self._toggle_dummy_cursor(True)
+        self._ec.flush()
+        self._toggle_dummy_cursor(True)
+        self._start_recording()
         return fname
 
     def _stamp_trial_id(self, ids):
@@ -401,6 +373,11 @@ class EyelinkController(object):
         """
         self.eyelink.sendMessage('SYNCTIME')
 
+    def _stamp_trial_ok(self):
+        """Signal the end of a trial
+        """
+        self.eyelink.sendMessage('TRIAL OK')
+
     def _message(self, msg):
         """Send message to eyelink
 
@@ -416,26 +393,6 @@ class EyelinkController(object):
             raise TypeError('message must be a string')
         self.eyelink.sendMessage(msg)
         self.command('record_status_message "{0}"'.format(msg))
-
-    def save(self, close=True):
-        """Save data
-
-        Parameters
-        ----------
-        close : bool
-            If True, the close() method will be called to shut down the
-            Eyelink before transferring data.
-
-        Returns
-        -------
-        filenames : list
-            List of strings of the resulting filenames on the local machine.
-        """
-        if close is True:
-            self.close()
-        fnames = [self.transfer_remote_file(remote_name)
-                  for remote_name in self._file_list]
-        return fnames
 
     def transfer_remote_file(self, remote_name):
         """Pull remote file (from Eyelink) to local machine
@@ -458,17 +415,24 @@ class EyelinkController(object):
         return fname
 
     def close(self):
-        """Close file and shutdown Eyelink"""
-        if self.eyelink.isConnected():
-            self.eyelink.stopRecording()
-            self.eyelink.closeDataFile()
+        """Shutdown Eyelink, stopping recording & closing file if necessary"""
+        fnames = list()
         if not self._closed:
+            if self.recording:
+                self.stop()
+            # make sure files get transferred
+            fnames = [self.transfer_remote_file(remote_name)
+                      for remote_name in self._file_list]
+            self._file_list = list()
             self.eyelink.close()
             self._closed = True
-        if 'el_id' in self._ec._id_call_dict:
+            assert 'el_id' in self._ec._id_call_dict
             del self._ec._id_call_dict['el_id']
             idx = self._ec._ofp_critical_funs.index(self._stamp_trial_start)
             self._ec._ofp_critical_funs.pop(idx)
+            idx = self._ec._on_trial_ok.index(self._stamp_trial_ok)
+            self._ec._on_trial_ok.pop(idx)
+        return fnames
 
     def wait_for_fix(self, fix_pos, fix_time=0., tol=100., max_wait=np.inf,
                      check_interval=0.001, units='norm'):
@@ -633,7 +597,6 @@ class _Calibrate(super_class):
     """Show and control calibration screen"""
     def __init__(self, ec, beep=False):
         # set some useful parameters
-        self.flush_logs = ec.flush_logs
         self.ec = ec
         self.size = np.array(ec.window_size_pix)
         self.keys = []

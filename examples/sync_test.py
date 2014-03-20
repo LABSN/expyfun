@@ -48,6 +48,7 @@ with ExperimentController('SyncTest', screen_num=0, full_screen=True,
         ec.flip()
         pressed = ec.wait_one_press(0.5)[0]
         ec.stop()
+        ec.trial_ok()
 
 import matplotlib.pyplot as plt
 plt.ion()

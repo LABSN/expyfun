@@ -66,7 +66,7 @@ def sigmoid(x, lower=0., upper=1., midpt=0., slope=1.):
     return y
 
 
-def fit_sigmoid(x, y):
+def fit_sigmoid(x, y, p0=None):
     """Fit a sigmoid to the data
 
     Parameters
@@ -75,6 +75,9 @@ def fit_sigmoid(x, y):
         x-values along the sigmoid.
     y : array-like
         y-values along the sigmoid.
+    p0 : array-like | None
+        Initial guesses for the fit. Can be None to have these automatically
+        estimated.
 
     Returns
     -------
@@ -83,7 +86,13 @@ def fit_sigmoid(x, y):
     """
     x = np.asarray(x)
     y = np.asarray(y)
-    out = curve_fit(sigmoid, x, y)[0]
+    k = 2 * 4. / (np.max(x) - np.min(x))
+    if p0 is None:
+        p0 = [np.min(y), np.max(y), np.mean([np.max(x), np.min(x)]), k]
+    p0 = np.array(p0, dtype=np.float64)
+    if p0.size != 4:
+        raise ValueError('p0 must have 4 elements, or be None')
+    out = curve_fit(sigmoid, x, y, p0=p0, )[0]
     return out
 
 
