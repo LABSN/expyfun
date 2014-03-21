@@ -89,7 +89,7 @@ def convolve_hrtf(data, fs, angle, source='barb'):
     brir, brir_fs, leftward = _get_hrtf(angle, 'barb')
     order = [1, 0] if leftward else [0, 1]
     print(leftward)
-    if not np.isclose(brir_fs, fs, rtol=0, atol=0.5):
+    if not np.allclose(brir_fs, fs, rtol=0, atol=0.5):
         blen = [int(round(len(x) * (fs / brir_fs))) for x in brir]
         brir = [signal.resample(b, n, window='boxcar')
                 for b, n in zip(brir, blen)]
