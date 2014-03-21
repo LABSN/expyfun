@@ -14,8 +14,8 @@ from .._utils import _fetch_data_file
 # mat = spio.loadmat('anechRev.mat')
 # x = np.concatenate([mat[key][:, 0, -1, :].T.astype(np.float64)[:, None, :]
 #                     for key in ['fimp_l', 'fimp_r']], axis=1)
-# keep = np.abs(x) < np.max(np.abs(x)) * 1e-5
-# idx = int(2 ** np.ceil(np.log2(np.where(np.all(np.all(keep, 1), 0))[0][0])))
+# keep = np.abs(x) > np.max(np.abs(x)) * 1e-5
+# idx = int(2 ** np.ceil(np.log2(np.where(np.any(np.any(keep, 1), 0))[0][-1])))
 # x = x[:, :, :idx]
 # sig = np.random.RandomState(0).randn(100000)
 # res = np.array([np.convolve(sig, xx) for xx in x[0]])[:, idx:-idx]
