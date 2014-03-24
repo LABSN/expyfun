@@ -2,9 +2,10 @@
 """
 
 import numpy as np
+from scipy import signal
 
 from ..visual import FixationDot
-from ..analyze import sigmoid, fit_sigmoid
+from ..analyze import sigmoid
 from .._utils import logger, verbose_dec
 
 
@@ -35,12 +36,12 @@ def _load_raw(el, fname):
     logger.info('Pupillometry: Parsing local file "{0}"'.format(fname))
     raw = pyeparse.Raw(fname)
     raw.remove_blink_artifacts()
-    events = raw.find_events(raw, 'SYNCTIME')
+    events = raw.find_events('SYNCTIME', 1)
     return raw, events
 
 
 @verbose_dec
-def find_pupil_dynamic_range(ec, el, fname=None, prompt=True, verbose=None):
+def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     """Find pupil dynamic range
 
     Parameters
@@ -59,19 +60,8 @@ def find_pupil_dynamic_range(ec, el, fname=None, prompt=True, verbose=None):
 
     Returns
     -------
-    lin_reg : array
-        The linear range of the pupil response.
-    levels : array
-        The set of screen levels tested.
-    pupil_resp : array
-        The pupil response for each level.
-    fit_params : tuple
-        The four parameters for the sigmoidal fit.
-
-    Notes
-    -----
-    A four-parameter sigmoid is fit to the data, then the linear portion
-    is extracted.
+    bgcolor : array
+        The background color that maximizes dynamic range.
     """
     _check_pyeparse()
     import pyeparse
@@ -79,7 +69,7 @@ def find_pupil_dynamic_range(ec, el, fname=None, prompt=True, verbose=None):
         ec.screen_prompt('We will now determine the dynamic '
                          'range of your pupil.<br><br>'
                          'Press a button to continue.')
-    fname = _check_fname(el, fname)
+    fname = _check_fname(el)
     levels = np.concatenate(([0.], 2 ** np.arange(8) / 255.))
     n_rep = 2
     iri = 10.0  # inter-rep interval (allow system to reset)
@@ -111,25 +101,22 @@ def find_pupil_dynamic_range(ec, el, fname=None, prompt=True, verbose=None):
 
     # now we need to parse the data
     if el.dummy_mode:
-        pupil_resp = sigmoid(levels, 1, 2, 0.5, 10)
+        resp = sigmoid(levels, 1, 2, 0.5, 10)
     else:
         # Pull data locally
         raw, events = _load_raw(el, fname)
         assert len(events) == len(levels) * n_rep
-        epochs = pyeparse.Epochs(raw, events, 1, -0.5, settle_time + 1.0)
-        assert len(epochs) == len(levels)
-        raise NotImplementedError
-    fit_params = fit_sigmoid(levels, pupil_resp)
-    lower, upper, midpt, slope = fit_params
-    logger.info('Pupillometry: Found pupil fit: lower={0}, upper={1}, '
-                'midpt={2}, slope={3}'.format(*fit_params))
-    lin_reg = np.log([2 - np.sqrt(3), 2 + np.sqrt(3)]) / slope + midpt
-    lin_reg = np.clip(lin_reg, 0, 1)
-    logger.info('Pupillometry: Linear region: {0}'.format(str(lin_reg)))
-    return lin_reg, levels, pupil_resp, fit_params
+        epochs = pyeparse.Epochs(raw, events, 1, -0.5, settle_time)
+        assert len(epochs) == len(levels) * n_rep
+        idx = epochs.n_times // 2
+        resp = np.median(epochs.get_data('ps')[:, idx:], 1)
+        resp = np.mean(resp.reshape((n_rep, len(levels))), 0)
+    bgcolor = levels[np.argmin(np.diff(resp))] * np.ones(3)
+    logger.info('Pupillometry: optimal background color {0}'.format(bgcolor))
+    return bgcolor
 
 
-def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
+def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
                                      verbose=None):
     """Find pupil impulse response using responses to tones
 
@@ -141,9 +128,6 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
         The Eyelink controller.
     bgcolor : color
         Background color to use.
-    fname : str | None
-        If str, the filename will be used to process the data from the
-        eyelink. If None, a recording will be started using el.start().
     prompt : bool
         If True, a standard prompt message will be displayed.
     verbose : bool, str, int, or None
@@ -163,7 +147,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
                          'to sound changes.<br><br>Count the number of times '
                          'you hear the tone "wobble" instead of staying '
                          'constant.<br><br>Press a button to continue.')
-    fname = _check_fname(el, fname)
+    fname = _check_fname(el)
 
     # let's put the initial color up to allow the system to settle
     ec.clear_buffer()
@@ -173,9 +157,9 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
     ec.flip()
 
     # now let's do some calculations
-    n_stimuli = 50
+    n_stimuli = 100
     delay_range = np.array((2.5, 3.5))
-    targ_prop = 0.25
+    targ_prop = 0.2
     stim_dur = 100e-3
     f0 = 500.  # Hz
 
@@ -193,13 +177,17 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
     # generate stimuli
     fs = ec.stim_fs
     n_samp = int(fs * stim_dur)
+    window = signal.windows.hanning(0.01 * fs)
+    idx = len(window) // 2
+    window = np.concatenate((window[:idx + 1], np.ones(n_samp - 2 * idx - 2),
+                             window[idx:]))
     freqs = np.ones(n_samp) * f0
     t = np.arange(n_samp).astype(float) / fs
     tone_stim = np.sin(2 * np.pi * freqs * t)
     freqs = 100 * np.sin(2 * np.pi * (1 / stim_dur) * t) + f0
     sweep_stim = np.sin(2 * np.pi * np.cumsum(freqs) / fs)
-    tone_stim *= (ec._stim_rms * np.sqrt(2))
-    sweep_stim *= (ec._stim_rms * np.sqrt(2))
+    tone_stim *= (ec._stim_rms * np.sqrt(2)) * window
+    sweep_stim *= (ec._stim_rms * np.sqrt(2)) * window
 
     ec.wait_secs(3.0)
     flip_times = list()

@@ -23,10 +23,7 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
                           session='001', output_dir=None) as ec:
     el = EyelinkController(ec)
     fname = el.calibrate()  # by default this starts recording EyeLink data
-    out = find_pupil_dynamic_range(ec, el, 3.0, fname)
-    lin, lev, resp, params = out
-
-    bgcolor = np.mean(lin) * np.ones(3)
+    bgcolor = find_pupil_dynamic_range(ec, el)
     prf, p_srf = find_pupil_tone_impulse_response(ec, el, bgcolor)
 
 import matplotlib.pyplot as plt
