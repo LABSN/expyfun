@@ -18,8 +18,12 @@ def _check_pyeparse():
 
 def _check_fname(el, fname):
     """Helper to deal with Eyelink filename inputs"""
-    if fname is None:
-        fname = el.start()
+    if not el._is_file_open:
+        fname = el._open_file()
+    else:
+        fname = el._current_open_file
+    if not el.recording:
+        el._start_recording()
     return fname
 
 
@@ -80,14 +84,16 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
                          'range of your pupil.<br><br>'
                          'Press a button to continue.')
     fname = _check_fname(el, fname)
-    levels = 2 ** (np.linspace(-3, -0.5, 10))
+    levels = 2 ** (np.linspace(-5, -1, 9))
     n_rep = 2
     iri = 10.0  # inter-rep interval (allow system to reset)
     fix = FixationDot(ec)
     bgrect = ec.draw_background_color('k')
+    fix.draw()
+    ec.flip()
     ec.clear_buffer()
-    ec.wait_secs(2.0)
     for ri in range(n_rep):
+        ec.wait_secs(iri)
         for ii, lev in enumerate(levels):
             ec.identify_trial(ec_id='FPDR_%02i' % (ii + 1),
                               el_id=(ii + 1), ttl_id=())
@@ -102,7 +108,6 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
         bgrect.draw()
         fix.draw()
         ec.flip()
-        ec.wait_secs(iri)
     ec.wait_secs(2.0)  # ensure we have enough time
     el.stop()  # stop the recording
 

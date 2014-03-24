@@ -413,7 +413,7 @@ class FixationDot(object):
     circle : instance of Circle
         The circle object.
     """
-    def __init__(self, ec, inner_radius=0.05, outer_radius=0.1, pos=[0, 0],
+    def __init__(self, ec, inner_radius=0.05, outer_radius=0.2, pos=[0, 0],
                  units='deg', inner_color='k', outer_color='w'):
         # need to set a dummy value here so recalculation doesn't fail
         self._inner = Circle(ec, inner_radius, pos, units,
