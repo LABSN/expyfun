@@ -16,7 +16,7 @@ def _check_pyeparse():
         raise ImportError('Cannot run, requires "pyeparse" package')
 
 
-def _check_fname(el, fname):
+def _check_fname(el):
     """Helper to deal with Eyelink filename inputs"""
     if not el._is_file_open:
         fname = el._open_file()
@@ -40,8 +40,7 @@ def _load_raw(el, fname):
 
 
 @verbose_dec
-def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
-                             verbose=None):
+def find_pupil_dynamic_range(ec, el, fname=None, prompt=True, verbose=None):
     """Find pupil dynamic range
 
     Parameters
@@ -50,12 +49,9 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
         The experiment controller.
     el : instance of EyelinkController
         The Eyelink controller.
-    isi : float
-        Inter-flip interval to use. Should be long enough for the pupil
-        to settle (e.g., 3 or 4 seconds).
     fname : str | None
         If str, the filename will be used to process the data from the
-        eyelink. If None, a recording will be started using el.start().
+        eyelink. If None, a recording will be started.
     prompt : bool
         If True, a standard prompt message will be displayed.
     verbose : bool, str, int, or None
@@ -84,9 +80,10 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
                          'range of your pupil.<br><br>'
                          'Press a button to continue.')
     fname = _check_fname(el, fname)
-    levels = 2 ** (np.linspace(-5, -1, 9))
+    levels = np.concatenate(([0.], 2 ** np.arange(8) / 255.))
     n_rep = 2
     iri = 10.0  # inter-rep interval (allow system to reset)
+    settle_time = 3.0  # amount of time between levels
     fix = FixationDot(ec)
     bgrect = ec.draw_background_color('k')
     fix.draw()
@@ -108,8 +105,9 @@ def find_pupil_dynamic_range(ec, el, settle_time=3.0, fname=None, prompt=True,
         bgrect.draw()
         fix.draw()
         ec.flip()
-    ec.wait_secs(2.0)  # ensure we have enough time
     el.stop()  # stop the recording
+    ec.screen_prompt('Processing data, please wait...', max_wait=0,
+                     clear_after=False)
 
     # now we need to parse the data
     if el.dummy_mode:
@@ -216,9 +214,11 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fname=None, prompt=True,
         presses.append(ec.wait_for_presses(isi))
         ec.stop()
         ec.trial_ok()
+    el.stop()  # stop the recording
+    ec.screen_prompt('Processing data, please wait...', max_wait=0,
+                     clear_after=False)
 
     flip_times = np.array(flip_times)
-    el.stop()  # stop the recording
     tmin = -0.5
     if el.dummy_mode:
         pk = pyeparse.utils.pupil_kernel(el.fs, delay_range[0] - tmin)
