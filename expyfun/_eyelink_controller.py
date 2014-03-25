@@ -15,10 +15,6 @@ import subprocess
 import time
 import pyglet
 
-# TODO:
-# 1. Fix Calibration: lozenge etc.
-# 2. Get pupils methods to work
-
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink
@@ -119,7 +115,10 @@ class EyelinkController(object):
         if link is not None:
             iswin = ('win' in sys.platform)
             cmd = 'ping -n 1 -w 100' if iswin else 'fping -c 1 -t100'
-            if subprocess.Popen('%s %s' % (cmd, link)).returncode:
+            cmd = subprocess.Popen('%s %s' % (cmd, link),
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+            if cmd.returncode:
                 raise RuntimeError('could not connect to Eyelink @ %s, '
                                    'is it turned on?' % link)
         self.eyelink = pylink.EyeLink(link)
@@ -317,20 +316,19 @@ class EyelinkController(object):
             self._ec.screen_prompt('We will now perform a screen calibration.'
                                    '<br><br>Press a button to continue.')
         fname = None
-        logger.debug('EyeLink: Entering calibration')
+        logger.info('EyeLink: Entering calibration')
         self._ec.flush()
         # enter Eyetracker camera setup mode, calibration and validation
         self._ec.flip()
         cal = _Calibrate(self._ec, beep)
         pylink.openGraphicsEx(cal)
         cal.setup_event_handlers()
-        if beep:
-            cal.play_beep(0)
+        cal.play_beep(0)
         if not (self.dummy_mode or self._fake_calibration):
             self.eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
-        logger.debug('EyeLink: Completed calibration')
+        logger.info('EyeLink: Completed calibration')
         self._ec.flush()
         self._toggle_dummy_cursor(True)
         self._start_recording()
@@ -491,9 +489,8 @@ class EyelinkController(object):
         params : dict | None
             Type of calibration to use. Must have entries 'type' (must be
             'HV5') and h_pix, v_pix for total span in both directions. If
-            h_pix and v_pix are not defined, 2/3 andn 1/3 of the screen
-            will be used, respectively. If params is None, a simple HV5
-            calibration will be used.
+            h_pix or v_pix are not defined, 2/3 of the screen will be
+            used. If params is None, a simple HV5 calibration will be used.
         """
         if params is None:
             params = dict(type='HV5')
@@ -513,7 +510,7 @@ class EyelinkController(object):
             else:
                 h_pix = params['h_pix']
             if 'v_pix' not in params:
-                v_pix = self._size[1] * 1. / 3.
+                v_pix = self._size[1] * 2. / 3.
             else:
                 v_pix = params['v_pix']
             # make the locations
@@ -596,32 +593,32 @@ else:
 class _Calibrate(super_class):
     """Show and control calibration screen"""
     def __init__(self, ec, beep=False):
+        super_class.__init__(self)
+        self.__target_beep__ = None
+        self.__target_beep__done__ = None
+        self.__target_beep__error__ = None
+
         # set some useful parameters
         self.ec = ec
-        self.size = np.array(ec.window_size_pix)
         self.keys = []
-        self.aspect = float(self.size[0]) / self.size[1]
-        self.img_span = (1.5 * self.aspect, 1.5)
+        ws = np.array(ec.window_size_pix)
+        self.img_span = 1.5 * np.array((float(ws[0]) / ws[1], 1.))
 
         # set up reusable objects
         self.targ_circ = FixationDot(self.ec)
-        self.loz_circ = Circle(self.ec, radius=[2, 2],
-                               units='pix', fill_color=None,
-                               line_width=2.0, line_color='white')
-        self.render_disc = Circle(self.ec, radius=[2, 2],
-                                  units='deg', fill_color=None,
-                                  line_width=5.0, line_color='red')
-        self.palette = None
+        self.loz_circ = Circle(self.ec, fill_color=None, line_width=2.0)
         self.image_buffer = None
 
         # deal with parent class
-        pylink.EyeLinkCustomDisplay.__init__(self)
         self.setup_cal_display = self.clear_display
         self.exit_cal_display = self.clear_display
         self.erase_cal_target = self.clear_display
         self.clear_cal_display = self.clear_display
         self.exit_image_display = self.clear_display
         self.beep = beep
+        self.state = 0
+        self.mouse_pos = (0, 0)
+        self.img_size = (0, 0)
 
     def setup_event_handlers(self):
         self.label = Text(self.ec, 'Eye Label', units='norm',
@@ -630,13 +627,27 @@ class _Calibrate(super_class):
         self.img = RawImage(self.ec, np.zeros((1, 2, 3)),
                             pos=(0, 0), units='norm')
 
+        def on_mouse_press(x, y, button, modifiers):
+            self.state = 1
+
+        def on_mouse_motion(x, y, dx, dy):
+            self.mouse_pos = (x, y)
+
+        def on_mouse_release(x, y, button, modifiers):
+            self.state = 0
+
+        def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
+            self.mouse_pos = (x, y)
+
         def on_key_press(symbol, modifiers):
             key_trans_dict = _get_key_trans_dict()
             key = key_trans_dict.get(str(symbol), symbol)
             self.keys += [pylink.KeyInput(key, modifiers)]
 
         # create new handler at top of handling stack
-        self.ec.window.push_handlers(on_key_press=on_key_press)
+        self.ec.window.push_handlers(on_key_press, on_mouse_press,
+                                     on_mouse_motion, on_mouse_release,
+                                     on_mouse_drag)
 
     def release_event_handlers(self):
         self.ec.window.pop_handlers()  # should detacch top-level handler
@@ -644,7 +655,6 @@ class _Calibrate(super_class):
         del self.img
 
     def clear_display(self):
-        self.ec.toggle_cursor(False)
         self.ec.flip()
 
     def record_abort_hide(self):
@@ -655,11 +665,6 @@ class _Calibrate(super_class):
         self.targ_circ.draw()
         self.ec.flip()
 
-    def render(self, x, y):
-        raise NotImplementedError  # need to check this
-        self.render_disc.set_pos((x, y), units='px')
-        self.render_disc.draw()
-
     def play_beep(self, eepid):
         """Play a sound during calibration/drift correct."""
         if self.beep is True:
@@ -667,84 +672,73 @@ class _Calibrate(super_class):
 
     def get_input_key(self):
         self.ec.window.dispatch_events()
-        if len(self.keys) > 0:
-            k = self.keys
-            self.keys = []
-            return k
-        else:
+        if len(self.keys) == 0:
             return None
+        k = self.keys
+        self.keys = []
+        return k
 
     def get_mouse_state(self):
-        return((0, 0), 0)
+        x, y = self._win2img(self.mouse_pos[0], self.mouse_pos[1])
+        return ((x, y), self.state)
+
+    def _win2img(self, x, y):
+        """Convert window coordinates to img coordinates"""
+        bounds, scale = self.img.bounds, self.img.scale
+        x = min(max(int((x - bounds[0]) / scale), 0), self.img_size[0])
+        y = min(max(int((bounds[3] - y) / scale), 0), self.img_size[1])
+        return x, y
+
+    def _img2win(self, x, y):
+        """Convert window coordinates to img coordinates"""
+        bounds, scale = self.img.bounds, self.img.scale
+        x = int(scale * x + bounds[0])
+        y = int(bounds[3] - scale * y)
+        return x, y
 
     def alert_printf(self, msg):
-        logger.warning('EyeLink: alert_printf {}'.format(msg))
+        logger.warn('EyeLink: alert_printf {}'.format(msg))
 
     def setup_image_display(self, w, h):
         # convert w, h from pixels to relative units
-        self.img_size = np.array([w, h], float) / self.size
         x = np.array([[0, 0], [0, self.img_span[1]]], float)
         x = np.diff(self.ec._convert_units(x, 'norm', 'pix')[1]) / h
         self.img.set_scale(x)
         self.clear_display()
-        self.ec.toggle_cursor(True)
 
     def image_title(self, text):
-        self.label = Text(self.ec, text, units='norm',
-                          pos=(0, -self.img_span[1] / 2.),
-                          anchor_y='top', color='white')
+        text = "<center>{0}</center>".format(text)
+        self.label = Text(self.ec, text, units='norm', anchor_y='top',
+                          color='white', pos=(0, -self.img_span[1] / 2.))
 
     def set_image_palette(self, r, g, b):
-        self.palette = (np.array([r, g, b], np.uint8).T).copy()
+        self.palette = np.array([r, g, b], np.uint8).T
 
     def draw_image_line(self, width, line, totlines, buff):
         if self.image_buffer is None:
+            self.img_size = (width, totlines)
             self.image_buffer = np.empty((totlines, width, 3), float)
         self.image_buffer[line - 1, :, :] = self.palette[buff, :] / 255.
         if line == totlines:
             self.img.set_image(self.image_buffer)
             self.img.draw()
             self.label.draw()
+            self.draw_cross_hair()
             self.ec.flip()
 
     def draw_line(self, x1, y1, x2, y2, colorindex):
-        raise NotImplementedError  # need to check this
-        print('draw_line ({0}, {1}, {2}, {3})'.format(x1, y1, x2, y2))
-        color_dict = _get_color_dict()
-        color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
-        x11, x22, y11, y22 = self._get_rltb(1, x1, x2, y1, y2)
-        line = Line(self.ec, [x11, y11], [x22, y22],
-                    lineColor=color[:3], units='pix')
-        line.draw()
-
-    def _get_rltb(self, asp, x1, x2, y1, y2):
-        """Convert from image coords to screen coords"""
-        r = (float)(self.half_width * 0.5 - self.half_width * 0.5 * 0.75)
-        l = (float)(self.half_width * 0.5 + self.half_width * 0.5 * 0.75)
-        t = (float)(self.height * 0.5 + self.height * 0.5 * asp * 0.75)
-        b = (float)(self.height * 0.5 - self.height * 0.5 * asp * 0.75)
-        x11 = float(float(x1) * (l - r) / float(self.img_size[0]) + r)
-        x22 = float(float(x2) * (l - r) / float(self.img_size[0]) + r)
-        y11 = float(float(y1) * (b - t) / float(self.img_size[1]) + t)
-        y22 = float(float(y2) * (b - t) / float(self.img_size[1]) + t)
-        return (x11, x22, y11, y22)
+        color = _get_color_dict()[str(colorindex)]
+        x1, y1 = self._img2win(x1, y1)
+        x2, y2 = self._img2win(x2, y2)
+        Line(self.ec, ((x1, x2), (y1, y2)), 'pix', color).draw()
 
     def draw_lozenge(self, x, y, width, height, colorindex):
-        raise NotImplementedError  # need to check this
-        print('draw lozenge ({0}, {1}, {2}, {3})'.format(x, y, width, height))
-        color_dict = _get_color_dict()
-        color = color_dict.get(str(colorindex), (0.0, 0.0, 0.0))
-        width = int((float(width) / self.img_size[0]) * self.img_size[0])
-        height = int((float(height) / self.img_size[1]) * self.img_size[1])
-        r, l, t, b = self._get_rltb(1, x, x + width, y, y + height)
-        xw = abs(float(l - r))
-        yw = abs(float(b - t))
-        rad = float(min(xw, yw) * 0.5)
-        x = float(min(l, r) + rad)
-        y = float(min(t, b) + rad)
-        self.loz_circ.set_fill_color(color)
-        self.loz_circ.set_pos((x, y))
-        self.loz_circ.set_radius(rad)
+        coords = self._img2win(x + width / 2., y + width / 2.)
+        width = width * self.img.scale / 2.
+        height = height * self.img.scale / 2.
+        self.loz_circ.set_line_color(_get_color_dict()[str(colorindex)])
+        self.loz_circ.set_pos(coords, units='pix')
+        self.loz_circ.set_radius((width, height), units='pix')
         self.loz_circ.draw()
 
 

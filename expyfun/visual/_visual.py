@@ -520,6 +520,19 @@ class RawImage(object):
         pos = np.reshape(pos, (2, 1))
         self._pos = self._ec._convert_units(pos, units, 'pix').ravel()
 
+    @property
+    def bounds(self):
+        """L, B, W, H (in pixels) of the image"""
+        pos = np.array(self._pos, float)
+        size = np.array([self._sprite.width,
+                         self._sprite.height], float)
+        bounds = np.concatenate((pos - size / 2., pos + size / 2.))
+        return bounds[[0, 2, 1, 3]]
+
+    @property
+    def scale(self):
+        return self._scale
+
     def set_scale(self, scale):
         """Create image from array for on-screen display
 
@@ -534,6 +547,7 @@ class RawImage(object):
         """
         scale = float(scale)
         self._scale = scale
+        self._sprite.scale = self._scale
 
     def draw(self):
         """Draw the image to the buffer"""
