@@ -62,6 +62,10 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     -------
     bgcolor : array
         The background color that maximizes dynamic range.
+    levels : array
+        The levels shown.
+    responses : array
+        The average responses to each level.
     """
     _check_pyeparse()
     import pyeparse
@@ -113,7 +117,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         resp = np.mean(resp.reshape((n_rep, len(levels))), 0)
     bgcolor = levels[np.argmin(np.diff(resp))] * np.ones(3)
     logger.info('Pupillometry: optimal background color {0}'.format(bgcolor))
-    return bgcolor
+    return bgcolor, np.tile(levels, n_rep), resp
 
 
 def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
@@ -157,27 +161,27 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
     ec.flip()
 
     # now let's do some calculations
-    n_stimuli = 100
-    delay_range = np.array((2.5, 3.5))
+    n_stimuli = 125
+    delay_range = np.array((3.0, 4.0))
     targ_prop = 0.2
-    stim_dur = 100e-3
+    stim_dur = 50e-3
     f0 = 500.  # Hz
 
     rng = np.random.RandomState(1)
     isis = (rng.rand(n_stimuli) * np.diff(delay_range)
             + delay_range[0])
-    targs = np.zeros(n_stimuli)
+    targs = np.zeros(n_stimuli, bool)
     n_targs = int(targ_prop * n_stimuli)
     while(True):  # ensure no two targets in a row
         idx = np.sort(rng.permutation(np.arange(n_stimuli))[:n_targs])
         if (not np.any(np.diff(idx) == 1)) and idx[0] != 0:
-            targs[idx] = 1
+            targs[idx] = True
             break
 
     # generate stimuli
     fs = ec.stim_fs
     n_samp = int(fs * stim_dur)
-    window = signal.windows.hanning(0.01 * fs)
+    window = signal.windows.hanning(int(0.01 * fs))
     idx = len(window) // 2
     window = np.concatenate((window[:idx + 1], np.ones(n_samp - 2 * idx - 2),
                              window[idx:]))
@@ -210,16 +214,16 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
     tmin = -0.5
     if el.dummy_mode:
         pk = pyeparse.utils.pupil_kernel(el.fs, delay_range[0] - tmin)
-        response = np.zeros((n_stimuli, len(pk)))
+        response = np.zeros(len(pk))
         offset = int(el.fs * 0.5)
-        response[:, offset:] = pk[:-offset][np.newaxis, :]
+        response[offset:] = pk[:-offset]
     else:
         raw, events = _load_raw(el, fname)
         assert len(events) == n_stimuli
         epochs = pyeparse.Epochs(raw, events, 1,
                                  tmin=tmin, tmax=delay_range[0])
-        response = np.reshape(epochs.get_data('ps'))
+        response = np.reshape(epochs.pupil_zscores())
         assert response.shape[0] == n_stimuli
-    impulse_response = np.mean(response, axis=0)
-    t = np.arange(len(impulse_response)).astype(float) / el.fs + tmin
-    return impulse_response, t
+        response = np.mean(response[~targs], axis=0)
+    t = np.arange(len(response)).astype(float) / el.fs + tmin
+    return response, t
