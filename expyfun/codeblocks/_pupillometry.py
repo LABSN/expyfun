@@ -66,6 +66,10 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         The levels shown.
     responses : array
         The average responses to each level.
+
+    Notes
+    -----
+    If ``el.dummy_mode`` is on, the test will run at around 10x the speed.
     """
     _check_pyeparse()
     import pyeparse
@@ -76,8 +80,10 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     fname = _check_fname(el)
     levels = np.concatenate(([0.], 2 ** np.arange(8) / 255.))
     n_rep = 2
-    iri = 10.0  # inter-rep interval (allow system to reset)
-    settle_time = 3.0  # amount of time between levels
+    # inter-rep interval (allow system to reset)
+    iri = 10.0 if not el.dummy_mode else 1.0
+    # amount of time between levels
+    settle_time = 3.0 if not el.dummy_mode else 0.3
     fix = FixationDot(ec)
     bgrect = ec.draw_background_color('k')
     fix.draw()
@@ -105,7 +111,8 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
 
     # now we need to parse the data
     if el.dummy_mode:
-        resp = sigmoid(np.tile(levels, n_rep), 1, 2, 0.5, 10)
+        resp = sigmoid(np.tile(levels, n_rep), 1000, 3000, 0.01, -100)
+        resp += np.random.rand(*resp.shape) * 500 - 250
     else:
         # Pull data locally
         raw, events = _load_raw(el, fname)
@@ -115,7 +122,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         idx = epochs.n_times // 2
         resp = np.median(epochs.get_data('ps')[:, idx:], 1)
     bgcolor = np.mean(resp.reshape((n_rep, len(levels))), 0)
-    bgcolor = levels[np.argmin(np.diff(bgcolor))] * np.ones(3)
+    bgcolor = levels[np.argmin(np.diff(bgcolor)) + 1] * np.ones(3)
     logger.info('Pupillometry: optimal background color {0}'.format(bgcolor))
     return bgcolor, np.tile(levels, n_rep), resp
 
@@ -145,13 +152,18 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
         The time points for the response function.
     std_err : array
         The standard error as a function of time.
+
+    Notes
+    -----
+    If ``el.dummy_mode`` is on, the test will run at around 10x the speed.
     """
     _check_pyeparse()
     import pyeparse
 
     # let's do some calculations
-    n_stimuli = 125
-    delay_range = np.array((3.0, 4.0))
+    n_stimuli = 125 if not el.dummy_mode else 10
+    delay_range = (3.0, 4.0) if not el.dummy_mode else (0.3, 0.4)
+    delay_range = np.array(delay_range)
     targ_prop = 0.2
     stim_dur = 50e-3
     f0 = 500.  # Hz
@@ -232,11 +244,12 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
     flip_times = np.array(flip_times)
     tmin = -0.5
     if el.dummy_mode:
-        pk = pyeparse.utils.pupil_kernel(el.fs, delay_range[0] - tmin)
+        pk = pyeparse.utils.pupil_kernel(el.fs, 3.0 - tmin)
         response = np.zeros(len(pk))
         offset = int(el.fs * 0.5)
         response[offset:] = pk[:-offset]
-        std_err = np.ones_like(response) * 0.05 * response.max()
+        std_err = np.ones_like(response) * 0.1 * response.max()
+        std_err += np.random.rand(std_err.size) * 0.1 * response.max()
     else:
         raw, events = _load_raw(el, fname)
         assert len(events) == n_stimuli

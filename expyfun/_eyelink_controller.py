@@ -334,7 +334,6 @@ class EyelinkController(object):
         self._ec.flip()
         logger.info('EyeLink: Completed calibration')
         self._ec.flush()
-        self._toggle_dummy_cursor(True)
         self._start_recording()
         return fname
 

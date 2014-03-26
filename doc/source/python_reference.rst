@@ -66,6 +66,20 @@ Classes:
    Rectangle
    Text
 
+Experiment Code Blocks
+======================
+
+.. currentmodule:: expyfun.codeblocks
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   find_pupil_dynamic_range
+   find_pupil_tone_impulse_response
+
 Analysis
 ========
 
