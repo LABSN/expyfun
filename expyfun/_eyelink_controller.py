@@ -625,7 +625,7 @@ class _Calibrate(super_class):
         return((0, 0), 0)
 
     def alert_printf(self, msg):
-        logger.warn('EyeLink: alert_printf {}'.format(msg))
+        logger.warning('EyeLink: alert_printf {}'.format(msg))
 
     def setup_image_display(self, w, h):
         # convert w, h from pixels to relative units

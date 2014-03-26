@@ -5,7 +5,6 @@
 
 import os
 from os import path as op
-import expyfun
 
 # we are using a setuptools namespace
 import setuptools  # analysis:ignore
@@ -20,8 +19,11 @@ MAINTAINER_EMAIL = 'drmccloy@uw.edu'
 URL = 'http://github.com/LABSN/expyfun'
 LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'http://github.com/LABSN/expyfun'
-VERSION = expyfun.__version__
-
+with open(os.path.join('expyfun', '__init__.py'), 'r') as fid:
+    for line in fid:
+        if '__version__' in line:
+            VERSION = line.strip().split(' = ')[1]
+            break
 
 if __name__ == "__main__":
     if os.path.exists('MANIFEST'):

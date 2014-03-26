@@ -49,9 +49,14 @@ try:
 except NameError:
     string_types = str  # noqa
 try:
-    input = raw_input
+    input = raw_input  # input is raw_input in py3k
 except NameError:
-    pass  # input is raw_input in py3k
+    input = input
+
+try:
+    x = unicode('test')  # noqa
+except NameError:
+    unicode = str
 
 ###############################################################################
 # LOGGING
@@ -565,7 +570,7 @@ def running_rms(signal, win_length):
 def _sanitize(text_like):
     """Cast as string, encode as UTF-8 and sanitize any escape characters.
     """
-    return str(text_like).encode('utf-8').encode('string_escape')
+    return unicode(text_like).encode('unicode_escape').decode('utf-8')
 
 
 ##############################################################################

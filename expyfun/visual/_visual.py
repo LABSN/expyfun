@@ -143,7 +143,7 @@ class _Triangular(object):
         """Draw the object to the display buffer"""
         if self._fill_color is not None:
             color = _replicate_color(self._fill_color, self._points)
-            pyglet.graphics.draw_indexed(len(self._points) / 2,
+            pyglet.graphics.draw_indexed(len(self._points) // 2,
                                          pyglet.gl.GL_TRIANGLES,
                                          self._tris,
                                          ('v2f', self._points),
@@ -155,7 +155,7 @@ class _Triangular(object):
                 gl_cmd = pyglet.gl.GL_LINE_LOOP
             else:
                 gl_cmd = pyglet.gl.GL_LINE_STRIP
-            pyglet.graphics.draw(len(self._line_points) / 2,
+            pyglet.graphics.draw(len(self._line_points) // 2,
                                  gl_cmd,
                                  ('v2f', self._line_points),
                                  ('c4B', color))

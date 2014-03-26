@@ -29,7 +29,8 @@ def test_read_write_wav():
     assert_raises(IOError, write_wav, fname, data, fs)
 
     # test forcing fs dtype to int
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         write_wav(fname, data, float(fs), overwrite=True)
         assert_equal(len(w), 1)
 

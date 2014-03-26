@@ -4,37 +4,60 @@ python:
     - "2.7"
 
 env:
-    - DEPS=full
-    - DEPS=minimal
+    - PYTHON=2.7 DEPS=full    # pandas, pylink (+ necessary Eyelink sofware)
+    - PYTHON=2.7 DEPS=minimal
+    - PYTHON=3.3 DEPS=full _EXPYFUN_SILENT=true  # pandas
+    # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
 
 virtualenv:
     system_site_packages: true
 
 before_install:
-    # Easy dependencies
-    - travis_retry sudo apt-get update -qq;
-    - travis_retry sudo apt-get install -qq -y python-nose python-coverage python-scipy python-matplotlib
-    - travis_retry sudo pip install -q coveralls nose-timer https://pyglet.googlecode.com/files/pyglet-1.2alpha1.zip flake8
-    # pandas & Pylink
-    # Use a custom version of EL software until a patch is released XXX
+    # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
+    # Only use Pulseaudio on 2.7 because on Travis 3.3 causes some strange error...
+    - travis_retry sudo apt-get update -qq
+    - if [ "${PYTHON}" == "2.7" ]; then
+        travis_retry sudo apt-get install -qq -y pulseaudio python-nose python-coverage python-scipy python-matplotlib;
+        dbus-launch pulseaudio --start;
+      else
+        wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh;
+        chmod +x miniconda.sh;
+        ./miniconda.sh -b;
+        export PATH=/home/$USER/anaconda/bin:$PATH;
+        conda update --yes conda;
+        conda create -n testenv --yes --quiet pip python=$PYTHON;
+        source activate testenv;
+        conda install --yes --quiet scipy matplotlib nose;
+      fi;
+    - travis_retry pip install --user -q coveralls nose-timer http://pyglet.googlecode.com/archive/tip.zip flake8
+    # Full dependencies (pandas and Pylink)
+    # We use a custom version of EL software here until a patch is released XXX
     - SRC_DIR=${PWD}
     - cd ~
     - if [ "${DEPS}" == "full" ]; then
-        sudo apt-get install python-pandas;
         wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/pylink4python2.7_linux_x64.tar.gz;
         tar xzf pylink4python2.7_linux_x64.tar.gz;
-        mv pylink4python2.7_linux_x64/pylink2.7 pylink4python2.7_linux_x64/pylink;
-        sudo mv pylink4python2.7_linux_x64/pylink /usr/lib/python2.7/;
+        mv pylink4python2.7_linux_x64/pylink2.7 pylink;
+        if [ "${PYTHON}" == "2.7" ]; then
+          mv pylink ~/.local/lib/python2.7/site-packages;
+          sudo apt-get install -qq -y python-pandas;
+        else
+          mv pylink /home/$USER/anaconda/site-packages;
+          conda install --yes --quiet pandas;
+        fi;
         echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list;
         echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list;
         travis_retry sudo apt-get update -qq;
         travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg;
-
         wget --no-check-certificate https://lester.ilabs.uw.edu/expyfun/libeyelink.tar.gz;
         tar xzf libeyelink.tar.gz;
         sudo mv ${PWD}/lib/*so* /usr/lib;
-        sudo ldconfig;
       fi;
+    - sudo ldconfig;
+    # We need to create a (fake) display on Travis, let's use a funny resolution
+    # This must be done before importing expyfun, since Pyglet needs it
+    - export DISPLAY=:99.0
+    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
 
 install:
     - cd ${SRC_DIR}
@@ -46,23 +69,20 @@ install:
     # Link coverage to src dir, coveralls should be run from there (needs git calls)
     - ln -s ${EXPYFUN_DIR}/../.coverage ${SRC_DIR}/.coverage
 
-before_script:
-    # We need to create a (fake) display on Travis, let's use a funny resolution
-    - export DISPLAY=:99.0
-    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-    # Now we start jackd: no realtime, dummy mode
-    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jack.pid --make-pidfile --background --exec /usr/bin/jackd -- --silent --no-mlock --no-realtime -d dummy
-
 script:
     - cd ${EXPYFUN_DIR}/../
-    - nosetests --with-timer --timer-top-n=5
+    - if [ "${PYTHON}" == "2.7" ]; then
+        nosetests --with-timer --timer-top-n=5;
+      else
+        nosetests;
+      fi
     # Test pyflakes/PEP8
     - cd ${SRC_DIR}
     - make flake
 
-after_script:
-    # Only on success do this
-    - if [ "${TRAVIS_TEST_RESULT}" == "0" ] && [ "${DEPS}" == "full" ]; then
+after_success:
+    # Need to run from source dir to execute appropriate "git" commands
+    - if [ "${PYTHON}" == "2.7" ] && [ "${DEPS}" == "full" ]; then
         cd ${SRC_DIR};
         coveralls;
       fi;

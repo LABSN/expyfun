@@ -35,7 +35,7 @@ def test_barplot():
     ea.barplot(tmp2, lines=True, ylim=(0, 2), err_bars='se')
     ea.barplot(tmp2, groups=[[0, 1], [2, 3]], err_bars='ci',
                group_names=['foo', 'bar'])
-    extns = ['eps', 'jpg', 'pdf', 'png', 'raw', 'svg', 'tif']
+    extns = ['eps', 'pdf', 'png', 'raw', 'svg']  # jpg, tif not supported
     for ext in extns:
         fname = op.join(temp_dir, 'temp.' + ext)
         ea.barplot(tmp2, groups=[[0, 1, 2], [3]], err_bars='sd', fname=fname)

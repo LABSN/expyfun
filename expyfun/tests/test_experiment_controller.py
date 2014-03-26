@@ -169,7 +169,6 @@ def test_ec(ac=None):
         ec.clear_buffer()
         ec.set_noise_db(0)
         ec.set_stim_db(20)
-        ec.draw_background_color('black')
         # test buffer data handling
         ec.load_buffer([0, 0, 0, 0, 0, 0])
         assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
@@ -194,7 +193,8 @@ def test_ec(ac=None):
         ec.load_buffer(click)  # should go unchecked
         ec.load_buffer(noise)  # should go unchecked
         ec.set_rms_checking('wholefile')
-        with warnings.catch_warnings(True) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             ec.load_buffer(click)  # should pass
             assert_equal(len(w), 0)
             ec.load_buffer(noise)
@@ -271,6 +271,7 @@ def test_visual(ac=None):
         line.draw()
         assert_raises(ValueError, line.set_coords, [0])
         line.set_coords([0, 1])
+        ec.draw_background_color('black')
 
 
 @interactive_test

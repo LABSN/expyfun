@@ -21,7 +21,8 @@ def test_logging(ac='pyglet'):
         test_name = ec._log_file
         stamp = ec.current_time
         ec.wait_until(stamp)  # wait_until called with already passed timestamp
-        with warnings.catch_warnings(True):
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always')
             ec.load_buffer([1., -1., 1., -1., 1., -1.])  # RMS warning
 
     with open(test_name) as fid:

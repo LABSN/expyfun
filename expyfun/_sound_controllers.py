@@ -9,15 +9,20 @@ import numpy as np
 from scipy import fftpack
 import sys
 import pyglet
-
+import os
+_linux = ('silent',) if os.getenv('_EXPYFUN_SILENT') == 'true' else ('pulse',)
+_opts_dict = dict(linux2=_linux,
+                  win32=('directsound',),
+                  darwin=('openal',))
+_opts_dict['linux'] = _opts_dict['linux2']  # new name on Py3k
+pyglet.options['audio'] = _opts_dict[sys.platform]
+from pyglet.media import StreamingSource, AudioFormat, AudioData, Player
 from ._utils import logger, flush_logger
 
 
-from pyglet.media import StreamingSource, AudioFormat, AudioData, Player
-
-_opts_dict = dict(linux2=('pulse',),
-                  win32=('directsound',))
-pyglet.options['audio'] = _opts_dict.get(sys.platform, ('openal',))
+def _check_pyglet_audio():
+    if pyglet.media.get_audio_driver() is None:
+        raise SystemError('pyglet audio could not be initialized')
 
 
 class SoundSource(StreamingSource):
@@ -68,12 +73,7 @@ class SoundPlayer(Player):
         self.seek(0.)
 
 
-def _check_pyglet_audio():
-    if pyglet.media.get_audio_driver() is None:
-        raise SystemError('pyglet audio could not be initialized')
-
-
-class PygletSound(object):
+class PygletSoundController(object):
     """Use pyglet audio capabilities"""
     def __init__(self, ec, stim_fs):
         logger.info('Expyfun: Setting up Pyglet audio')
