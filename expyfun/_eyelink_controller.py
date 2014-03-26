@@ -78,8 +78,6 @@ class EyelinkController(object):
         If 'default', the default value will be read from EXPYFUN_EYELINK.
         If None, dummy (simulation) mode will be used. If str, should be
         the network location of eyelink (e.g., "100.1.1.1").
-    output_dir : str | None
-        Directory to store the output files in. If None, will use CWD.
     fs : int
         Sample rate to use. Must be one of [250, 500, 1000, 2000].
     verbose : bool, str, int, or None
@@ -89,17 +87,23 @@ class EyelinkController(object):
     -------
     el_controller : instance of EyelinkController
         The Eyelink control interface.
+
+    Notes
+    -----
+    The data will be saved to the ExperimentController ``output_dir``.
+    If this was `None`, data will be saved to the current working dir.
     """
     @verbose_dec
-    def __init__(self, ec, output_dir=None, link='default', fs=1000,
-                 verbose=None):
+    def __init__(self, ec, link='default', fs=1000, verbose=None):
         if pylink is None:
             raise ImportError('Could not import pylink, please ensure it '
                               'is installed correctly')
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
-        if fs not in [250, 500, 1000, 2000]:
-            raise ValueError('fs must be 250, 500, 1000, or 2000')
+        valid_fs = (250, 500, 1000, 2000)
+        if fs not in valid_fs:
+            raise ValueError('fs must be one of {0}'.format(list(valid_fs)))
+        output_dir = ec._output_dir
         if output_dir is None:
             output_dir = os.getcwd()
         if not isinstance(output_dir, string_types):
@@ -406,10 +410,11 @@ class EyelinkController(object):
             The filename on the local machine following the transfer.
         """
         fname = op.join(self.output_dir, '{0}.edf'.format(remote_name))
-        logger.info('Eyelink: saving Eyelink file: {0}'.format(remote_name))
+        logger.info('Eyelink: saving Eyelink file: {0} ...'
+                    ''.format(remote_name))
         with HideOutput():
             status = self.eyelink.receiveDataFile(remote_name, fname)
-        logger.info('Eyelink: saved wtih status {0}'.format(status))
+        logger.info('Eyelink: transferred {0} bytes'.format(status))
         return fname
 
     def close(self):

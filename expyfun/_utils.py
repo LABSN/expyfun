@@ -187,7 +187,7 @@ def date_str():
     datestr : str
         The date string.
     """
-    return str(datetime.datetime.today())
+    return str(datetime.datetime.today()).replace(':', '_')
 
 
 class WrapStdOut(object):

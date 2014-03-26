@@ -1,6 +1,5 @@
 from nose.tools import assert_raises, assert_true
 import warnings
-from os import path as op
 
 from expyfun import EyelinkController, ExperimentController
 from expyfun._utils import _TempDir, requires_pylink, _hide_window
@@ -19,15 +18,15 @@ def test_eyelink_methods():
     """Test EL methods
     """
     ec = ExperimentController(*std_args, **std_kwargs)
-    assert_raises(TypeError, EyelinkController, ec, output_dir=1)
-    assert_raises(ValueError, EyelinkController, ec, fs=999,
-                  output_dir=temp_dir)
-    el = EyelinkController(ec, output_dir=op.join(temp_dir, 'test'))
+    assert_raises(ValueError, EyelinkController, ec, fs=999)
+    el = EyelinkController(ec)
     assert_raises(RuntimeError, EyelinkController, ec)  # can't have two open
     assert_raises(TypeError, el.custom_calibration, 'blah')
     assert_raises(KeyError, el.custom_calibration, dict(me='hey'))
     assert_raises(ValueError, el.custom_calibration, dict(type='hey'))
     el.custom_calibration(dict(type='HV5', h_pix=10, v_pix=10))
+    el._open_file()
+    el._start_recording()
     el.get_eye_position()
     assert_raises(ValueError, el.wait_for_fix, [1])
     x = el.wait_for_fix([-10000, -10000], max_wait=0.1)

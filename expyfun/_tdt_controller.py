@@ -78,7 +78,7 @@ class TDTController(Keyboard):
 
         if tdt_params['TDT_CIRCUIT_PATH'] is None and self._model != 'dummy':
             cl = dict(RM1='RM1', RP2='RM1', RZ6='RZ6')
-            self._circuit = op.join(op.split(__file__)[0], 'tdt-circuits',
+            self._circuit = op.join(op.dirname(__file__), 'data',
                                     'expCircuitF32_' + cl[self._model] +
                                     '.rcx')
         else:

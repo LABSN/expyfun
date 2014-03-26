@@ -56,8 +56,8 @@ class ExperimentController(object):
     output_dir : str | None
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be
-        created. If None, no output data or logs will be saved
-        (ONLY FOR TESTING!).
+        created. Data will be saved to ``output_dir/SUBJECT_DATE``.
+        If None, no output data or logs will be saved (ONLY FOR TESTING!).
     window_size : list | array | None
         Window size to use. If list or array, it must have two elements.
         If None, the default will be read from the system config,
@@ -168,6 +168,9 @@ class ExperimentController(object):
             #
             # initialize log file
             #
+            self._output_dir = None
+            set_log_file(None)
+            self._data_file = None
             if output_dir is not None:
                 output_dir = op.abspath(output_dir)
                 if not op.isdir(output_dir):
@@ -175,16 +178,14 @@ class ExperimentController(object):
                 basename = op.join(output_dir, '{}_{}'
                                    ''.format(self._exp_info['participant'],
                                              self._exp_info['date']))
-                self._log_file = basename + '.log'
+                self._output_dir = basename
+                self._log_file = self._output_dir + '.log'
                 set_log_file(self._log_file)
                 # initialize data file
-                self._data_file = open(basename + '.tab', 'a')
+                self._data_file = open(self._output_dir + '.tab', 'a')
                 self._extra_cleanup_fun.append(self._data_file.close)
                 self._data_file.write('# ' + str(self._exp_info) + '\n')
                 self.write_data_line('event', 'value', 'timestamp')
-            else:
-                set_log_file(None)
-                self._data_file = None
 
             #
             # set up monitor
@@ -712,6 +713,11 @@ class ExperimentController(object):
         # set color shading (FLAT or SMOOTH)
         gl.glShadeModel(gl.GL_SMOOTH)
         gl.glEnable(gl.GL_POINT_SMOOTH)
+        gl.glEnable(gl.GL_LINE_SMOOTH)
+        # gl.glEnable(gl.GL_POLY_SMOOTH_ done in visual only for certain types
+        gl.glHint(gl.GL_POINT_SMOOTH_HINT, gl.GL_NICEST)
+        gl.glHint(gl.GL_LINE_SMOOTH_HINT, gl.GL_NICEST)
+        gl.glHint(gl.GL_POLYGON_SMOOTH_HINT, gl.GL_NICEST)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
         win.set_visible(v_)

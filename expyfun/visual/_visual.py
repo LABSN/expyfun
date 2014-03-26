@@ -96,12 +96,14 @@ class Text(object):
 
 class _Triangular(object):
     """Super class for objects that use trianglulations and/or lines"""
-    def __init__(self, ec, fill_color, line_color, line_width, line_loop):
+    def __init__(self, ec, fill_color, line_color, line_width, line_loop,
+                 poly_smooth=False):
         self._ec = ec
         self.set_fill_color(fill_color)
         self.set_line_color(line_color)
         self._line_width = line_width
         self._line_loop = line_loop  # whether or not lines drawn are looped
+        self._poly_smooth = poly_smooth
 
     def set_fill_color(self, fill_color):
         """Set the object color
@@ -145,6 +147,8 @@ class _Triangular(object):
 
     def draw(self):
         """Draw the object to the display buffer"""
+        fun = gl.glEnable if self._poly_smooth else gl.glDisable
+        fun(gl.GL_POLYGON_SMOOTH)
         if self._fill_color is not None:
             color = _replicate_color(self._fill_color, self._points)
             pyglet.graphics.draw_indexed(len(self._points) // 2,
@@ -309,7 +313,7 @@ class Circle(_Triangular):
                  line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
                              line_color=line_color, line_width=line_width,
-                             line_loop=True)
+                             line_loop=True, poly_smooth=True)
         if not isinstance(n_edges, int):
             raise TypeError('n_edges must be an int')
         if n_edges < 4:

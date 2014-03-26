@@ -114,11 +114,11 @@ def test_data_line():
 def test_tdt():
     """Test EC with TDT
     """
-    test_ec('tdt')
+    test_ec('tdt', 'tdt')
 
 
 @_hide_window
-def test_ec(ac=None):
+def test_ec(ac=None, rd=None):
     """Test EC methods
     """
     if ac is None:
@@ -149,12 +149,15 @@ def test_ec(ac=None):
 
         # run rest of test with audio_controller == 'pyglet'
         this_ac = 'pyglet'
+        this_rd = 'keyboard'
         this_fs = 44100
     else:
         # run rest of test with audio_controller == 'tdt'
         this_ac = ac
+        this_rd = rd
         this_fs = 24414
     with ExperimentController(*std_args, audio_controller=this_ac,
+                              response_device=this_rd,
                               stim_fs=this_fs, **std_kwargs) as ec:
         stamp = ec.current_time
         ec.write_data_line('hello')

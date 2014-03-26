@@ -17,7 +17,7 @@ def test_logging(ac='pyglet'):
     """
     os.chdir(tempdir)
     with ExperimentController(*std_args, audio_controller=ac,
-                              **std_kwargs) as ec:
+                              response_device='keyboard', **std_kwargs) as ec:
         test_name = ec._log_file
         stamp = ec.current_time
         ec.wait_until(stamp)  # wait_until called with already passed timestamp
