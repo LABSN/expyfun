@@ -129,7 +129,7 @@ class Keyboard(object):
         relative_to, start_time = self._init_wait_press(max_wait, min_wait,
                                                         live_keys, timestamp,
                                                         relative_to)
-
+        pressed = []
         while (self.master_clock() - start_time < max_wait):
             pressed = self._retrieve_events(live_keys)
         return self._correct_presses(pressed, timestamp, relative_to)
