@@ -93,7 +93,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         ec.wait_secs(iri)
         for ii, lev in enumerate(levels):
             ec.identify_trial(ec_id='FPDR_%02i' % (ii + 1),
-                              el_id=(ii + 1), ttl_id=())
+                              el_id=[ii + 1], ttl_id=())
             bgrect.set_fill_color(np.ones(3) * lev)
             bgrect.draw()
             fix.draw()

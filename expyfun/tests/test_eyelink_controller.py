@@ -39,7 +39,7 @@ def test_eyelink_methods():
     el._fake_calibration = False
     # missing el_id
     assert_raises(KeyError, ec.identify_trial, ec_id='foo', ttl_id=[0])
-    ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=1)
+    ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=[1])
     ec.flip_and_play()
     ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=[1, 1])
     ec.flip_and_play()

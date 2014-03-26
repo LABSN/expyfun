@@ -45,7 +45,7 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     big_circ.draw()
     targ_circ.draw()
     screenshot = ec.screenshot()
-    ec.identify_trial(ec_id='Circle', ttl_id=[0, 0], el_id=[0, 0])
+    ec.identify_trial(ec_id='Circle', ttl_id=[0], el_id=[0])
     ec.flip_and_play()  # automatically stamps to EL
     if not el.wait_for_fix(fix_pos, 1., max_wait=5., units='deg'):
         print('Initial fixation failed')
