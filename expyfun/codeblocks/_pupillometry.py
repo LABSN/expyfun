@@ -146,22 +146,9 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
     """
     _check_pyeparse()
     import pyeparse
-    if prompt:
-        ec.screen_prompt('We will now determine the response of your pupil '
-                         'to sound changes.<br><br>Count the number of times '
-                         'you hear the tone "wobble" instead of staying '
-                         'constant.<br><br>Press a button to continue.')
-    fname = _check_fname(el)
 
-    # let's put the initial color up to allow the system to settle
-    ec.clear_buffer()
-    bgrect = ec.draw_background_color(bgcolor)
-    fix = FixationDot(ec)
-    fix.draw()
-    ec.flip()
-
-    # now let's do some calculations
-    n_stimuli = 125
+    # let's do some calculations
+    n_stimuli = 25
     delay_range = np.array((3.0, 4.0))
     targ_prop = 0.2
     stim_dur = 50e-3
@@ -193,6 +180,33 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
     tone_stim *= (ec._stim_rms * np.sqrt(2)) * window
     sweep_stim *= (ec._stim_rms * np.sqrt(2)) * window
 
+    if prompt:
+        ec.screen_prompt('We will now determine the response of your pupil '
+                         'to sound changes.<br><br>Your job is to press the'
+                         'repsonse button as quickly as possible when you '
+                         'hear a "wobble" instead of a "beep".<br><br>'
+                         'Press a button to hear the "beep".')
+        ec.load_buffer(tone_stim)
+        ec.play()
+        ec.wait_secs(0.5)
+        ec.stop()
+        ec.screen_prompt('Now press a button to hear the "wobble".')
+        ec.load_buffer(sweep_stim)
+        ec.play()
+        ec.wait_secs(0.5)
+        ec.stop()
+        ec.screen_prompt('Remember to press the button as quickly as possible'
+                         'following each "wobble" sound.<br><br>'
+                         'Press the response button to continue.')
+    fname = _check_fname(el)
+
+    # let's put the initial color up to allow the system to settle
+    ec.clear_buffer()
+    bgrect = ec.draw_background_color(bgcolor)
+    fix = FixationDot(ec)
+    fix.draw()
+    ec.flip()
+
     ec.wait_secs(3.0)
     flip_times = list()
     presses = list()
@@ -222,7 +236,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
         assert len(events) == n_stimuli
         epochs = pyeparse.Epochs(raw, events, 1,
                                  tmin=tmin, tmax=delay_range[0])
-        response = np.reshape(epochs.pupil_zscores())
+        response = epochs.pupil_zscores()
         assert response.shape[0] == n_stimuli
         response = np.mean(response[~targs], axis=0)
     t = np.arange(len(response)).astype(float) / el.fs + tmin
