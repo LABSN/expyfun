@@ -21,7 +21,7 @@ from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      string_types, input)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
-from ._sound_controllers import PyoSound
+from ._sound_controllers import PygletSound
 from ._input_controllers import Keyboard, Mouse
 from .visual import Text, Rectangle
 
@@ -35,9 +35,9 @@ class ExperimentController(object):
         Name of the experiment.
     audio_controller : str | dict | None
         If audio_controller is None, the type will be read from the system
-        configuration file. If a string, can be 'pyo' or 'tdt', and the
+        configuration file. If a string, can be 'pyglet' or 'tdt', and the
         remaining audio parameters will be read from the machine configuration
-        file. If a dict, must include a key 'TYPE' that is either 'pyo'
+        file. If a dict, must include a key 'TYPE' that is either 'pyglet'
         or 'tdt'; the dict can contain other parameters specific to the TDT
         (see documentation for expyfun.TDTController).
     response_device : str | None
@@ -218,14 +218,14 @@ class ExperimentController(object):
         #
         if audio_controller is None:
             audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
-                                                   'pyo')}
+                                                   'pyglet')}
         elif isinstance(audio_controller, string_types):
-            if audio_controller.lower() in ['pyo', 'tdt']:
+            if audio_controller.lower() in ['pyglet', 'tdt']:
                 audio_controller = {'TYPE': audio_controller.lower()}
             else:
-                raise ValueError('audio_controller must be \'pyo\' or '
+                raise ValueError('audio_controller must be \'pyglet\' or '
                                  '\'tdt\' (or a dict including \'TYPE\':'
-                                 ' \'pyo\' or \'TYPE\': \'tdt\').')
+                                 ' \'pyglet\' or \'TYPE\': \'tdt\').')
         elif not isinstance(audio_controller, dict):
             raise TypeError('audio_controller must be a str or dict.')
         self._audio_type = audio_controller['TYPE'].lower()
@@ -252,11 +252,11 @@ class ExperimentController(object):
             self._ac = TDTController(audio_controller, self, as_kb, force_quit)
             self._audio_type = self._ac.model
             self._tdt_init = True
-        elif self._audio_type == 'pyo':
-            self._ac = PyoSound(self, self.stim_fs)
+        elif self._audio_type == 'pyglet':
+            self._ac = PygletSound(self, self.stim_fs)
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
-                             '\'pyo\' or \'tdt\'.')
+                             '\'pyglet\' or \'tdt\'.')
         # audio scaling factor; ensure uniform intensity across output devices
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
@@ -1270,7 +1270,7 @@ def _get_dev_db(audio_controller):
         return 108
     elif audio_controller == 'RZ6':
         return 114
-    elif audio_controller == 'pyo':
+    elif audio_controller == 'pyglet':
         return 90  # TODO: this value not yet calibrated, may vary by system
     elif audio_controller == 'dummy':  # only used for testing
         return 90

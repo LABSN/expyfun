@@ -9,11 +9,11 @@ warnings.simplefilter('always')
 tempdir = _TempDir()
 std_args = ['test']
 std_kwargs = dict(participant='foo', session='01', full_screen=False,
-                  window_size=(1, 1), verbose=True)
+                  window_size=(1, 1), verbose=True, noise_db=0)
 
 
-def test_logging(ac='pyo'):
-    """Test logging to file (Pyo)
+def test_logging(ac='pyglet'):
+    """Test logging to file (Pyglet)
     """
     os.chdir(tempdir)
     with ExperimentController(*std_args, audio_controller=ac,
@@ -30,8 +30,8 @@ def test_logging(ac='pyo'):
     # check for various expected log messages (TODO: add more)
     should_have = ['Subject: foo', 'Session: 01', 'wait_until was called',
                    'Stimulus max RMS (']
-    if ac == 'pyo':
-        should_have.append('Pyo')
+    if ac == 'pyglet':
+        should_have.append('Pyglet')
     else:
         should_have.append('TDT')
 

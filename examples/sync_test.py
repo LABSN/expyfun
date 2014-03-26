@@ -18,7 +18,7 @@ import numpy as np
 from expyfun import ExperimentController
 import expyfun.analyze as ea
 
-ac = 'pyo'
+ac = 'pyglet'
 stim_fs = 44100
 #ac = dict(TYPE='tdt', TDT_MODEL='RM1')
 #stim_fs = 24414
