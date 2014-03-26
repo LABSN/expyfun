@@ -12,7 +12,7 @@ else:
     connect_rpcox, connect_zbus = None, None
 
 
-from ._utils import get_config, wait_secs, logger
+from ._utils import get_config, wait_secs, logger, ZeroClock
 from ._input_controllers import Keyboard
 
 
@@ -32,6 +32,15 @@ class DummyRPcoX(object):
                    24414.0125, 0.0, True, True, True]
         for name, ret in zip(names, returns):
             setattr(self, name, partial(_dummy_fun, self, name, ret))
+        self._clock = ZeroClock()
+
+    def GetTagVal(self, name):
+        if name == 'masterclock':
+            return self._clock.get_time()
+        elif name == 'npressabs':
+            return 0
+        else:
+            raise ValueError('unknown tag "{0}"'.format(name))
 
 
 class TDTController(Keyboard):
