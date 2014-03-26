@@ -105,7 +105,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
 
     # now we need to parse the data
     if el.dummy_mode:
-        resp = sigmoid(levels, 1, 2, 0.5, 10)
+        resp = sigmoid(np.tile(levels, n_rep), 1, 2, 0.5, 10)
     else:
         # Pull data locally
         raw, events = _load_raw(el, fname)
@@ -114,8 +114,8 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         assert len(epochs) == len(levels) * n_rep
         idx = epochs.n_times // 2
         resp = np.median(epochs.get_data('ps')[:, idx:], 1)
-        resp = np.mean(resp.reshape((n_rep, len(levels))), 0)
-    bgcolor = levels[np.argmin(np.diff(resp))] * np.ones(3)
+    bgcolor = np.mean(resp.reshape((n_rep, len(levels))), 0)
+    bgcolor = levels[np.argmin(np.diff(bgcolor))] * np.ones(3)
     logger.info('Pupillometry: optimal background color {0}'.format(bgcolor))
     return bgcolor, np.tile(levels, n_rep), resp
 
@@ -143,12 +143,14 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
         The pupil response function to sound.
     t : array
         The time points for the response function.
+    std_err : array
+        The standard error as a function of time.
     """
     _check_pyeparse()
     import pyeparse
 
     # let's do some calculations
-    n_stimuli = 25
+    n_stimuli = 125
     delay_range = np.array((3.0, 4.0))
     targ_prop = 0.2
     stim_dur = 50e-3
@@ -180,6 +182,8 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
     tone_stim *= (ec._stim_rms * np.sqrt(2)) * window
     sweep_stim *= (ec._stim_rms * np.sqrt(2)) * window
 
+    ec.stop()
+    ec.clear_buffer()
     if prompt:
         ec.screen_prompt('We will now determine the response of your pupil '
                          'to sound changes.<br><br>Your job is to press the'
@@ -187,21 +191,22 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
                          'hear a "wobble" instead of a "beep".<br><br>'
                          'Press a button to hear the "beep".')
         ec.load_buffer(tone_stim)
+        ec.wait_secs(0.5)
         ec.play()
         ec.wait_secs(0.5)
         ec.stop()
         ec.screen_prompt('Now press a button to hear the "wobble".')
         ec.load_buffer(sweep_stim)
+        ec.wait_secs(0.5)
         ec.play()
         ec.wait_secs(0.5)
         ec.stop()
-        ec.screen_prompt('Remember to press the button as quickly as possible'
-                         'following each "wobble" sound.<br><br>'
+        ec.screen_prompt('Remember to press the button as quickly as '
+                         'possible following each "wobble" sound.<br><br>'
                          'Press the response button to continue.')
     fname = _check_fname(el)
 
     # let's put the initial color up to allow the system to settle
-    ec.clear_buffer()
     bgrect = ec.draw_background_color(bgcolor)
     fix = FixationDot(ec)
     fix.draw()
@@ -231,6 +236,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
         response = np.zeros(len(pk))
         offset = int(el.fs * 0.5)
         response[offset:] = pk[:-offset]
+        std_err = np.ones_like(response) * 0.05 * response.max()
     else:
         raw, events = _load_raw(el, fname)
         assert len(events) == n_stimuli
@@ -238,6 +244,8 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
                                  tmin=tmin, tmax=delay_range[0])
         response = epochs.pupil_zscores()
         assert response.shape[0] == n_stimuli
+        std_err = np.std(response[~targs], axis=0)
+        std_err /= np.sqrt(np.sum(~targs))
         response = np.mean(response[~targs], axis=0)
     t = np.arange(len(response)).astype(float) / el.fs + tmin
-    return response, t
+    return response, t, std_err
