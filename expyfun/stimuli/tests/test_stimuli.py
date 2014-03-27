@@ -1,8 +1,9 @@
 import numpy as np
 from os import path as op
 import warnings
-from nose.tools import assert_raises, assert_equal
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from nose.tools import assert_raises, assert_equal, assert_true
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose)
 
 from expyfun._utils import _TempDir, _has_scipy_version
 from expyfun.stimuli import (read_wav, write_wav, rms, play_sound,
