@@ -232,7 +232,7 @@ class ExperimentController(object):
                 else:
                     raise ValueError('audio_controller must be \'pyglet\' or '
                                      '\'tdt\' (or a dict including \'TYPE\':'
-                                     ' \'pyo\' or \'TYPE\': \'tdt\').')
+                                     ' \'pyglet\' or \'TYPE\': \'tdt\').')
             elif not isinstance(audio_controller, dict):
                 raise TypeError('audio_controller must be a str or dict.')
             self._audio_type = audio_controller['TYPE'].lower()
@@ -256,11 +256,11 @@ class ExperimentController(object):
                 logger.info('Expyfun: Setting up TDT')
                 self._ac = TDTController(audio_controller)
                 self._audio_type = self._ac.model
-            elif self._audio_type == 'pyo':
-                self._ac = PyoSound(self, self.stim_fs)
+            elif self._audio_type == 'pyglet':
+                self._ac = PygletSoundController(self, self.stim_fs)
             else:
                 raise ValueError('audio_controller[\'TYPE\'] must be '
-                                 '\'pyo\' or \'tdt\'.')
+                                 '\'pyglet\' or \'tdt\'.')
             self._extra_cleanup_fun.append(self._ac.halt)
             # audio scaling factor; ensure uniform intensity across devices
             self.set_stim_db(self._stim_db)
