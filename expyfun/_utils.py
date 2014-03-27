@@ -105,7 +105,7 @@ def set_log_level(verbose=None, return_old_level=False):
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if not verbose in logging_types:
+        if verbose not in logging_types:
             raise ValueError('verbose must be of a valid type')
         verbose = logging_types[verbose]
 
@@ -488,7 +488,7 @@ def set_config(key, value):
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, string_types) and value is not None:
         raise ValueError('value must be a string or None')
-    if not key in known_config_types and not \
+    if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warnings.warn('Setting non-standard config type: "%s"' % key)
 

@@ -37,7 +37,7 @@ def test_logging(ac='pyglet'):
         should_have.append('TDT')
 
     for s in should_have:
-        if not s in data:
+        if s not in data:
             raise ValueError('Missing data: "{0}" in:\n{1}'.format(s, data))
 
 

@@ -450,11 +450,11 @@ class EyelinkController(object):
                                                   allowed_types))
 
         if params['type'] == 'HV5':
-            if not 'h_pix' in params:
+            if 'h_pix' not in params:
                 h_pix = self._size[0] * 2. / 3.
             else:
                 h_pix = params['h_pix']
-            if not 'v_pix' in params:
+            if 'v_pix' not in params:
                 v_pix = self._size[1] * 2. / 3.
             else:
                 v_pix = params['v_pix']
