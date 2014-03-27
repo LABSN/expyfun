@@ -29,8 +29,8 @@ before_install:
         source activate testenv;
         conda install --yes --quiet scipy matplotlib nose;
       fi;
-    - travis_retry pip install --user nose-timer http://pyglet.googlecode.com/archive/tip.zip flake8
-    - travis_retry sudo pip install coveralls
+    - travis_retry pip install --user -q nose-timer http://pyglet.googlecode.com/archive/tip.zip flake8
+    - travis_retry sudo pip install -q coveralls
     # Full dependencies (pandas and Pylink)
     # We use a custom version of EL software here until a patch is released XXX
     - SRC_DIR=${PWD}
