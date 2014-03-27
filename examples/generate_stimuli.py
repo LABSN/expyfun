@@ -3,7 +3,8 @@
 Generate sample stimuli
 =======================
 
-This shows how to generate some simple stimuli.
+This shows how to generate some simple stimuli. It will also play a couple
+of sample stimuli.
 """
 
 print(__doc__)
@@ -12,6 +13,7 @@ from os import path as op
 import numpy as np
 from scipy.io import savemat, wavfile
 from expyfun._tdt_controller import get_tdt_rates
+from expyfun.stimuli import play_sound
 
 
 def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
@@ -111,3 +113,4 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     plt.ion()
     plt.plot(wav_dict['stim_0_500'][:1000])
+    play_sound(wav_dict['stim_0_500'])

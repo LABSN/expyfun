@@ -7,7 +7,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 
 from expyfun._utils import _TempDir, _has_scipy_version
 from expyfun.stimuli import (read_wav, write_wav, rms, play_sound,
-                             convolve_hrtf)
+                             convolve_hrtf, window_edges)
 
 warnings.simplefilter('always')
 
@@ -108,3 +108,19 @@ def test_play_sound():
     """
     data = np.zeros((2, 100))
     play_sound(data).stop()
+    play_sound(data[0], norm=False, wait=True)
+    assert_raises(ValueError, play_sound, data[:, :, np.newaxis])
+
+
+def test_window_edges():
+    """Test windowing signal edges
+    """
+    sig = np.ones((2, 1000))
+    fs = 44100
+    assert_raises(ValueError, window_edges, sig, fs, window='foo')  # bad win
+    assert_raises(RuntimeError, window_edges, sig, fs, dur=1.0)  # too long
+    assert_raises(ValueError, window_edges, sig, fs, edges='foo')  # bad type
+    x = window_edges(sig, fs, edges='leading')
+    y = window_edges(sig, fs, edges='trailing')
+    z = window_edges(sig, fs)
+    assert_allclose(x + y, z + 1)
