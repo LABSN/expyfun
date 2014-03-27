@@ -155,7 +155,7 @@ class ExperimentController(object):
 
             # session start dialog, if necessary
             fixed_list = ['exp_name', 'date']  # things not editable in GUI
-            for key, value in self._exp_info.iteritems():
+            for key, value in self._exp_info.items():
                 if key not in fixed_list and value is not None:
                     if not isinstance(value, string_types):
                         raise TypeError('{} must be string or None'
