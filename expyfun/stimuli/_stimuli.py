@@ -135,7 +135,7 @@ def play_sound(sound, fs=44100, norm=True):
     if sound.ndim != 2:
         raise ValueError('sound must be 1- or 2-dimensional')
     if norm:
-        m = np.abs(sound).max()
+        m = np.abs(sound).max() * 1.000001
         m = m if m != 0 else 1
         sound /= m
     if np.abs(sound).max() > 1.:
