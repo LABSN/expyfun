@@ -140,8 +140,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         pleasing to the eye (``True``).
     fname : str | None
         Path and name of output file. Type is inferred from ``fname`` and
-        should work for any of the types supported by pyplot (pdf, ps, eps,
-        svg, pgf, png, jpg, tiff, bmp)
+        should work for any of the types supported by pyplot (pdf, eps,
+        svg, png, raw).
     ax : matplotlib.pyplot.axes | None
         A ``matplotlib.pyplot.axes`` instance.  If none, a new figure with a
         single subplot will be created.
