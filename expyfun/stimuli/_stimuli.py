@@ -6,6 +6,7 @@ import numpy as np
 from scipy.io import wavfile
 from os import path as op
 
+from .._sound_controllers import SoundPlayer
 from .._utils import verbose_dec, logger, _has_scipy_version
 
 
@@ -89,8 +90,8 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
                       'used'.format(op.basename(fname)))
     if not np.dtype(type(fs)).kind == 'i':
         fs = int(fs)
-        warnings.warn('Warning: sampling rate is being cast to integer and may'
-                      ' be truncated.')
+        warnings.warn('Warning: sampling rate is being cast to integer and '
+                      'may be truncated.')
     data = np.atleast_2d(data)
     if np.dtype(dtype).kind not in ['i', 'f']:
         raise TypeError('dtype must be integer or float')
@@ -102,9 +103,43 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
         raise RuntimeError('Writing 64-bit integers is not supported')
     if np.dtype(data.dtype).kind == 'f':
         if np.dtype(dtype).kind == 'i' and np.max(np.abs(data)) > 1.:
-            raise ValueError('Data must be between -1 and +1 when saving'
+            raise ValueError('Data must be between -1 and +1 when saving '
                              'with an integer dtype')
     _print_wav_info('Writing', data, data.dtype)
     max_val = _get_dtype_norm(dtype)
     data = (data * max_val).astype(dtype)
     wavfile.write(fname, fs, data.T)
+
+
+def play_sound(sound, fs=44100, norm=True):
+    """Play a sound
+
+    Parameters
+    ----------
+    sound : array
+        1D or 2D array of sound values.
+    fs : int
+        Sample rate.
+    norm : bool
+        If True, normalize sound to between -1 and +1.
+
+    Returns
+    -------
+    snd : instance of SoundPlayer
+        The object playing sound. Can use "stop" to stop playback.
+    """
+    sound = np.array(sound)
+    fs = int(fs)
+    if sound.ndim == 1:  # make it stereo
+        sound = np.array((sound, sound))
+    if sound.ndim != 2:
+        raise ValueError('sound must be 1- or 2-dimensional')
+    if norm:
+        m = np.abs(sound).max() * 1.000001
+        m = m if m != 0 else 1
+        sound /= m
+    if np.abs(sound).max() > 1.:
+        warnings.warn('Sound exceeds +/-1, will clip')
+    snd = SoundPlayer(sound, fs)
+    snd.play()  # will clip as necessary
+    return snd

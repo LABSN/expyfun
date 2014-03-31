@@ -16,7 +16,8 @@ def test_dprime():
     """Test dprime and dprime_2afc accuracy
     """
     assert_raises(TypeError, ea.dprime, 'foo', 0, 0, 0)
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         ea.dprime((1.1, 0, 0, 0))
     assert_equal(len(w), 1)
     assert_equal(0, ea.dprime((1, 0, 1, 0)))
@@ -34,6 +35,7 @@ def test_logit():
     assert_raises(ValueError, ea.logit, 2)
     # On some versions, this throws warnings about divide-by-zero
     with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
         assert_equal(ea.logit(0), -np.inf)
         assert_equal(ea.logit(1), np.inf)
     assert_equal(ea.logit(0.5), 0)

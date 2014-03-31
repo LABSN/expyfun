@@ -16,7 +16,8 @@ def test_config():
     assert_true(get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         # warnings raised only when setting key
         set_config(key, None)
         assert_true(get_config(key) is None)
@@ -44,11 +45,11 @@ class deprecated_class(object):
 def test_deprecated():
     """Test deprecated function
     """
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         deprecated_func()
     assert_true(len(w) == 1)
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         deprecated_class()
     assert_true(len(w) == 1)

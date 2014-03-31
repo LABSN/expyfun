@@ -129,21 +129,21 @@ def test_ec(ac=None):
         # test type checking for 'session'
         std_kwargs['session'] = 1
         assert_raises(TypeError, ExperimentController, *std_args,
-                      audio_controller='pyo', stim_fs=44100, **std_kwargs)
+                      audio_controller='pyglet', stim_fs=44100, **std_kwargs)
         std_kwargs['session'] = '01'
 
         # test value checking for trigger controller
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='pyo', trigger_controller='foo',
+                      audio_controller='pyglet', trigger_controller='foo',
                       stim_fs=44100, **std_kwargs)
 
         # test value checking for RMS checker
         assert_raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='pyo', check_rms=True, stim_fs=44100,
+                      audio_controller='pyglet', check_rms=True, stim_fs=44100,
                       **std_kwargs)
 
-        # run rest of test with audio_controller == 'pyo'
-        this_ac = 'pyo'
+        # run rest of test with audio_controller == 'pyglet'
+        this_ac = 'pyglet'
         this_fs = 44100
     else:
         # run rest of test with audio_controller == 'tdt'
@@ -169,7 +169,6 @@ def test_ec(ac=None):
         ec.clear_buffer()
         ec.set_noise_db(0)
         ec.set_stim_db(20)
-        ec.draw_background_color('black')
         # test buffer data handling
         ec.load_buffer([0, 0, 0, 0, 0, 0])
         assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
@@ -194,7 +193,8 @@ def test_ec(ac=None):
         ec.load_buffer(click)  # should go unchecked
         ec.load_buffer(noise)  # should go unchecked
         ec.set_rms_checking('wholefile')
-        with warnings.catch_warnings(True) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             ec.load_buffer(click)  # should pass
             assert_equal(len(w), 0)
             ec.load_buffer(noise)
@@ -271,26 +271,25 @@ def test_visual(ac=None):
         line.draw()
         assert_raises(ValueError, line.set_coords, [0])
         line.set_coords([0, 1])
+        ec.draw_background_color('black')
 
 
 @interactive_test
 def test_button_presses_and_window_size():
     """Test EC window_size=None and button press capture (press 1 thrice)
     """
-    ec = ExperimentController(*std_args, audio_controller='pyo',
+    with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
-                              participant='foo', session='01')
-    assert_equal(ec.screen_prompt('press 1', live_keys=['1']), '1')
-    ec.screen_text('press 1 again')
-    ec.flip()
-    assert_equal(ec.wait_one_press(live_keys=[1])[0], '1')
-    ec.screen_text('press 1 one last time')
-    ec.flip()
-    out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
-    if len(out) > 0:
-        assert_equal(out[0], '1')
-    else:
-        warnings.warn('press "1" faster next time')
-    ec.close()
-    del ec
+                              participant='foo', session='01') as ec:
+        assert_equal(ec.screen_prompt('press 1', live_keys=['1']), '1')
+        ec.screen_text('press 1 again')
+        ec.flip()
+        assert_equal(ec.wait_one_press(live_keys=[1])[0], '1')
+        ec.screen_text('press 1 one last time')
+        ec.flip()
+        out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
+        if len(out) > 0:
+            assert_equal(out[0], '1')
+        else:
+            warnings.warn('press "1" faster next time')

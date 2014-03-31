@@ -17,7 +17,8 @@ from ._input_controllers import Keyboard
 
 
 def _dummy_fun(self, name, ret, *args, **kwargs):
-    logger.info('dummy-tdt: {0} {1}'.format(name, str(args) + str(kwargs)))
+    logger.info('dummy-tdt: {0} {1}'.format(name, str(args)[:20] + ' ... ' +
+                                            str(kwargs)[:20] + ' ...'))
     return ret
 
 
@@ -232,7 +233,7 @@ class TDTController(Keyboard):
             Trigger number to send to TDT.
         """
         if not self.rpcox.SoftTrg(trig):
-            logger.warn('SoftTrg failure for trigger: {}'.format(trig))
+            logger.warning('SoftTrg failure for trigger: {}'.format(trig))
 
 ################################ KEYBOARD METHODS ############################
 

@@ -21,7 +21,7 @@ from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      string_types, input)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
-from ._sound_controllers import PyoSound
+from ._sound_controllers import PygletSoundController
 from ._input_controllers import Keyboard, Mouse
 from .visual import Text, Rectangle
 
@@ -35,9 +35,9 @@ class ExperimentController(object):
         Name of the experiment.
     audio_controller : str | dict | None
         If audio_controller is None, the type will be read from the system
-        configuration file. If a string, can be 'pyo' or 'tdt', and the
+        configuration file. If a string, can be 'pyglet' or 'tdt', and the
         remaining audio parameters will be read from the machine configuration
-        file. If a dict, must include a key 'TYPE' that is either 'pyo'
+        file. If a dict, must include a key 'TYPE' that is either 'pyglet'
         or 'tdt'; the dict can contain other parameters specific to the TDT
         (see documentation for expyfun.TDTController).
     response_device : str | None
@@ -135,8 +135,9 @@ class ExperimentController(object):
         elif isinstance(force_quit, (int, string_types)):
             force_quit = [str(force_quit)]
         if 'escape' in force_quit:
-            logger.warn('Expyfun: using "escape" as a force-quit key is not '
-                        'recommended because it has special status in pyglet.')
+            logger.warning('Expyfun: using "escape" as a force-quit key is '
+                           'not recommended because it has special status in '
+                           'pyglet.')
 
         # set up timing
         # Use ZeroClock, which uses the "clock" fn but starts at zero
@@ -151,7 +152,7 @@ class ExperimentController(object):
 
         # session start dialog, if necessary
         fixed_list = ['exp_name', 'date']  # things not user-editable in GUI
-        for key, value in self._exp_info.iteritems():
+        for key, value in self._exp_info.items():
             if key not in fixed_list and value is not None:
                 if not isinstance(value, string_types):
                     raise TypeError('{} must be string or None'.format(value))
@@ -218,14 +219,14 @@ class ExperimentController(object):
         #
         if audio_controller is None:
             audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
-                                                   'pyo')}
+                                                   'pyglet')}
         elif isinstance(audio_controller, string_types):
-            if audio_controller.lower() in ['pyo', 'tdt']:
+            if audio_controller.lower() in ['pyglet', 'tdt']:
                 audio_controller = {'TYPE': audio_controller.lower()}
             else:
-                raise ValueError('audio_controller must be \'pyo\' or '
+                raise ValueError('audio_controller must be \'pyglet\' or '
                                  '\'tdt\' (or a dict including \'TYPE\':'
-                                 ' \'pyo\' or \'TYPE\': \'tdt\').')
+                                 ' \'pyglet\' or \'TYPE\': \'tdt\').')
         elif not isinstance(audio_controller, dict):
             raise TypeError('audio_controller must be a str or dict.')
         self._audio_type = audio_controller['TYPE'].lower()
@@ -252,29 +253,30 @@ class ExperimentController(object):
             self._ac = TDTController(audio_controller, self, as_kb, force_quit)
             self._audio_type = self._ac.model
             self._tdt_init = True
-        elif self._audio_type == 'pyo':
-            self._ac = PyoSound(self, self.stim_fs)
+        elif self._audio_type == 'pyglet':
+            self._ac = PygletSoundController(self, self.stim_fs)
         else:
             raise ValueError('audio_controller[\'TYPE\'] must be '
-                             '\'pyo\' or \'tdt\'.')
+                             '\'pyglet\' or \'tdt\'.')
         # audio scaling factor; ensure uniform intensity across output devices
         self.set_stim_db(self._stim_db)
         self.set_noise_db(self._noise_db)
 
         if self._fs_mismatch:
             if self._suppress_resamp:
-                logger.warn('Expyfun: Mismatch between reported stim sample '
-                            'rate ({0}) and device sample rate ({1}). Nothing '
-                            'will be done about this because suppress_resamp '
-                            'is "True".'.format(self.stim_fs, self.fs))
+                logger.warning('Expyfun: Mismatch between reported stim '
+                               'sample rate ({0}) and device sample rate '
+                               '({1}). Nothing will be done about this '
+                               'because suppress_resamp is "True".'
+                               ''.format(self.stim_fs, self.fs))
             else:
-                logger.warn('Expyfun: Mismatch between reported stim sample '
-                            'rate ({0}) and device sample rate ({1}). '
-                            'Experiment Controller will resample for you, but '
-                            'this takes a non-trivial amount of processing '
-                            'time and may compromise your experimental '
-                            'timing and/or cause artifacts.'
-                            ''.format(self.stim_fs, self.fs))
+                logger.warning('Expyfun: Mismatch between reported stim '
+                               'sample rate ({0}) and device sample rate '
+                               '({1}). Experiment Controller will resample '
+                               'for you, but this takes a non-trivial amount '
+                               'of processing time and may compromise your '
+                               'experimental timing and/or cause artifacts.'
+                               ''.format(self.stim_fs, self.fs))
 
         #
         # set up visual window (must be done before keyboard and mouse)
@@ -962,8 +964,8 @@ class ExperimentController(object):
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
-            logger.warn('Expyfun: Resampling {} seconds of audio'
-                        ''.format(round(len(samples) / self.stim_fs), 2))
+            logger.warning('Expyfun: Resampling {} seconds of audio'
+                           ''.format(round(len(samples) / self.stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self.stim_fs)
             samples = resample(samples, int(num_samples), window='boxcar')
 
@@ -988,13 +990,13 @@ class ExperimentController(object):
                 warn_string = ('Expyfun: Stimulus max RMS ({}) exceeds stated '
                                'RMS ({}) by more than 6 dB.'
                                ''.format(max_rms, self._stim_rms))
-                logger.warn(warn_string)
+                logger.warning(warn_string)
                 warnings.warn(warn_string)
             elif max_rms < 0.5 * self._stim_rms:
                 warn_string = ('Expyfun: Stimulus max RMS ({}) is less than '
                                'stated RMS ({}) by more than 6 dB.'
                                ''.format(max_rms, self._stim_rms))
-                logger.warn(warn_string)
+                logger.warning(warn_string)
 
         # always prepend a zero to deal with TDT reset of buffer position
         samples = np.r_[np.atleast_2d([0.0, 0.0]), samples]
@@ -1055,9 +1057,9 @@ class ExperimentController(object):
 
         diff = time_correction - self._time_corrections[clock_type]
         if np.abs(diff) > 10e-6:
-            logger.warn('Expyfun: drift of > 10 microseconds ({}) '
-                        'between {} clock and EC master clock.'
-                        ''.format(round(diff * 10e6), clock_type))
+            logger.warning('Expyfun: drift of > 10 microseconds ({}) '
+                           'between {} clock and EC master clock.'
+                           ''.format(round(diff * 10e6), clock_type))
         logger.debug('Expyfun: time correction between {} clock and EC '
                      'master clock is {}. This is a change of {}.'
                      ''.format(clock_type, time_correction, time_correction
@@ -1104,9 +1106,9 @@ class ExperimentController(object):
         """
         time_left = timestamp - self._master_clock()
         if time_left < 0:
-            logger.warn('Expyfun: wait_until was called with a timestamp ({}) '
-                        'that had already passed {} seconds prior.'
-                        ''.format(timestamp, -time_left))
+            logger.warning('Expyfun: wait_until was called with a timestamp '
+                           '({}) that had already passed {} seconds prior.'
+                           ''.format(timestamp, -time_left))
         else:
             wait_secs(time_left)
         return time_left
@@ -1270,12 +1272,13 @@ def _get_dev_db(audio_controller):
         return 108
     elif audio_controller == 'RZ6':
         return 114
-    elif audio_controller == 'pyo':
+    elif audio_controller == 'pyglet':
         return 90  # TODO: this value not yet calibrated, may vary by system
     elif audio_controller == 'dummy':  # only used for testing
         return 90
     else:
-        logger.warn('Expyfun: Unknown audio controller: stim scaler may not '
-                    'work correctly. You may want to remove your headphones '
-                    'if this is the first run of your experiment.')
+        logger.warning('Expyfun: Unknown audio controller: stim scaler may '
+                       'not work correctly. You may want to remove your '
+                       'headphones if this is the first run of your '
+                       'experiment.')
         return 90  # for untested TDT models

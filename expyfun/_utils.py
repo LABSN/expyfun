@@ -49,9 +49,14 @@ try:
 except NameError:
     string_types = str  # noqa
 try:
-    input = raw_input
+    input = raw_input  # input is raw_input in py3k
 except NameError:
-    pass  # input is raw_input in py3k
+    input = input
+
+try:
+    x = unicode('test')  # noqa
+except NameError:
+    unicode = str
 
 ###############################################################################
 # LOGGING
@@ -100,7 +105,7 @@ def set_log_level(verbose=None, return_old_level=False):
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if not verbose in logging_types:
+        if verbose not in logging_types:
             raise ValueError('verbose must be of a valid type')
         verbose = logging_types[verbose]
 
@@ -483,7 +488,7 @@ def set_config(key, value):
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, string_types) and value is not None:
         raise ValueError('value must be a string or None')
-    if not key in known_config_types and not \
+    if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warnings.warn('Setting non-standard config type: "%s"' % key)
 
@@ -565,7 +570,7 @@ def running_rms(signal, win_length):
 def _sanitize(text_like):
     """Cast as string, encode as UTF-8 and sanitize any escape characters.
     """
-    return str(text_like).encode('utf-8').encode('string_escape')
+    return unicode(text_like).encode('unicode_escape').decode('utf-8')
 
 
 ##############################################################################

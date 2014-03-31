@@ -26,7 +26,6 @@ Requirements:
 - numpy/scipy
 - matplotlib
 - pyglet
-- pyo
 - pandas (optional)
 
 

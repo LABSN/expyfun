@@ -43,6 +43,7 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   play_sound
    read_wav
    rms
    write_wav

@@ -8,55 +8,80 @@
 import numpy as np
 from scipy import fftpack
 import sys
+import pyglet
+import os
+_linux = ('silent',) if os.getenv('_EXPYFUN_SILENT') == 'true' else ('pulse',)
+_opts_dict = dict(linux2=_linux,
+                  win32=('directsound',),
+                  darwin=('openal',))
+_opts_dict['linux'] = _opts_dict['linux2']  # new name on Py3k
+pyglet.options['audio'] = _opts_dict[sys.platform]
+from pyglet.media import StreamingSource, AudioFormat, AudioData, Player
+from ._utils import logger, flush_logger
 
-from ._utils import (HidePyoOutput, HideAlsaOutput, logger, wait_secs,
-                     flush_logger)
+
+def _check_pyglet_audio():
+    if pyglet.media.get_audio_driver() is None:
+        raise SystemError('pyglet audio could not be initialized')
 
 
-class PyoSound(object):
-    """Use Pyo audio capabilities"""
-    def __init__(self, ec, stim_fs, buffer_size=128):
-        # This is a hack for Travis, since it doesn't allow "audio" group on
-        # linux, we need some way to fake audio calls
-        logger.info('Expyfun: Setting up Pyo audio')
-        self._pyo_server = None
-        # nest the pyo import, in case we have a sys with just TDT
-        try:
-            with HidePyoOutput():
-                import pyo
-        except Exception as exp:
-            raise RuntimeError('Cannot init pyo sound: {}'
-                               ''.format(str(exp)))
+class SoundSource(StreamingSource):
+    def __init__(self, data, fs):
+        _check_pyglet_audio()
+        fs = int(fs)
+        assert data.ndim == 2
+        assert data.shape[0] == 2
+        data = np.ascontiguousarray(data.T).ravel()
+        data = (np.clip(data, -1, 1) * (2 ** 15)).astype(np.int16).tostring()
+        self._len = len(data)
+        self._data = data
+        self.audio_format = AudioFormat(channels=2, sample_size=16,
+                                        sample_rate=fs)
+        self._duration = self._len / self.audio_format.bytes_per_second
+        self._offset = 0
 
-        driver_dict = dict(darwin='coreaudio', linux2='jack')
-        audio = driver_dict.get(sys.platform, 'portaudio')
-        self._pyo_server = pyo.Server(sr=44100, nchnls=2, audio=audio,
-                                      buffersize=buffer_size)
-        self._pyo_server.setVerbosity(1)  # error
+    def get_audio_data(self, n_bytes):
+        n_bytes = min(n_bytes, self._len - self._offset)
+        if not n_bytes:
+            return None
 
-        if sys.platform == 'win32':
-            names, ids = pyo.pa_get_output_devices()
-            driver, id_ = _best_driver_win32(names, ids)
-            if not id_:
-                raise RuntimeError('No audio outputs found')
-            logger.info('Using sound driver: {} (ID={})'
-                        ''.format(driver, id_))
-            self._pyo_server.setOutputDevice(id_)
-        self._pyo_server.setDuplex(False)
-        with HidePyoOutput():
-            with HideAlsaOutput():
-                self._pyo_server.boot()
-        if hasattr(self._pyo_server, 'getIsBooted'):
-            if not self._pyo_server.getIsBooted():
-                raise RuntimeError('pyo sound server could not be booted')
-        wait_secs(0.1)
-        self._pyo_server.start()
-        if not self._pyo_server.getIsStarted():
-            raise RuntimeError('pyo sound server could not be started')
-        self.fs = int(self._pyo_server.getSamplingRate())
+        data = self._data[self._offset:self._offset + n_bytes]
+        timestamp = float(self._offset) / self.audio_format.bytes_per_second
+        duration = float(n_bytes) / self.audio_format.bytes_per_second
+        self._offset += len(data)
+        return AudioData(data, len(data), timestamp, duration, [])
+
+    def seek(self, timestamp):
+        offset = int(timestamp * self.audio_format.bytes_per_second)
+        offset = min(max(offset, 0), self._len)
+        self._offset = offset
+
+    def stop(self):
+        # Pyglet doesn't provide this functionality, but this should work...
+        self._offset = self._len
+
+
+class SoundPlayer(Player):
+    def __init__(self, data, fs, loop=False):
+        Player.__init__(self)
+        snd = SoundSource(data, fs)
+        self.queue(snd)
+        self.eos_action = self.EOS_LOOP if loop else self.EOS_PAUSE
+
+    def stop(self):
+        self.pause()
+        self.seek(0.)
+
+
+class PygletSoundController(object):
+    """Use pyglet audio capabilities"""
+    def __init__(self, ec, stim_fs):
+        logger.info('Expyfun: Setting up Pyglet audio')
+        self.fs = 44100
 
         # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
+
         # Low-pass if necessary
         if stim_fs < self.fs:
             # note we can use cheap DFT method here b/c
@@ -65,26 +90,32 @@ class PyoSound(object):
             noise = fftpack.fft(noise)
             noise[np.abs(freqs) > stim_fs / 2.] = 0.0
             noise = np.real(fftpack.ifft(noise))
+
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
         noise = noise / np.sqrt(np.mean(noise * noise))
-        self.noise_array = np.array(np.c_[noise, -1.0 * noise], order='C')
-        self.noise = Sound(self.noise_array, loop=True)
+        self.noise_array = np.array((noise, -1.0 * noise))
+        self.noise = SoundPlayer(self.noise_array, self.fs, loop=True)
         self.clear_buffer()  # initializes self.audio
         self.ec = ec
-        logger.debug('Expyfun: Pyo sound server started')
+        self._noise_playing = False
+        logger.debug('Expyfun: Pyglet sound server started')
         flush_logger()
 
     def start_noise(self):
-        self.noise.play()
+        if not self._noise_playing:
+            self.noise.play()
+            self._noise_playing = True
 
     def stop_noise(self):
-        self.noise.stop()
+        if self._noise_playing:
+            self.noise.stop()
+            self._noise_playing = False
 
     def clear_buffer(self):
-        self.audio = Sound(np.zeros((1, 2)))
+        self.audio = SoundPlayer(np.zeros((2, 1)), self.fs)
 
     def load_buffer(self, samples):
-        self.audio = Sound(samples)
+        self.audio = SoundPlayer(samples.T, self.fs)
 
     def play(self):
         self.audio.play()
@@ -94,41 +125,14 @@ class PyoSound(object):
         self.audio.stop()
 
     def set_noise_level(self, level):
-        new_noise = Sound(self.noise_array * level, loop=True)
-        self.noise.stop()
-        new_noise.play()
-        self.noise = new_noise
+        new_noise = SoundPlayer(self.noise_array * level, self.fs, loop=True)
+        if self._noise_playing:
+            self.stop_noise()
+            self.noise = new_noise
+            self.start_noise()
+        else:
+            self.noise = new_noise
 
     def halt(self):
-        if self._pyo_server is not None:
-            self._pyo_server.stop()
-            self._pyo_server.shutdown()
-
-
-def _best_driver_win32(devices, ids):
-    """Find ASIO or Windows sound drivers"""
-    prefs = ['ASIO', 'Primary Sound']  # 'Primary Sound' is DirectSound
-    for pref in prefs:
-        for driver, id_ in zip(devices, ids):
-            if pref.encode('utf-8') in driver.encode('utf-8'):
-                return driver, id_
-    raise RuntimeError('could not find appropriate driver')
-
-
-class Sound(object):
-    """Create a sound object from numpy array"""
-    def __init__(self, data, loop=False):
-        import pyo
-        _snd_table = pyo.DataTable(size=data.shape[0],
-                                   init=data.T.tolist(),
-                                   chnls=data.shape[1])
-        self._snd = pyo.TableRead(_snd_table, freq=_snd_table.getRate(),
-                                  loop=loop, mul=1.0)
-
-    def play(self):
-        """Starts playing the sound."""
-        self._snd.out()
-
-    def stop(self, log=True):
-        """Stops the sound immediately"""
-        self._snd.stop()
+        self.stop()
+        self.stop_noise()

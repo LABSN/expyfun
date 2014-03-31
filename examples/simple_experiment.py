@@ -24,7 +24,7 @@ import expyfun.analyze as ea
 set_log_level('INFO')
 
 # set configuration
-ac = 'pyo'  # change to 'RM1' or 'RP2' for TDT use
+ac = 'pyglet'  # change to 'RM1' or 'RP2' for TDT use
 fs = 44100
 noise_db = 45  # dB for background noise
 stim_db = 65  # dB for stimuli
@@ -65,7 +65,7 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
                   'thing. There will be background noise.')
 
 # select audio controller
-if ac != 'pyo':
+if ac != 'pyglet':
     ac = dict(TYPE='tdt', TDT_MODEL=ac)
 
 with ExperimentController('testExp', ac, screen_num=0,

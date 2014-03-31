@@ -62,7 +62,7 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
         rng = np.random.RandomState(rand_seed)
 
     # check input arguments
-    if not save_as in ['dict', 'wav', 'mat']:
+    if save_as not in ['dict', 'wav', 'mat']:
         raise ValueError('"save_as" must be "dict", "wav", or "mat"')
 
     if fs is None:

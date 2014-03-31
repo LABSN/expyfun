@@ -5,7 +5,7 @@ from nose.tools import assert_raises, assert_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from expyfun._utils import _TempDir, _has_scipy_version
-from expyfun.stimuli import read_wav, write_wav, rms
+from expyfun.stimuli import read_wav, write_wav, rms, play_sound
 
 warnings.simplefilter('always')
 
@@ -29,7 +29,8 @@ def test_read_write_wav():
     assert_raises(IOError, write_wav, fname, data, fs)
 
     # test forcing fs dtype to int
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         write_wav(fname, data, float(fs), overwrite=True)
         assert_equal(len(w), 1)
 
@@ -77,3 +78,10 @@ def test_rms():
     sin = np.sin(2 * np.pi * 1000 * np.arange(10000, dtype=float) / 10000.)
     assert_array_almost_equal(rms(sin), 1. / np.sqrt(2))
     assert_array_almost_equal(rms(np.ones((100, 2)) * 2, 0), [2, 2])
+
+
+def test_play_sound():
+    """Test playing a sound
+    """
+    data = np.zeros((2, 100))
+    play_sound(data).stop()
