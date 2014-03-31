@@ -461,47 +461,42 @@ class EyelinkController(object):
 
         return fix_success
 
-    def custom_calibration(self, params=None):
+    def custom_calibration(self, ctype='HV5', horiz=2./3., vert=2./3.,
+                           units='norm'):
         """Set Eyetracker to use a custom calibration sequence
 
         Parameters
         ----------
-        params : dict | None
-            Type of calibration to use. Must have entries 'type' (must be
-            'HV5') and h_pix, v_pix for total span in both directions. If
-            h_pix or v_pix are not defined, 2/3 of the screen will be
-            used. If params is None, a simple HV5 calibration will be used.
+        ctype : str
+            Type of calibration. Currently only 'HV5' is supported.
+        horiz : float
+            Horizontal distance (left and right, each) to use.
+        vert : float
+            Vertical distance (up and down, each) to use.
+        units : str
+            Units to use.
         """
-        if params is None:
-            params = dict(type='HV5')
-        if not isinstance(params, dict):
-            raise TypeError('parameters must be a dict')
-        if 'type' not in params:
-            raise KeyError('"type" must be an entry in parameters')
         allowed_types = ['HV5']
-        if not params['type'] in allowed_types:
-            raise ValueError('params["type"] cannot be "{0}", but must be '
-                             ' one of {1}'.format(params['type'],
-                                                  allowed_types))
-
-        if params['type'] == 'HV5':
-            if 'h_pix' not in params:
-                h_pix = self._size[0] * 2. / 3.
-            else:
-                h_pix = params['h_pix']
-            if 'v_pix' not in params:
-                v_pix = self._size[1] * 2. / 3.
-            else:
-                v_pix = params['v_pix']
-            # make the locations
-            mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
-            offsets = mat * np.array([h_pix / 2., v_pix / 2.])
-            coords = (self._size / 2. + offsets)
-
+        if ctype not in allowed_types:
+            raise ValueError('ctype cannot be "{0}", but must be one of {1}'
+                             ''.format(ctype, allowed_types))
+        horiz, vert = float(horiz), float(vert)
+        xx = np.array(([0., horiz], [0., vert]))
+        h_pix, v_pix = np.diff(self._ec._convert_units(xx, units, 'pix'),
+                               axis=1)[:, 0]
+        h_max, v_max = self._size[0] / 2., self._size[1] / 2.
+        for p, m, s in zip((h_pix, v_pix), (h_max, v_max), ('horiz', 'vert')):
+            if p > m:
+                raise ValueError('{0} too large ({1} > {2})'
+                                 ''.format(s, p, m))
+        # make the locations
+        mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
+        offsets = mat * np.array([h_pix, v_pix])
+        coords = (self._size / 2. + offsets)
         n_samples = coords.shape[0]
         targs = ' '.join(['{0},{1}'.format(*c) for c in coords])
         seq = ','.join([str(x) for x in range(n_samples + 1)])
-        self._command('calibration_type = {0}'.format(params['type']))
+        self._command('calibration_type = {0}'.format(ctype))
         self._command('generate_default_targets = NO')
         self._command('calibration_samples = {0}'.format(n_samples))
         self._command('calibration_sequence = ' + seq)

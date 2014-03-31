@@ -382,7 +382,7 @@ class ExperimentController(object):
         h_align, v_align : str
             Horizontal/vertical alignment of the text relative to ``pos``
         units : str
-            units for ``pos``.
+            Units for ``pos``.
 
         Returns
         -------
