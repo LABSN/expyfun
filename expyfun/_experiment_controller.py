@@ -664,7 +664,8 @@ class ExperimentController(object):
                                    fullscreen=full_screen,
                                    config=config,
                                    screen=screen_num,
-                                   style='borderless')
+                                   style='borderless',
+                                   visible=False)
         if not full_screen:
             x = int(win.screen.width / 2. - win.width / 2.)
             y = int(win.screen.height / 2. - win.height / 2.)
@@ -692,6 +693,8 @@ class ExperimentController(object):
         GL.glShadeModel(GL.GL_SMOOTH)
         GL.glEnable(GL.GL_POINT_SMOOTH)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
+        win.set_visible(v_)
         win.dispatch_events()
 
     def flip(self):

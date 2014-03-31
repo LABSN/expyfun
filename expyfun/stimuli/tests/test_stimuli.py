@@ -123,4 +123,8 @@ def test_window_edges():
     x = window_edges(sig, fs, edges='leading')
     y = window_edges(sig, fs, edges='trailing')
     z = window_edges(sig, fs)
+    assert_true(np.all(x[:, 0] < 1))  # make sure we actually reduced amp
+    assert_true(np.all(x[:, -1] == 1))
+    assert_true(np.all(y[:, 0] == 1))
+    assert_true(np.all(y[:, -1] < 1))
     assert_allclose(x + y, z + 1)

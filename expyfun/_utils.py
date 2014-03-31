@@ -379,6 +379,24 @@ def _has_scipy_version(version):
     return (LooseVersion(sp.__version__) >= LooseVersion(version))
 
 
+def _hide_window(function):
+    """Decorator to hide expyfun windows during testing"""
+    import nose
+
+    def dec(*args, **kwargs):
+        orig_val = os.getenv('_EXPYFUN_WIN_INVISIBLE')
+        try:
+            os.environ['_EXPYFUN_WIN_INVISIBLE'] = 'true'
+            out = function(*args, **kwargs)
+            return out
+        finally:
+            if orig_val is None:
+                del os.environ['_EXPYFUN_WIN_INVISIBLE']
+            else:
+                os.environ['_EXPYFUN_WIN_INVISIBLE'] = orig_val
+    return nose.tools.make_decorator(function)(dec)
+
+
 ###############################################################################
 # CONFIG / PREFS
 

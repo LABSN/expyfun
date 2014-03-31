@@ -3,7 +3,7 @@ import warnings
 from os import path as op
 
 from expyfun import EyelinkController, ExperimentController
-from expyfun._utils import _TempDir, requires_pylink
+from expyfun._utils import _TempDir, requires_pylink, _hide_window
 
 warnings.simplefilter('always')
 
@@ -13,6 +13,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', noise_db=0)
 
 
+@_hide_window
 @requires_pylink
 def test_eyelink_methods():
     """Test EL methods

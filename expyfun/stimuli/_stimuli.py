@@ -33,32 +33,31 @@ def window_edges(sig, fs, dur=0.01, axis=-1, window='hann', edges='both'):
     Returns
     -------
     windowed_sig : array-like
-        The modified array.
+        The modified array (float64).
     """
     fs = float(fs)
-    sig = np.array(sig)  # this will make a copy
+    sig = np.array(sig, dtype=np.float64)  # this will make a copy
     sig_len = sig.shape[axis]
-    win_len = int(dur * fs) * 2
+    win_len = int(dur * fs)
     if win_len > sig_len:
-        raise RuntimeError('cannot create window of size {0} for signal with '
-                           'length {1}'.format(win_len, sig_len))
-    win = signal.windows.get_window(window, win_len)
+        raise RuntimeError('cannot create window of size {0} samples (dur={1})'
+                           'for signal with length {2}'
+                           ''.format(win_len, dur, sig_len))
+    win = signal.windows.get_window(window, 2 * win_len)[:win_len]
     valid_edges = ('leading', 'trailing', 'both')
     if edges not in valid_edges:
         raise ValueError('edges must be one of {0}, not "{1}"'
                          ''.format(valid_edges, edges))
     # now we can actually do the calculation
-    midpt = win_len // 2
-    if edges == 'leading':  # eliminate trailing
-        win[midpt:] = 1.
-    elif edges == 'trailing':  # eliminate leading
-        win[:midpt] = 1.
-    insert = np.ones(sig_len - win_len, dtype=win.dtype)
-    win = np.concatenate((win[:midpt], insert, win[midpt:]))
+    flattop = np.ones(sig_len, dtype=np.float64)
+    if edges in ('trailing', 'both'):  # eliminate trailing
+        flattop[-win_len:] *= win[::-1]
+    if edges in ('leading', 'both'):  # eliminate leading
+        flattop[:win_len] *= win
     shape = np.ones_like(sig.shape)
     shape[axis] = sig.shape[axis]
-    win.shape = shape
-    sig *= win
+    flattop.shape = shape
+    sig *= flattop
     return sig
 
 
