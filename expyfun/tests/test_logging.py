@@ -1,7 +1,7 @@
 import os
 import warnings
 
-from expyfun._utils import _TempDir
+from expyfun._utils import _TempDir, _hide_window
 from expyfun import ExperimentController
 
 warnings.simplefilter('always')
@@ -12,6 +12,7 @@ std_kwargs = dict(participant='foo', session='01', full_screen=False,
                   window_size=(1, 1), verbose=True, noise_db=0)
 
 
+@_hide_window
 def test_logging(ac='pyglet'):
     """Test logging to file (Pyglet)
     """
