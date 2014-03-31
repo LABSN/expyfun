@@ -140,9 +140,9 @@ class ExperimentController(object):
             elif isinstance(force_quit, (int, string_types)):
                 force_quit = [str(force_quit)]
             if 'escape' in force_quit:
-                logger.warn('Expyfun: using "escape" as a force-quit key is '
-                            'not recommended because it has special status in '
-                            'pyglet.')
+                logger.warning('Expyfun: using "escape" as a force-quit key '
+                               'is not recommended because it has special '
+                               'status in pyglet.')
 
             # set up timing
             # Use ZeroClock, which uses the "clock" fn but starts at zero
@@ -267,21 +267,18 @@ class ExperimentController(object):
             self.set_noise_db(self._noise_db)
 
             if self._fs_mismatch:
+                msg = ('Expyfun: Mismatch between reported stim sample '
+                       'rate ({0}) and device sample rate ({1}).'
+                       ''.format(self.stim_fs, self.fs))
                 if self._suppress_resamp:
-                    msg = ('Expyfun: Mismatch between reported stim sample '
-                           'rate ({0}) and device sample rate ({1}). Nothing '
-                           'will be done about this because suppress_resamp '
-                           'is "True".'.format(self.stim_fs, self.fs))
-                    logger.warn(msg)
+                    msg += ('Nothing will be done about this because '
+                            'suppress_resamp is "True"')
                 else:
-                    msg = ('Expyfun: Mismatch between reported stim sample '
-                           'rate ({0}) and device sample rate ({1}). '
-                           'Experiment Controller will resample for you, but '
-                           'this takes a non-trivial amount of processing '
-                           'time and may compromise your experimental '
-                           'timing and/or cause artifacts.'
-                           ''.format(self.stim_fs, self.fs))
-                    logger.warn(msg)
+                    msg += ('Experiment Controller will resample for you, but '
+                            'this takes a non-trivial amount of processing '
+                            'time and may compromise your experimental '
+                            'timing and/or cause artifacts.')
+                logger.warning(msg)
 
             #
             # set up visual window (must be done before keyboard and mouse)
@@ -1021,8 +1018,8 @@ class ExperimentController(object):
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
-            logger.warn('Expyfun: Resampling {} seconds of audio'
-                        ''.format(round(len(samples) / self.stim_fs), 2))
+            logger.warning('Expyfun: Resampling {} seconds of audio'
+                           ''.format(round(len(samples) / self.stim_fs), 2))
             num_samples = len(samples) * self.fs / float(self.stim_fs)
             samples = resample(samples, int(num_samples), window='boxcar')
 
