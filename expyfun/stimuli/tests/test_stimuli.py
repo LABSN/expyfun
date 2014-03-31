@@ -1,15 +1,38 @@
 import numpy as np
 from os import path as op
 import warnings
-from nose.tools import assert_raises, assert_equal
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from nose.tools import assert_raises, assert_equal, assert_true
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose)
 
 from expyfun._utils import _TempDir, _has_scipy_version
-from expyfun.stimuli import read_wav, write_wav, rms, play_sound
+from expyfun.stimuli import (read_wav, write_wav, rms, play_sound,
+                             convolve_hrtf, window_edges)
 
 warnings.simplefilter('always')
 
 tempdir = _TempDir()
+
+
+def test_hrtf_convolution():
+    """Test HRTF convolution
+    """
+    data = np.random.randn(2, 10000)
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0)
+    data = data[0]
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0.5)  # invalid angle
+    out = convolve_hrtf(data, 44100, 0)
+    out_2 = convolve_hrtf(data, 24414, 0)
+    assert_equal(out.ndim, 2)
+    assert_equal(out.shape[0], 2)
+    assert_true(out.shape[1] > data.size)
+    assert_true(out_2.shape[1] < out.shape[1])
+    # ensure that, at least for zero degrees, it's close
+    out = convolve_hrtf(data, 44100, 0)[:, 1024:-1024]
+    assert_allclose(np.mean(rms(out)), rms(data), rtol=1e-1)
+    out = convolve_hrtf(data, 44100, -90)
+    rmss = rms(out)
+    assert_true(rmss[0] > 4 * rmss[1])
 
 
 def test_read_write_wav():
@@ -85,3 +108,23 @@ def test_play_sound():
     """
     data = np.zeros((2, 100))
     play_sound(data).stop()
+    play_sound(data[0], norm=False, wait=True)
+    assert_raises(ValueError, play_sound, data[:, :, np.newaxis])
+
+
+def test_window_edges():
+    """Test windowing signal edges
+    """
+    sig = np.ones((2, 1000))
+    fs = 44100
+    assert_raises(ValueError, window_edges, sig, fs, window='foo')  # bad win
+    assert_raises(RuntimeError, window_edges, sig, fs, dur=1.0)  # too long
+    assert_raises(ValueError, window_edges, sig, fs, edges='foo')  # bad type
+    x = window_edges(sig, fs, edges='leading')
+    y = window_edges(sig, fs, edges='trailing')
+    z = window_edges(sig, fs)
+    assert_true(np.all(x[:, 0] < 1))  # make sure we actually reduced amp
+    assert_true(np.all(x[:, -1] == 1))
+    assert_true(np.all(y[:, 0] == 1))
+    assert_true(np.all(y[:, -1] < 1))
+    assert_allclose(x + y, z + 1)

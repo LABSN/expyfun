@@ -4,10 +4,61 @@
 import warnings
 import numpy as np
 from scipy.io import wavfile
+from scipy import signal
 from os import path as op
 
 from .._sound_controllers import SoundPlayer
-from .._utils import verbose_dec, logger, _has_scipy_version
+from .._utils import verbose_dec, logger, _has_scipy_version, wait_secs
+
+
+def window_edges(sig, fs, dur=0.01, axis=-1, window='hann', edges='both'):
+    """Window the edges of a signal (e.g., to prevent "pops")
+
+    Parameters
+    ----------
+    sig : array-like
+        The array to window.
+    fs : float
+        The sample rate.
+    dur : float
+        The duration to window on each edge. The default is 0.01 (10 ms).
+    axis : int
+        The axis to operate over.
+    window : str
+        The window to use. For a list of valid options, see
+        ``scipy.signal.get_window()``.
+    edges : str
+        Can be ``'leading'``, ``'trailing'``, or ``'both'`` (default).
+
+    Returns
+    -------
+    windowed_sig : array-like
+        The modified array (float64).
+    """
+    fs = float(fs)
+    sig = np.array(sig, dtype=np.float64)  # this will make a copy
+    sig_len = sig.shape[axis]
+    win_len = int(dur * fs)
+    if win_len > sig_len:
+        raise RuntimeError('cannot create window of size {0} samples (dur={1})'
+                           'for signal with length {2}'
+                           ''.format(win_len, dur, sig_len))
+    win = signal.windows.get_window(window, 2 * win_len)[:win_len]
+    valid_edges = ('leading', 'trailing', 'both')
+    if edges not in valid_edges:
+        raise ValueError('edges must be one of {0}, not "{1}"'
+                         ''.format(valid_edges, edges))
+    # now we can actually do the calculation
+    flattop = np.ones(sig_len, dtype=np.float64)
+    if edges in ('trailing', 'both'):  # eliminate trailing
+        flattop[-win_len:] *= win[::-1]
+    if edges in ('leading', 'both'):  # eliminate leading
+        flattop[:win_len] *= win
+    shape = np.ones_like(sig.shape)
+    shape[axis] = sig.shape[axis]
+    flattop.shape = shape
+    sig *= flattop
+    return sig
 
 
 def rms(data, axis=-1):
@@ -111,7 +162,7 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
     wavfile.write(fname, fs, data.T)
 
 
-def play_sound(sound, fs=44100, norm=True):
+def play_sound(sound, fs=44100, norm=True, wait=False):
     """Play a sound
 
     Parameters
@@ -122,6 +173,8 @@ def play_sound(sound, fs=44100, norm=True):
         Sample rate.
     norm : bool
         If True, normalize sound to between -1 and +1.
+    wait : bool
+        If True, wait until the sound completes to return control.
 
     Returns
     -------
@@ -142,4 +195,6 @@ def play_sound(sound, fs=44100, norm=True):
         warnings.warn('Sound exceeds +/-1, will clip')
     snd = SoundPlayer(sound, fs)
     snd.play()  # will clip as necessary
+    if wait:
+        wait_secs(sound.shape[1] / float(fs))
     return snd

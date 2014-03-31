@@ -43,9 +43,11 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   convolve_hrtf
    play_sound
    read_wav
    rms
+   window_edges
    write_wav
 
 .. currentmodule:: expyfun.visual

@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose
 from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import _TempDir, interactive_test
+from expyfun._utils import _TempDir, interactive_test, _hide_window
 
 warnings.simplefilter('always')
 
@@ -20,6 +20,7 @@ def dummy_print(string):
     print(string)
 
 
+@_hide_window
 def test_unit_conversions():
     """Test unit conversions
     """
@@ -47,6 +48,7 @@ def test_unit_conversions():
         assert_raises(RuntimeError, ec._convert_units, verts[0], 'deg', 'pix')
 
 
+@_hide_window
 def test_no_output():
     """Test EC with no output
     """
@@ -62,6 +64,7 @@ def test_no_output():
         std_kwargs['output_dir'] = old_val
 
 
+@_hide_window
 def test_data_line():
     """Test writing of data lines
     """
@@ -107,12 +110,14 @@ def test_data_line():
     assert_true(np.all(ts[1:] >= ts[:-1]))
 
 
+@_hide_window
 def test_tdt():
     """Test EC with TDT
     """
     test_ec('tdt')
 
 
+@_hide_window
 def test_ec(ac=None):
     """Test EC methods
     """
@@ -244,6 +249,7 @@ def test_ec(ac=None):
     del ec
 
 
+@_hide_window
 def test_visual(ac=None):
     """Test EC visual methods
     """
