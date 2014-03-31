@@ -139,7 +139,7 @@ def play_sound(sound, fs=44100, norm=True):
         m = m if m != 0 else 1
         sound /= m
     if np.abs(sound).max() > 1.:
-        warnings.warn('Sound exceeds +/-, will clip')
+        warnings.warn('Sound exceeds +/-1, will clip')
     snd = SoundPlayer(sound, fs)
     snd.play()  # will clip as necessary
     return snd
