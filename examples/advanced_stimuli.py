@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-======================================
-Generate mor advanced auditory stimuli
-======================================
+=======================================
+Generate more advanced auditory stimuli
+=======================================
 
 This shows the methods that we provide that facilitate generation
 of more advanced stimuli.
