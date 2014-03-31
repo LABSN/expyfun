@@ -17,10 +17,8 @@ import atexit
 import json
 from distutils.version import LooseVersion
 import pyglet
-import platform
 from numpy import sqrt, convolve, ones
 from numpy.testing.decorators import skipif
-import ctypes
 import logging
 import datetime
 from timeit import default_timer as clock
@@ -174,9 +172,6 @@ class ZeroClock(object):
 
     def get_time(self):
         return clock() - self._start_time
-
-
-is_linux = (platform.system() == 'Linux')
 
 
 def date_str():
@@ -568,8 +563,7 @@ def set_config(key, value):
 def _check_pyglet_version(raise_error=False):
     """Check pyglet version, return True if usable.
     """
-    is_usable = (LooseVersion(pyglet.version) >= LooseVersion('1.2')
-                 or not is_linux)
+    is_usable = LooseVersion(pyglet.version) >= LooseVersion('1.2')
     if raise_error is True and is_usable is False:
         raise ImportError('On Linux, you must run at least Pyglet '
                           'version 1.2, and you are running '
@@ -619,70 +613,3 @@ def _sanitize(text_like):
     """Cast as string, encode as UTF-8 and sanitize any escape characters.
     """
     return unicode(text_like).encode('unicode_escape').decode('utf-8')
-
-
-##############################################################################
-# OUTPUT CONTROL
-
-class HideOutput(object):
-    """
-    A context manager that block stdout for its scope, usage:
-
-    with HideOutput():
-        os.system('ls -l')
-    """
-    def __init__(self):
-        if hasattr(sys.stdout, 'flush'):
-            sys.stdout.flush()
-        self._origstdout = sys.stdout
-        if hasattr(sys.stdout, 'fileno'):
-            self._oldstdout_fno = os.dup(sys.stdout.fileno())
-        else:
-            self._oldstdout_fno = None
-        self._devnull = os.open(os.devnull, os.O_WRONLY)
-
-    def __enter__(self):
-        self._newstdout = os.dup(1)
-        os.dup2(self._devnull, 1)
-        os.close(self._devnull)
-        sys.stdout = os.fdopen(self._newstdout, 'w')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout = self._origstdout
-        if hasattr(sys.stdout, 'flush'):
-            sys.stdout.flush()
-        if self._oldstdout_fno is not None:
-            os.dup2(self._oldstdout_fno, 1)
-
-
-def _get_c_err_handler():
-    """Helper for hiding Alsa output"""
-    def _py_error_handler(self, filename, line, function, err, fmt):
-        print('Passing error')
-    err_handler = ctypes.CFUNCTYPE(None, ctypes.c_char_p, ctypes.c_int,
-                                   ctypes.c_char_p, ctypes.c_int,
-                                   ctypes.c_char_p)
-    return err_handler(_py_error_handler)
-
-
-if is_linux:
-    _asound = ctypes.cdll.LoadLibrary('libasound.so.2')
-    _err_handler_func = ctypes.CFUNCTYPE(None, ctypes.c_char_p,
-                                         ctypes.c_int, ctypes.c_char_p,
-                                         ctypes.c_int, ctypes.c_char_p)
-
-    _py_error_handler = lambda filename, line, function, err, fmt: None
-    _alsa_error_handler = _err_handler_func(_py_error_handler)
-else:
-    _asound = None
-
-
-class HideAlsaOutput(object):
-    """Helper to suppress ALSA warnings"""
-    def __enter__(self):
-        if _asound is not None:
-            _asound.snd_lib_error_set_handler(_alsa_error_handler)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if _asound is not None:
-            _asound.snd_lib_error_set_handler(None)

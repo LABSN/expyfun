@@ -21,7 +21,7 @@ from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      string_types, input)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
-from ._sound_controllers import PygletSoundController
+from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, Mouse
 from .visual import Text, Rectangle
 
@@ -170,7 +170,6 @@ class ExperimentController(object):
             #
             self._output_dir = None
             set_log_file(None)
-            self._data_file = None
             if output_dir is not None:
                 output_dir = op.abspath(output_dir)
                 if not op.isdir(output_dir):
@@ -340,6 +339,10 @@ class ExperimentController(object):
 
             # other basic components
             self._mouse_handler = Mouse(self._win)
+            t = np.arange(44100 // 3) / 44100.
+            car = sum([np.sin(2 * np.pi * f * t) for f in [800, 1000, 1200]])
+            data = np.tile(car * np.exp(-t * 10) / 4, (2, 3))
+            self._beep = SoundPlayer(data, 44100)
 
             # finish initialization
             logger.info('Expyfun: Initialization complete')
@@ -919,6 +922,17 @@ class ExperimentController(object):
             self.flip()
 
 ################################ AUDIO METHODS ###############################
+    def system_beep(self):
+        """Play a system beep
+
+        This will play through the system audio, *not* through the
+        audio controller (unless that is set to be the system audio).
+        This is useful for e.g., notifying that it's time for an
+        eye-tracker calibration.
+        """
+        self._beep.stop()
+        self._beep.play()
+
     def start_noise(self):
         """Start the background masker noise."""
         self._ac.start_noise()
@@ -1095,7 +1109,7 @@ class ExperimentController(object):
             timestamp = self._master_clock()
         ll = '\t'.join(_sanitize(x) for x in [timestamp, event_type,
                                               value]) + '\n'
-        if self._data_file is not None:
+        if self._data_file is not None and not self._data_file.closed:
             self._data_file.write(ll)
 
     def _get_time_correction(self, clock_type):

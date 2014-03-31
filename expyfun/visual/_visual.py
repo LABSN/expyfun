@@ -520,7 +520,7 @@ class RawImage(object):
         """
         pos = np.array(pos, float)
         if pos.ndim != 1 or pos.size != 2:
-            raise ValueError('pos must be a 4-element array')
+            raise ValueError('pos must be a 2-element array')
         pos = np.reshape(pos, (2, 1))
         self._pos = self._ec._convert_units(pos, units, 'pix').ravel()
 

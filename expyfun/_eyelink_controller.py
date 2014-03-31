@@ -22,8 +22,7 @@ except ImportError:
     pylink = None  # analysis:ignore
 
 from .visual import FixationDot, Circle, RawImage, Line, Text
-from ._utils import (get_config, verbose_dec, logger, string_types,
-                     HideOutput)
+from ._utils import get_config, verbose_dec, logger, string_types
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
@@ -117,7 +116,7 @@ class EyelinkController(object):
         logger.info('EyeLink: Initializing on {}'.format(link))
         ec.flush()
         if link is not None:
-            iswin = ('win' in sys.platform)
+            iswin = (sys.platform == 'win32')
             cmd = 'ping -n 1 -w 100' if iswin else 'fping -c 1 -t100'
             cmd = subprocess.Popen('%s %s' % (cmd, link),
                                    stdout=subprocess.PIPE,
@@ -387,8 +386,7 @@ class EyelinkController(object):
         fname = op.join(self._output_dir, '{0}.edf'.format(remote_name))
         logger.info('Eyelink: saving Eyelink file: {0} ...'
                     ''.format(remote_name))
-        with HideOutput():
-            status = self._eyelink.receiveDataFile(remote_name, fname)
+        status = self._eyelink.receiveDataFile(remote_name, fname)
         logger.info('Eyelink: transferred {0} bytes'.format(status))
         return fname
 
@@ -643,7 +641,7 @@ class _Calibrate(super_class):
     def play_beep(self, eepid):
         """Play a sound during calibration/drift correct."""
         if self.beep is True:
-            print('\a')
+            self.ec.system_beep()
 
     def get_input_key(self):
         self.ec.window.dispatch_events()
