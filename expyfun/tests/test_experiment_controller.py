@@ -280,7 +280,6 @@ def test_visual(ac=None):
         ec.draw_background_color('black')
 
 
-@_hide_window
 @interactive_test
 def test_button_presses_and_window_size():
     """Test EC window_size=None and button press capture (press 1 thrice)
