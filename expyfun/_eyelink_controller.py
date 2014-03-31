@@ -640,8 +640,7 @@ class _Calibrate(super_class):
 
     def play_beep(self, eepid):
         """Play a sound during calibration/drift correct."""
-        if self.beep is True:
-            self.ec.system_beep()
+        self.ec.system_beep() if self.beep else None
 
     def get_input_key(self):
         self.ec.window.dispatch_events()
