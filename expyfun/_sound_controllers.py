@@ -95,10 +95,9 @@ class PygletSoundController(object):
         noise = noise / np.sqrt(np.mean(noise * noise))
         self.noise_array = np.array((noise, -1.0 * noise))
         self.noise = SoundPlayer(self.noise_array, self.fs, loop=True)
+        self._noise_playing = False
         self.clear_buffer()  # initializes self.audio
         self.ec = ec
-        self._noise_playing = False
-        logger.debug('Expyfun: Pyglet sound server started')
         flush_logger()
 
     def start_noise(self):

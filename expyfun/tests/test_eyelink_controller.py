@@ -1,6 +1,5 @@
 from nose.tools import assert_raises, assert_true
 import warnings
-from os import path as op
 
 from expyfun import EyelinkController, ExperimentController
 from expyfun._utils import _TempDir, requires_pylink, _hide_window
@@ -19,30 +18,26 @@ def test_eyelink_methods():
     """Test EL methods
     """
     with ExperimentController(*std_args, **std_kwargs) as ec:
-        assert_raises(TypeError, EyelinkController, ec, output_dir=1)
-        assert_raises(ValueError, EyelinkController, ec, fs=999,
-                      output_dir=temp_dir)
-        el = EyelinkController(ec, output_dir=op.join(temp_dir, 'test'))
+        assert_raises(ValueError, EyelinkController, ec, fs=999)
+        el = EyelinkController(ec)
         assert_raises(RuntimeError, EyelinkController, ec)  # can't have 2 open
-        assert_raises(TypeError, el.custom_calibration, 'blah')
-        assert_raises(KeyError, el.custom_calibration, dict(me='hey'))
-        assert_raises(ValueError, el.custom_calibration, dict(type='hey'))
-        el.custom_calibration(dict(type='HV5', h_pix=10, v_pix=10))
+        assert_raises(ValueError, el.custom_calibration, ctype='hey')
+        el.custom_calibration()
+        el._open_file()
+        el._start_recording()
         el.get_eye_position()
         assert_raises(ValueError, el.wait_for_fix, [1])
         x = el.wait_for_fix([-10000, -10000], max_wait=0.1)
         assert_true(x is False)
         assert el.eye_used
+        print(el.file_list)
         # run much of the calibration code, but don't *actually* do it
         el._fake_calibration = True
-        assert_raises(ValueError, el.calibrate, start='foo', beep=False)
-        assert_raises(ValueError, el.calibrate, stop='foo', beep=False)
-        el.calibrate(beep=False)
-        el.calibrate(start='after', stop='after', beep=False)
+        el.calibrate(beep=False, prompt=False)
         el._fake_calibration = False
         # missing el_id
         assert_raises(KeyError, ec.identify_trial, ec_id='foo', ttl_id=[0])
-        ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=1)
+        ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=[1])
         ec.flip_and_play()
         ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=[1, 1])
         ec.flip_and_play()
@@ -52,5 +47,6 @@ def test_eyelink_methods():
                       el_id=[0] * 13)
         assert_raises(TypeError, el._message, 1)
         el.stop()
-        el.save()
+        assert_true(not el._closed)
     # ec.close() auto-calls el.close()
+    assert_true(el._closed)

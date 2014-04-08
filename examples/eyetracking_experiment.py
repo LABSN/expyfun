@@ -17,12 +17,10 @@ import numpy as np
 from expyfun import ExperimentController, EyelinkController, visual
 import expyfun.analyze as ea
 
-link = None  # or '100.1.1.1' for real eye tracking
-
 
 with ExperimentController('testExp', full_screen=True, participant='foo',
                           session='001', output_dir=None) as ec:
-    el = EyelinkController(ec, link=link)
+    el = EyelinkController(ec)
     ec.screen_prompt('Welcome to the experiment!<br><br>First, we will '
                      'perform a screen calibration.<br><br>Press a button '
                      'to continue.')
@@ -47,7 +45,7 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     big_circ.draw()
     targ_circ.draw()
     screenshot = ec.screenshot()
-    ec.identify_trial(ec_id='Circle', ttl_id=[0, 0], el_id=[0, 0])
+    ec.identify_trial(ec_id='Circle', ttl_id=[0], el_id=[0])
     ec.flip_and_play()  # automatically stamps to EL
     if not el.wait_for_fix(fix_pos, 1., max_wait=5., units='deg'):
         print('Initial fixation failed')

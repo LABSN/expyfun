@@ -10,6 +10,7 @@
 import numpy as np
 import pyglet
 from matplotlib.colors import colorConverter
+from pyglet import gl
 
 from .._utils import _check_units, string_types
 
@@ -58,6 +59,8 @@ class Text(object):
         Horizontal text anchor (e.g., `'center'`).
     anchor_y : str
         Vertical text anchor (e.g., `'center'`).
+    units : str
+        Units to use.
 
     Returns
     -------
@@ -66,9 +69,10 @@ class Text(object):
     """
     def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
-                 width='auto', anchor_x='center', anchor_y='center'):
+                 width='auto', anchor_x='center', anchor_y='center',
+                 units='norm'):
         pos = np.array(pos)[:, np.newaxis]
-        pos = ec._convert_units(pos, 'norm', 'pix')
+        pos = ec._convert_units(pos, units, 'pix')
         if width == 'auto':
             width = float(ec.window_size_pix[0]) * 0.8
         elif isinstance(width, string_types):
@@ -92,12 +96,14 @@ class Text(object):
 
 class _Triangular(object):
     """Super class for objects that use trianglulations and/or lines"""
-    def __init__(self, ec, fill_color, line_color, line_width, line_loop):
+    def __init__(self, ec, fill_color, line_color, line_width, line_loop,
+                 poly_smooth=False):
         self._ec = ec
         self.set_fill_color(fill_color)
         self.set_line_color(line_color)
         self._line_width = line_width
         self._line_loop = line_loop  # whether or not lines drawn are looped
+        self._poly_smooth = poly_smooth
 
     def set_fill_color(self, fill_color):
         """Set the object color
@@ -141,20 +147,22 @@ class _Triangular(object):
 
     def draw(self):
         """Draw the object to the display buffer"""
+        fun = gl.glEnable if self._poly_smooth else gl.glDisable
+        fun(gl.GL_POLYGON_SMOOTH)
         if self._fill_color is not None:
             color = _replicate_color(self._fill_color, self._points)
             pyglet.graphics.draw_indexed(len(self._points) // 2,
-                                         pyglet.gl.GL_TRIANGLES,
+                                         gl.GL_TRIANGLES,
                                          self._tris,
                                          ('v2f', self._points),
                                          ('c4B', color))
         if self._line_color is not None and self._line_width > 0.0:
             color = _replicate_color(self._line_color, self._line_points)
-            pyglet.gl.glLineWidth(self._line_width)
+            gl.glLineWidth(self._line_width)
             if self._line_loop:
-                gl_cmd = pyglet.gl.GL_LINE_LOOP
+                gl_cmd = gl.GL_LINE_LOOP
             else:
-                gl_cmd = pyglet.gl.GL_LINE_STRIP
+                gl_cmd = gl.GL_LINE_STRIP
             pyglet.graphics.draw(len(self._line_points) // 2,
                                  gl_cmd,
                                  ('v2f', self._line_points),
@@ -305,7 +313,7 @@ class Circle(_Triangular):
                  line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
                              line_color=line_color, line_width=line_width,
-                             line_loop=True)
+                             line_loop=True, poly_smooth=True)
         if not isinstance(n_edges, int):
             raise TypeError('n_edges must be an int')
         if n_edges < 4:
@@ -380,6 +388,63 @@ class Circle(_Triangular):
         self._line_points = self._points[2:]  # omit center point for lines
 
 
+class FixationDot(object):
+    """A fixation dot
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    inner_radius : float
+        Inner radius of the circle.
+    outer_radius : float
+        Outer radius of the circle.
+    pos : array-like
+        2-element array-like with X, Y center positions.
+    units : str
+        Units to use.
+    n_edges : int
+        Number of edges to use (must be >= 4) to approximate a circle.
+    fill_color : matplotlib Color | None
+        Color to fill with. None is transparent.
+    line_color : matplotlib Color | None
+        Color of the border line. None is transparent.
+    line_width : float
+        Line width in pixels.
+
+    Returns
+    -------
+    circle : instance of Circle
+        The circle object.
+    """
+    def __init__(self, ec, inner_radius=0.05, outer_radius=0.2, pos=[0, 0],
+                 units='deg', inner_color='k', outer_color='w'):
+        # need to set a dummy value here so recalculation doesn't fail
+        self._inner = Circle(ec, inner_radius, pos, units,
+                             fill_color=inner_color, line_width=0)
+        self._outer = Circle(ec, outer_radius, pos, units,
+                             fill_color=outer_color, line_width=0)
+
+    def set_pos(self, pos, units='norm'):
+        """Set the position and radius of the circle
+
+        Parameters
+        ----------
+        pos : array-like
+            X, Y center of the circle.
+        units : str
+            Units to use.
+        """
+        self._inner.set_pos(pos, units)
+        self._outer.set_pos(pos, units)
+
+    def draw(self):
+        """Draw the fixation dot
+        """
+        self._outer.draw()
+        self._inner.draw()
+
+
 ##############################################################################
 # Image display
 
@@ -393,19 +458,23 @@ class RawImage(object):
     image_buffer : array
         N x M x 3 (or 4) array. Color values should range between 0 and 1.
     pos : array-like
-        4-element array-like with X, Y (center) and width, height arguments.
+        2-element array-like with X, Y (center) arguments.
+    scale : float
+        The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
+        large, etc.
     units : str
-        Units to use.
+        Units to use for the position.
 
     Returns
     -------
     img : instance of RawImage
         The image object.
     """
-    def __init__(self, ec, image_buffer, pos=(0, 0, 1, 1), units='norm'):
+    def __init__(self, ec, image_buffer, pos=(0, 0), scale=1., units='norm'):
         self._ec = ec
         self.set_image(image_buffer)
         self.set_pos(pos, units)
+        self.set_scale(scale)
 
     def set_image(self, image_buffer):
         """Set image buffer data
@@ -426,17 +495,49 @@ class RawImage(object):
         if image_buffer.shape[2] == 3:
             alpha = np.ones_like(image_buffer[:, :, 0])[:, :, np.newaxis]
             image_buffer = np.concatenate((image_buffer, alpha), axis=2)
-        image_buffer = np.ascontiguousarray(image_buffer)
+        image_buffer = np.ascontiguousarray(image_buffer[::-1])
         # convert from numpy array to OpenGL RGBA
         dims = image_buffer.shape
         image_buffer.shape = -1
         image_buffer = (image_buffer * 255).astype('uint8')
-        data = (pyglet.gl.GLubyte * image_buffer.size)(*image_buffer)
+        data = (gl.GLubyte * image_buffer.size)(*image_buffer)
         img = pyglet.image.ImageData(dims[1], dims[0], 'RGBA', data,
                                      pitch=dims[1] * 4)
-        self._img = img
+        sprite = pyglet.sprite.Sprite(img)
+        self._sprite = sprite
 
     def set_pos(self, pos, units='norm'):
+        """Set image position
+
+        Parameters
+        ----------
+        ec : instance of ExperimentController
+            Parent EC.
+        pos : array-like
+            2-element array-like with X, Y (center) arguments.
+        units : str
+            Units to use.
+        """
+        pos = np.array(pos, float)
+        if pos.ndim != 1 or pos.size != 2:
+            raise ValueError('pos must be a 2-element array')
+        pos = np.reshape(pos, (2, 1))
+        self._pos = self._ec._convert_units(pos, units, 'pix').ravel()
+
+    @property
+    def bounds(self):
+        """L, B, W, H (in pixels) of the image"""
+        pos = np.array(self._pos, float)
+        size = np.array([self._sprite.width,
+                         self._sprite.height], float)
+        bounds = np.concatenate((pos - size / 2., pos + size / 2.))
+        return bounds[[0, 2, 1, 3]]
+
+    @property
+    def scale(self):
+        return self._scale
+
+    def set_scale(self, scale):
         """Create image from array for on-screen display
 
         Parameters
@@ -444,22 +545,17 @@ class RawImage(object):
         ec : instance of ExperimentController
             Parent EC.
         pos : array-like
-            4-element array-like with X, Y (center) and width, height
-            arguments.
+            2-element array-like with X, Y (center) arguments.
         units : str
             Units to use.
         """
-        pos = np.array(pos, float)
-        if pos.ndim != 1 or pos.size != 4:
-            raise ValueError('pos must be a 4-element array')
-        pos = np.reshape(pos, (2, 2)).T
-        pos = self._ec._convert_units(pos, units, 'pix')
-        ctr = self._ec._convert_units(np.zeros((2, 1)), 'norm', 'pix')[:, 0]
-        pos = np.r_[pos[:, 0], pos[:, 1] - ctr]
-        self._pos = pos
+        scale = float(scale)
+        self._scale = scale
+        self._sprite.scale = self._scale
 
     def draw(self):
         """Draw the image to the buffer"""
-        self._img.blit(self._pos[0] - self._pos[2] / 2.,
-                       self._pos[1] - self._pos[3] / 2.,
-                       width=self._pos[2], height=self._pos[3])
+        self._sprite.scale = self._scale
+        pos = self._pos - [self._sprite.width / 2., self._sprite.height / 2.]
+        self._sprite.set_position(pos[0], pos[1])
+        self._sprite.draw()

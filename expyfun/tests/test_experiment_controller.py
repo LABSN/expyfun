@@ -114,11 +114,11 @@ def test_data_line():
 def test_tdt():
     """Test EC with TDT
     """
-    test_ec('tdt')
+    test_ec('tdt', 'tdt')
 
 
 @_hide_window
-def test_ec(ac=None):
+def test_ec(ac=None, rd=None):
     """Test EC methods
     """
     if ac is None:
@@ -149,12 +149,15 @@ def test_ec(ac=None):
 
         # run rest of test with audio_controller == 'pyglet'
         this_ac = 'pyglet'
+        this_rd = 'keyboard'
         this_fs = 44100
     else:
         # run rest of test with audio_controller == 'tdt'
         this_ac = ac
+        this_rd = rd
         this_fs = 24414
     with ExperimentController(*std_args, audio_controller=this_ac,
+                              response_device=this_rd,
                               stim_fs=this_fs, **std_kwargs) as ec:
         stamp = ec.current_time
         ec.write_data_line('hello')
@@ -222,6 +225,7 @@ def test_ec(ac=None):
         assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
         ec.flip_and_play()
         ec.flip()
+        ec.estimate_screen_fs()
         ec.play()
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
@@ -267,6 +271,9 @@ def test_visual(ac=None):
         assert_raises(ValueError, circ.set_pos, [1])
         rect = visual.Rectangle(ec, [0, 0, 1, 1], line_width=1.0)
         rect.draw()
+        fix = visual.FixationDot(ec)
+        fix.set_pos([0.5, 0.5])
+        fix.draw()
         assert_raises(ValueError, rect.set_pos, [0, 1, 2])
         img = visual.RawImage(ec, np.ones((3, 3, 4)))
         img.draw()

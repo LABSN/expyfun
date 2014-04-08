@@ -53,8 +53,8 @@ if __name__ == "__main__":
           platforms='any',
           packages=['expyfun', 'expyfun.tests',
                     'expyfun.analyze', 'expyfun.analyze.tests',
+                    'expyfun.codeblocks',
                     'expyfun.stimuli', 'expyfun.stimuli.tests',
                     'expyfun.visual', 'expyfun.visual.tests'],
-          package_data={'expyfun': [op.join('tdt-circuits', '*.rcx'),
-                                    op.join('tests', 'data', '*')]},
+          package_data={'expyfun': [op.join('data', '*')]},
           scripts=[])

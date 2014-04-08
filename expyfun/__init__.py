@@ -10,6 +10,7 @@ from ._utils import verbose_dec as verbose
 from ._experiment_controller import ExperimentController, wait_secs
 from ._eyelink_controller import EyelinkController
 from . import analyze  # fast enough, include here
+from . import codeblocks
 from . import stimuli
 
 # INIT LOGGING

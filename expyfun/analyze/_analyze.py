@@ -4,6 +4,7 @@
 import warnings
 import numpy as np
 import scipy.stats as ss
+from scipy.optimize import curve_fit
 
 
 def logit(prop, max_events=None):
@@ -22,7 +23,7 @@ def logit(prop, max_events=None):
     -------
     lgt : ``numpy.ndarray``, with shape matching ``numpy.array(prop).shape``.
     """
-    prop = np.asanyarray(prop, dtype=float)
+    prop = np.atleast_1d(prop).astype(float)
     if np.any([prop > 1, prop < 0]):
         raise ValueError('Proportions must be in the range [0, 1].')
     if max_events is not None:
@@ -33,6 +34,66 @@ def logit(prop, max_events=None):
         for loc in zip(*np.where(prop == 1)):
             prop[loc] = 1 - corr_factor
     return np.log(prop / (np.ones_like(prop) - prop))
+
+
+def sigmoid(x, lower=0., upper=1., midpt=0., slope=1.):
+    """Calculate sigmoidal values along the x-axis
+
+    Parameters
+    ----------
+    x : array-like
+        x-values to calculate the sigmoidal values from.
+    lower : float
+        The lower y-asymptote.
+    upper : float
+        The upper y-asymptote.
+    midpt : float
+        The x-value that obtains 50% between the lower and upper asymptote.
+    slope : float
+        The slope of the sigmoid.
+
+    Returns
+    -------
+    y : array
+        The y-values of the sigmoid evaluated at x.
+    """
+    x = np.asarray(x)
+    lower = float(lower)
+    upper = float(upper)
+    midpt = float(midpt)
+    slope = float(slope)
+    y = (upper - lower) / (1 + np.exp(-slope * (x - midpt))) + lower
+    return y
+
+
+def fit_sigmoid(x, y, p0=None):
+    """Fit a sigmoid to the data
+
+    Parameters
+    ----------
+    x : array-like
+        x-values along the sigmoid.
+    y : array-like
+        y-values along the sigmoid.
+    p0 : array-like | None
+        Initial guesses for the fit. Can be None to have these automatically
+        estimated.
+
+    Returns
+    -------
+    lower, upper, midpt, slope : floats
+        See expyfun.analyze.sigmoid for descriptions.
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    k = 2 * 4. / (np.max(x) - np.min(x))
+    if p0 is None:
+        p0 = [np.min(y), np.max(y), np.mean([np.max(x), np.min(x)]), k]
+    p0 = np.array(p0, dtype=np.float64)
+    if p0.size != 4:
+        raise ValueError('p0 must have 4 elements, or be None')
+    out = curve_fit(sigmoid, x, y, p0=p0, )[0]
+    return out
 
 
 def dprime(hmfc, zero_correction=True):

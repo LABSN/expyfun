@@ -32,7 +32,6 @@ class Keyboard(object):
     def __init__(self, ec, force_quit_keys):
         self.master_clock = ec._master_clock
         self.log_presses = ec._log_presses
-        self.ec_close = ec.close  # needed for check_force_quit
         self.force_quit_keys = force_quit_keys
         self.listen_start = None
         ec._time_correction_fxns['keypress'] = self._get_timebase
@@ -130,7 +129,7 @@ class Keyboard(object):
         relative_to, start_time = self._init_wait_press(max_wait, min_wait,
                                                         live_keys, timestamp,
                                                         relative_to)
-
+        pressed = []
         while (self.master_clock() - start_time < max_wait):
             pressed = self._retrieve_events(live_keys)
         return self._correct_presses(pressed, timestamp, relative_to)
@@ -153,7 +152,6 @@ class Keyboard(object):
                                 ' list of strings, not a {}.'
                                 ''.format(type(keys)))
         if len(keys):
-            self.ec_close()
             raise RuntimeError('Quit key pressed')
 
     def _correct_presses(self, pressed, timestamp, relative_to):

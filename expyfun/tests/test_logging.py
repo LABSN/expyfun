@@ -1,7 +1,7 @@
 import os
 import warnings
 
-from expyfun._utils import _TempDir
+from expyfun._utils import _TempDir, _hide_window
 from expyfun import ExperimentController
 
 warnings.simplefilter('always')
@@ -12,12 +12,13 @@ std_kwargs = dict(participant='foo', session='01', full_screen=False,
                   window_size=(1, 1), verbose=True, noise_db=0)
 
 
+@_hide_window
 def test_logging(ac='pyglet'):
     """Test logging to file (Pyglet)
     """
     os.chdir(tempdir)
     with ExperimentController(*std_args, audio_controller=ac,
-                              **std_kwargs) as ec:
+                              response_device='keyboard', **std_kwargs) as ec:
         test_name = ec._log_file
         stamp = ec.current_time
         ec.wait_until(stamp)  # wait_until called with already passed timestamp

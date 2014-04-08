@@ -44,8 +44,10 @@ Functions:
    :template: function.rst
 
    convolve_hrtf
+   compute_mls_impulse_response
    play_sound
    read_wav
+   repeated_mls
    rms
    window_edges
    write_wav
@@ -63,6 +65,20 @@ Classes:
    RawImage
    Rectangle
    Text
+
+Experiment Code Blocks
+======================
+
+.. currentmodule:: expyfun.codeblocks
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   find_pupil_dynamic_range
+   find_pupil_tone_impulse_response
 
 Analysis
 ========
