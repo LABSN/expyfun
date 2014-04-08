@@ -15,7 +15,7 @@ class ParallelTrigger(object):
     """Parallel port and dummy triggering support
 
     IMPORTANT: When using the parallel port, note that calling
-    ec.flip_and_play() will automatically invoke a stamping of
+    ec.start_stimulus() will automatically invoke a stamping of
     the 1 trigger, which will cause a delay equal to that of
     high_duration.
 

@@ -460,8 +460,8 @@ class ExperimentController(object):
         rect.draw()
         return rect
 
-    def flip_and_play(self, start_of_trial=True):
-        """Flip screen, play audio, then run any "on-flip" functions.
+    def start_stimulus(self, start_of_trial=True, flip=True):
+        """Play audio, (optionally) flip screen, run any "on_flip" functions.
 
         Parameters
         ----------
@@ -469,6 +469,8 @@ class ExperimentController(object):
             If True, it checks to make sure that the trial ID has been
             stamped appropriately. Set to False only in cases where
             ``flip_and_play`` is to be used mid-trial (should be rare!).
+        flip : bool
+            If False, don't flip the screen.
 
         Returns
         -------
@@ -477,22 +479,30 @@ class ExperimentController(object):
 
         Notes
         -----
-        Order of operations is: screen flip, audio start, additional functions
-        added with ``on_next_flip``, followed by functions added with
-        ``on_every_flip``.
+        Order of operations is: screen flip (optional), audio start, then
+        (only if ``flip=True``) additional functions added with
+        ``on_next_flip`` and ``on_every_flip``.
         """
         if start_of_trial:
             if not self._trial_identified:
                 raise RuntimeError('Trial ID must be stamped before starting '
                                    'the trial')
             self._trial_identified = False
-        logger.exp('Expyfun: Flipping screen and playing audio')
+        extra = 'flipping screen and ' if flip else ''
+        logger.exp('Expyfun: Starting stimuli: {0}playing audio'.format(extra))
         # ensure self._play comes first in list, followed by other critical
         # private functions (e.g., EL stamping), then user functions:
-        self._on_next_flip = ([self._play] + self._ofp_critical_funs +
-                              self._on_next_flip)
-        flip_time = self.flip()
-        return flip_time
+        if flip:
+            self._on_next_flip = ([self._play] + self._ofp_critical_funs +
+                                  self._on_next_flip)
+            stimulus_time = self.flip()
+        else:
+            funs = [self._play] + self._ofp_critical_funs
+            self._win.dispatch_events()
+            stimulus_time = self._clock.get_time()
+            for fun in funs:
+                fun()
+        return stimulus_time
 
     def play(self):
         """Start audio playback
@@ -733,9 +743,8 @@ class ExperimentController(object):
 
         Notes
         -----
-        Order of operations is: screen flip, audio start, additional functions
-        added with ``on_every_flip``, followed by functions added with
-        ``on_next_flip``.
+        Order of operations is: screen flip, functions added with
+        ``on_next_flip``, followed by functions added with ``on_every_flip``.
         """
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
@@ -964,8 +973,8 @@ class ExperimentController(object):
     def _play(self):
         """Play the audio buffer.
         """
-        logger.debug('Expyfun: playing audio')
         self._ac.play()
+        logger.debug('Expyfun: started audio')
         self.write_data_line('play')
 
     def stop(self):

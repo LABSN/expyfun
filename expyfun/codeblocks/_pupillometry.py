@@ -97,7 +97,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
             bgrect.set_fill_color(np.ones(3) * lev)
             bgrect.draw()
             fix.draw()
-            ec.flip_and_play()
+            ec.start_stimulus()
             ec.wait_secs(settle_time)
             ec.check_force_quit()
             ec.trial_ok()
@@ -233,7 +233,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
         ec.load_buffer(sweep_stim if targ else tone_stim)
         ec.identify_trial(ec_id='TONE_{0}'.format(int(targ)),
                           el_id=[int(targ)], ttl_id=[int(targ)])
-        flip_times.append(ec.flip_and_play())
+        flip_times.append(ec.start_stimulus())
         presses.append(ec.wait_for_presses(isi))
         ec.stop()
         ec.trial_ok()

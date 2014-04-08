@@ -214,24 +214,24 @@ def test_ec(ac=None, rd=None):
             assert_equal(len(w), 3)
 
         ec.stop()
-        ec.call_on_every_flip(dummy_print, 'called on flip and play')
-        assert_raises(RuntimeError, ec.flip_and_play)
-        ec.flip_and_play(start_of_trial=False)  # should work
+        ec.call_on_every_flip(dummy_print, 'called start stimuli')
+        assert_raises(RuntimeError, ec.start_stimulus)
+        ec.start_stimulus(start_of_trial=False)  # should work
         assert_raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
         # only binary for TTL
         assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
         assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
         ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
         assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
-        ec.flip_and_play()
+        ec.start_stimulus(flip=False)
         ec.flip()
         ec.estimate_screen_fs()
         ec.play()
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
-        ec.flip_and_play(start_of_trial=False)
+        ec.start_stimulus(start_of_trial=False)
         ec.call_on_next_flip(ec.stop_noise())
-        ec.flip_and_play(start_of_trial=False)
+        ec.start_stimulus(start_of_trial=False)
         ec.get_mouse_position()
         ec.toggle_cursor(False)
         ec.toggle_cursor(True, True)
