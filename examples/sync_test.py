@@ -38,7 +38,7 @@ with ExperimentController('SyncTest', screen_num=0, full_screen=True,
     screenshot = None
     while pressed != '8':  # enable a clean quit if required
         ec.draw_background_color('white')
-        t1 = ec.flip_and_play(start_of_trial=False)  # skip checks
+        t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
         ec.draw_background_color('black')
         t2 = ec.flip()
         diff = round(1000 * (t2 - t1), 2)
