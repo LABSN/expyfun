@@ -17,14 +17,14 @@ import numpy as np
 from scipy import io as sio
 
 from expyfun import ExperimentController
-from expyfun._utils import set_log_level
+from expyfun._utils import set_log_level, get_config
 import expyfun.analyze as ea
 
 
 set_log_level('INFO')
 
 # set configuration
-ac = 'pyglet'  # change to 'RM1' or 'RP2' for TDT use
+ac = get_config('AUDIO_CONTROLLER', 'pyglet')
 fs = 44100
 noise_db = 45  # dB for background noise
 stim_db = 65  # dB for stimuli
@@ -65,8 +65,8 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
                   'thing. There will be background noise.')
 
 # select audio controller
-if ac != 'pyglet':
-    ac = dict(TYPE='tdt', TDT_MODEL=ac)
+if ac == 'tdt':
+    ac = dict(TYPE=ac, TDT_MODEL=get_config('TDT_MODEL'))
 
 with ExperimentController('testExp', ac, screen_num=0,
                           window_size=[800, 600], full_screen=False,
