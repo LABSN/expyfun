@@ -49,6 +49,7 @@ Functions:
    read_wav
    repeated_mls
    rms
+   vocode_ci
    window_edges
    write_wav
 

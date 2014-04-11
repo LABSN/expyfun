@@ -5,7 +5,7 @@ import numpy as np
 from scipy import signal
 import gzip
 
-from .._utils import _fetch_data_file
+from .._utils import fetch_data_file
 
 
 # This was used to generate "barb_anech.gz":
@@ -32,7 +32,7 @@ from .._utils import _fetch_data_file
 def _get_hrtf(angle, source):
     """Helper to sub-select proper BRIR"""
     fnames = ['{0}_{1}.gz'.format(source, t) for t in ('angles', 'brir')]
-    fnames = [_fetch_data_file('hrtf/{0}'.format(fname))
+    fnames = [fetch_data_file('hrtf/{0}'.format(fname))
               for fname in fnames]
     with gzip.open(fnames[0], 'r') as fid:
         angles = np.frombuffer(fid.read())

@@ -4,10 +4,11 @@ import warnings
 from nose.tools import assert_raises, assert_equal, assert_true
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
+from scipy.signal import butter, lfilter
 
 from expyfun._utils import _TempDir, _has_scipy_version
 from expyfun.stimuli import (read_wav, write_wav, rms, play_sound,
-                             convolve_hrtf, window_edges)
+                             convolve_hrtf, window_edges, vocode_ci)
 
 warnings.simplefilter('always')
 
@@ -128,3 +129,26 @@ def test_window_edges():
     assert_true(np.all(y[:, 0] == 1))
     assert_true(np.all(y[:, -1] < 1))
     assert_allclose(x + y, z + 1)
+
+
+def _voc_similarity(orig, voc):
+    """Quantify envelope similiarity after vocoding"""
+    return np.correlate(orig, voc, mode='full').max()
+
+
+def test_vocoder():
+    """Test noise and tone vocoding
+    """
+    data = np.random.randn(10000)
+    env = np.random.randn(10000)
+    b, a = butter(4, 0.001, 'lowpass')
+    data *= lfilter(b, a, env)
+    # bad limits
+    assert_raises(ValueError, vocode_ci, data, 44100, freq_lims=(200, 30000))
+    # bad mode
+    assert_raises(ValueError, vocode_ci, data, 44100, mode='foo')
+    voc1 = vocode_ci(data, 20000, mode='noise', order=2)
+    voc2 = vocode_ci(data, 20000, mode='tone', order=4, rand_seed=0)
+    # XXX This is about the best we can do for now...
+    assert_array_equal(voc1.shape, data.shape)
+    assert_array_equal(voc2.shape, data.shape)
