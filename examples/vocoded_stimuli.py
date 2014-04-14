@@ -19,6 +19,7 @@ data = window_edges(data[0], fs)
 t = np.arange(data.size) / float(fs)
 data_ci = vocode_ci(data, fs, mode='noise', order=4, verbose=True)
 
+# Uncomment this to play the original, too:
 #snd = play_sound(data, fs, norm=False, wait=False)
 snd = play_sound(data_ci, fs, norm=False, wait=False)
 
