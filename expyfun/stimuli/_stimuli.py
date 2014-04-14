@@ -1,4 +1,5 @@
-"""Stimulus generation functions
+# -*- coding: utf-8 -*-
+"""Generic stimulus generation functions
 """
 
 import warnings

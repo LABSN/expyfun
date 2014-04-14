@@ -407,8 +407,20 @@ def _get_user_home_path():
     return val
 
 
-def _fetch_data_file(fname):
-    """Location of expyfun-related data (e.g., HRTFs)"""
+def fetch_data_file(fname):
+    """Fetch example remote file
+
+    Parameters
+    ----------
+    fname : str
+        The remote filename to get. If the filename already exists
+        on the local system, the file will not be fetched again.
+
+    Returns
+    -------
+    fname : str
+        The filename on the local system where the file was downloaded.
+    """
     path = get_config('EXPYFUN_DATA_PATH', op.join(_get_user_home_path(),
                                                    '.expyfun', 'data'))
     fname_out = op.join(path, fname)

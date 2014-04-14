@@ -19,7 +19,7 @@ dur = 0.5
 freq = 500.
 # let's make a square wave
 sig = np.sin(freq * 2 * np.pi * np.arange(dur * fs, dtype=float) / fs)
-sig = (sig > 0 - 0.5) / 10.  # make it reasonably quiet for play_sound
+sig = ((sig > 0) - 0.5) / 5.  # make it reasonably quiet for play_sound
 sig = window_edges(sig, fs)
 
 play_sound(sig, norm=False, wait=True)
