@@ -644,7 +644,7 @@ class ExperimentController(object):
         data = self._win.context.image_buffer_manager.color_buffer.image_data
         data = data.get_data(data.format, data.pitch)
         data = np.fromstring(data, dtype=np.uint8)
-        data.shape = (self._win.width, self._win.height, 4)
+        data.shape = (self._win.height, self._win.width, 4)
         data = np.flipud(data)
         return data
 
