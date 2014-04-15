@@ -644,7 +644,7 @@ class ExperimentController(object):
         data = self._win.context.image_buffer_manager.color_buffer.image_data
         data = data.get_data(data.format, data.pitch)
         data = np.fromstring(data, dtype=np.uint8)
-        data.shape = (self._win.width, self._win.height, 4)
+        data.shape = (self._win.height, self._win.width, 4)
         data = np.flipud(data)
         return data
 
@@ -1240,6 +1240,25 @@ class ExperimentController(object):
         # Put 8, 8 on ends
         id_ = np.concatenate(([8], id_, [8]))
         self._stamp_ttl_triggers(id_)
+
+    def stamp_triggers(self, ids):
+        """Stamp binary values
+
+        Parameters
+        ----------
+        ids : int | list of int
+            Values must be 1, 2, 4, or 8.
+
+        Notes
+        -----
+        This may be (nearly) instantaneous, or take a while, depending
+        on the type of triggering (TDT or parallel).
+        """
+        if not isinstance(ids, list):
+            ids = [ids]
+        if not all(isinstance(id_, int) for id_ in ids):
+            raise ValueError('ids must all be integers: {0}'.format(ids))
+        self._stamp_ttl_triggers(ids)
 
     def _stamp_ttl_triggers(self, ids):
         """Helper to stamp triggers without input checking"""

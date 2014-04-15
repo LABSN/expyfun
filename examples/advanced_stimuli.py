@@ -6,8 +6,6 @@ Generate more advanced auditory stimuli
 
 This shows the methods that we provide that facilitate generation
 of more advanced stimuli.
-
-@author: larsoner
 """
 
 import numpy as np
@@ -27,3 +25,9 @@ play_sound(sig, norm=False, wait=True)
 move_sig = np.concatenate([convolve_hrtf(sig, fs, ang)
                            for ang in range(-90, 91, 15)], axis=1)
 play_sound(move_sig, norm=False, wait=True)
+
+import matplotlib.pyplot as mpl
+mpl.ion()
+t = np.arange(move_sig.shape[1]) / float(fs)
+mpl.plot(t, move_sig.T)
+mpl.xlabel('Time (sec)')

@@ -54,6 +54,7 @@ if __name__ == "__main__":
           packages=['expyfun', 'expyfun.tests',
                     'expyfun.analyze', 'expyfun.analyze.tests',
                     'expyfun.codeblocks',
+                    'expyfun._externals',
                     'expyfun.stimuli', 'expyfun.stimuli.tests',
                     'expyfun.visual', 'expyfun.visual.tests'],
           package_data={'expyfun': [op.join('data', '*')]},
