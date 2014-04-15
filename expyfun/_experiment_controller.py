@@ -1241,6 +1241,25 @@ class ExperimentController(object):
         id_ = np.concatenate(([8], id_, [8]))
         self._stamp_ttl_triggers(id_)
 
+    def stamp_triggers(self, ids):
+        """Stamp binary values
+
+        Parameters
+        ----------
+        ids : int | list of int
+            Values must be 1, 2, 4, or 8.
+
+        Notes
+        -----
+        This may be (nearly) instantaneous, or take a while, depending
+        on the type of triggering (TDT or parallel).
+        """
+        if not isinstance(ids, list):
+            ids = [ids]
+        if not all(isinstance(id_, int) for id_ in ids):
+            raise ValueError('ids must all be integers: {0}'.format(ids))
+        self._stamp_ttl_triggers(ids)
+
     def _stamp_ttl_triggers(self, ids):
         """Helper to stamp triggers without input checking"""
         self._ttl_stamp_func(ids)
