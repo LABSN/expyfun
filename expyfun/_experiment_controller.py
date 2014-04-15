@@ -1256,7 +1256,8 @@ class ExperimentController(object):
         """
         if not isinstance(ids, list):
             ids = [ids]
-        if not all(isinstance(id_, int) for id_ in ids):
+        _vals = [1, 2, 4, 8]
+        if not all(isinstance(id_, int) and id_ in _vals for id_ in ids):
             raise ValueError('ids must all be integers: {0}'.format(ids))
         self._stamp_ttl_triggers(ids)
 
