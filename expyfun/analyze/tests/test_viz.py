@@ -31,7 +31,7 @@ def test_barplot():
     ea.barplot(tmp1, err_bars=tmp1, brackets=[(0, 1), (2, 3)],
                bracket_text=['foo', 'bar'], ax=ax)
     ea.barplot(tmp1, groups=[[0, 1, 2], [3]], eq_group_widths=True,
-               brackets=[([0], 3)], bracket_text=['foo'])
+               brackets=[([0], 3)], bracket_text='foo')
     ea.barplot(tmp2, lines=True, ylim=(0, 2), err_bars='se')
     ea.barplot(tmp2, groups=[[0, 1], [2, 3]], err_bars='ci',
                group_names=['foo', 'bar'])
