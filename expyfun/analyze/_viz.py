@@ -35,6 +35,7 @@ def format_pval(pval, latex=True, scheme='default'):
         A string or array of strings of formatted p-values. If a list output is
         preferred, users may call ``.tolist()`` on the output of the function.
     """
+    single_value = False
     if np.array(pval).shape == ():
         single_value = True
     pval = np.atleast_1d(np.asanyarray(pval))
