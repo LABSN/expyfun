@@ -179,6 +179,11 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
                 err_bars not in ['sd', 'se', 'ci']:
             raise ValueError('err_bars must be "sd", "se", or "ci" (or an '
                              'array of error bar magnitudes).')
+    # handle single-element args
+    if isinstance(bracket_text, basestring):
+        bracket_text = [bracket_text]
+    if isinstance(group_names, basestring):
+        group_names = [group_names]
     # arg defaults
     if bar_kwargs is None:
         bar_kwargs = dict()
