@@ -28,7 +28,7 @@ def logit(prop, max_events=None):
         raise ValueError('Proportions must be in the range [0, 1].')
     if max_events is not None:
         # add equivalent of half an event to 0s, and subtract same from 1s
-        max_events = max_events * np.ones_like(prop)
+        max_events = np.atleast_1d(max_events) * np.ones_like(prop)
         corr_factor = 0.5 / max_events
         for loc in zip(*np.where(prop == 0)):
             prop[loc] = corr_factor[loc]
