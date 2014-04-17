@@ -180,9 +180,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
             raise ValueError('err_bars must be "sd", "se", or "ci" (or an '
                              'array of error bar magnitudes).')
     # handle single-element args
-    if isinstance(bracket_text, basestring):
+    if isinstance(bracket_text, string_types):
         bracket_text = [bracket_text]
-    if isinstance(group_names, basestring):
+    if isinstance(group_names, string_types):
         group_names = [group_names]
     # arg defaults
     if bar_kwargs is None:
