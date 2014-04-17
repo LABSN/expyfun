@@ -677,8 +677,9 @@ class ExperimentController(object):
 
 ############################### OPENGL METHODS ###############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
+        # Use 16x sampling here
         config = gl.Config(depth_size=8, double_buffer=True,
-                           stencil_size=0, stereo=False, samples=4,
+                           stencil_size=0, stereo=False, samples=16,
                            sample_buffers=1)
         max_try = 5  # sometimes it fails for unknown reasons
         for ii in range(max_try):
@@ -721,14 +722,7 @@ class ExperimentController(object):
         # enable blending
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # set color shading (FLAT or SMOOTH)
         gl.glShadeModel(gl.GL_SMOOTH)
-        gl.glEnable(gl.GL_POINT_SMOOTH)
-        gl.glEnable(gl.GL_LINE_SMOOTH)
-        # gl.glEnable(gl.GL_POLY_SMOOTH_ done in visual only for certain types
-        gl.glHint(gl.GL_POINT_SMOOTH_HINT, gl.GL_NICEST)
-        gl.glHint(gl.GL_LINE_SMOOTH_HINT, gl.GL_NICEST)
-        gl.glHint(gl.GL_POLYGON_SMOOTH_HINT, gl.GL_NICEST)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
         win.set_visible(v_)
