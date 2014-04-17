@@ -678,7 +678,8 @@ class ExperimentController(object):
 ############################### OPENGL METHODS ###############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         config = gl.Config(depth_size=8, double_buffer=True,
-                           stencil_size=0, stereo=False)
+                           stencil_size=0, stereo=False, samples=4,
+                           sample_buffers=1)
         max_try = 5  # sometimes it fails for unknown reasons
         for ii in range(max_try):
             try:
