@@ -44,6 +44,12 @@ def test_logit():
         # Travis doesn't support scipy.special.logit, but this passes locally:
         foo = np.random.rand(5)
         assert_allclose(ea.logit(foo), splogit(foo))
+    foo = np.array([[0, 0.5, 1], [1, 0.5, 0]])
+    bar = np.ones_like(foo).astype(int)
+    assert_true(np.all(np.equal(ea.logit(foo, 1), np.zeros_like(foo))))
+    assert_true(np.all(np.equal(ea.logit(foo, [1, 1, 1]), np.zeros_like(foo))))
+    assert_true(np.all(np.equal(ea.logit(foo, bar), np.zeros_like(foo))))
+    assert_raises(ValueError, ea.logit, foo, [1, 1])  # can't broadcast
 
 
 def test_sigmoid():

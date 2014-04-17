@@ -14,7 +14,7 @@ def logit(prop, max_events=None):
     ----------
     prop : float | array-like
         the occurrence proportion.
-    max_events : int | None
+    max_events : int | array-like | None
         the number of events used to calculate ``prop``. Used in a correction
         factor for cases when ``prop`` is 0 or 1, to prevent returning ``inf``.
         If ``None``, no correction is done, and ``inf`` or ``-inf`` may result.
@@ -28,11 +28,12 @@ def logit(prop, max_events=None):
         raise ValueError('Proportions must be in the range [0, 1].')
     if max_events is not None:
         # add equivalent of half an event to 0s, and subtract same from 1s
+        max_events = max_events * np.ones_like(prop)
         corr_factor = 0.5 / max_events
         for loc in zip(*np.where(prop == 0)):
-            prop[loc] = corr_factor
+            prop[loc] = corr_factor[loc]
         for loc in zip(*np.where(prop == 1)):
-            prop[loc] = 1 - corr_factor
+            prop[loc] = 1 - corr_factor[loc]
     return np.log(prop / (np.ones_like(prop) - prop))
 
 
