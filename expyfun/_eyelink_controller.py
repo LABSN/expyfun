@@ -21,7 +21,7 @@ try:
 except ImportError:
     pylink = None  # analysis:ignore
 
-from .visual import FixationDot, Circle, RawImage, Line, Text
+from .visual import ConcentricCircles, Circle, RawImage, Line, Text
 from ._utils import get_config, verbose_dec, logger, string_types
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
@@ -578,7 +578,7 @@ class _Calibrate(super_class):
         self.img_span = 1.5 * np.array((float(ws[0]) / ws[1], 1.))
 
         # set up reusable objects
-        self.targ_circ = FixationDot(self.ec)
+        self.targ_circ = ConcentricCircles(self.ec)
         self.loz_circ = Circle(self.ec, fill_color=None, line_width=2.0)
         self.image_buffer = None
 

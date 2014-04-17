@@ -304,7 +304,7 @@ class Circle(_Triangular):
     circle : instance of Circle
         The circle object.
     """
-    def __init__(self, ec, radius=1, pos=[0, 0], units='norm',
+    def __init__(self, ec, radius=1, pos=(0, 0), units='norm',
                  n_edges=200, fill_color='white', line_color=None,
                  line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
@@ -340,7 +340,7 @@ class Circle(_Triangular):
         """
         _check_units(units)
         radius = np.atleast_1d(radius).astype(float)
-        if not radius.ndim == 1 or radius.size > 2:
+        if radius.ndim != 1 or radius.size > 2:
             raise ValueError('radius must be a 1- or 2-element '
                              'array-like vector')
         if radius.size == 1:
@@ -384,45 +384,44 @@ class Circle(_Triangular):
         self._line_points = self._points[2:]  # omit center point for lines
 
 
-class FixationDot(object):
-    """A fixation dot
+class ConcentricCircles(object):
+    """A set of concentric circles
+
+    The default incarnation of this object creates a reasonable fixation dot.
 
     Parameters
     ----------
     ec : instance of ExperimentController
         Parent EC.
-    inner_radius : float
-        Inner radius of the circle.
-    outer_radius : float
-        Outer radius of the circle.
+    radii : list of float
+        Radii of the circles.
     pos : array-like
-        2-element array-like with X, Y center positions.
+        2-element array-like with the X, Y center position.
     units : str
         Units to use.
-    n_edges : int
-        Number of edges to use (must be >= 4) to approximate a circle.
-    fill_color : matplotlib Color | None
-        Color to fill with. None is transparent.
-    line_color : matplotlib Color | None
-        Color of the border line. None is transparent.
-    line_width : float
-        Line width in pixels.
+    colors : list of matplotlib Colors
+        Color to fill each circle with.
 
     Returns
     -------
     circle : instance of Circle
         The circle object.
     """
-    def __init__(self, ec, inner_radius=0.05, outer_radius=0.2, pos=[0, 0],
-                 units='deg', inner_color='k', outer_color='w'):
+    def __init__(self, ec, radii=(0.2, 0.05), pos=(0, 0), units='deg',
+                 colors=('w', 'k')):
+        radii = np.array(radii, float)
+        if radii.ndim != 1:
+            raise ValueError('radii must be 1D')
+        if not isinstance(colors, (tuple, list, np.ndarray)):
+            raise TypeError('colors must be a tuple, list, or array')
+        if len(colors) != len(radii):
+            raise ValueError('colors and radii must be the same length')
         # need to set a dummy value here so recalculation doesn't fail
-        self._inner = Circle(ec, inner_radius, pos, units,
-                             fill_color=inner_color, line_width=0)
-        self._outer = Circle(ec, outer_radius, pos, units,
-                             fill_color=outer_color, line_width=0)
+        self._circles = [Circle(ec, r, pos, units, fill_color=c, line_width=0)
+                         for r, c in zip(radii, colors)]
 
     def set_pos(self, pos, units='norm'):
-        """Set the position and radius of the circle
+        """Set the position of the circles
 
         Parameters
         ----------
@@ -431,14 +430,28 @@ class FixationDot(object):
         units : str
             Units to use.
         """
-        self._inner.set_pos(pos, units)
-        self._outer.set_pos(pos, units)
+        for circle in self._circles:
+            circle.set_pos(pos, units)
+
+    def set_radius(self, radius, idx, units='norm'):
+        """Set the radius of one of the circles
+
+        Parameters
+        ----------
+        radius : float
+            Radius the circle.
+        idx : int
+            Index of the circle.
+        units : str
+            Units to use.
+        """
+        self._circles[idx].set_radius(radius, units)
 
     def draw(self):
         """Draw the fixation dot
         """
-        self._outer.draw()
-        self._inner.draw()
+        for circle in self._circles:
+            circle.draw()
 
 
 ##############################################################################

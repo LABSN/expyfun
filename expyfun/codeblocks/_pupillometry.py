@@ -4,7 +4,7 @@
 import numpy as np
 from scipy import signal
 
-from ..visual import FixationDot
+from ..visual import ConcentricCircles
 from ..analyze import sigmoid
 from .._utils import logger, verbose_dec
 
@@ -12,7 +12,7 @@ from .._utils import logger, verbose_dec
 def _check_pyeparse():
     """Helper to ensure package is available"""
     try:
-        import pyeparse  # noqa
+        import pyeparse  # noqa analysis:ignore
     except ImportError:
         raise ImportError('Cannot run, requires "pyeparse" package')
 
@@ -84,7 +84,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     iri = 10.0 if not el.dummy_mode else 1.0
     # amount of time between levels
     settle_time = 3.0 if not el.dummy_mode else 0.3
-    fix = FixationDot(ec)
+    fix = ConcentricCircles(ec)
     bgrect = ec.draw_background_color('k')
     fix.draw()
     ec.flip()
@@ -220,7 +220,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
 
     # let's put the initial color up to allow the system to settle
     bgrect = ec.draw_background_color(bgcolor)
-    fix = FixationDot(ec)
+    fix = ConcentricCircles(ec)
     fix.draw()
     ec.flip()
 
