@@ -678,9 +678,15 @@ class ExperimentController(object):
 ############################### OPENGL METHODS ###############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         # Use 16x sampling here
-        config = gl.Config(depth_size=8, double_buffer=True,
-                           stencil_size=0, stereo=False, samples=16,
-                           sample_buffers=1)
+        try:
+            config = gl.Config(depth_size=8, double_buffer=True,
+                               stencil_size=0, stereo=False, samples=16,
+                               sample_buffers=1)
+        except pyglet.window.NoSuchConfigException:
+            logger.warn('Full-screen antialiasing will not be available! '
+                        '(multi-sampling OpenGL config unavailable)')
+            config = gl.Config(depth_size=8, double_buffer=True,
+                               stencil_size=0, stereo=False)
         max_try = 5  # sometimes it fails for unknown reasons
         for ii in range(max_try):
             try:
