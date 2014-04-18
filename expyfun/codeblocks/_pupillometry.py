@@ -12,7 +12,7 @@ from .._utils import logger, verbose_dec
 def _check_pyeparse():
     """Helper to ensure package is available"""
     try:
-        import pyeparse  # noqa
+        import pyeparse  # noqa analysis:ignore
     except ImportError:
         raise ImportError('Cannot run, requires "pyeparse" package')
 

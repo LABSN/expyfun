@@ -62,6 +62,7 @@ Classes:
    :template: class.rst
 
    Circle
+   ConcentricCircles
    FixationDot
    Line
    RawImage

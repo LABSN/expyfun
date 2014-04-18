@@ -96,14 +96,12 @@ class Text(object):
 
 class _Triangular(object):
     """Super class for objects that use trianglulations and/or lines"""
-    def __init__(self, ec, fill_color, line_color, line_width, line_loop,
-                 poly_smooth=False):
+    def __init__(self, ec, fill_color, line_color, line_width, line_loop):
         self._ec = ec
         self.set_fill_color(fill_color)
         self.set_line_color(line_color)
         self._line_width = line_width
         self._line_loop = line_loop  # whether or not lines drawn are looped
-        self._poly_smooth = poly_smooth
 
     def set_fill_color(self, fill_color):
         """Set the object color
@@ -147,8 +145,6 @@ class _Triangular(object):
 
     def draw(self):
         """Draw the object to the display buffer"""
-        fun = gl.glEnable if self._poly_smooth else gl.glDisable
-        fun(gl.GL_POLYGON_SMOOTH)
         if self._fill_color is not None:
             color = _replicate_color(self._fill_color, self._points)
             pyglet.graphics.draw_indexed(len(self._points) // 2,
@@ -308,12 +304,12 @@ class Circle(_Triangular):
     circle : instance of Circle
         The circle object.
     """
-    def __init__(self, ec, radius=1, pos=[0, 0], units='norm',
+    def __init__(self, ec, radius=1, pos=(0, 0), units='norm',
                  n_edges=200, fill_color='white', line_color=None,
                  line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
                              line_color=line_color, line_width=line_width,
-                             line_loop=True, poly_smooth=True)
+                             line_loop=True)
         if not isinstance(n_edges, int):
             raise TypeError('n_edges must be an int')
         if n_edges < 4:
@@ -344,7 +340,7 @@ class Circle(_Triangular):
         """
         _check_units(units)
         radius = np.atleast_1d(radius).astype(float)
-        if not radius.ndim == 1 or radius.size > 2:
+        if radius.ndim != 1 or radius.size > 2:
             raise ValueError('radius must be a 1- or 2-element '
                              'array-like vector')
         if radius.size == 1:
@@ -388,45 +384,47 @@ class Circle(_Triangular):
         self._line_points = self._points[2:]  # omit center point for lines
 
 
-class FixationDot(object):
-    """A fixation dot
+class ConcentricCircles(object):
+    """A set of filled concentric circles drawn without edges
 
     Parameters
     ----------
     ec : instance of ExperimentController
         Parent EC.
-    inner_radius : float
-        Inner radius of the circle.
-    outer_radius : float
-        Outer radius of the circle.
+    radii : list of float
+        Radii of the circles. Note that circles will be drawn in order,
+        so using e.g., radii=[1., 2.] will cause the first circle to be
+        covered by the second.
     pos : array-like
-        2-element array-like with X, Y center positions.
+        2-element array-like with the X, Y center position.
     units : str
         Units to use.
-    n_edges : int
-        Number of edges to use (must be >= 4) to approximate a circle.
-    fill_color : matplotlib Color | None
-        Color to fill with. None is transparent.
-    line_color : matplotlib Color | None
-        Color of the border line. None is transparent.
-    line_width : float
-        Line width in pixels.
+    colors : list of matplotlib Colors
+        Color to fill each circle with.
 
     Returns
     -------
     circle : instance of Circle
         The circle object.
     """
-    def __init__(self, ec, inner_radius=0.05, outer_radius=0.2, pos=[0, 0],
-                 units='deg', inner_color='k', outer_color='w'):
+    def __init__(self, ec, radii=(0.2, 0.05), pos=(0, 0), units='norm',
+                 colors=('w', 'k')):
+        radii = np.array(radii, float)
+        if radii.ndim != 1:
+            raise ValueError('radii must be 1D')
+        if not isinstance(colors, (tuple, list, np.ndarray)):
+            raise TypeError('colors must be a tuple, list, or array')
+        if len(colors) != len(radii):
+            raise ValueError('colors and radii must be the same length')
         # need to set a dummy value here so recalculation doesn't fail
-        self._inner = Circle(ec, inner_radius, pos, units,
-                             fill_color=inner_color, line_width=0)
-        self._outer = Circle(ec, outer_radius, pos, units,
-                             fill_color=outer_color, line_width=0)
+        self._circles = [Circle(ec, r, pos, units, fill_color=c, line_width=0)
+                         for r, c in zip(radii, colors)]
+
+    def __len__(self):
+        return len(self._circles)
 
     def set_pos(self, pos, units='norm'):
-        """Set the position and radius of the circle
+        """Set the position of the circles
 
         Parameters
         ----------
@@ -435,14 +433,103 @@ class FixationDot(object):
         units : str
             Units to use.
         """
-        self._inner.set_pos(pos, units)
-        self._outer.set_pos(pos, units)
+        for circle in self._circles:
+            circle.set_pos(pos, units)
+
+    def set_radius(self, radius, idx, units='norm'):
+        """Set the radius of one of the circles
+
+        Parameters
+        ----------
+        radius : float
+            Radius the circle.
+        idx : int
+            Index of the circle.
+        units : str
+            Units to use.
+        """
+        self._circles[idx].set_radius(radius, units)
+
+    def set_radii(self, radii, units='norm'):
+        """Set the color of each circle
+
+        Parameters
+        ----------
+        radii : array-like
+            List of radii to assign to the circles. Must contain the same
+            number of radii as the number of circles.
+        units : str
+            Units to use.
+        """
+        radii = np.array(radii, float)
+        if radii.ndim != 1 or radii.size != len(self):
+            raise ValueError('radii must contain exactly {0} radii'
+                             ''.format(len(self)))
+        for idx, radius in enumerate(radii):
+            self.set_radius(radius, idx)
+
+    def set_color(self, color, idx):
+        """Set the color of one of the circles
+
+        Parameters
+        ----------
+        color : matplotlib Color
+            Color of the circle.
+        idx : int
+            Index of the circle.
+        units : str
+            Units to use.
+        """
+        self._circles[idx].set_fill_color(color)
+
+    def set_colors(self, colors):
+        """Set the color of each circle
+
+        Parameters
+        ----------
+        colors : list of matplotlib Colors
+            Must be of type list, and contain the same number of colors
+            as the number of circles.
+        """
+        if not isinstance(colors, list) or len(colors) != len(self):
+            raise ValueError('colors must be a list with {0} colors'
+                             ''.format(len(self)))
+        for idx, color in enumerate(colors):
+            self.set_color(color, idx)
 
     def draw(self):
         """Draw the fixation dot
         """
-        self._outer.draw()
-        self._inner.draw()
+        for circle in self._circles:
+            circle.draw()
+
+
+class FixationDot(ConcentricCircles):
+    """A reasonable centered fixation dot
+
+    This uses concentric circles, the inner of which has a radius of one
+    pixel, to create a fixation dot. If finer-grained control is desired,
+    consider using ``ConcentricCircles``.
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    colors : list of matplotlib Colors
+        Color to fill the outer and inner circle with, respectively.
+
+    Returns
+    -------
+    fix : instance of FixationDot
+        The fixation dot.
+    """
+    def __init__(self, ec, colors=('w', 'k')):
+        if len(colors) != 2:
+            raise ValueError('colors must have length 2')
+        super(FixationDot, self).__init__(ec, radii=[0.2, 0.2],
+                                          pos=[0, 0], units='deg',
+                                          colors=colors)
+        self.set_radius(1, 1, units='pix')
 
 
 ##############################################################################

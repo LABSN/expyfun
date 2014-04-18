@@ -677,19 +677,21 @@ class ExperimentController(object):
 
 ############################### OPENGL METHODS ###############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
-        config = gl.Config(depth_size=8, double_buffer=True,
-                           stencil_size=0, stereo=False)
+        # Use 16x sampling here
+        config_kwargs = dict(depth_size=8, double_buffer=True, stereo=False,
+                             stencil_size=0, samples=16, sample_buffers=1)
+        # Travis can't handle multi-sampling, but our production machines must
+        if os.getenv('TRAVIS') == 'true':
+            del config_kwargs['samples'], config_kwargs['sample_buffers']
+        win_kwargs = dict(width=window_size[0], height=window_size[1],
+                          caption=exp_name, fullscreen=full_screen,
+                          screen=screen_num, style='borderless', visible=False,
+                          config=pyglet.gl.Config(**config_kwargs))
+
         max_try = 5  # sometimes it fails for unknown reasons
         for ii in range(max_try):
             try:
-                win = pyglet.window.Window(width=window_size[0],
-                                           height=window_size[1],
-                                           caption=exp_name,
-                                           fullscreen=full_screen,
-                                           config=config,
-                                           screen=screen_num,
-                                           style='borderless',
-                                           visible=False)
+                win = pyglet.window.Window(**win_kwargs)
             except pyglet.gl.ContextException:
                 if ii == max_try - 1:
                     raise
@@ -720,14 +722,7 @@ class ExperimentController(object):
         # enable blending
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # set color shading (FLAT or SMOOTH)
         gl.glShadeModel(gl.GL_SMOOTH)
-        gl.glEnable(gl.GL_POINT_SMOOTH)
-        gl.glEnable(gl.GL_LINE_SMOOTH)
-        # gl.glEnable(gl.GL_POLY_SMOOTH_ done in visual only for certain types
-        gl.glHint(gl.GL_POINT_SMOOTH_HINT, gl.GL_NICEST)
-        gl.glHint(gl.GL_LINE_SMOOTH_HINT, gl.GL_NICEST)
-        gl.glHint(gl.GL_POLYGON_SMOOTH_HINT, gl.GL_NICEST)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
         win.set_visible(v_)
@@ -749,19 +744,12 @@ class ExperimentController(object):
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
         self._win.flip()
-        gl.glTranslatef(0.0, 0.0, -5.0)
-        gl.glLoadIdentity()
-        #waitBlanking
-        gl.glBegin(gl.GL_POINTS)
-        gl.glColor4f(0.0, 0.0, 0.0, 0.0)  # transparent
-        gl.glVertex2i(10, 10)
-        gl.glEnd()
         # this waits until everything is called, including last draw
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         gl.glFinish()
         flip_time = self._clock.get_time()
         for function in call_list:
             function()
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         self.write_data_line('flip', flip_time)
         self._on_next_flip = []
         return flip_time
