@@ -466,7 +466,7 @@ class ConcentricCircles(object):
             raise ValueError('radii must contain exactly {0} radii'
                              ''.format(len(self)))
         for idx, radius in enumerate(radii):
-            self.set_radius(radius, idx)
+            self.set_radius(radius, idx, units)
 
     def set_color(self, color, idx):
         """Set the color of one of the circles
