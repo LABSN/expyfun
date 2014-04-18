@@ -137,7 +137,6 @@ def rt_chisq(x, axis=None):
     return peak
 
 
-
 def dprime(hmfc, zero_correction=True):
     """Estimates d-prime, with optional correction factor to avoid infinites.
 
