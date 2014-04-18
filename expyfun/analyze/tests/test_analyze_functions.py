@@ -76,7 +76,7 @@ def test_rt_chisq():
     assert_equal(np.array(ea.rt_chisq(foo)).shape, ())
     # 2D should return as many values as length of axis passed in
     foo = np.random.rand(30).reshape((2, 3, 5))
-    for axis in range(foo.ndim):
+    for axis in range(-1, foo.ndim):
         bar = ea.rt_chisq(foo, axis=axis)
-        assert_equal(foo.shape[axis], len(bar))
-
+        assert_true(np.all(np.equal(np.delete(foo.shape, axis),
+                                    np.array(bar.shape))))
