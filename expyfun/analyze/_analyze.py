@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import scipy.stats as ss
 from scipy.optimize import curve_fit
+from functools import partial
 
 
 def logit(prop, max_events=None):
@@ -95,6 +96,46 @@ def fit_sigmoid(x, y, p0=None):
         raise ValueError('p0 must have 4 elements, or be None')
     out = curve_fit(sigmoid, x, y, p0=p0, )[0]
     return out
+
+
+def rt_chisq(x, axis=None):
+    """Chi square fit for reaction times (a better summary statistic than mean)
+
+    Parameters
+    ----------
+    x : array-like
+        Reaction time data to fit.
+
+    axis : int | None
+        The axis along which to calculate the chi-square fit. If none, ``x``
+        will be flattened before fitting.
+
+    Returns
+    -------
+    peak : float | array-like
+        The peak(s) of the fitted chi-square probability density function(s).
+
+    Notes
+    -----
+    verify it worked:
+    lsp = np.linspace(np.floor(np.amin(x)), np.ceil(np.amax(x)), 100)
+    df, loc, scale = ss.chi2.fit(x, floc=0)
+    pdf = ss.chi2.pdf(lsp, df, scale=scale)
+    matplotlib.pyplot.plot(lsp, pdf)
+    matplotlib.pyplot.hist(x, normed=True)
+    """
+    if axis is None:
+        df, _, scale = ss.chi2.fit(x, floc=0)
+    else:
+        fit = partial(ss.chi2.fit, floc=0)
+        params = np.apply_along_axis(fit, axis=axis, arr=x)  # df, loc, scale
+        pmut = np.concatenate((np.atleast_1d(axis),
+                               np.delete(np.arange(x.ndim), axis)))
+        df = np.transpose(params, pmut)[0]
+        scale = np.transpose(params, pmut)[2]
+    peak = np.maximum(0, (df - 2)) * scale
+    return peak
+
 
 
 def dprime(hmfc, zero_correction=True):
