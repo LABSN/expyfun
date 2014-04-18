@@ -66,3 +66,17 @@ def test_sigmoid():
     y += np.random.rand(n_pts) * 0.01
     p = ea.fit_sigmoid(x, y)
     assert_allclose(p, p0, atol=0.1, rtol=0.1)
+
+
+def test_rt_chisq():
+    """Test reaction time chi-square fitting
+    """
+    # 1D should return single float
+    foo = np.random.rand(30)
+    assert_equal(np.array(ea.rt_chisq(foo)).shape, ())
+    # 2D should return array with shape of input but without ``axis`` dimension
+    foo = np.random.rand(30).reshape((2, 3, 5))
+    for axis in range(-1, foo.ndim):
+        bar = ea.rt_chisq(foo, axis=axis)
+        assert_true(np.all(np.equal(np.delete(foo.shape, axis),
+                                    np.array(bar.shape))))
