@@ -117,12 +117,12 @@ def rt_chisq(x, axis=None):
 
     Notes
     -----
-    Verify that it worked by plotting pdf vs hist (for 1-dimensional x):
-    lsp = np.linspace(np.floor(np.amin(x)), np.ceil(np.amax(x)), 100)
-    df, loc, scale = ss.chi2.fit(x, floc=0)
-    pdf = ss.chi2.pdf(lsp, df, scale=scale)
-    _ = matplotlib.pyplot.plot(lsp, pdf)
-    _ = matplotlib.pyplot.hist(x, normed=True)
+    Verify that it worked by plotting pdf vs hist (for 1-dimensional x)::
+        >>> lsp = np.linspace(np.floor(np.amin(x)), np.ceil(np.amax(x)), 100)
+        >>> df, loc, scale = ss.chi2.fit(x, floc=0)
+        >>> pdf = ss.chi2.pdf(lsp, df, scale=scale)
+        >>> _ = matplotlib.pyplot.plot(lsp, pdf)
+        >>> _ = matplotlib.pyplot.hist(x, normed=True)
     """
     if axis is None:
         df, _, scale = ss.chi2.fit(x, floc=0)
