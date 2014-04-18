@@ -74,7 +74,7 @@ def test_rt_chisq():
     # 1D should return single float
     foo = np.random.rand(30)
     assert_equal(np.array(ea.rt_chisq(foo)).shape, ())
-    # 2D should return as many values as length of axis passed in
+    # 2D should return array with shape of input but without ``axis`` dimension
     foo = np.random.rand(30).reshape((2, 3, 5))
     for axis in range(-1, foo.ndim):
         bar = ea.rt_chisq(foo, axis=axis)
