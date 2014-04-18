@@ -394,7 +394,9 @@ class ConcentricCircles(object):
     ec : instance of ExperimentController
         Parent EC.
     radii : list of float
-        Radii of the circles.
+        Radii of the circles. Note that circles will be drawn in order,
+        so using e.g., radii=[1., 2.] will cause the first circle to be
+        covered by the second.
     pos : array-like
         2-element array-like with the X, Y center position.
     units : str
