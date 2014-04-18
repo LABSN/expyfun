@@ -385,9 +385,7 @@ class Circle(_Triangular):
 
 
 class ConcentricCircles(object):
-    """A set of concentric circles
-
-    The default incarnation of this object creates a reasonable fixation dot.
+    """A set of filled concentric circles drawn without edges
 
     Parameters
     ----------
@@ -409,7 +407,7 @@ class ConcentricCircles(object):
     circle : instance of Circle
         The circle object.
     """
-    def __init__(self, ec, radii=(0.2, 0.05), pos=(0, 0), units='deg',
+    def __init__(self, ec, radii=(0.2, 0.05), pos=(0, 0), units='norm',
                  colors=('w', 'k')):
         radii = np.array(radii, float)
         if radii.ndim != 1:
@@ -421,6 +419,9 @@ class ConcentricCircles(object):
         # need to set a dummy value here so recalculation doesn't fail
         self._circles = [Circle(ec, r, pos, units, fill_color=c, line_width=0)
                          for r, c in zip(radii, colors)]
+
+    def __len__(self):
+        return len(self._circles)
 
     def set_pos(self, pos, units='norm'):
         """Set the position of the circles
@@ -449,11 +450,86 @@ class ConcentricCircles(object):
         """
         self._circles[idx].set_radius(radius, units)
 
+    def set_radii(self, radii, units='norm'):
+        """Set the color of each circle
+
+        Parameters
+        ----------
+        radii : array-like
+            List of radii to assign to the circles. Must contain the same
+            number of radii as the number of circles.
+        units : str
+            Units to use.
+        """
+        radii = np.array(radii, float)
+        if radii.ndim != 1 or radii.size != len(self):
+            raise ValueError('radii must contain exactly {0} radii'
+                             ''.format(len(self)))
+        for idx, radius in enumerate(radii):
+            self.set_radius(radius, idx)
+
+    def set_color(self, color, idx):
+        """Set the color of one of the circles
+
+        Parameters
+        ----------
+        color : matplotlib Color
+            Color of the circle.
+        idx : int
+            Index of the circle.
+        units : str
+            Units to use.
+        """
+        self._circles[idx].set_fill_color(color)
+
+    def set_colors(self, colors):
+        """Set the color of each circle
+
+        Parameters
+        ----------
+        colors : list of matplotlib Colors
+            Must be of type list, and contain the same number of colors
+            as the number of circles.
+        """
+        if not isinstance(colors, list) or len(colors) != len(self):
+            raise ValueError('colors must be a list with {0} colors'
+                             ''.format(len(self)))
+        for idx, color in enumerate(colors):
+            self.set_color(color, idx)
+
     def draw(self):
         """Draw the fixation dot
         """
         for circle in self._circles:
             circle.draw()
+
+
+class FixationDot(ConcentricCircles):
+    """A reasonable centered fixation dot
+
+    This uses concentric circles, the inner of which has a radius of one
+    pixel, to create a fixation dot. If finer-grained control is desired,
+    consider using ``ConcentricCircles``.
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    colors : list of matplotlib Colors
+        Color to fill the outer and inner circle with, respectively.
+
+    Returns
+    -------
+    fix : instance of FixationDot
+        The fixation dot.
+    """
+    def __init__(self, ec, colors=('w', 'k')):
+        if len(colors) != 2:
+            raise ValueError('colors must have length 2')
+        super(FixationDot, self).__init__(ec, radii=[0.2, 0.2],
+                                          pos=[0, 0], units='deg',
+                                          colors=colors)
+        self.set_radius(1, 1, units='pix')
 
 
 ##############################################################################

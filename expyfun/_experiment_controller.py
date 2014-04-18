@@ -744,19 +744,12 @@ class ExperimentController(object):
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
         self._win.flip()
-        gl.glTranslatef(0.0, 0.0, -5.0)
-        gl.glLoadIdentity()
-        #waitBlanking
-        gl.glBegin(gl.GL_POINTS)
-        gl.glColor4f(0.0, 0.0, 0.0, 0.0)  # transparent
-        gl.glVertex2i(10, 10)
-        gl.glEnd()
         # this waits until everything is called, including last draw
-        gl.glFinish()
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+        #gl.glFinish()
         flip_time = self._clock.get_time()
         for function in call_list:
             function()
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         self.write_data_line('flip', flip_time)
         self._on_next_flip = []
         return flip_time

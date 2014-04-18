@@ -63,6 +63,7 @@ Classes:
 
    Circle
    ConcentricCircles
+   FixationDot
    Line
    RawImage
    Rectangle
