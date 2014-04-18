@@ -48,7 +48,7 @@ with ExperimentController('test', session='1', participant='2',
     circle.draw()
     screenshot = ec.screenshot()  # must be called *before* the flip
     ec.flip()
-    ec.wait_for_presses(2.5)
+    ec.wait_for_presses(0.5)
 
 import matplotlib.pyplot as plt
 plt.ion()

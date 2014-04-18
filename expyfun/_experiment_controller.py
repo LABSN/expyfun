@@ -678,26 +678,20 @@ class ExperimentController(object):
 ############################### OPENGL METHODS ###############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         # Use 16x sampling here
-        try:
-            config = gl.Config(depth_size=8, double_buffer=True,
-                               stencil_size=0, stereo=False, samples=16,
-                               sample_buffers=1)
-        except pyglet.window.NoSuchConfigException:
-            logger.warn('Full-screen antialiasing will not be available! '
-                        '(multi-sampling OpenGL config unavailable)')
-            config = gl.Config(depth_size=8, double_buffer=True,
-                               stencil_size=0, stereo=False)
+        config_kwargs = dict(depth_size=8, double_buffer=True, stereo=False,
+                             stencil_size=0, samples=16, sample_buffers=1)
+        # Travis can't handle multi-sampling, but our production machines must
+        if os.getenv('TRAVIS') == 'true':
+            del config_kwargs['samples'], config_kwargs['sample_buffers']
+        win_kwargs = dict(width=window_size[0], height=window_size[1],
+                          caption=exp_name, fullscreen=full_screen,
+                          screen=screen_num, style='borderless', visible=False,
+                          config=pyglet.gl.Config(**config_kwargs))
+
         max_try = 5  # sometimes it fails for unknown reasons
         for ii in range(max_try):
             try:
-                win = pyglet.window.Window(width=window_size[0],
-                                           height=window_size[1],
-                                           caption=exp_name,
-                                           fullscreen=full_screen,
-                                           config=config,
-                                           screen=screen_num,
-                                           style='borderless',
-                                           visible=False)
+                win = pyglet.window.Window(**win_kwargs)
             except pyglet.gl.ContextException:
                 if ii == max_try - 1:
                     raise
