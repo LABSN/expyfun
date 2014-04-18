@@ -746,7 +746,7 @@ class ExperimentController(object):
         self._win.flip()
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        gl.glFinish()
+        #gl.glFinish()
         flip_time = self._clock.get_time()
         for function in call_list:
             function()
