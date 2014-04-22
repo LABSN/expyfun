@@ -174,7 +174,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     # Determine parameters / randomization
     #
     n_stimuli = 300 if not el.dummy_mode else 10
-    break_stim = [150]  # when to offer the subject a break
+    break_stim = [100, 200]  # when to offer the subject a break
 
     delay_range = (1.5, 4.0) if not el.dummy_mode else (0.15, 0.4)
     delay_range = np.array(delay_range)
@@ -187,12 +187,12 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     n_targs = int(targ_prop * n_stimuli)
     targs = np.zeros(n_stimuli, bool)
     targs[np.linspace(0, n_stimuli - 1, n_targs + 2)[1:-1].astype(int)] = True
-    while(True):  # ensure we don't start with a target
-        if not targs[0]:
-            break
+    while(True):  # ensure we randomize but don't start with a target
         idx = rng.permutation(np.arange(n_stimuli))
         isis = isis[idx]
         targs = targs[idx]
+        if not targs[0]:
+            break
 
     #
     # Generate stimuli
@@ -246,9 +246,13 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     presses = list()
     for ii, (isi, targ) in enumerate(zip(isis, targs)):
         if ii in break_stim:
-            ec.screen_prompt('Great work! You are %s%% done.\n\nFeel free to '
-                             'take a break, then press the button to continue')
+            perc = round(100 * ii / float(n_stimuli))
+            ec.screen_prompt('Great work! You are {0}%% done.\n\nFeel free '
+                             'to take a break, then press the button to '
+                             'continue'.format(perc))
             ec.screen_prompt(instr)
+            fix.draw()
+            ec.flip()
             ec.wait_secs(10.0)  # let the pupil settle
         fix.draw()
         ec.load_buffer(sweep_stim if targ else tone_stim)
