@@ -68,9 +68,10 @@ def format_pval(pval, latex=True, scheme='default'):
     return(pv)
 
 
-def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
-            eq_group_widths=False, brackets=None, bracket_text=None,
-            gap_size=0.2, bar_names=None, group_names=None, bar_kwargs=None,
+def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
+            groups=None, eq_group_widths=False, gap_size=0.2,
+            brackets=None, bracket_text=None, bracket_group_lines=False,
+            bar_names=None, group_names=None, bar_kwargs=None,
             err_kwargs=None, line_kwargs=None, bracket_kwargs=None,
             figure_kwargs=None, smart_defaults=True, fname=None, ax=None):
     """Makes barplots w/ optional line overlays, grouping, & signif. brackets.
@@ -107,6 +108,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         Should all groups have the same width? If ``False``, all bars will have
         the same width. Ignored if ``groups=None``, since the bar/group
         distinction is meaningless in that case.
+    gap_size : float
+        Width of the gap between groups (if ``eq_group_width = True``) or
+        between bars, expressed as a proportion [0,1) of group or bar width.
     brackets : list of tuples | None
         Location of significance brackets. Scheme is similar to ``grouping``;
         if you want a bracket between the first and second bar and another
@@ -114,10 +118,10 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
         want brackets between groups of bars instead of between bars, indicate
         the group numbers as singleton lists within the tuple: [([0], [1])].
     bracket_text : str | list | None
-        text to display above brackets.
-    gap_size : float
-        Width of the gap between groups (if ``eq_group_width = True``) or
-        between bars, expressed as a proportion [0,1) of group or bar width.
+        Text to display above brackets.
+    bracket_group_lines : bool
+        When drawing brackets between groups rather than single bars, should a
+        horizontal line be drawn at each foot of the bracket to indicate this?
     bar_names : array-like | None
         Optional axis labels for each bar.
     group_names : array-like | None
@@ -287,15 +291,26 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
     else:
         max_pts.fill(0)
     # significance brackets
-    apices = np.max(np.r_[np.atleast_2d(heights + err),
-                          np.atleast_2d(max_pts)], axis=0)
-    group_apices = [np.max(apices[x]) for x in groups]
     if brackets is not None:
         if not len(brackets) == len(bracket_text):
             raise ValueError('Mismatch between number of brackets and bracket '
                              'labels.')
         brk_offset = np.diff(p.get_ylim()) * 0.025
         brk_height = np.diff(p.get_ylim()) * 0.05
+        # significance brackets prelim: calculate text height
+        #r = p.figure.canvas.get_renderer()
+        t = plt.text(0.5, 0.5, bracket_text[0])
+        t.set_bbox(dict(boxstyle='round, pad=0'))
+        plt.draw()
+        bb = t.get_bbox_patch().get_window_extent()  # renderer=r
+        brk_txt_h = np.diff(p.transData.inverted().transform(bb),
+                            axis=0).ravel()[-1] + brk_offset/2.
+        t.remove()
+        # find apices of bars
+        apex = np.max(np.r_[np.atleast_2d(heights + err),
+                            np.atleast_2d(max_pts)], axis=0)
+        gr_apex = np.array([np.max(apex[x]) for x in groups])
+        # calculate bracket coords
         for pair, text in zip(brackets, bracket_text):
             if len(pair) != 2:
                 raise ValueError('brackets must be list of 2-element tuples.')
@@ -305,13 +320,21 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False, groups=None,
                 if hasattr(br, 'append'):  # it's a group, not a single bar
                     br = br[0]
                     xlr.append(group_centers[br])
-                    ylo.append(group_apices[br] + brk_offset)
-                    gbr = (bar_centers[groups[br][0]],
-                           bar_centers[groups[br][-1]])
-                    p.plot(gbr, (ylo[-1], ylo[-1]), **bracket_kwargs)
+                    ylo.append(gr_apex[br] + brk_offset)
+                    # horizontal line spanning group:
+                    if bracket_group_lines:
+                        gbr = (bar_centers[groups[br][0]],
+                               bar_centers[groups[br][-1]])
+                        p.plot(gbr, (ylo[-1], ylo[-1]), **bracket_kwargs)
+                    # update apices to prevent bracket overlap
+                    gr_apex[br] = max(ylo) + brk_height + brk_txt_h
                 else:
                     xlr.append(bar_centers[br])
-                    ylo.append(apices[br] + brk_offset)
+                    ylo.append(apex[br] + brk_offset)
+                    apex[br] = max(ylo) + brk_height + brk_txt_h
+                    # update apices to prevent bracket overlap
+                    new_ga = np.array([np.max(apex[x]) for x in groups])
+                    gr_apex[new_ga > gr_apex] = new_ga[new_ga > gr_apex]
             yhi = max(ylo) + brk_height
             # points defining brackets
             lbr = ((xlr[0], xlr[0]), (ylo[0], yhi))
