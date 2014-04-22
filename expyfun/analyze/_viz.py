@@ -297,12 +297,11 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                              'labels.')
         brk_offset = np.diff(p.get_ylim()) * 0.025
         brk_height = np.diff(p.get_ylim()) * 0.05
-        # significance brackets prelim: calculate text height
-        #r = p.figure.canvas.get_renderer()
+        # prelim: calculate text height
         t = plt.text(0.5, 0.5, bracket_text[0])
         t.set_bbox(dict(boxstyle='round, pad=0'))
         plt.draw()
-        bb = t.get_bbox_patch().get_window_extent()  # renderer=r
+        bb = t.get_bbox_patch().get_window_extent()
         brk_txt_h = np.diff(p.transData.inverted().transform(bb),
                             axis=0).ravel()[-1] + brk_offset/2.
         t.remove()
