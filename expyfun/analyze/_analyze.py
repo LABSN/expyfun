@@ -124,6 +124,8 @@ def rt_chisq(x, axis=None):
         >>> _ = matplotlib.pyplot.plot(lsp, pdf)
         >>> _ = matplotlib.pyplot.hist(x, normed=True)
     """
+    if np.any(np.less(x, 0)):  # save the user some pain
+        raise ValueError('x cannot have negative values')
     if axis is None:
         df, _, scale = ss.chi2.fit(x, floc=0)
     else:

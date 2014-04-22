@@ -73,6 +73,7 @@ def test_rt_chisq():
     """
     # 1D should return single float
     foo = np.random.rand(30)
+    assert_raises(ValueError, ea.rt_chisq, foo - 1.)
     assert_equal(np.array(ea.rt_chisq(foo)).shape, ())
     # 2D should return array with shape of input but without ``axis`` dimension
     foo = np.random.rand(30).reshape((2, 3, 5))
