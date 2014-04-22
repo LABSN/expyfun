@@ -247,9 +247,9 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     for ii, (isi, targ) in enumerate(zip(isis, targs)):
         if ii in break_stim:
             perc = round(100 * ii / float(n_stimuli))
-            ec.screen_prompt('Great work! You are {0}%% done.\n\nFeel free '
+            ec.screen_prompt('Great work! You are {0}% done.\n\nFeel free '
                              'to take a break, then press the button to '
-                             'continue'.format(perc))
+                             'continue.'.format(perc))
             ec.screen_prompt(instr)
             fix.draw()
             ec.flip()
