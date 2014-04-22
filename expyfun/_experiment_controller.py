@@ -23,7 +23,7 @@ from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, Mouse
-from .visual import Text, Rectangle
+from .visual import Text, Rectangle, _convert_color
 
 
 class ExperimentController(object):
@@ -437,28 +437,25 @@ class ExperimentController(object):
             self.flip()
         return out
 
-    def draw_background_color(self, color='black'):
-        """Draw a solid background color
+    def set_background_color(self, color='black'):
+        """Set and draw a solid background color
 
         Parameters
         ----------
         color : matplotlib color
             The background color.
 
-        Returns
-        -------
-        rect : instance of Rectangle
-            The drawn Rectangle object.
-
         Notes
         -----
-        This should be the first object drawn to a buffer, as it will
-        cover any previsouly drawn objects.
+        This should be called before anything else is drawn to the buffer,
+        since it will draw a filled rectangle over everything. On subsequent
+        flips, the rectangle will automatically be "drawn" because
+        ``glClearColor`` will be set so the buffer starts out with the
+        appropriate backgound color.
         """
         # we go a little over here to be safe from round-off errors
-        rect = Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color)
-        rect.draw()
-        return rect
+        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
+        gl.glClearColor(*(_convert_color(color) / 255.))
 
     def start_stimulus(self, start_of_trial=True, flip=True):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
