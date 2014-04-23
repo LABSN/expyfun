@@ -25,14 +25,9 @@ def read_tab(fname, out_fname=None, group_by='trial_id', overwrite=False):
     -------
     header : list of str
         The fields in ``data``.
-    data : list of lists
-        The data, with each row containing a trial.
-
-    Notes
-    -----
-    If a field is repeated in a given trial, only the first instance
-    is kept. If it is not found in a given trial, the string will
-    be empty.
+    data : list of lists of lists
+        The data, with each row containing a trial, and each column
+        containing a type of data.
     """
     if out_fname is not None and op.isfile(out_fname) and not overwrite:
         raise IOError('output filename "{0}" exists, consider using '
@@ -66,14 +61,7 @@ def read_tab(fname, out_fname=None, group_by='trial_id', overwrite=False):
         these_vals = [line[2] for line in lines[b1:b2]]
         for ki, key in enumerate(header):
             idx = np.where(key == np.array(these_keys))[0]
-            if key == 'keypress':  # translate to list of tuples
-                d[ki] = [(these_vals[ii], these_times[ii]) for ii in idx]
-            elif key == 'play':  # can be multiple
-                d[ki] = [these_times[ii] for ii in idx]
-            elif key == 'flip':  # can be multiple
-                d[ki] = [these_vals[ii] for ii in idx]
-            elif len(idx) >= 1:
-                d[ki] = these_vals[idx[0]]
+            d[ki] = [(these_vals[ii], these_times[ii]) for ii in idx]
         data.append(d)
     if out_fname is not None:
         with open(out_fname, 'w') as g:
