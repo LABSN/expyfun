@@ -21,7 +21,6 @@ from expyfun.codeblocks import (find_pupil_dynamic_range,
 with ExperimentController('pupilExp', full_screen=True, participant='foo',
                           session='001', output_dir=None) as ec:
     el = EyelinkController(ec)
-    el.calibrate()  # this starts recording EyeLink data
     bgcolor, fcolor, lev, resp = find_pupil_dynamic_range(ec, el)
     prf, t_srf, e_prf = find_pupil_tone_impulse_response(ec, el, bgcolor,
                                                          fcolor)
