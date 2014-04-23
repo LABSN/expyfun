@@ -117,6 +117,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         between the third and fourth bars, specify as [(0,1),(2,3)]. If you
         want brackets between groups of bars instead of between bars, indicate
         the group numbers as singleton lists within the tuple: [([0], [1])].
+        For best results, pairs of adjacent bars should come earlier in the
+        list than non-adjacent pairs.
     bracket_text : str | list | None
         Text to display above brackets.
     bracket_group_lines : bool
@@ -309,6 +311,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         apex = np.max(np.r_[np.atleast_2d(heights + err),
                             np.atleast_2d(max_pts)], axis=0)
         gr_apex = np.array([np.max(apex[x]) for x in groups])
+        # apices of brackets
+        brk_list = []  # np.zeros((len(brackets), 2, 2), dtype=float)
+        brk_apex_list = []
         # calculate bracket coords
         for pair, text in zip(brackets, bracket_text):
             if len(pair) != 2:
@@ -326,19 +331,28 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                                bar_centers[groups[br][-1]])
                         p.plot(gbr, (ylo[-1], ylo[-1]), **bracket_kwargs)
                     # update apices to prevent bracket overlap
-                    gr_apex[br] = max(ylo) + brk_height + brk_txt_h
+                    yhi = max(ylo) + brk_height
+                    while np.any([np.abs(x - yhi) < brk_offset for x in
+                                  brk_apex_list]):
+                        yhi += (brk_txt_h + 2 * brk_offset)
+                    gr_apex[br] = yhi + brk_txt_h
                 else:
                     xlr.append(bar_centers[br])
                     ylo.append(apex[br] + brk_offset)
-                    apex[br] = max(ylo) + brk_height + brk_txt_h
+                    yhi = max(ylo) + brk_height
+                    while np.any([np.abs(x - yhi) < brk_offset for x in
+                                  brk_apex_list]):
+                        yhi += (brk_txt_h + 2 * brk_offset)
                     # update apices to prevent bracket overlap
+                    apex[br] = yhi + brk_txt_h
                     new_ga = np.array([np.max(apex[x]) for x in groups])
                     gr_apex[new_ga > gr_apex] = new_ga[new_ga > gr_apex]
-            yhi = max(ylo) + brk_height
             # points defining brackets
             lbr = ((xlr[0], xlr[0]), (ylo[0], yhi))
             rbr = ((xlr[1], xlr[1]), (ylo[1], yhi))
             hbr = (tuple(xlr), (yhi, yhi))
+            brk_list.append([lbr, rbr, hbr])
+            brk_apex_list.append(yhi)
             for x, y in [lbr, rbr, hbr]:
                 p.plot(x, y, **bracket_kwargs)
             # bracket text
