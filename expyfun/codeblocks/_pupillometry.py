@@ -17,17 +17,6 @@ def _check_pyeparse():
         raise ImportError('Cannot run, requires "pyeparse" package')
 
 
-def _check_fname(el):
-    """Helper to deal with Eyelink filename inputs"""
-    if not el._is_file_open:
-        fname = el._open_file()
-    else:
-        fname = el._current_open_file
-    if not el.recording:
-        el._start_recording()
-    return fname
-
-
 def _load_raw(el, fname):
     """Helper to load some pupil data"""
     import pyeparse
@@ -75,11 +64,13 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     """
     _check_pyeparse()
     import pyeparse
+    if el.recording:
+        el.stop()
+    el.calibrate()
     if prompt:
         ec.screen_prompt('We will now determine the dynamic '
                          'range of your pupil.<br><br>'
                          'Press a button to continue.')
-    fname = _check_fname(el)
     levels = np.concatenate(([0.], 2 ** np.arange(8) / 255.))
     fixs = levels + 0.2
     n_rep = 2
@@ -121,7 +112,8 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         resp += np.random.rand(*resp.shape) * 500 - 250
     else:
         # Pull data locally
-        raw, events = _load_raw(el, fname)
+        assert len(el.file_list) >= 1
+        raw, events = _load_raw(el, el.file_list[-1])
         assert len(events) == len(levels) * n_rep
         epochs = pyeparse.Epochs(raw, events, 1, -0.5, settle_time)
         assert len(epochs) == len(levels) * n_rep
@@ -169,16 +161,18 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     """
     _check_pyeparse()
     import pyeparse
+    if el.recording:
+        el.stop()
 
     #
     # Determine parameters / randomization
     #
     n_stimuli = 300 if not el.dummy_mode else 10
-    break_stim = [100, 200]  # when to offer the subject a break
+    cal_stim = [0, 75, 150, 225]  # when to offer the subject a break
 
-    delay_range = (1.5, 4.0) if not el.dummy_mode else (0.15, 0.4)
+    delay_range = (3.0, 5.0) if not el.dummy_mode else (0.3, 0.5)
     delay_range = np.array(delay_range)
-    targ_prop = 0.2
+    targ_prop = 0.25
     stim_dur = 100e-3
     f0 = 1000.  # Hz
 
@@ -234,23 +228,22 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
             ec.wait_secs(0.5)
             ec.stop()
         ec.screen_prompt(instr)
-    fname = _check_fname(el)
 
-    # let's put the initial color up to allow the system to settle
     fix = FixationDot(ec, colors=[fcolor, bgcolor])
-    fix.draw()
-    ec.flip()
-
-    ec.wait_secs(3.0)
     flip_times = list()
     presses = list()
+    assert 0 in cal_stim
     for ii, (isi, targ) in enumerate(zip(isis, targs)):
-        if ii in break_stim:
-            perc = round(100 * ii / float(n_stimuli))
-            ec.screen_prompt('Great work! You are {0}% done.\n\nFeel free '
-                             'to take a break, then press the button to '
-                             'continue.'.format(perc))
+        if ii in cal_stim:
+            if ii != 0:
+                el.stop()
+                perc = round((100. * ii) / n_stimuli)
+                ec.screen_prompt('Great work! You are {0}% done.\n\nFeel '
+                                 'free to take a break, then press the '
+                                 'button to continue.'.format(perc))
+            el.calibrate()
             ec.screen_prompt(instr)
+            # let's put the initial color up to allow the system to settle
             fix.draw()
             ec.flip()
             ec.wait_secs(10.0)  # let the pupil settle
@@ -276,9 +269,15 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
         std_err = np.ones_like(response) * 0.1 * response.max()
         std_err += np.random.rand(std_err.size) * 0.1 * response.max()
     else:
-        raw, events = _load_raw(el, fname)
-        assert len(events) == n_stimuli
-        epochs = pyeparse.Epochs(raw, events, 1,
+        raws = list()
+        events = list()
+        assert len(el.file_list) >= 4
+        for fname in el.file_list[-4:]:
+            raw, event = _load_raw(el, fname)
+            raws.append(raw)
+            events.append(event)
+        assert sum(len(event) for event in events) == n_stimuli
+        epochs = pyeparse.Epochs(raws, events, 1,
                                  tmin=tmin, tmax=delay_range[0])
         response = epochs.pupil_zscores()
         assert response.shape[0] == n_stimuli

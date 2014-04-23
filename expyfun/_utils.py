@@ -585,7 +585,7 @@ interactive_test = skipif(get_config('EXPYFUN_INTERACTIVE_TESTING', 'False') !=
                           'True', 'Interactive testing disabled.')
 
 
-def wait_secs(secs):
+def wait_secs(secs, ec=None):
     """Wait a specified number of seconds.
 
     Parameters
@@ -604,6 +604,8 @@ def wait_secs(secs):
     while (clock() - t0) < secs:
         for win in wins:
             win.dispatch_events()
+        if ec is not None:
+            ec.check_force_quit()
 
 
 def running_rms(signal, win_length):

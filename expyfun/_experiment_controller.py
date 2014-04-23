@@ -180,6 +180,8 @@ class ExperimentController(object):
                 self._output_dir = basename
                 self._log_file = self._output_dir + '.log'
                 set_log_file(self._log_file)
+                closer = partial(set_log_file, None)
+                self._extra_cleanup_fun.append(closer)
                 # initialize data file
                 self._data_file = open(self._output_dir + '.tab', 'a')
                 self._extra_cleanup_fun.append(self._data_file.close)
@@ -1125,21 +1127,19 @@ class ExperimentController(object):
                                - self._time_corrections[clock_type]))
         return time_correction
 
-    def wait_secs(self, *args, **kwargs):
+    def wait_secs(self, secs):
         """Wait a specified number of seconds.
 
         Parameters
         ----------
         secs : float
             Number of seconds to wait.
-        hog_cpu_time : float
-            Amount of CPU time to hog. See Notes.
 
         Notes
         -----
         See the wait_secs() function.
         """
-        wait_secs(*args, **kwargs)
+        wait_secs(secs, ec=self)
 
     def wait_until(self, timestamp):
         """Wait until the given time is reached.
@@ -1278,8 +1278,7 @@ class ExperimentController(object):
         cleanup_actions = [self.stop_noise, self.stop]
         cleanup_actions.extend(self._extra_cleanup_fun)
         if hasattr(self, '_win'):
-            # do this last, as other methods may add/remove handlers
-            cleanup_actions.append(self._win.close)
+            cleanup_actions = [self._win.close] + cleanup_actions
         for action in cleanup_actions:
             try:
                 action()
