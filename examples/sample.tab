@@ -1,0 +1,97 @@
+# {'date': '2014-04-24 09_34_56.521000', 'exp_name': 'testExp', 'session': '001', 'participant': 'foo'}
+timestamp	event	value
+0.545396089554	screen_text	You will hear tones at 4 different frequencies. Your job is to press the button corresponding to that frequency. Please press buttons 1-4 now to hear each tone.
+0.54545211792	flip	0.545387983322
+3.01070404053	keypress	1
+3.05909395218	play	None
+3.33745002747	stop	None
+3.44233226776	keypress	2
+3.48836708069	play	None
+3.76642608643	stop	None
+3.79425215721	keypress	3
+3.84069108963	play	None
+4.11895990372	stop	None
+4.60233426094	keypress	4
+4.64817690849	play	None
+4.92637205124	stop	None
+4.94917011261	flip	4.94916701317
+5.19942307472	screen_text	Okay, now press any of those buttons to start the real thing. There will be background noise.
+5.19945693016	flip	5.19941902161
+6.05048418045	keypress	1
+6.08344602585	flip	6.0834441185
+6.31685304642	screen_text	<center>OK, here we go!</center>
+6.31690311432	flip	6.31680703163
+6.85077691078	flip	6.85077404976
+7.09603095055	trial_id	2
+7.1832420826	one-tone trial	3
+7.20213508606	play	None
+7.2021651268	flip	7.20117807388
+8.28252220154	keypress	2
+8.28374099731	stop	None
+8.28387713432	trial_ok	None
+8.31847500801	screen_text	You pressed 2, the correct answer was 3.
+8.31853413582	flip	8.31847310066
+8.85247898102	flip	8.85247612
+9.09767699242	trial_id	0
+9.18485999107	one-tone trial	1
+9.20402598381	play	None
+9.20404911041	flip	9.20299601555
+10.2186112404	keypress	1
+10.2200329304	stop	None
+10.2201640606	trial_ok	None
+10.2536890507	screen_text	Correct! Your reaction time was 1.015
+10.2537469864	flip	10.2536859512
+10.7875030041	flip	10.7874999046
+11.0327301025	trial_id	0
+11.1199131012	one-tone trial	1
+11.1387979984	play	None
+11.138821125	flip	11.1377930641
+11.7466132641	keypress	1
+11.748003006	stop	None
+11.7481300831	trial_ok	None
+11.7883460522	screen_text	Correct! Your reaction time was 0.608
+11.7884049416	flip	11.7883439064
+12.3221800327	flip	12.3221769333
+12.5674021244	trial_id	1
+12.6546010971	one-tone trial	2
+12.6734941006	play	None
+12.6735179424	flip	12.6724259853
+13.0906381607	keypress	2
+13.0917980671	stop	None
+13.0919110775	trial_ok	None
+13.1228539944	screen_text	Correct! Your reaction time was 0.417
+13.1229119301	flip	13.122852087
+13.6566159725	flip	13.6566131115
+13.9016640186	trial_id	1
+13.9888460636	one-tone trial	2
+14.0083351135	play	None
+14.0083599091	flip	14.0070300102
+14.3306970596	keypress	2
+14.3321049213	stop	None
+14.3322300911	trial_ok	None
+14.3571960926	screen_text	Correct! Your reaction time was 0.322
+14.3572559357	flip	14.3571939468
+14.8909869194	flip	14.8909840584
+15.1412510872	screen_text	Now you will hear 5 tones in a row. After they stop, wait for the "Go!" prompt, then you will have 2.0 seconds to push the buttons in the order that the tones played in. Press one of the buttons to begin.
+15.1413149834	flip	15.1412479877
+16.0827991962	keypress	1
+16.1088309288	flip	16.1088290215
+16.3037970066	trial_id	multi-tone
+16.391012907	multi-tone trial	[3, 4, 4, 1, 2]
+16.4101309776	play	None
+16.4101719856	flip	16.4091079235
+19.6617660522	screen_text	<center>Go!</center>
+19.6618280411	flip	19.6617629528
+20.0588810444	keypress	2
+20.3308241367	keypress	3
+20.5148131847	keypress	3
+20.8028421402	keypress	1
+21.0348510742	keypress	2
+22.6977190971	screen_text	You got 2 out of 5 correct.
+22.6977779865	flip	22.6977159977
+23.2315089703	flip	23.2315070629
+23.2315790653	trial_ok	None
+23.2648739815	screen_text	All done! You got 6 correct out of 10 tones. Press any key to close.
+23.2649319172	flip	23.2648711205
+23.7986581326	flip	23.7986559868
+23.8009381294	stop	None
