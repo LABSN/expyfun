@@ -103,14 +103,15 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
     mass_trial_order = trial_order[len(trial_order) / 2:]
     # run the single-tone trials
     for stim_num in single_trial_order:
-        ec.write_data_line('one-tone trial', stim_num + 1)
         ec.clear_buffer()
         ec.load_buffer(wavs[stim_num])
         ec.identify_trial(ec_id=stim_num, ttl_id=[0, 0])
+        ec.write_data_line('one-tone trial', stim_num + 1)
         ec.start_stimulus()
         pressed, timestamp = ec.wait_one_press(max_resp_time, min_resp_time,
                                                live_keys)
         ec.stop()  # will stop stim playback as soon as response logged
+        ec.trial_ok()
 
         # some feedback
         if pressed is None:
@@ -124,7 +125,6 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
                        '{1}.').format(pressed, stim_num + 1)
         ec.screen_prompt(message, max_wait=feedback_dur)
         ec.wait_secs(isi)
-        ec.trial_ok()
 
     # create 100 ms pause to play between stims and concatenate
     pause = np.zeros((int(ec.fs / 10), 2))
@@ -141,8 +141,8 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
                      live_keys=live_keys)
     ec.clear_buffer()
     ec.load_buffer(concat_wavs)
-    ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])
     ec.identify_trial(ec_id='multi-tone', ttl_id=[0, 1])
+    ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])
     ec.start_stimulus()
     ec.wait_secs(len(concat_wavs) / float(ec.stim_fs))
     ec.screen_text('<center>Go!</center>')

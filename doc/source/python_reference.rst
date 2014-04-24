@@ -98,6 +98,7 @@ Functions:
    dprime
    dprime_2afc
    plot_screen
+   read_tab
 
 Logging and Configuration
 =========================

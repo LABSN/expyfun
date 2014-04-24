@@ -118,12 +118,20 @@ def rt_chisq(x, axis=None):
     Notes
     -----
     Verify that it worked by plotting pdf vs hist (for 1-dimensional x)::
+
+        >>> import numpy as np
+        >>> from scipy import stats as ss
+        >>> import matplotlib.pyplot as plt
+        >>> plt.ion()
+        >>> x = np.abs(np.random.randn(10000) + 1)
         >>> lsp = np.linspace(np.floor(np.amin(x)), np.ceil(np.amax(x)), 100)
         >>> df, loc, scale = ss.chi2.fit(x, floc=0)
         >>> pdf = ss.chi2.pdf(lsp, df, scale=scale)
-        >>> _ = matplotlib.pyplot.plot(lsp, pdf)
-        >>> _ = matplotlib.pyplot.hist(x, normed=True)
+        >>> plt.plot(lsp, pdf)
+        >>> plt.hist(x, normed=True)
     """
+    if np.any(np.less(x, 0)):  # save the user some pain
+        raise ValueError('x cannot have negative values')
     if axis is None:
         df, _, scale = ss.chi2.fit(x, floc=0)
     else:
