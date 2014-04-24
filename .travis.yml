@@ -63,27 +63,11 @@ before_install:
 install:
     - cd ${SRC_DIR}
     - python setup.py install
-    - cd ~
-    - EXPYFUN_DIR=$(python -c 'import expyfun;print(expyfun.__path__[0])')
-    - ln -s ${SRC_DIR}/setup.cfg ${EXPYFUN_DIR}/../setup.cfg
-    - ln -s ${SRC_DIR}/.coveragerc ${EXPYFUN_DIR}/../.coveragerc
-    # Link coverage to src dir, coveralls should be run from there (needs git calls)
-    - ln -s ${EXPYFUN_DIR}/../.coverage ${SRC_DIR}/.coverage
 
 script:
-    - cd ${EXPYFUN_DIR}/../
-    - if [ "${PYTHON}" == "2.7" ]; then
-        nosetests --with-timer --timer-top-n=5;
-      else
-        nosetests;
-      fi
-    # Test pyflakes/PEP8
-    - cd ${SRC_DIR}
+    - nosetests --with-timer --timer-top-n=5;
     - make flake
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
-    - if [ "${PYTHON}" == "2.7" ] && [ "${DEPS}" == "full" ]; then
-        cd ${SRC_DIR};
-        coveralls;
-      fi;
+    - coveralls
