@@ -37,9 +37,9 @@ with ExperimentController('SyncTest', screen_num=0, full_screen=True,
     pressed = None
     screenshot = None
     while pressed != '8':  # enable a clean quit if required
-        ec.draw_background_color('white')
+        ec.set_background_color('white')
         t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
-        ec.draw_background_color('black')
+        ec.set_background_color('black')
         t2 = ec.flip()
         diff = round(1000 * (t2 - t1), 2)
         ec.screen_text('<center><b>IFI (ms):<br>{}</b></center>'.format(diff))

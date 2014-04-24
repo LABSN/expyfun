@@ -65,6 +65,16 @@ def _get_color_dict():
     return color_dict
 
 
+def _check(val, msg, out='error'):
+    """Helper to check output"""
+    if val != pylink.TRIAL_OK:
+        msg = msg.format(val)
+        if out == 'warn':
+            logger.warn(msg)
+        else:
+            raise RuntimeError()
+
+
 class EyelinkController(object):
     """Eyelink communication and control methods
 
@@ -232,22 +242,26 @@ class EyelinkController(object):
             raise RuntimeError('Remote file "{0}" could not be opened: {1}'
                                ''.format(file_name, val))
         self._current_open_file = file_name
+        self._file_list.append(file_name)
         return self._current_open_file
 
     def _start_recording(self):
         """Start Eyelink recording"""
         if not self._is_file_open:
             raise RuntimeError('cannot start recording without file open')
-        if self._eyelink.startRecording(1, 1, 1, 1) != pylink.TRIAL_OK:
-            raise RuntimeError('Recording could not be started')
-        #self._eyelink.waitForModeReady(100)
-        if not self._eyelink.waitForBlockStart(100, 1, 0):
-            raise RuntimeError('No link samples received')
+        for ii in range(5):
+            self._ec.wait_secs(0.1)
+            out = 'check' if ii < 4 else 'error'
+            _check(self._eyelink.startRecording(1, 1, 1, 1),
+                   'Recording could not be started: {0}', out)
+        #self._eyelink.waitForModeReady(100)  # doesn't work
+        _check(not self._eyelink.waitForBlockStart(100, 1, 0),
+               'No link samples received: {0}')
         if not self.recording:
             raise RuntimeError('Eyelink is not recording')
         # double-check
         mode = self._eyelink.getCurrentMode()
-        if not self.dummy_mode and not (mode == pylink.IN_RECORD_MODE):
+        if not self.dummy_mode and mode != pylink.IN_RECORD_MODE:
             raise RuntimeError('Eyelink is not recording: {0}'.format(mode))
         self._ec.flush()
         self._toggle_dummy_cursor(True)
@@ -262,13 +276,10 @@ class EyelinkController(object):
         if not self.recording:
             raise RuntimeError('Cannot stop, not currently recording')
         logger.info('Eyelink: Stopping recording')
-        val = self._eyelink.stopRecording()
-        if val != pylink.TRIAL_OK:
-            logger.warn('Recording could not be stopped: {0}'.format(val))
+        self._eyelink.stopRecording()
         logger.info('Eyelink: Closing file')
-        val = self._eyelink.closeDataFile()
-        if val != pylink.TRIAL_OK:
-            logger.warn('File could not be closed: {0}'.format(val))
+        _check(self._eyelink.closeDataFile(),
+               'File could not be closed: {0}', 'warn')
         self._current_open_file = None
         self._toggle_dummy_cursor(False)
 

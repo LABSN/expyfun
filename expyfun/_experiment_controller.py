@@ -23,7 +23,7 @@ from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, Mouse
-from .visual import Text, Rectangle
+from .visual import Text, Rectangle, _convert_color
 
 
 class ExperimentController(object):
@@ -180,6 +180,8 @@ class ExperimentController(object):
                 self._output_dir = basename
                 self._log_file = self._output_dir + '.log'
                 set_log_file(self._log_file)
+                closer = partial(set_log_file, None)
+                self._extra_cleanup_fun.append(closer)
                 # initialize data file
                 self._data_file = open(self._output_dir + '.tab', 'a')
                 self._extra_cleanup_fun.append(self._data_file.close)
@@ -437,28 +439,25 @@ class ExperimentController(object):
             self.flip()
         return out
 
-    def draw_background_color(self, color='black'):
-        """Draw a solid background color
+    def set_background_color(self, color='black'):
+        """Set and draw a solid background color
 
         Parameters
         ----------
         color : matplotlib color
             The background color.
 
-        Returns
-        -------
-        rect : instance of Rectangle
-            The drawn Rectangle object.
-
         Notes
         -----
-        This should be the first object drawn to a buffer, as it will
-        cover any previsouly drawn objects.
+        This should be called before anything else is drawn to the buffer,
+        since it will draw a filled rectangle over everything. On subsequent
+        flips, the rectangle will automatically be "drawn" because
+        ``glClearColor`` will be set so the buffer starts out with the
+        appropriate backgound color.
         """
         # we go a little over here to be safe from round-off errors
-        rect = Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color)
-        rect.draw()
-        return rect
+        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
+        gl.glClearColor(*(_convert_color(color) / 255.))
 
     def start_stimulus(self, start_of_trial=True, flip=True):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
@@ -914,7 +913,10 @@ class ExperimentController(object):
         visibility : bool
             If True, show; if False, hide.
         """
-        self._mouse_handler.set_visible(visibility)
+        try:
+            self._mouse_handler.set_visible(visibility)
+        except Exception:
+            pass  # pyglet bug on Linux!
         if flip:
             self.flip()
 
@@ -1128,21 +1130,19 @@ class ExperimentController(object):
                                - self._time_corrections[clock_type]))
         return time_correction
 
-    def wait_secs(self, *args, **kwargs):
+    def wait_secs(self, secs):
         """Wait a specified number of seconds.
 
         Parameters
         ----------
         secs : float
             Number of seconds to wait.
-        hog_cpu_time : float
-            Amount of CPU time to hog. See Notes.
 
         Notes
         -----
         See the wait_secs() function.
         """
-        wait_secs(*args, **kwargs)
+        wait_secs(secs, ec=self)
 
     def wait_until(self, timestamp):
         """Wait until the given time is reached.
@@ -1281,8 +1281,7 @@ class ExperimentController(object):
         cleanup_actions = [self.stop_noise, self.stop]
         cleanup_actions.extend(self._extra_cleanup_fun)
         if hasattr(self, '_win'):
-            # do this last, as other methods may add/remove handlers
-            cleanup_actions.append(self._win.close)
+            cleanup_actions = [self._win.close] + cleanup_actions
         for action in cleanup_actions:
             try:
                 action()

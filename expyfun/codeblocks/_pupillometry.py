@@ -17,17 +17,6 @@ def _check_pyeparse():
         raise ImportError('Cannot run, requires "pyeparse" package')
 
 
-def _check_fname(el):
-    """Helper to deal with Eyelink filename inputs"""
-    if not el._is_file_open:
-        fname = el._open_file()
-    else:
-        fname = el._current_open_file
-    if not el.recording:
-        el._start_recording()
-    return fname
-
-
 def _load_raw(el, fname):
     """Helper to load some pupil data"""
     import pyeparse
@@ -62,6 +51,8 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     -------
     bgcolor : array
         The background color that maximizes dynamic range.
+    fcolor : array
+        The corresponding fixation dot color.
     levels : array
         The levels shown.
     responses : array
@@ -73,36 +64,43 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     """
     _check_pyeparse()
     import pyeparse
+    if el.recording:
+        el.stop()
+    el.calibrate()
     if prompt:
         ec.screen_prompt('We will now determine the dynamic '
                          'range of your pupil.<br><br>'
                          'Press a button to continue.')
-    fname = _check_fname(el)
     levels = np.concatenate(([0.], 2 ** np.arange(8) / 255.))
+    fixs = levels + 0.2
     n_rep = 2
     # inter-rep interval (allow system to reset)
     iri = 10.0 if not el.dummy_mode else 1.0
     # amount of time between levels
     settle_time = 3.0 if not el.dummy_mode else 0.3
     fix = FixationDot(ec)
-    bgrect = ec.draw_background_color('k')
+    fix.set_colors([fixs[0] * np.ones(3), 'k'])
+    ec.set_background_color('k')
     fix.draw()
     ec.flip()
     ec.clear_buffer()
     for ri in range(n_rep):
         ec.wait_secs(iri)
-        for ii, lev in enumerate(levels):
+        for ii, (lev, fc) in enumerate(zip(levels, fixs)):
             ec.identify_trial(ec_id='FPDR_%02i' % (ii + 1),
                               el_id=[ii + 1], ttl_id=())
-            bgrect.set_fill_color(np.ones(3) * lev)
-            bgrect.draw()
+            bgcolor = np.ones(3) * lev
+            fcolor = np.ones(3) * fc
+            ec.set_background_color(bgcolor)
+            fix.set_colors([fcolor, bgcolor])
             fix.draw()
             ec.start_stimulus()
             ec.wait_secs(settle_time)
             ec.check_force_quit()
+            ec.stop()
             ec.trial_ok()
-        bgrect.set_fill_color('k')
-        bgrect.draw()
+        ec.set_background_color('k')
+        fix.set_colors([fixs[0] * np.ones(3), 'k'])
         fix.draw()
         ec.flip()
     el.stop()  # stop the recording
@@ -115,19 +113,22 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         resp += np.random.rand(*resp.shape) * 500 - 250
     else:
         # Pull data locally
-        raw, events = _load_raw(el, fname)
+        assert len(el.file_list) >= 1
+        raw, events = _load_raw(el, el.file_list[-1])
         assert len(events) == len(levels) * n_rep
         epochs = pyeparse.Epochs(raw, events, 1, -0.5, settle_time)
         assert len(epochs) == len(levels) * n_rep
         idx = epochs.n_times // 2
         resp = np.median(epochs.get_data('ps')[:, idx:], 1)
     bgcolor = np.mean(resp.reshape((n_rep, len(levels))), 0)
-    bgcolor = levels[np.argmin(np.diff(bgcolor)) + 1] * np.ones(3)
+    idx = np.argmin(np.diff(bgcolor)) + 1
+    bgcolor = levels[idx] * np.ones(3)
+    fcolor = fixs[idx] * np.ones(3)
     logger.info('Pupillometry: optimal background color {0}'.format(bgcolor))
-    return bgcolor, np.tile(levels, n_rep), resp
+    return bgcolor, fcolor, np.tile(levels, n_rep), resp
 
 
-def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
+def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
                                      verbose=None):
     """Find pupil impulse response using responses to tones
 
@@ -139,6 +140,8 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
         The Eyelink controller.
     bgcolor : color
         Background color to use.
+    fcolor : color
+        Fixation dot color to use.
     prompt : bool
         If True, a standard prompt message will be displayed.
     verbose : bool, str, int, or None
@@ -159,27 +162,36 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
     """
     _check_pyeparse()
     import pyeparse
+    if el.recording:
+        el.stop()
 
-    # let's do some calculations
-    n_stimuli = 125 if not el.dummy_mode else 10
-    delay_range = (3.0, 4.0) if not el.dummy_mode else (0.3, 0.4)
+    #
+    # Determine parameters / randomization
+    #
+    n_stimuli = 300 if not el.dummy_mode else 10
+    cal_stim = [0, 75, 150, 225]  # when to offer the subject a break
+
+    delay_range = (3.0, 5.0) if not el.dummy_mode else (0.3, 0.5)
     delay_range = np.array(delay_range)
-    targ_prop = 0.2
-    stim_dur = 50e-3
-    f0 = 500.  # Hz
+    targ_prop = 0.25
+    stim_dur = 100e-3
+    f0 = 1000.  # Hz
 
-    rng = np.random.RandomState(1)
-    isis = (rng.rand(n_stimuli) * np.diff(delay_range)
-            + delay_range[0])
-    targs = np.zeros(n_stimuli, bool)
+    rng = np.random.RandomState(0)
+    isis = np.linspace(*delay_range, num=n_stimuli)
     n_targs = int(targ_prop * n_stimuli)
-    while(True):  # ensure no two targets in a row
-        idx = np.sort(rng.permutation(np.arange(n_stimuli))[:n_targs])
-        if (not np.any(np.diff(idx) == 1)) and idx[0] != 0:
-            targs[idx] = True
+    targs = np.zeros(n_stimuli, bool)
+    targs[np.linspace(0, n_stimuli - 1, n_targs + 2)[1:-1].astype(int)] = True
+    while(True):  # ensure we randomize but don't start with a target
+        idx = rng.permutation(np.arange(n_stimuli))
+        isis = isis[idx]
+        targs = targs[idx]
+        if not targs[0]:
             break
 
-    # generate stimuli
+    #
+    # Generate stimuli
+    #
     fs = ec.stim_fs
     n_samp = int(fs * stim_dur)
     window = signal.windows.hanning(int(0.01 * fs))
@@ -194,41 +206,48 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
     tone_stim *= (ec._stim_rms * np.sqrt(2)) * window
     sweep_stim *= (ec._stim_rms * np.sqrt(2)) * window
 
+    #
+    # Subject "Training"
+    #
     ec.stop()
     ec.clear_buffer()
+    ec.set_background_color(bgcolor)
+    instr = ('Remember to press the button as quickly as possible following '
+             'each "wobble" sound.<br><br>Press the response button to '
+             'continue.')
     if prompt:
-        ec.screen_prompt('We will now determine the response of your pupil '
-                         'to sound changes.<br><br>Your job is to press the'
-                         'repsonse button as quickly as possible when you '
-                         'hear a "wobble" instead of a "beep".<br><br>'
-                         'Press a button to hear the "beep".')
-        ec.load_buffer(tone_stim)
-        ec.wait_secs(0.5)
-        ec.play()
-        ec.wait_secs(0.5)
-        ec.stop()
-        ec.screen_prompt('Now press a button to hear the "wobble".')
-        ec.load_buffer(sweep_stim)
-        ec.wait_secs(0.5)
-        ec.play()
-        ec.wait_secs(0.5)
-        ec.stop()
-        ec.screen_prompt('Remember to press the button as quickly as '
-                         'possible following each "wobble" sound.<br><br>'
-                         'Press the response button to continue.')
-    fname = _check_fname(el)
+        notes = [('We will now determine the response of your pupil to sound '
+                  'changes.<br><br>Your job is to press the repsonse button '
+                  'as quickly as possible when you hear a "wobble" instead '
+                  'of a "beep".<br><br>Press a button to hear the "beep".'),
+                 ('Now press a button to hear the "wobble".')]
+        for text, stim in zip(notes, (tone_stim, sweep_stim)):
+            ec.screen_prompt(text)
+            ec.load_buffer(stim)
+            ec.wait_secs(0.5)
+            ec.play()
+            ec.wait_secs(0.5)
+            ec.stop()
+        ec.screen_prompt(instr)
 
-    # let's put the initial color up to allow the system to settle
-    bgrect = ec.draw_background_color(bgcolor)
-    fix = FixationDot(ec)
-    fix.draw()
-    ec.flip()
-
-    ec.wait_secs(3.0)
+    fix = FixationDot(ec, colors=[fcolor, bgcolor])
     flip_times = list()
     presses = list()
+    assert 0 in cal_stim
     for ii, (isi, targ) in enumerate(zip(isis, targs)):
-        bgrect.draw()
+        if ii in cal_stim:
+            if ii != 0:
+                el.stop()
+                perc = round((100. * ii) / n_stimuli)
+                ec.screen_prompt('Great work! You are {0}% done.\n\nFeel '
+                                 'free to take a break, then press the '
+                                 'button to continue.'.format(perc))
+            el.calibrate()
+            ec.screen_prompt(instr)
+            # let's put the initial color up to allow the system to settle
+            fix.draw()
+            ec.flip()
+            ec.wait_secs(10.0)  # let the pupil settle
         fix.draw()
         ec.load_buffer(sweep_stim if targ else tone_stim)
         ec.identify_trial(ec_id='TONE_{0}'.format(int(targ)),
@@ -251,9 +270,15 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, prompt=True,
         std_err = np.ones_like(response) * 0.1 * response.max()
         std_err += np.random.rand(std_err.size) * 0.1 * response.max()
     else:
-        raw, events = _load_raw(el, fname)
-        assert len(events) == n_stimuli
-        epochs = pyeparse.Epochs(raw, events, 1,
+        raws = list()
+        events = list()
+        assert len(el.file_list) >= 4
+        for fname in el.file_list[-4:]:
+            raw, event = _load_raw(el, fname)
+            raws.append(raw)
+            events.append(event)
+        assert sum(len(event) for event in events) == n_stimuli
+        epochs = pyeparse.Epochs(raws, events, 1,
                                  tmin=tmin, tmax=delay_range[0])
         response = epochs.pupil_zscores()
         assert response.shape[0] == n_stimuli

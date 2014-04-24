@@ -303,7 +303,7 @@ def test_visual(ac=None):
         line.draw()
         assert_raises(ValueError, line.set_coords, [0])
         line.set_coords([0, 1])
-        ec.draw_background_color('black')
+        ec.set_background_color('black')
 
 
 @interactive_test
