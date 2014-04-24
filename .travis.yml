@@ -19,6 +19,7 @@ before_install:
     - if [ "${PYTHON}" == "2.7" ]; then
         travis_retry sudo apt-get install -qq -y pulseaudio python-nose python-coverage python-scipy python-matplotlib;
         dbus-launch pulseaudio --start;
+        travis_retry sudo pip install -q coveralls;
       else
         wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
@@ -27,10 +28,10 @@ before_install:
         conda update --yes conda;
         conda create -n testenv --yes --quiet pip python=$PYTHON;
         source activate testenv;
-        conda install --yes --quiet scipy matplotlib nose;
+        conda install --yes --quiet scipy matplotlib nose coverage;
+        travis_retry pip install -q coveralls;
       fi;
     - travis_retry pip install --user -q nose-timer http://pyglet.googlecode.com/archive/tip.zip flake8
-    - travis_retry sudo pip install -q coveralls
     # Full dependencies (pandas and Pylink)
     # We use a custom version of EL software here until a patch is released XXX
     - SRC_DIR=${PWD}
@@ -63,27 +64,11 @@ before_install:
 install:
     - cd ${SRC_DIR}
     - python setup.py install
-    - cd ~
-    - EXPYFUN_DIR=$(python -c 'import expyfun;print(expyfun.__path__[0])')
-    - ln -s ${SRC_DIR}/setup.cfg ${EXPYFUN_DIR}/../setup.cfg
-    - ln -s ${SRC_DIR}/.coveragerc ${EXPYFUN_DIR}/../.coveragerc
-    # Link coverage to src dir, coveralls should be run from there (needs git calls)
-    - ln -s ${EXPYFUN_DIR}/../.coverage ${SRC_DIR}/.coverage
 
 script:
-    - cd ${EXPYFUN_DIR}/../
-    - if [ "${PYTHON}" == "2.7" ]; then
-        nosetests --with-timer --timer-top-n=5;
-      else
-        nosetests;
-      fi
-    # Test pyflakes/PEP8
-    - cd ${SRC_DIR}
+    - nosetests --with-timer --timer-top-n=5;
     - make flake
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
-    - if [ "${PYTHON}" == "2.7" ] && [ "${DEPS}" == "full" ]; then
-        cd ${SRC_DIR};
-        coveralls;
-      fi;
+    - coveralls
