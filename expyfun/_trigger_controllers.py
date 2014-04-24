@@ -8,7 +8,7 @@
 import numpy as np
 import platform
 
-from ._utils import wait_secs, verbose_dec, string_types
+from ._utils import wait_secs, verbose_dec
 
 
 class ParallelTrigger(object):
@@ -37,10 +37,12 @@ class ParallelTrigger(object):
     -----
     On Linux, parallel port may require some combination of the following:
 
-    1. ``sudo modprobe ppdev``
-    2. Add user to ``lp`` group (``/etc/group``)
-    3. Run ``sudo rmmod lp`` (otherwise ``lp`` takes exclusive control)
-    4. Edit ``/etc/modprobe.d/blacklist.conf`` to add ``blacklist lp``
+        1. ``sudo modprobe ppdev``
+        2. Add user to ``lp`` group (``/etc/group``)
+        3. Run ``sudo rmmod lp`` (otherwise ``lp`` takes exclusive control)
+        4. Edit ``/etc/modprobe.d/blacklist.conf`` to add ``blacklist lp``
+
+    The ``parallel`` module must also be installed.
 
     On Windows, you may need to download ``inpout32.dll`` from someplace
     like:
@@ -50,30 +52,20 @@ class ParallelTrigger(object):
     @verbose_dec
     def __init__(self, mode='dummy', address=None, high_duration=0.001,
                  verbose=None):
-        self.parallel = None
+        self._stamp_trigger = self._parallel_trigger
         if mode == 'parallel':
-            self._stamp_trigger = self._parallel_trigger
             if 'Linux' in platform.system():
                 address = '/dev/parport0' if address is None else address
-                try:
-                    import parallel as _p
-                except ImportError:
-                    raise ImportError('must have module "parallel" installed '
-                                      'to use parallel triggering on Linux')
-                else:
-                    self._port = _p.Parallel(address)
-                    self._set_data = self._port.setData
+                import parallel as _p
+                self._port = _p.Parallel(address)
+                self._set_data = self._port.setData
             elif 'Windows' in platform.system():
                 from ctypes import windll
                 if not hasattr(windll, 'inpout32'):
                     raise SystemError('Must have inpout32 installed')
 
                 addr = 0x0378 if address is None else address
-                if isinstance(addr, string_types) and addr.startswith('0x'):
-                    base = int(addr, 16)
-                else:
-                    base = addr
-
+                base = int(addr, 16) if addr[:2] == '0x' else addr
                 self._port = windll.inpout32
                 mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
                 # Use ECP to put the port into byte mode
@@ -92,7 +84,6 @@ class ParallelTrigger(object):
                 raise NotImplementedError
         else:  # mode == 'dummy':
             self._stamp_trigger = self._dummy_trigger
-
         self.high_duration = high_duration
 
     def _dummy_trigger(self, trig):
@@ -124,10 +115,5 @@ class ParallelTrigger(object):
     def close(self):
         """Release hardware interfaces
         """
-        if self.parallel is not None:
-            del self.parallel
-
-    def __del__(self):
-        """Nice cleanup"""
         if hasattr(self, '_port'):
             del self._port
