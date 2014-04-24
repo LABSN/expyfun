@@ -3,35 +3,29 @@
 """
 
 import numpy as np
-from os import path as op
 import csv
 
 
-def read_tab(fname, out_fname=None, group_by='trial_id', overwrite=False):
+def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
     """Read .tab file from expyfun output
 
     Parameters
     ----------
     fname : str
         Input filename.
-    out_fname : str | None
-        Output filename. Can be None if no writing is desired.
-    group_by : str
-        Tab key to use to group into trials/rows.
-    overwrite : bool
-        If True, overwrite file (if it exists).
+    group_start : str
+        Key to use to start a trial/row.
+    group_end : str | None
+        Key to use to end a trial/row. If None, the next ``group_start``
+        will end the current group.
 
     Returns
     -------
-    header : list of str
-        The fields in ``data``.
-    data : list of lists of lists
-        The data, with each row containing a trial, and each column
-        containing a type of data.
+    data : list of dict
+        The data, with a dict for each trial. Each value in the dict
+        is a list of tuples (event, time) for each occurrance of that
+        key.
     """
-    if out_fname is not None and op.isfile(out_fname) and not overwrite:
-        raise IOError('output filename "{0}" exists, consider using '
-                      'overwrite=True'.format(out_fname))
     # load everything into memory for ease of use
     with open(fname, 'r') as f:
         csvr = csv.reader(f, delimiter='\t')
@@ -46,27 +40,36 @@ def read_tab(fname, out_fname=None, group_by='trial_id', overwrite=False):
     # determine the event fields
     header = list(set([l[1] for l in lines]))
     header.sort()
-    header = [header.pop(header.index(group_by))] + header
-    if group_by not in header:
-        raise ValueError('group_by "{0}" not in header ({1})'
-                         ''.format(group_by, header))
-    bounds = [line[1] == group_by for line in lines] + [True]
-    bounds = np.where(bounds)[0]
+    if group_start not in header:
+        raise ValueError('group_start "{0}" not in header: {1}'
+                         ''.format(group_start, header))
+    if group_end == group_start:
+        raise ValueError('group_start cannot equal group_end, use '
+                         'group_end=None')
+    header = [header.pop(header.index(group_start))] + header
+    b1s = np.where([line[1] == group_start for line in lines])[0]
+    if group_end is None:
+        b2s = np.concatenate((b1s[1:], [len(lines)]))
+    else:  # group_end is not None
+        if group_end not in header:
+            raise ValueError('group_end "{0}" not in header ({1})'
+                             ''.format(group_end, header))
+        header.append(header.pop(header.index(group_end)))
+        b2s = np.where([line[1] == group_end for line in lines])[0]
+    if len(b1s) != len(b2s) or not np.all(b1s < b2s):
+        raise RuntimeError('bad bounds:\n{0}\n{1}'.format(b1s, b2s))
     data = []
-    for b1, b2 in zip(bounds[:-1], bounds[1:]):
-        assert lines[b1][1] == group_by  # prevent stupidity
-        d = [None] * len(header)
+    for b1, b2 in zip(b1s, b2s):
+        assert lines[b1][1] == group_start  # prevent stupidity
+        if group_end is not None:
+            b2 = b2 + 1  # include the end
+            assert lines[b2 - 1][1] == group_end
+        d = dict()
         these_times = [line[0] for line in lines[b1:b2]]
         these_keys = [line[1] for line in lines[b1:b2]]
         these_vals = [line[2] for line in lines[b1:b2]]
         for ki, key in enumerate(header):
             idx = np.where(key == np.array(these_keys))[0]
-            d[ki] = [(these_vals[ii], these_times[ii]) for ii in idx]
+            d[key] = [(these_vals[ii], these_times[ii]) for ii in idx]
         data.append(d)
-    if out_fname is not None:
-        with open(out_fname, 'w') as g:
-            g.write('\t'.join(header) + '\n')
-            for d in data:
-                g.write('\t'.join((str(dd) if dd is not None else '')
-                                  for dd in data) + '\n')
-    return header, data
+    return data

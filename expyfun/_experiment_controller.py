@@ -26,6 +26,12 @@ from ._input_controllers import Keyboard, Mouse
 from .visual import Text, Rectangle, _convert_color
 
 
+# Note: ec._trial_progress has four values:
+# 1. 'stopped', which ec.identify_trial turns into...
+# 2. 'identified', which ec.start_stimulus turns into...
+# 3. 'started', which ec.trial_ok turns into 'stopped'.
+
+
 class ExperimentController(object):
     """Interface for hardware control (audio, buttonbox, eye tracker, etc.)
 
@@ -126,6 +132,7 @@ class ExperimentController(object):
         self._id_call_dict = dict(ec_id=self._stamp_ec_id)
         self._ac = None
         self._data_file = None
+        self._playing = False  # whether or not play() was called w/o a 'stop'
         self._clock = ZeroClock()
         self._master_clock = self._clock.get_time
 
@@ -352,8 +359,10 @@ class ExperimentController(object):
                        ''.format(self._exp_info['participant']))
             logger.exp('Expyfun: Session: {0}'
                        ''.format(self._exp_info['session']))
+            ok_log = partial(self.write_data_line, 'trial_ok', None)
+            self._on_trial_ok.append(ok_log)
             self._on_trial_ok.append(self.flush)
-            self._trial_identified = False
+            self._trial_progress = 'stopped'
             self._ofp_critical_funs = list()
         except Exception:
             self.close()
@@ -483,10 +492,10 @@ class ExperimentController(object):
         ``on_next_flip`` and ``on_every_flip``.
         """
         if start_of_trial:
-            if not self._trial_identified:
+            if self._trial_progress != 'identified':
                 raise RuntimeError('Trial ID must be stamped before starting '
                                    'the trial')
-            self._trial_identified = False
+            self._trial_progress = 'started'
         extra = 'flipping screen and ' if flip else ''
         logger.exp('Expyfun: Starting stimuli: {0}playing audio'.format(extra))
         # ensure self._play comes first in list, followed by other critical
@@ -514,8 +523,7 @@ class ExperimentController(object):
         logger.exp('Expyfun: Playing audio')
         # ensure self._play comes first in list:
         self._play()
-        play_time = self._clock.get_time()
-        return play_time
+        return self._clock.get_time()
 
     def call_on_next_flip(self, function, *args, **kwargs):
         """Add a function to be executed on next flip only.
@@ -963,8 +971,11 @@ class ExperimentController(object):
     def _play(self):
         """Play the audio buffer.
         """
+        if self._playing:
+            raise RuntimeError('Previous audio must be stopped before playing')
         self._ac.play()
         logger.debug('Expyfun: started audio')
+        self._playing = True
         self.write_data_line('play')
 
     def stop(self):
@@ -973,6 +984,7 @@ class ExperimentController(object):
         if self._ac is not None:  # need to check b/c used in __exit__
             self._ac.stop()
         self.write_data_line('stop')
+        self._playing = False
         logger.exp('Expyfun: Audio stopped and reset.')
 
     def set_noise_db(self, new_db):
@@ -1087,6 +1099,11 @@ class ExperimentController(object):
         self._check_rms = check_rms
 
 ################################ OTHER METHODS ###############################
+    @property
+    def data_fname(self):
+        """Date filename"""
+        return self._data_file.name
+
     def write_data_line(self, event_type, value=None, timestamp=None):
         """Add a line of data to the output CSV.
 
@@ -1186,7 +1203,7 @@ class ExperimentController(object):
             and ``ttl_id`` for experiment controller, eyelink, and TDT
             (or parallel port) respectively.
         """
-        if self._trial_identified:
+        if self._trial_progress != 'stopped':
             raise RuntimeError('Cannot identify a trial twice')
         call_set = set(self._id_call_dict.keys())
         passed_set = set(ids.keys())
@@ -1198,7 +1215,7 @@ class ExperimentController(object):
             logger.exp('Expyfun: Stamp trial ID to {0} : {1}'
                        ''.format(key.ljust(ll), str(id_)))
             self._id_call_dict[key](id_)
-        self._trial_identified = True
+        self._trial_progress = 'identified'
 
     def trial_ok(self):
         """Report that the trial was okay and do post-trial tasks.
@@ -1206,8 +1223,12 @@ class ExperimentController(object):
         For example, logs and data files can be flushed at the end of each
         trial.
         """
+        if self._trial_progress != 'started':
+            raise RuntimeError('trial cannot be okay unless it was started, '
+                               'did you call ec.start_stimulus?')
         for func in self._on_trial_ok:
             func()
+        self._trial_progress = 'stopped'
 
     def _stamp_ec_id(self, id_):
         """Stamp id -- currently anything allowed"""

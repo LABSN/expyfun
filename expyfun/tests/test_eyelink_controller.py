@@ -42,8 +42,12 @@ def test_eyelink_methods():
         assert_raises(KeyError, ec.identify_trial, ec_id='foo', ttl_id=[0])
         ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=[1])
         ec.start_stimulus()
+        ec.stop()
+        ec.trial_ok()
         ec.identify_trial(ec_id='foo', ttl_id=[0], el_id=[1, 1])
         ec.start_stimulus()
+        ec.stop()
+        ec.trial_ok()
         assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[0],
                       el_id=[1, dict()])
         assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[0],

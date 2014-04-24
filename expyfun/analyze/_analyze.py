@@ -120,7 +120,9 @@ def rt_chisq(x, axis=None):
     Verify that it worked by plotting pdf vs hist (for 1-dimensional x)::
 
         >>> import numpy as np
+        >>> from scipy import stats as ss
         >>> import matplotlib.pyplot as plt
+        >>> plt.ion()
         >>> x = np.abs(np.random.randn(10000) + 1)
         >>> lsp = np.linspace(np.floor(np.amin(x)), np.ceil(np.amax(x)), 100)
         >>> df, loc, scale = ss.chi2.fit(x, floc=0)

@@ -218,22 +218,48 @@ def test_ec(ac=None, rd=None):
 
         ec.stop()
         ec.call_on_every_flip(dummy_print, 'called start stimuli')
-        assert_raises(RuntimeError, ec.start_stimulus)
-        ec.start_stimulus(start_of_trial=False)  # should work
-        assert_raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
+
+        #
+        # First: identify_trial
+        #
+        assert_raises(RuntimeError, ec.start_stimulus)  # order violation
+        ec.start_stimulus(start_of_trial=False)         # should work
+        assert_raises(RuntimeError, ec.trial_ok)        # order violation
+        ec.stop()
         # only binary for TTL
+        assert_raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
         assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
         assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
         ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
+        #
+        # Second: start_stimuli
+        #
         assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
+        assert_raises(RuntimeError, ec.trial_ok)        # order violation
         ec.start_stimulus(flip=False)
+        assert_raises(RuntimeError, ec.play)  # already played, must stop
+        ec.stop()
+        #
+        # Third: trial_ok
+        #
+        assert_raises(RuntimeError, ec.start_stimulus)  # order violation
+        assert_raises(RuntimeError, ec.identify_trial)  # order violation
+        ec.trial_ok()
+        # double-check
+        assert_raises(RuntimeError, ec.start_stimulus)  # order violation
+        ec.start_stimulus(start_of_trial=False)         # should work
+        assert_raises(RuntimeError, ec.trial_ok)        # order violation
+        ec.stop()
+
         ec.flip()
         ec.estimate_screen_fs()
         ec.play()
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
+        ec.stop()
         ec.start_stimulus(start_of_trial=False)
         ec.call_on_next_flip(ec.stop_noise())
+        ec.stop()
         ec.start_stimulus(start_of_trial=False)
         ec.get_mouse_position()
         ec.toggle_cursor(False)
