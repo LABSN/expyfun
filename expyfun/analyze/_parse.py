@@ -23,7 +23,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
     -------
     data : list of dict
         The data, with a dict for each trial. Each value in the dict
-        is a list of tuples (event, time) for each occurrance of that
+        is a list of tuples (event, time) for each occurrence of that
         key.
     """
     # load everything into memory for ease of use
