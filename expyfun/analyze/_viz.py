@@ -373,7 +373,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     if bar_names is not None:
         p.xaxis.set_ticklabels(bar_names, va='baseline')
     if group_names is not None:
-        yoffset = -3 * rcParams['font.size']
+        yoffset = -2 * rcParams['font.size']
         for gn, gp in zip(group_names, group_centers):
             p.annotate(gn, xy=(gp, 0), xytext=(0, yoffset),
                        textcoords='offset points', ha='center', va='baseline')
