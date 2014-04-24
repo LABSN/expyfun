@@ -97,6 +97,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
             ec.start_stimulus()
             ec.wait_secs(settle_time)
             ec.check_force_quit()
+            ec.stop()
             ec.trial_ok()
         ec.set_background_color('k')
         fix.set_colors([fixs[0] * np.ones(3), 'k'])
