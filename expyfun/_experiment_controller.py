@@ -26,7 +26,7 @@ from ._input_controllers import Keyboard, Mouse
 from .visual import Text, Rectangle, _convert_color
 
 
-# Note: ec._trial_progress has four values:
+# Note: ec._trial_progress has three values:
 # 1. 'stopped', which ec.identify_trial turns into...
 # 2. 'identified', which ec.start_stimulus turns into...
 # 3. 'started', which ec.trial_ok turns into 'stopped'.

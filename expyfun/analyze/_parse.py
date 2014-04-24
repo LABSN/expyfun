@@ -65,7 +65,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
             b2 = b2 + 1  # include the end
             assert lines[b2 - 1][1] == group_end
         d = dict()
-        these_times = [line[0] for line in lines[b1:b2]]
+        these_times = [float(line[0]) for line in lines[b1:b2]]
         these_keys = [line[1] for line in lines[b1:b2]]
         these_vals = [line[2] for line in lines[b1:b2]]
         for ki, key in enumerate(header):
