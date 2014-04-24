@@ -913,7 +913,10 @@ class ExperimentController(object):
         visibility : bool
             If True, show; if False, hide.
         """
-        self._mouse_handler.set_visible(visibility)
+        try:
+            self._mouse_handler.set_visible(visibility)
+        except Exception:
+            pass  # pyglet bug on Linux!
         if flip:
             self.flip()
 
