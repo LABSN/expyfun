@@ -24,6 +24,7 @@ def test_eyelink_methods():
         assert_raises(ValueError, el.custom_calibration, ctype='hey')
         el.custom_calibration()
         el._open_file()
+        assert_raises(RuntimeError, el._open_file)
         el._start_recording()
         el.get_eye_position()
         assert_raises(ValueError, el.wait_for_fix, [1])
@@ -31,6 +32,8 @@ def test_eyelink_methods():
         assert_true(x is False)
         assert el.eye_used
         print(el.file_list)
+        #assert_true(len(el.file_list) > 0)
+        print(el.fs)
         # run much of the calibration code, but don't *actually* do it
         el._fake_calibration = True
         el.calibrate(beep=False, prompt=False)
@@ -45,8 +48,12 @@ def test_eyelink_methods():
                       el_id=[1, dict()])
         assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[0],
                       el_id=[0] * 13)
+        assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id=[0],
+                      el_id=dict())
         assert_raises(TypeError, el._message, 1)
+        ec.trial_ok()
         el.stop()
+        #el.transfer_remote_file(el.file_list[0])
         assert_true(not el._closed)
     # ec.close() auto-calls el.close()
     assert_true(el._closed)
