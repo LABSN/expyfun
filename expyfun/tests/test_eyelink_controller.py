@@ -55,7 +55,6 @@ def test_eyelink_methods():
         assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id=[0],
                       el_id=dict())
         assert_raises(TypeError, el._message, 1)
-        ec.trial_ok()
         el.stop()
         el.transfer_remote_file(el.file_list[0])
         assert_true(not el._closed)
