@@ -32,7 +32,7 @@ def test_eyelink_methods():
         assert_true(x is False)
         assert el.eye_used
         print(el.file_list)
-        #assert_true(len(el.file_list) > 0)
+        assert_true(len(el.file_list) > 0)
         print(el.fs)
         # run much of the calibration code, but don't *actually* do it
         el._fake_calibration = True
@@ -53,7 +53,7 @@ def test_eyelink_methods():
         assert_raises(TypeError, el._message, 1)
         ec.trial_ok()
         el.stop()
-        #el.transfer_remote_file(el.file_list[0])
+        el.transfer_remote_file(el.file_list[0])
         assert_true(not el._closed)
     # ec.close() auto-calls el.close()
     assert_true(el._closed)
