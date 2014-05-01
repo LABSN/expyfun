@@ -491,7 +491,8 @@ class ConcentricCircles(object):
             Must be of type list, and contain the same number of colors
             as the number of circles.
         """
-        if not isinstance(colors, list) or len(colors) != len(self):
+        if not isinstance(colors, (tuple, list, np.ndarray)) \
+                or len(colors) != len(self):
             raise ValueError('colors must be a list with {0} colors'
                              ''.format(len(self)))
         for idx, color in enumerate(colors):
