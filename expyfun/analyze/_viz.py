@@ -301,7 +301,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         else:
             apex = np.atleast_1d(heights + err)
         gr_apex = np.array([np.max(apex[x]) for x in groups])
-        #brk_list = []
+        brk_list = []
         #brk_apex_list = []
         # calculate bracket coords
         for pair, text in zip(brackets, bracket_text):
@@ -332,22 +332,23 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                     xlr.append(bar_centers[br])
                     ylo.append(apex[br] + brk_offset)
                     yhi = max(ylo) + brk_height
-                    '''
-                    while np.any([np.abs(x - yhi) < brk_offset for x in
-                                  brk_apex_list]):
-                        yhi += (brk_txt_h + 2 * brk_offset)
-                    '''
-                    # TODO: de-indent by two levels, but need to keep track of brs
-                    # update apices to prevent bracket overlap
-                    apex[br] = yhi + brk_offset  # brk_txt_h
-                    new_ga = np.array([np.max(apex[x]) for x in groups])
-                    gr_apex[new_ga > gr_apex] = new_ga[new_ga > gr_apex]
+            # update apices to prevent bracket overlap
+            for ((l, r), (h, _)) in brk_list:
+                if (xlr[0] <= l <= xlr[1] or xlr[0] <= r <= xlr[1]
+                   ) and np.abs(yhi - h) < brk_offset:
+                    yhi += (brk_txt_h + 2 * brk_offset)
+            for br in pair:
+                if hasattr(br, 'append'):
+                    apex[br] = yhi + brk_offset + brk_txt_h
+                else:
+                    apex[br] = yhi + brk_offset
+                new_ga = np.array([np.max(apex[x]) for x in groups])
+                gr_apex[new_ga > gr_apex] = new_ga[new_ga > gr_apex]
             # points defining brackets
             lbr = ((xlr[0], xlr[0]), (ylo[0], yhi))
             rbr = ((xlr[1], xlr[1]), (ylo[1], yhi))
             hbr = (tuple(xlr), (yhi, yhi))
-            #brk_list.append([lbr, rbr, hbr])
-            #brk_apex_list.append(yhi)
+            brk_list.append(hbr)
             for x, y in [lbr, rbr, hbr]:
                 p.plot(x, y, **bracket_kwargs)
             # bracket text
