@@ -25,13 +25,30 @@ def test_barplot():
     """Test bar plot function
     """
     import matplotlib.pyplot as plt
-    ax = plt.subplot(1, 1, 1)
-    tmp1 = np.arange(4)  # 1-Dim
-    tmp2 = np.arange(20).reshape((4, 5))  # 2-Dim
-    ea.barplot(tmp1, err_bars=tmp1, brackets=[(0, 1), (2, 3)],
-               bracket_text=['foo', 'bar'], ax=ax)
+    ea.barplot(2, err_bars=0.2)  # 0-dim
+
+    tmp1 = np.arange(4) + 1  # 1-dim
+    _, axs = plt.subplots(1, 5)
+    ea.barplot(tmp1, err_bars=0.1 + tmp1 / 5., brackets=[(2, 3), (0, 1)],
+               bracket_text=['foo', 'bar'], ax=axs[0])
+    ea.barplot(tmp1, err_bars=0.1 + tmp1 / 5., brackets=[(0, 2), (1, 3)],
+               bracket_text=['foo', 'bar'], ax=axs[1])
+    ea.barplot(tmp1, err_bars=0.1 + tmp1 / 5., brackets=[(0, 3), (2, 1)],
+               bracket_text=['foo', 'bar'], ax=axs[2])
+    ea.barplot(tmp1, err_bars=0.1 + tmp1 / 5.,
+               brackets=[(0, 1), (0, 2), (0, 3)],
+               bracket_text=['foo', 'bar', 'baz'], ax=axs[3])
+    ea.barplot(tmp1, err_bars=0.1 + tmp1 / 5.,
+               brackets=[(0, 1), (2, 3), (0, 2), (1, 3)],
+               bracket_text=['foo', 'bar', 'baz', 'snafu'], ax=axs[4])
+
+
     ea.barplot(tmp1, groups=[[0, 1, 2], [3]], eq_group_widths=True,
-               brackets=[([0], 3)], bracket_text='foo')
+               brackets=[([0], 3)], bracket_text='foo',
+               bracket_group_lines=True, ax=axs[2])
+
+    tmp2 = np.arange(20).reshape((4, 5))  # 2-dim
+
     ea.barplot(tmp2, lines=True, ylim=(0, 2), err_bars='se')
     ea.barplot(tmp2, groups=[[0, 1], [2, 3]], err_bars='ci',
                group_names=['foo', 'bar'])

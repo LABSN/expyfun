@@ -220,10 +220,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         raise ValueError('Barplot "h" must have 2 or fewer dimensions.')
     elif len(h.shape) < 2:
         heights = np.atleast_1d(h)
-        two_d = False
     else:
         heights = h.mean(axis=axis)
-        two_d = True
     # grouping
     num_bars = len(heights)
     if groups is None:
@@ -242,34 +240,29 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                       bar in x] for grp, x in enumerate(groups)]
         group_widths = [np.sum(x) for x in bar_widths]
         group_edges = [x[0] for x in bar_edges]
-
     bar_edges = list(chain.from_iterable(bar_edges))
     bar_widths = list(chain.from_iterable(bar_widths))
-    bar_centers = np.array(bar_edges) + np.array(bar_widths) / 2
-    group_centers = np.array(group_edges) + np.array(group_widths) / 2
+    bar_centers = np.array(bar_edges) + np.array(bar_widths) / 2.
+    group_centers = np.array(group_edges) + np.array(group_widths) / 2.
     # calculate error bars
+    err = np.zeros(num_bars)  # default if no err_bars
     if err_bars is not None:
-        if two_d:
+        if len(h.shape) == 2:
             if err_bars == 'sd':  # sample standard deviation
-                err = h.std(axis=axis)
+                err = h.std(axis)
             elif err_bars == 'se':  # standard error
-                h.shape[axis]
                 err = h.std(axis) / np.sqrt(h.shape[axis])
             else:  # 95% conf int
                 err = 1.96 * h.std(axis) / np.sqrt(h.shape[axis])
-        else:  # two_d == False
+        else:  # len(h.shape) == 1
             if isinstance(err_bars, string_types):
                 raise ValueError('string arguments to "err_bars" ignored when '
                                  '"h" has fewer than 2 dimensions.')
-            else:
-                err_bars = np.atleast_1d(err_bars)
-                if not h.shape == err_bars.shape:
-                    raise ValueError('When "err_bars" is array-like it must '
-                                     'have the same shape as barplot arg "h".')
-            err = err_bars
+            elif not h.shape == np.array(err_bars).shape:
+                raise ValueError('When "err_bars" is array-like it must have '
+                                 'the same shape as "h".')
+            err = np.atleast_1d(err_bars)
         bar_kwargs['yerr'] = err
-    else:  # still must define err (for signif. brackets)
-        err = np.zeros(num_bars)
     # plot (bars and error bars)
     if ax is None:
         plt.figure(**figure_kwargs)
@@ -278,11 +271,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         p = ax
     b = p.bar(bar_edges, heights, bar_widths, error_kw=err_kwargs,
               **bar_kwargs)
-    # within-subject lines
-    if two_d:
-        max_pts = np.max(h, axis)
-    else:
-        max_pts = heights
+    # plot within-subject lines
     if lines:
         if axis == 0:
             xy = [(bar_centers, hts) for hts in h]
@@ -290,9 +279,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             xy = [(bar_centers, hts) for hts in h.T]
         for subj in xy:
             p.plot(subj[0], subj[1], **line_kwargs)
-    else:
-        max_pts.fill(0)
-    # significance brackets
+    # draw significance brackets
     if brackets is not None:
         if not len(brackets) == len(bracket_text):
             raise ValueError('Mismatch between number of brackets and bracket '
@@ -307,13 +294,15 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         brk_txt_h = np.diff(p.transData.inverted().transform(bb),
                             axis=0).ravel()[-1] + brk_offset/2.
         t.remove()
-        # find apices of bars
-        apex = np.max(np.r_[np.atleast_2d(heights + err),
-                            np.atleast_2d(max_pts)], axis=0)
+        # find highest points
+        if lines and len(h.shape) == 2:  # brackets must be above lines
+            apex = np.max(np.r_[np.atleast_2d(heights + err),
+                                np.max(h, axis)], axis=0)
+        else:
+            apex = np.atleast_1d(heights + err)
         gr_apex = np.array([np.max(apex[x]) for x in groups])
-        # apices of brackets
-        brk_list = []  # np.zeros((len(brackets), 2, 2), dtype=float)
-        brk_apex_list = []
+        #brk_list = []
+        #brk_apex_list = []
         # calculate bracket coords
         for pair, text in zip(brackets, bracket_text):
             if len(pair) != 2:
@@ -322,37 +311,43 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             xlr = []
             for br in pair:
                 if hasattr(br, 'append'):  # it's a group, not a single bar
-                    br = br[0]
-                    xlr.append(group_centers[br])
-                    ylo.append(gr_apex[br] + brk_offset)
-                    # horizontal line spanning group:
-                    if bracket_group_lines:
-                        gbr = (bar_centers[groups[br][0]],
-                               bar_centers[groups[br][-1]])
-                        p.plot(gbr, (ylo[-1], ylo[-1]), **bracket_kwargs)
-                    # update apices to prevent bracket overlap
+                    bri = groups.index(br)
+                    xlr.append(group_centers[bri])
+                    ylo.append(gr_apex[bri] + brk_offset)
                     yhi = max(ylo) + brk_height
+                    # horizontal line spanning group:
+                    br = br[0]
+                    if bracket_group_lines:
+                        gbr = [bar_centers[x] for x in groups[bri]]
+                        gbr = (min(gbr), max(gbr))
+                        p.plot(gbr, (ylo[-1], ylo[-1]), **bracket_kwargs)
+                    '''
+                    # update apices to prevent bracket overlap
                     while np.any([np.abs(x - yhi) < brk_offset for x in
                                   brk_apex_list]):
                         yhi += (brk_txt_h + 2 * brk_offset)
-                    gr_apex[br] = yhi + brk_txt_h
+                    '''
+                    gr_apex[bri] = yhi + brk_txt_h
                 else:
                     xlr.append(bar_centers[br])
                     ylo.append(apex[br] + brk_offset)
                     yhi = max(ylo) + brk_height
+                    '''
                     while np.any([np.abs(x - yhi) < brk_offset for x in
                                   brk_apex_list]):
                         yhi += (brk_txt_h + 2 * brk_offset)
+                    '''
+                    # TODO: de-indent by two levels, but need to keep track of brs
                     # update apices to prevent bracket overlap
-                    apex[br] = yhi + brk_txt_h
+                    apex[br] = yhi + brk_offset  # brk_txt_h
                     new_ga = np.array([np.max(apex[x]) for x in groups])
                     gr_apex[new_ga > gr_apex] = new_ga[new_ga > gr_apex]
             # points defining brackets
             lbr = ((xlr[0], xlr[0]), (ylo[0], yhi))
             rbr = ((xlr[1], xlr[1]), (ylo[1], yhi))
             hbr = (tuple(xlr), (yhi, yhi))
-            brk_list.append([lbr, rbr, hbr])
-            brk_apex_list.append(yhi)
+            #brk_list.append([lbr, rbr, hbr])
+            #brk_apex_list.append(yhi)
             for x, y in [lbr, rbr, hbr]:
                 p.plot(x, y, **bracket_kwargs)
             # bracket text
@@ -373,10 +368,12 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     if bar_names is not None:
         p.xaxis.set_ticklabels(bar_names, va='baseline')
     if group_names is not None:
+        ymin = ylim[0] if ylim is not None else p.get_ylim()[0]
         yoffset = -2 * rcParams['font.size']
         for gn, gp in zip(group_names, group_centers):
-            p.annotate(gn, xy=(gp, 0), xytext=(0, yoffset),
-                       textcoords='offset points', ha='center', va='baseline')
+            p.annotate(gn, xy=(gp, ymin), xytext=(0, yoffset),
+                       xycoords='data', textcoords='offset points',
+                       ha='center', va='baseline')
     # axis limits
     p.set_xlim(0, bar_edges[-1] + bar_widths[-1] + gap_size / 2)
     if ylim is not None:
