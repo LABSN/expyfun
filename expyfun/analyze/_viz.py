@@ -114,9 +114,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     brackets : list of tuples | None
         Location of significance brackets. Scheme is similar to ``grouping``;
         if you want a bracket between the first and second bar and another
-        between the third and fourth bars, specify as [(0,1),(2,3)]. If you
+        between the third and fourth bars, specify as [(0, 1), (2, 3)]. If you
         want brackets between groups of bars instead of between bars, indicate
-        the group numbers as singleton lists within the tuple: [([0], [1])].
+        the groups as lists within the tuple: [([0, 1], [2, 3])].
         For best results, pairs of adjacent bars should come earlier in the
         list than non-adjacent pairs.
     bracket_text : str | list | None
