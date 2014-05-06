@@ -160,11 +160,24 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
 
     Notes
     -----
+    Known limitations:
+      1 Bracket heights don't get properly set when generating multiple
+        subplots with ``sharey=True`` (matplotlib seems to temporarily force
+        the ``ylim`` to +/- 0.6 in this case). Work around is to use
+        ``sharey=False`` and manually set ``ylim`` for each subplot.
+      2 Brackets that span groups cannot span partial groups. For example,
+        if ``groups=[[0, 1, 2], [3, 4]]`` it is impossible to have a bracket
+        at ``[(0, 1), (3, 4)]``...  it is only possible to do, e.g.,
+        ``[0, (3, 4)]`` (single bar vs group) or  ``[(0, 1, 2), (3, 4)]``
+        (full group vs full group).
+      3 Bracket drawing is much better when adjacent pairs of bars are
+        specified before non-adjacent pairs of bars.
     Smart defaults sets the following parameters:
         bar color: light gray (70%)
         error bar color: black
         line color: black
         bracket color: dark gray (30%)
+
     """
     # check matplotlib
     if plt is None:
