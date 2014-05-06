@@ -25,16 +25,16 @@ def test_barplot():
     """Test bar plot function
     """
     import matplotlib.pyplot as plt
+    rng = np.random.RandomState(0)
     ea.barplot(2, err_bars=0.2)  # 0-dim
-
-    tmp = np.ones(4) + np.random.rand(4)  # 1-dim
+    tmp = np.ones(4) + rng.rand(4)  # 1-dim
     err = 0.1 + tmp / 5.
-    _, axs = plt.subplots(1, 5, sharey=True)
-    ea.barplot(tmp, err_bars=err, brackets=[(2, 3), (0, 1)], ax=axs[0],
+    _, axs = plt.subplots(1, 5, sharey=False)
+    ea.barplot(tmp, err_bars=err, brackets=([2, 3], [0, 1]), ax=axs[0],
                bracket_text=['foo', 'bar'])
-    ea.barplot(tmp, err_bars=err, brackets=[(0, 2), (1, 3)], ax=axs[1],
+    ea.barplot(tmp, err_bars=err, brackets=((0, 2), (1, 3)), ax=axs[1],
                bracket_text=['foo', 'bar'])
-    ea.barplot(tmp, err_bars=err, brackets=[(2, 1), (0, 3)], ax=axs[2],
+    ea.barplot(tmp, err_bars=err, brackets=[[2, 1], [0, 3]], ax=axs[2],
                bracket_text=['foo', 'bar'])
     ea.barplot(tmp, err_bars=err, brackets=[(0, 1), (0, 2), (0, 3)],
                bracket_text=['foo', 'bar', 'baz'], ax=axs[3])
@@ -50,7 +50,7 @@ def test_barplot():
                   bracket_text=['foo', 'bar'])
     assert_raises(ValueError, ea.barplot, tmp, brackets=[(1,)],
                   bracket_text=['foo'])
-    tmp = (np.random.randn(20) + np.arange(20)).reshape((5, 4))  # 2-dim
+    tmp = (rng.randn(20) + np.arange(20)).reshape((5, 4))  # 2-dim
     _, axs = plt.subplots(1, 4, sharey=False)
     ea.barplot(tmp, lines=True, err_bars='sd', ax=axs[0], smart_defaults=False)
     ea.barplot(tmp, lines=True, err_bars='ci', ax=axs[1], axis=0)
