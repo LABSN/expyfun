@@ -6,6 +6,7 @@ import numpy as np
 import scipy.stats as ss
 from scipy.optimize import curve_fit
 from functools import partial
+from collections import namedtuple
 
 
 def logit(prop, max_events=None):
@@ -68,7 +69,7 @@ def sigmoid(x, lower=0., upper=1., midpt=0., slope=1.):
     return y
 
 
-def fit_sigmoid(x, y, p0=None):
+def fit_sigmoid(x, y, p0=None, fixed=()):
     """Fit a sigmoid to the data
 
     Parameters
@@ -78,24 +79,63 @@ def fit_sigmoid(x, y, p0=None):
     y : array-like
         y-values along the sigmoid.
     p0 : array-like | None
-        Initial guesses for the fit. Can be None to have these automatically
+        Initial guesses for the fit. Can be None to estimate all parameters,
+        or members of the array can be None to have these automatically
         estimated.
+    fixed : list of str
+        Which parameters should be fixed.
 
     Returns
     -------
     lower, upper, midpt, slope : floats
         See expyfun.analyze.sigmoid for descriptions.
     """
+    # Initial estimates
     x = np.asarray(x)
     y = np.asarray(y)
     k = 2 * 4. / (np.max(x) - np.min(x))
     if p0 is None:
-        p0 = [np.min(y), np.max(y), np.mean([np.max(x), np.min(x)]), k]
+        p0 = [None] * 4
+    p0 = list(p0)
+    for ii, p in enumerate([np.min(y), np.max(y),
+                            np.mean([np.max(x), np.min(x)]), k]):
+        p0[ii] = p if p0[ii] is None else p0[ii]
     p0 = np.array(p0, dtype=np.float64)
-    if p0.size != 4:
+    if p0.size != 4 or p0.ndim != 1:
         raise ValueError('p0 must have 4 elements, or be None')
-    out = curve_fit(sigmoid, x, y, p0=p0, )[0]
-    return out
+
+    # Fixing values
+    p_types = ('lower', 'upper', 'midpt', 'slope')
+    for f in fixed:
+        if f not in p_types:
+            raise ValueError('fixed {0} not in parameter list {1}'
+                             ''.format(f, p_types))
+    fixed = np.array([(True if f in fixed else False) for f in p_types], bool)
+
+    kwargs = dict()
+    idx = list()
+    keys = list()
+    for ii, key in enumerate(p_types):
+        if fixed[ii]:
+            kwargs[key] = p0[ii]
+        else:
+            keys.append(key)
+            idx.append(ii)
+    p0 = p0[idx]
+    if len(idx) == 0:
+        raise RuntimeError('cannot fit with all fixed values')
+
+    def wrapper(*args):
+        assert len(args) == len(keys) + 1
+        for key, arg in zip(keys, args[1:]):
+            kwargs[key] = arg
+        return sigmoid(args[0], **kwargs)
+
+    out = curve_fit(wrapper, x, y, p0=p0)[0]
+    assert len(idx) == len(out)
+    for ii, o in zip(idx, out):
+        kwargs[p_types[ii]] = o
+    return namedtuple('params', p_types)(**kwargs)
 
 
 def rt_chisq(x, axis=None):
