@@ -488,10 +488,10 @@ class ConcentricCircles(object):
         Parameters
         ----------
         colors : list or tuple of matplotlib Colors
-            Must be of type list, and contain the same number of colors
-            as the number of circles.
+            Must be of type list or tuple, and contain the same number of
+            colors as the number of circles.
         """
-        if not isinstance(colors, (tuple, list) or len(colors) != len(self):
+        if not isinstance(colors, (tuple, list)) or len(colors) != len(self):
             raise ValueError('colors must be a list or tuple with {0} colors'
                              ''.format(len(self)))
         for idx, color in enumerate(colors):
