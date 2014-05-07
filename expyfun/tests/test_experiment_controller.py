@@ -301,6 +301,8 @@ def test_visual(ac=None):
         rect = visual.Rectangle(ec, [0, 0, 1, 1], line_width=1.0)
         rect.draw()
         assert_raises(TypeError, visual.ConcentricCircles, ec, colors=dict())
+        assert_raises(TypeError, visual.ConcentricCircles, ec,
+                      colors=np.array([]))
         assert_raises(ValueError, visual.ConcentricCircles, ec, radii=[[1]])
         assert_raises(ValueError, visual.ConcentricCircles, ec, radii=[1])
         fix = visual.ConcentricCircles(ec, radii=[1, 2, 3],
@@ -310,8 +312,10 @@ def test_visual(ac=None):
         fix.set_radii([0.1, 0.2, 0.3])
         fix.set_color('w', 1)
         fix.set_colors(['w', 'k', 'k'])
+        fix.set_colors(('w', 'k', 'k'))
         assert_raises(IndexError, fix.set_color, 'w', 3)
         assert_raises(ValueError, fix.set_colors, ['w', 'k'])
+        assert_raises(ValueError, fix.set_colors, np.array(['w', 'k', 'k']))
         assert_raises(IndexError, fix.set_radius, 0.1, 3)
         assert_raises(ValueError, fix.set_radii, [0.1, 0.2])
         fix.draw()

@@ -399,7 +399,7 @@ class ConcentricCircles(object):
         2-element array-like with the X, Y center position.
     units : str
         Units to use.
-    colors : list of matplotlib Colors
+    colors : list or tuple of matplotlib Colors
         Color to fill each circle with.
 
     Returns
@@ -412,7 +412,7 @@ class ConcentricCircles(object):
         radii = np.array(radii, float)
         if radii.ndim != 1:
             raise ValueError('radii must be 1D')
-        if not isinstance(colors, (tuple, list, np.ndarray)):
+        if not isinstance(colors, (tuple, list)):
             raise TypeError('colors must be a tuple, list, or array')
         if len(colors) != len(radii):
             raise ValueError('colors and radii must be the same length')
@@ -487,12 +487,12 @@ class ConcentricCircles(object):
 
         Parameters
         ----------
-        colors : list of matplotlib Colors
-            Must be of type list, and contain the same number of colors
-            as the number of circles.
+        colors : list or tuple of matplotlib Colors
+            Must be of type list or tuple, and contain the same number of
+            colors as the number of circles.
         """
-        if not isinstance(colors, list) or len(colors) != len(self):
-            raise ValueError('colors must be a list with {0} colors'
+        if not isinstance(colors, (tuple, list)) or len(colors) != len(self):
+            raise ValueError('colors must be a list or tuple with {0} colors'
                              ''.format(len(self)))
         for idx, color in enumerate(colors):
             self.set_color(color, idx)
