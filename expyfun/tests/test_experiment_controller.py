@@ -315,7 +315,7 @@ def test_visual(ac=None):
         fix.set_colors(('w', 'k', 'k'))
         assert_raises(IndexError, fix.set_color, 'w', 3)
         assert_raises(ValueError, fix.set_colors, ['w', 'k'])
-        assert_raises(TypeError, fix.set_colors, np.array(['w', 'k', 'k']))
+        assert_raises(ValueError, fix.set_colors, np.array(['w', 'k', 'k']))
         assert_raises(IndexError, fix.set_radius, 0.1, 3)
         assert_raises(ValueError, fix.set_radii, [0.1, 0.2])
         fix.draw()
