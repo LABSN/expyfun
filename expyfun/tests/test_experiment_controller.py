@@ -196,8 +196,8 @@ def test_ec(ac=None, rd=None):
         assert_raises(ValueError, ec.set_rms_checking, 'foo')
         # click: RMS 0.0135, should pass 'fullfile' and fail 'windowed'
         click = np.zeros((int(ec.fs / 4),))  # 250 ms
-        click[len(click) / 2] = 1.
-        click[len(click) / 2 + 1] = -1.
+        click[len(click) // 2] = 1.
+        click[len(click) // 2 + 1] = -1.
         # noise: RMS 0.03, should fail both 'fullfile' and 'windowed'
         noise = np.random.normal(scale=0.03, size=(int(ec.fs / 4),))
         ec.set_rms_checking(None)
@@ -205,7 +205,6 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(noise)  # should go unchecked
         ec.set_rms_checking('wholefile')
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             ec.load_buffer(click)  # should pass
             assert_equal(len(w), 0)
             ec.load_buffer(noise)
@@ -294,6 +293,7 @@ def test_visual(ac=None):
                               **std_kwargs) as ec:
         assert_raises(TypeError, visual.Circle, ec, n_edges=3.5)
         assert_raises(ValueError, visual.Circle, ec, n_edges=3)
+        warnings.simplefilter('error')
         circ = visual.Circle(ec)
         circ.draw()
         assert_raises(ValueError, circ.set_radius, [1, 2, 3])
