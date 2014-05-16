@@ -62,7 +62,7 @@ def window_edges(sig, fs, dur=0.01, axis=-1, window='hann', edges='both'):
     return sig
 
 
-def rms(data, axis=-1):
+def rms(data, axis=-1, keepdims=False):
     """Calculate the RMS of a signal
 
     Parameters
@@ -71,8 +71,10 @@ def rms(data, axis=-1):
         Data to operate on.
     axis : int | None
         Axis to operate over. None will operate over the flattened array.
+    keepdims : bool
+        Keep dimension operated over.
     """
-    return np.sqrt(np.mean(data * data, axis=axis))
+    return np.sqrt(np.mean(data * data, axis=axis, keepdims=keepdims))
 
 
 def _get_dtype_norm(dtype):
