@@ -150,7 +150,7 @@ def band_envs(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
     Adapted from an algorithm described by Zachary Smith (Cochlear Corp.).
     """
 
-    data = np.array(data, float)  # will make a copy
+    data = np.atleast_1d(np.array(data, float))  # will make a copy
     freq_lims = np.array(freq_lims, float)
     fs = float(fs)
     if np.any(freq_lims >= fs / 2.) or env_lp >= fs / 2.:
