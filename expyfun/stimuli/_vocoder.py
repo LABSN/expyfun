@@ -19,107 +19,11 @@ def _erbn_to_freq(e):
 
 
 @verbose_dec
-def vocode(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
-           order=2, env_lp=160., env_lp_order=4, mode='noise',
-           poisson_rate=200, poisson_linked=False,
-           rand_seed=None, axis=-1, verbose=None):
-    """Vocode stimuli using a CI simulation
-
-    Adapted from an algorithm described by Zachary Smith (Cochlear).
+def get_band_freqs(fs, n_bands=16, freq_lims=(200., 8000.), scale='erb'):
+    """Calculate frequency band edges.
 
     Parameters
     ----------
-    data : array-like
-        Data array.
-    fs : float
-        Sample rate.
-    n_bands : int
-        Number of bands to use.
-    freq_lims : tuple
-        2-element list of lower and upper frequency bounds.
-    scale : str
-        Scale on which to equally space the bands. Possible values are "erb",
-        "loghz" (base-2), and "hz".
-    order : int
-        Order of analysis and synthesis.
-        NOTE: Using too high an order can cause instability,
-        always check outputs for order > 2!
-    env_lp : float
-        Frequency of the envelope low-pass.
-    evn_lp_order : int
-        Order of the envelope low-pass.
-    mode : str
-        The type of signal used to excite each band. Options are "noise" for
-        band-limited noise, "tone" for sinewave-at-center-frequency, or
-        "poisson" for a poisson process of band-limited clicks at the rate
-        given by ``poisson_rate``.
-    poisson_rate : int
-        Average number of clicks per second for the poisson train used to
-        excite each band (when mode=="poisson").
-    poisson_linked : bool
-        Whether the same poisson process is used to excite all bands.
-    rand_seed : int | None
-        Random seed to use. If None, no seeding is done.
-    axis : int
-        Axis to operate over.
-
-    Returns
-    -------
-    voc : array-like
-        Vocoded stimuli of the same shape as data.
-
-    Notes
-    -----
-    This will use ERB-spaced frequency windows.
-    """
-    # check args
-    if mode not in ('noise', 'tone', 'poisson'):
-        raise ValueError('mode must be "noise", "tone", or "poisson", not {0}'
-                         ''.format(mode))
-    if rand_seed is None:
-        rng = np.random
-    else:
-        rng = np.random.RandomState(rand_seed)
-    # get band envelopes
-    bands = band_envs(data, fs, n_bands=n_bands, freq_lims=freq_lims,
-                      scale=scale, order=order, env_lp=env_lp,
-                      env_lp_order=env_lp_order, axis=axis, verbose=verbose)
-
-    n_samp = data.shape[axis]
-    voc = np.zeros_like(data)
-
-    # reconstruct
-    if poisson_linked and mode == 'poisson':  # same for each band
-        carrier = rng.random_integers(0, 1, n_samp).astype(float)
-    for cf, env, (b, a) in bands:
-        if mode == 'tone':
-            carrier = np.sin(2 * np.pi * cf * np.arange(n_samp) / fs)
-            carrier *= np.sqrt(2)  # rms of 1
-            shape = np.ones_like(data.shape)
-            shape[axis] = n_samp
-            carrier.shape = shape
-        else:
-            if mode == 'noise':
-                carrier = rng.rand(*data.shape)
-            else:  # mode == 'poisson'
-                if not poisson_linked:  # different for each band
-                    carrier = rng.random_integers(0, 1, n_samp).astype(float)
-            carrier = lfilter(b, a, carrier, axis=axis)
-            carrier /= np.sqrt(np.mean(carrier * carrier, axis=axis,
-                                       keepdims=True))  # rms of 1
-        voc += carrier * env
-    return voc
-
-
-@verbose_dec
-def band_envs(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
-              order=2, env_lp=160., env_lp_order=4, axis=-1, verbose=None):
-    """Calculate frequency band envelopes of a signal
-
-    Parameters
-    ----------
-    data : array-like
-        Data array.
     fs : float
         Sample rate.
     n_bands : int
@@ -129,31 +33,15 @@ def band_envs(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
     scale : str
         Scale on which to equally space the bands. Possible values are "erb",
         "loghz" (base-2), and "hz".
-    order : int
-        Order of analysis and synthesis.
-        NOTE: Using too high an order can cause instability,
-        always check outputs for order > 2!
-    env_lp : float
-        Frequency of the envelope low-pass.
-    evn_lp_order : int
-        Order of the envelope low-pass.
-    axis : int
-        Axis to operate over.
 
     Returns
     -------
-    edges, cfs, env : list of tuples
-        List of tuples: (center frequency, envelope, (filter numer, denom)).
-
-    Notes
-    -----
-    Adapted from an algorithm described by Zachary Smith (Cochlear Corp.).
+    edges : list of tuples
+        low- and high-cutoff frequencies for the bands.
     """
-
-    data = np.atleast_1d(np.array(data, float))  # will make a copy
     freq_lims = np.array(freq_lims, float)
     fs = float(fs)
-    if np.any(freq_lims >= fs / 2.) or env_lp >= fs / 2.:
+    if np.any(freq_lims >= fs / 2.):
         raise ValueError('frequency limits must not exceed Nyquist')
     assert freq_lims.ndim == 1 and freq_lims.size == 2
     if scale not in ('erb', 'loghz', 'hz'):
@@ -172,19 +60,205 @@ def band_envs(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
     else:  # scale == 'hz'
         delta = np.diff(freq_lims) / n_bands
         cutoffs = freq_lims[0] + delta * np.arange(n_bands + 1)
-    cfs = list(np.round((cutoffs[:-1] + cutoffs[1:]) / 2.).astype(int))
-    logger.info('Using frequencies centered at: {0}'.format(cfs))
-    # extract the envelope in each band
-    envs = []
+    edges = zip(cutoffs[:-1], cutoffs[1:])
+    return(edges)
+
+
+def get_bands(data, fs, edges, order=2, axis=-1):
+    """Separate a signal into frequency bands
+
+    Parameters
+    ----------
+    data : array-like
+        Data array.
+    fs : float
+        Sample rate.
+    edges : list
+        List of tuples of band cutoff frequencies.
+    order : int
+        Order of analysis and synthesis.
+        NOTE: Using too high an order can cause instability,
+        always check outputs for order > 2!
+    axis : int
+        Axis to operate over.
+
+    Returns
+    -------
+    bands, filts : list of tuples
+        List of tuples (bandpassed signal, (filter coefs numer, denom))
+    """
+    data = np.atleast_1d(np.array(data, float))  # will make a copy
+    fs = float(fs)
+    bands = []
     filts = []
-    for lf, hf in zip(cutoffs[:-1], cutoffs[1:]):
+    for lf, hf in edges:
         # band-pass
         b, a = butter(order, [lf / fs, hf / fs], 'bandpass')
-        env = lfilter(b, a, data, axis=axis)
-        # half-wave rectify and low-pass
-        env[env < 0] = 0.0
-        b_env, a_env = butter(env_lp_order, env_lp / fs, 'lowpass')
-        env = lfilter(b_env, a_env, env, axis=axis)
-        envs.append(env)
+        band = lfilter(b, a, data, axis=axis)
+        bands.append(band)
         filts.append((b, a))
-    return(zip(cfs, envs, filts))
+    return(bands, filts)
+
+
+def get_env(data, fs, lp_order=4, lp_cutoff=160., axis=-1):
+    """
+
+    Parameters
+    ----------
+    data : array-like
+        Data array.
+    fs : float
+        Sample rate.
+    lp_order : int
+        Order of the envelope low-pass.
+    lp_cutoff : float
+        Cutoff frequency of the envelope low-pass.
+    axis : int
+        Axis to operate over.
+
+    Returns
+    -------
+    env, filt : tuple
+        Tuple where first element is the rectified and low-pass filtered
+        envelope of ``data``, second element is a tuple of the filter
+        coefficients (numerator, denominator).
+    """
+    if lp_cutoff >= fs / 2.:
+        raise ValueError('frequency limits must not exceed Nyquist')
+    cutoff = lp_cutoff / float(fs)
+    data[data < 0] = 0.  # half-wave rectify
+    b, a = butter(lp_order, cutoff, 'lowpass')
+    env = lfilter(b, a, data, axis=axis)
+    return(env, (b, a))
+
+
+def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
+                 seed=None):
+    """Generate carriers for frequency bands of a signal
+
+    Parameters
+    ----------
+    data : array-like
+        Data array.
+    fs : float
+        Sample rate.
+    edges : list
+        List of tuples of band cutoff frequencies.
+    order : int
+        Order of analysis and synthesis.
+        NOTE: Using too high an order can cause instability,
+        always check outputs for order > 2!
+    axis : int
+        Axis to operate over.
+    mode : str
+        The type of signal used to excite each band. Options are "noise" for
+        band-limited noise, "tone" for sinewave-at-center-frequency, or
+        "poisson" for a poisson process of band-limited clicks at the rate
+        given by ``rate``.
+    rate : int
+        The mean rate of stimulation when ``mode=='poisson'`` (in clicks per
+        second). Ignored when ``mode != 'poisson'``.
+    seed : int | None
+        Random seed to use. If ``None``, no seeding is done.
+
+    Returns
+    -------
+    carrs : list of nd-arrays
+        List of numpy nd-arrays of the carrier signals.
+    """
+    # check args
+    if mode not in ('noise', 'tone', 'poisson'):
+        raise ValueError('mode must be "noise", "tone", or "poisson", not {0}'
+                         ''.format(mode))
+    if seed is None:
+        rng = np.random
+    else:
+        rng = np.random.RandomState(seed)
+
+    carrs = []
+    fs = float(fs)
+    n_samp = data.shape[axis]
+    for lf, hf in edges:
+        if mode == 'tone':
+            cf = (lf + hf) / 2.
+            carrier = np.sin(2 * np.pi * cf * np.arange(n_samp) / fs)
+            carrier *= np.sqrt(2)  # rms of 1
+            shape = np.ones_like(data.shape)
+            shape[axis] = n_samp
+            carrier.shape = shape
+        else:
+            if mode == 'noise':
+                carrier = rng.rand(*data.shape)
+            else:  # mode == 'poisson'
+                prob = rate / fs
+                carrier = rng.choice([0., 1.], n_samp, p=[1 - prob, prob])
+            b, a = butter(order, [lf / fs, hf / fs], 'bandpass')
+            carrier = lfilter(b, a, carrier, axis=axis)
+            carrier /= np.sqrt(np.mean(carrier * carrier, axis=axis,
+                                       keepdims=True))  # rms of 1
+        carrs.append(carrier)
+    return(carrs)
+
+
+@verbose_dec
+def vocode(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
+           order=2, lp_cutoff=160., lp_order=4, mode='noise',
+           rate=200, seed=None, axis=-1, verbose=None):
+    """Vocode stimuli using a variety of methods
+
+    Parameters
+    ----------
+    data : array-like
+        Data array.
+    fs : float
+        Sample rate.
+    n_bands : int
+        Number of bands to use.
+    freq_lims : tuple
+        2-element list of lower and upper frequency bounds.
+    scale : str
+        Scale on which to equally space the bands. Possible values are "erb",
+        "log" (base-2), and "hz".
+    order : int
+        Order of analysis and synthesis.
+        NOTE: Using too high an order can cause instability,
+        always check outputs for order > 2!
+    lp_cutoff : float
+        Frequency of the envelope low-pass.
+    lp_order : int
+        Order of the envelope low-pass.
+    mode : str
+        The type of signal used to excite each band. Options are "noise" for
+        band-limited noise, "tone" for sinewave-at-center-frequency, or
+        "poisson" for a poisson process of band-limited clicks at the rate
+        given by ``poisson_rate``.
+    rate : int
+        Average number of clicks per second for the poisson train used to
+        excite each band (when mode=="poisson").
+    seed : int | None
+        Random seed to use. If ``None``, no seeding is done.
+    axis : int
+        Axis to operate over.
+
+    Returns
+    -------
+    voc : array-like
+        Vocoded stimuli of the same shape as data.
+
+    Notes
+    -----
+    Adapted from an algorithm described by Zachary Smith (Cochlear Corp.).
+    """
+    edges = get_band_freqs(fs, n_bands=n_bands, freq_lims=freq_lims,
+                           scale=scale)
+    bands, filts = get_bands(data, fs, edges, order=order, axis=axis)
+    envs, env_filts = zip(*[get_env(x, fs, lp_order=lp_order,
+                                    lp_cutoff=lp_cutoff, axis=axis)
+                            for x in bands])
+    carrs = get_carriers(data, fs, edges, order=order, axis=axis, mode=mode,
+                         rate=rate, seed=seed)
+    # reconstruct
+    voc = np.zeros_like(data)
+    for carr, env in zip(carrs, envs):
+        voc += carr * env
+    return voc
