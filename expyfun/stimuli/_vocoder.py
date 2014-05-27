@@ -64,7 +64,7 @@ def get_band_freqs(fs, n_bands=16, freq_lims=(200., 8000.), scale='erb'):
     return(edges)
 
 
-def get_bands(data, fs, edges, order=2, axis=-1):
+def get_bands(data, fs, edges, order=2, zero_phase=False, axis=-1):
     """Separate a signal into frequency bands
 
     Parameters
@@ -79,6 +79,8 @@ def get_bands(data, fs, edges, order=2, axis=-1):
         Order of analysis and synthesis.
         NOTE: Using too high an order can cause instability,
         always check outputs for order > 2!
+    zero_phase : bool
+        Use zero-phase forward-backward filtering.
     axis : int
         Axis to operate over.
 
@@ -95,12 +97,16 @@ def get_bands(data, fs, edges, order=2, axis=-1):
         # band-pass
         b, a = butter(order, [lf / fs, hf / fs], 'bandpass')
         band = lfilter(b, a, data, axis=axis)
+        if zero_phase:
+            ax = [slice(None)] * band.ndim
+            ax[axis] = slice(None, None, -1)
+            band = lfilter(b, a, band[ax], axis=axis)[ax]
         bands.append(band)
         filts.append((b, a))
     return(bands, filts)
 
 
-def get_env(data, fs, lp_order=4, lp_cutoff=160., axis=-1):
+def get_env(data, fs, lp_order=4, lp_cutoff=160., zero_phase=False, axis=-1):
     """
 
     Parameters
@@ -113,6 +119,8 @@ def get_env(data, fs, lp_order=4, lp_cutoff=160., axis=-1):
         Order of the envelope low-pass.
     lp_cutoff : float
         Cutoff frequency of the envelope low-pass.
+    zero_phase : bool
+        Use zero-phase forward-backward filtering.
     axis : int
         Axis to operate over.
 
@@ -129,6 +137,10 @@ def get_env(data, fs, lp_order=4, lp_cutoff=160., axis=-1):
     data[data < 0] = 0.  # half-wave rectify
     b, a = butter(lp_order, cutoff, 'lowpass')
     env = lfilter(b, a, data, axis=axis)
+    if zero_phase:
+        ax = [slice(None)] * env.ndim
+        ax[axis] = slice(None, None, -1)
+        env = lfilter(b, a, env[ax], axis=axis)[ax]
     return(env, (b, a))
 
 
@@ -218,7 +230,7 @@ def vocode(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
         2-element list of lower and upper frequency bounds.
     scale : str
         Scale on which to equally space the bands. Possible values are "erb",
-        "log" (base-2), and "hz".
+        "loghz" (base-2), and "hz".
     order : int
         Order of analysis and synthesis.
         NOTE: Using too high an order can cause instability,
