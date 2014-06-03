@@ -24,7 +24,7 @@ def _convert_color(color):
 
 def _replicate_color(color, pts):
     """Convert single color to color array for OpenGL trianglulations"""
-    return np.tile(color, len(pts) / 2)
+    return np.tile(color, len(pts) // 2)
 
 
 ##############################################################################
