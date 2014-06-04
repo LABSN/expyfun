@@ -37,7 +37,7 @@ results = pd.DataFrame(dict(ctrl=ctrl_dprime, test=test_dprime))
 plt.ion()
 subplt, barplt = ea.barplot(results, axis=0, err_bars='sd', lines=True,
                             brackets=[(0, 1)], bracket_text=[r'$p < 10^{-9}$'])
-subplt.yaxis.set_label_text(u'd-prime ± 1 s.d.')
+subplt.yaxis.set_label_text('d-prime +/- 1 s.d.')
 subplt.set_title('Each line represents a different subject')
 
 # significance brackets example
@@ -63,5 +63,5 @@ subplt, barplt = ea.barplot(results, axis=0, err_bars='sd', lines=True,
                                       ([0, 1], 3)],  # [2, 3]
                             bracket_text=['foo', 'bar', 'baz', 'snafu',
                                           'foobar'])
-subplt.yaxis.set_label_text(u'd-prime ± 1 s.d.')
+subplt.yaxis.set_label_text('d-prime +/- 1 s.d.')
 subplt.set_title('Each line represents a different subject')
