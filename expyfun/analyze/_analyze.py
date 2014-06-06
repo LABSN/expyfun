@@ -70,14 +70,20 @@ def sigmoid(x, lower=0., upper=1., midpt=0., slope=1.):
 
 
 def fit_sigmoid(x, y, p0=None, fixed=()):
-    """Fit a sigmoid to the data
+    """Fit a sigmoid to summary data
+
+    Given a set of average values ``y`` (e.g., response probabilities) as a
+    function of a variable ``x`` (e.g., presented target level), this
+    will estimate the underlying sigmoidal response. Note that the fitting
+    function can be sensitive to the shape of the data, so always inspect
+    your results.
 
     Parameters
     ----------
     x : array-like
         x-values along the sigmoid.
     y : array-like
-        y-values along the sigmoid.
+        y-values at each location in the sigmoid.
     p0 : array-like | None
         Initial guesses for the fit. Can be None to estimate all parameters,
         or members of the array can be None to have these automatically
