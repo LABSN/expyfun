@@ -7,6 +7,7 @@ import numpy as np
 from scipy.io import wavfile
 from scipy import signal
 from os import path as op
+from threading import Timer
 
 from .._sound_controllers import SoundPlayer
 from .._utils import verbose_dec, logger, _has_scipy_version, wait_secs
@@ -182,7 +183,9 @@ def play_sound(sound, fs=44100, norm=True, wait=False):
     Returns
     -------
     snd : instance of SoundPlayer
-        The object playing sound. Can use "stop" to stop playback.
+        The object playing sound. Can use "stop" to stop playback. Note that
+        the sound player will be cleared/deleted once the sound finishes
+        playing.
     """
     sound = np.array(sound)
     fs = int(fs)
@@ -197,7 +200,12 @@ def play_sound(sound, fs=44100, norm=True, wait=False):
     if np.abs(sound).max() > 1.:
         warnings.warn('Sound exceeds +/-1, will clip')
     snd = SoundPlayer(sound, fs)
+    dur = sound.shape[1] / float(fs)
     snd.play()  # will clip as necessary
+    del_wait = 0.5
     if wait:
-        wait_secs(sound.shape[1] / float(fs))
+        wait_secs(dur)
+    else:
+        del_wait += dur
+    Timer(del_wait, snd.delete).start()
     return snd
