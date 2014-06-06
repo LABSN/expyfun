@@ -207,5 +207,6 @@ def play_sound(sound, fs=44100, norm=True, wait=False):
         wait_secs(dur)
     else:
         del_wait += dur
-    Timer(del_wait, snd.delete).start()
+    if hasattr(snd, 'delete'):  # for backward compatibility
+        Timer(del_wait, snd.delete).start()
     return snd
