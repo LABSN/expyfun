@@ -111,6 +111,15 @@ def test_play_sound():
     play_sound(data).stop()
     play_sound(data[0], norm=False, wait=True)
     assert_raises(ValueError, play_sound, data[:, :, np.newaxis])
+    # Make sure Pyglet can handle a lot of sounds
+    for _ in range(100):
+        snd = play_sound(data)
+        # we manually stop and delete here, because we don't want to
+        # have to wait for our Timer instances to get around to doing
+        # it... this also checks to make sure calling `delete()` more
+        # than once is okay (it is).
+        snd.stop()
+        snd.delete()
 
 
 def test_window_edges():
