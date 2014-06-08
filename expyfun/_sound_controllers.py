@@ -73,6 +73,10 @@ class SoundPlayer(Player):
         self.seek(0.)
 
 
+def _ignore():
+    pass
+
+
 class PygletSoundController(object):
     """Use pyglet audio capabilities"""
     def __init__(self, ec, stim_fs):
@@ -96,7 +100,7 @@ class PygletSoundController(object):
         self.noise_array = np.array((noise, -1.0 * noise))
         self.noise = SoundPlayer(self.noise_array, self.fs, loop=True)
         self._noise_playing = False
-        self.clear_buffer()  # initializes self.audio
+        self.audio = SoundPlayer(np.zeros((2, 1)), self.fs)
         self.ec = ec
         flush_logger()
 
@@ -111,9 +115,11 @@ class PygletSoundController(object):
             self._noise_playing = False
 
     def clear_buffer(self):
+        getattr(self.audio, 'delete', _ignore)()
         self.audio = SoundPlayer(np.zeros((2, 1)), self.fs)
 
     def load_buffer(self, samples):
+        getattr(self.audio, 'delete', _ignore)()
         self.audio = SoundPlayer(samples.T, self.fs)
 
     def play(self):
@@ -127,6 +133,7 @@ class PygletSoundController(object):
         new_noise = SoundPlayer(self.noise_array * level, self.fs, loop=True)
         if self._noise_playing:
             self.stop_noise()
+            getattr(self.noise, 'delete', _ignore)()
             self.noise = new_noise
             self.start_noise()
         else:
@@ -135,3 +142,6 @@ class PygletSoundController(object):
     def halt(self):
         self.stop()
         self.stop_noise()
+        # cleanup pyglet instances
+        getattr(self.audio, 'delete', _ignore)()
+        getattr(self.noise, 'delete', _ignore)()
