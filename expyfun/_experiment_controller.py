@@ -380,7 +380,7 @@ class ExperimentController(object):
 
 ############################### SCREEN METHODS ###############################
     def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
-                    font_size=24):
+                    font_size=24, multiline=True):
         """Show some text on the screen.
 
         Parameters
@@ -394,18 +394,21 @@ class ExperimentController(object):
             Horizontal/vertical alignment of the text relative to ``pos``
         units : str
             Units for ``pos``.
+        multiline : bool
+            Whether or not the text will wrap to fit in screen, appropriate for multiline text.
+            Inappropriate for text requiring precise positioning.
 
         Returns
         -------
         Instance of visual.Text
         """
-        scr_txt = Text(self, text, pos, color, font_name, font_size)
+        scr_txt = Text(self, text, pos, color, font_name, font_size, multiline=multiline)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
-                      timestamp=False, clear_after=True):
+                      timestamp=False, clear_after=True, multiline=True):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -425,6 +428,9 @@ class ExperimentController(object):
             the prompt displays until max_wait seconds have passed.
         clear_after : bool
             If True, the screen will be cleared before returning.
+        multiline : bool
+            Whether or not the text will wrap to fit in screen, appropriate for multiline text.
+            Inappropriate for text requiring precise positioning.
 
         Returns
         -------
@@ -440,7 +446,7 @@ class ExperimentController(object):
         if not all([isinstance(t, string_types) for t in text]):
             raise TypeError('text must be a string or list of strings')
         for t in text:
-            self.screen_text(t)
+            self.screen_text(t,multiline=multiline)
             self.flip()
             out = self.wait_one_press(max_wait, min_wait, live_keys,
                                       timestamp)
