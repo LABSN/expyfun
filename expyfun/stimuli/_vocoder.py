@@ -87,7 +87,8 @@ def get_bands(data, fs, edges, order=2, zero_phase=False, axis=-1):
     Returns
     -------
     bands, filts : list of tuples
-        List of tuples (bandpassed signal, (filter coefs numer, denom))
+        List of tuples (ndarray of bandpassed signal,
+                        (numerator, denominator coefficients of filter))
     """
     data = np.atleast_1d(np.array(data, float))  # will make a copy
     fs = float(fs)
@@ -123,10 +124,10 @@ def get_env(data, fs, lp_order=4, lp_cutoff=160., zero_phase=False, axis=-1):
 
     Returns
     -------
-    env, filt : tuple
-        Tuple where first element is the rectified and low-pass filtered
-        envelope of ``data``, second element is a tuple of the filter
-        coefficients (numerator, denominator).
+    env : numpy.ndarray
+        The rectified and low-pass filtered envelope of ``data``.
+    filt : tuple
+        The filter coefficients (numerator, denominator).
     """
     if lp_cutoff >= fs / 2.:
         raise ValueError('frequency limits must not exceed Nyquist')
@@ -169,8 +170,8 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
 
     Returns
     -------
-    carrs : list of nd-arrays
-        List of numpy nd-arrays of the carrier signals.
+    carrs : list of numpy.ndarrays
+        List of numpy ndarrays of the carrier signals.
     """
     # check args
     if mode not in ('noise', 'tone', 'poisson'):
