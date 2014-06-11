@@ -12,16 +12,18 @@ This shows how to make simple vocoded stimuli.
 import numpy as np
 
 from expyfun.stimuli import (get_band_freqs, get_bands, get_env, vocode,
-                             play_sound, window_edges, read_wav)
+                             play_sound, window_edges, read_wav, rms)
 from expyfun import fetch_data_file
 
 data, fs = read_wav(fetch_data_file('audio/dream.wav'))
 data = window_edges(data[0], fs)
 t = np.arange(data.size) / float(fs)
 # noise vocoder
-data_noise = vocode(data, fs, mode='noise', order=4, verbose=True)
+data_noise = vocode(data, fs, mode='noise')
+data_noise = data_noise * rms(data) / rms(data_noise)
 # sinewave vocoder
-data_tone = vocode(data, fs, mode='tone', order=2)
+data_tone = vocode(data, fs, mode='tone')
+data_tone = data_tone * rms(data) / rms(data_tone)
 # poisson vocoder
 click_rate = 400  # poisson lambda (mean clicks / second)
 prob = click_rate / float(fs)
@@ -33,17 +35,17 @@ carrs, carr_filts = get_bands(carrier, fs, edges, zero_phase=True)
 data_click = np.zeros_like(data)
 for carr, env in zip(carrs, envs):
     data_click += carr * env
+data_click = data_click * rms(data) / rms(data_click)
 
 # combine all three
 cutoff = data.shape[-1] // 3
 data_allthree = data_noise.copy()
 data_allthree[cutoff:2 * cutoff] = data_tone[cutoff:2 * cutoff]
 data_allthree[2 * cutoff:] = data_click[2 * cutoff:]
+snd = play_sound(data_allthree, fs, norm=False, wait=False)
 
 # Uncomment this to play the original, too:
 #snd = play_sound(data, fs, norm=False, wait=False)
-snd = play_sound(data_noise, fs, norm=False, wait=False)
-#snd = play_sound(data_allthree, fs, norm=False, wait=False)
 
 import matplotlib.pyplot as mpl
 mpl.ion()
