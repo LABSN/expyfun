@@ -19,7 +19,7 @@ def _erbn_to_freq(e):
 
 
 @verbose_dec
-def get_band_freqs(fs, n_bands=16, freq_lims=(200., 8000.), scale='erb'):
+def get_band_freqs(fs, n_bands=16, freq_lims=(125., 8000.), scale='erb'):
     """Calculate frequency band edges.
 
     Parameters
@@ -213,7 +213,7 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
 
 
 @verbose_dec
-def vocode(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
+def vocode(data, fs, n_bands=16, freq_lims=(125., 8000.), scale='erb',
            order=2, lp_cutoff=160., lp_order=4, mode='noise',
            rate=200, seed=None, axis=-1, verbose=None):
     """Vocode stimuli using a variety of methods
