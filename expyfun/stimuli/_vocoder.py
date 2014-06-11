@@ -170,7 +170,7 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
     rate : int
         The mean rate of stimulation when ``mode=='poisson'`` (in clicks per
         second). Ignored when ``mode != 'poisson'``.
-    seed : int | None
+    seed : np.random.RandomState | int | None
         Random seed to use. If ``None``, no seeding is done.
 
     Returns
@@ -182,10 +182,18 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
     if mode not in ('noise', 'tone', 'poisson'):
         raise ValueError('mode must be "noise", "tone", or "poisson", not {0}'
                          ''.format(mode))
-    if seed is None:
+    if isinstance(seed, np.random.RandomState):
+        rng = seed
+    elif seed is None:
         rng = np.random
     else:
-        rng = np.random.RandomState(seed)
+        try:
+            seed = int(seed)
+            rng = np.random.RandomState(seed)
+        except TypeError:
+            raise TypeError('"seed" must be castable to int(), an instance of'
+                            ' numpy.random.RandomState, or None.')
+            raise
 
     carrs = []
     fs = float(fs)
