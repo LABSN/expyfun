@@ -3,7 +3,7 @@
 """
 
 import numpy as np
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, lfilter, filtfilt
 
 from .._utils import verbose_dec
 
@@ -96,11 +96,8 @@ def get_bands(data, fs, edges, order=2, zero_phase=False, axis=-1):
     for lf, hf in edges:
         # band-pass
         b, a = butter(order, [lf / fs, hf / fs], 'bandpass')
-        band = lfilter(b, a, data, axis=axis)
-        if zero_phase:
-            ax = [slice(None)] * band.ndim
-            ax[axis] = slice(None, None, -1)
-            band = lfilter(b, a, band[ax], axis=axis)[ax]
+        filt = filtfilt if zero_phase else lfilter
+        band = filt(b, a, data, axis=axis)
         bands.append(band)
         filts.append((b, a))
     return(bands, filts)
@@ -136,11 +133,8 @@ def get_env(data, fs, lp_order=4, lp_cutoff=160., zero_phase=False, axis=-1):
     cutoff = lp_cutoff / float(fs)
     data[data < 0] = 0.  # half-wave rectify
     b, a = butter(lp_order, cutoff, 'lowpass')
-    env = lfilter(b, a, data, axis=axis)
-    if zero_phase:
-        ax = [slice(None)] * env.ndim
-        ax[axis] = slice(None, None, -1)
-        env = lfilter(b, a, env[ax], axis=axis)[ax]
+    filt = filtfilt if zero_phase else lfilter
+    env = filt(b, a, data, axis=axis)
     return(env, (b, a))
 
 
