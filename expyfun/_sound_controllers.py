@@ -16,7 +16,8 @@ _opts_dict = dict(linux2=_linux,
                   darwin=('openal',))
 _opts_dict['linux'] = _opts_dict['linux2']  # new name on Py3k
 pyglet.options['audio'] = _opts_dict[sys.platform]
-from pyglet.media import StreamingSource, AudioFormat, AudioData, Player
+from pyglet.media import Player
+from ._externals.ndarraysource import NdarraySource
 from ._utils import logger, flush_logger
 
 
@@ -25,52 +26,20 @@ def _check_pyglet_audio():
         raise SystemError('pyglet audio could not be initialized')
 
 
-class SoundSource(StreamingSource):
-    def __init__(self, data, fs):
-        _check_pyglet_audio()
-        fs = int(fs)
-        assert data.ndim == 2
-        assert data.shape[0] == 2
-        data = np.ascontiguousarray(data.T).ravel()
-        data = (np.clip(data, -1, 1) * (2 ** 15)).astype(np.int16).tostring()
-        self._len = len(data)
-        self._data = data
-        self.audio_format = AudioFormat(channels=2, sample_size=16,
-                                        sample_rate=fs)
-        self._duration = self._len / self.audio_format.bytes_per_second
-        self._offset = 0
-
-    def get_audio_data(self, n_bytes):
-        n_bytes = min(n_bytes, self._len - self._offset)
-        if not n_bytes:
-            return None
-
-        data = self._data[self._offset:self._offset + n_bytes]
-        timestamp = float(self._offset) / self.audio_format.bytes_per_second
-        duration = float(n_bytes) / self.audio_format.bytes_per_second
-        self._offset += len(data)
-        return AudioData(data, len(data), timestamp, duration, [])
-
-    def seek(self, timestamp):
-        offset = int(timestamp * self.audio_format.bytes_per_second)
-        offset = min(max(offset, 0), self._len)
-        self._offset = offset
-
-    def stop(self):
-        # Pyglet doesn't provide this functionality, but this should work...
-        self._offset = self._len
-
-
 class SoundPlayer(Player):
     def __init__(self, data, fs, loop=False):
-        Player.__init__(self)
-        snd = SoundSource(data, fs)
-        self.queue(snd)
+        super(SoundPlayer, self).__init__()
+        _check_pyglet_audio()
+        self.queue(NdarraySource(data, fs))
         self.eos_action = self.EOS_LOOP if loop else self.EOS_PAUSE
 
     def stop(self):
         self.pause()
         self.seek(0.)
+
+
+def _ignore():
+    pass
 
 
 class PygletSoundController(object):
@@ -96,7 +65,7 @@ class PygletSoundController(object):
         self.noise_array = np.array((noise, -1.0 * noise))
         self.noise = SoundPlayer(self.noise_array, self.fs, loop=True)
         self._noise_playing = False
-        self.clear_buffer()  # initializes self.audio
+        self.audio = SoundPlayer(np.zeros((2, 1)), self.fs)
         self.ec = ec
         flush_logger()
 
@@ -111,9 +80,11 @@ class PygletSoundController(object):
             self._noise_playing = False
 
     def clear_buffer(self):
+        getattr(self.audio, 'delete', _ignore)()
         self.audio = SoundPlayer(np.zeros((2, 1)), self.fs)
 
     def load_buffer(self, samples):
+        getattr(self.audio, 'delete', _ignore)()
         self.audio = SoundPlayer(samples.T, self.fs)
 
     def play(self):
@@ -127,6 +98,7 @@ class PygletSoundController(object):
         new_noise = SoundPlayer(self.noise_array * level, self.fs, loop=True)
         if self._noise_playing:
             self.stop_noise()
+            getattr(self.noise, 'delete', _ignore)()
             self.noise = new_noise
             self.start_noise()
         else:
@@ -135,3 +107,6 @@ class PygletSoundController(object):
     def halt(self):
         self.stop()
         self.stop_noise()
+        # cleanup pyglet instances
+        getattr(self.audio, 'delete', _ignore)()
+        getattr(self.noise, 'delete', _ignore)()

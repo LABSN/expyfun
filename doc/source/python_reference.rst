@@ -99,6 +99,7 @@ Functions:
    dprime_2afc
    plot_screen
    read_tab
+   restore_values
 
 Logging and Configuration
 =========================

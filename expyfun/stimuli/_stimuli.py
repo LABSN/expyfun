@@ -7,9 +7,11 @@ import numpy as np
 from scipy.io import wavfile
 from scipy import signal
 from os import path as op
+from threading import Timer
 
 from .._sound_controllers import SoundPlayer
-from .._utils import verbose_dec, logger, _has_scipy_version, wait_secs
+from .._utils import (verbose_dec, logger, _has_scipy_version, wait_secs,
+                      string_types)
 
 
 def window_edges(sig, fs, dur=0.01, axis=-1, window='hann', edges='both'):
@@ -165,15 +167,16 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
     wavfile.write(fname, fs, data.T)
 
 
-def play_sound(sound, fs=44100, norm=True, wait=False):
+def play_sound(sound, fs=None, norm=True, wait=False):
     """Play a sound
 
     Parameters
     ----------
     sound : array
         1D or 2D array of sound values.
-    fs : int
-        Sample rate.
+    fs : int | None
+        Sample rate. If None, the sample rate will be inferred from the sound
+        file (if sound is array, it is assumed to be 44100).
     norm : bool
         If True, normalize sound to between -1 and +1.
     wait : bool
@@ -182,10 +185,16 @@ def play_sound(sound, fs=44100, norm=True, wait=False):
     Returns
     -------
     snd : instance of SoundPlayer
-        The object playing sound. Can use "stop" to stop playback.
+        The object playing sound. Can use "stop" to stop playback. Note that
+        the sound player will be cleared/deleted once the sound finishes
+        playing.
     """
     sound = np.array(sound)
-    fs = int(fs)
+    fs_in = 44100
+    if isinstance(sound, string_types):
+        sound, fs_in = read_wav(sound)
+    if fs is None:
+        fs = fs_in
     if sound.ndim == 1:  # make it stereo
         sound = np.array((sound, sound))
     if sound.ndim != 2:
@@ -197,7 +206,13 @@ def play_sound(sound, fs=44100, norm=True, wait=False):
     if np.abs(sound).max() > 1.:
         warnings.warn('Sound exceeds +/-1, will clip')
     snd = SoundPlayer(sound, fs)
+    dur = sound.shape[1] / float(fs)
     snd.play()  # will clip as necessary
+    del_wait = 0.5
     if wait:
-        wait_secs(sound.shape[1] / float(fs))
+        wait_secs(dur)
+    else:
+        del_wait += dur
+    if hasattr(snd, 'delete'):  # for backward compatibility
+        Timer(del_wait, snd.delete).start()
     return snd

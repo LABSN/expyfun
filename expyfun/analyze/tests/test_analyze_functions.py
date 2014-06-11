@@ -62,6 +62,8 @@ def test_sigmoid():
     assert_true(np.all(np.logical_and(y <= 1, y >= 0)))
     p = ea.fit_sigmoid(x, y)
     assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
+    p = ea.fit_sigmoid(x, y, (0, 1, None, None), ('upper', 'lower'))
+    assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
 
     y += np.random.rand(n_pts) * 0.01
     p = ea.fit_sigmoid(x, y)

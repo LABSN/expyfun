@@ -686,7 +686,7 @@ class ExperimentController(object):
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         # Use 16x sampling here
         config_kwargs = dict(depth_size=8, double_buffer=True, stereo=False,
-                             stencil_size=0, samples=16, sample_buffers=1)
+                             stencil_size=0, samples=0, sample_buffers=0)
         # Travis can't handle multi-sampling, but our production machines must
         if os.getenv('TRAVIS') == 'true':
             del config_kwargs['samples'], config_kwargs['sample_buffers']
@@ -732,7 +732,7 @@ class ExperimentController(object):
         gl.glShadeModel(gl.GL_SMOOTH)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
-        win.set_visible(v_)
+        self.set_visible(v_)
         win.dispatch_events()
 
     def flip(self):
@@ -750,9 +750,15 @@ class ExperimentController(object):
         """
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
+        self._win.switch_to()
+        gl.glFinish()
         self._win.flip()
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+        gl.glBegin(gl.GL_POINTS)
+        gl.glColor4f(0, 0, 0, 0)
+        gl.glVertex2i(10, 10)
+        gl.glEnd()
         gl.glFinish()
         flip_time = self._clock.get_time()
         for function in call_list:
@@ -781,6 +787,17 @@ class ExperimentController(object):
         n_rep = int(n_rep)
         times = [self.flip() for _ in range(n_rep)]
         return 1. / np.median(np.diff(times[1:]))
+
+    def set_visible(self, visible=True):
+        """Set the window visibility
+
+        Parameters
+        ----------
+        visible : bool
+            The visibility.
+        """
+        self._win.set_visible(visible)
+        logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
 
 ############################ KEYPRESS METHODS ############################
     def listen_presses(self):

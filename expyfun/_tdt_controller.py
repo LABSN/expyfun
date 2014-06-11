@@ -151,6 +151,7 @@ class TDTController(Keyboard):
         else:
             raise SystemError('Expyfun: Problem starting TDT circuit.')
         time.sleep(0.25)
+        self.rpcox.SetTagVal('phase', -1)
         self.clear_buffer()
         self._set_delay(tdt_params['TDT_DELAY'])
 
