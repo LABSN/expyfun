@@ -20,10 +20,10 @@ data = window_edges(data[0], fs)
 t = np.arange(data.size) / float(fs)
 # noise vocoder
 data_noise = vocode(data, fs, mode='noise')
-data_noise = data_noise * rms(data) / rms(data_noise)
+data_noise = data_noise * 0.01 / rms(data_noise)
 # sinewave vocoder
 data_tone = vocode(data, fs, mode='tone')
-data_tone = data_tone * rms(data) / rms(data_tone)
+data_tone = data_tone * 0.01 / rms(data_tone)
 # poisson vocoder
 click_rate = 400  # poisson lambda (mean clicks / second)
 prob = click_rate / float(fs)
@@ -35,7 +35,7 @@ carrs, carr_filts = get_bands(carrier, fs, edges, zero_phase=True)
 data_click = np.zeros_like(data)
 for carr, env in zip(carrs, envs):
     data_click += carr * env
-data_click = data_click * rms(data) / rms(data_click)
+data_click = data_click * 0.01 / rms(data_click)
 
 # combine all three
 cutoff = data.shape[-1] // 3
