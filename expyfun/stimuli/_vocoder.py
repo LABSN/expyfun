@@ -19,7 +19,7 @@ def _erbn_to_freq(e):
 
 
 @verbose_dec
-def get_band_freqs(fs, n_bands=16, freq_lims=(125., 8000.), scale='erb'):
+def get_band_freqs(fs, n_bands=16, freq_lims=(200., 8000.), scale='erb'):
     """Calculate frequency band edges.
 
     Parameters
@@ -32,7 +32,7 @@ def get_band_freqs(fs, n_bands=16, freq_lims=(125., 8000.), scale='erb'):
         2-element list of lower and upper frequency bounds (in Hz).
     scale : str
         Scale on which to equally space the bands. Possible values are "erb",
-        "loghz" (base-2), and "hz".
+        "log" (base-2), and "hz".
 
     Returns
     -------
@@ -44,15 +44,15 @@ def get_band_freqs(fs, n_bands=16, freq_lims=(125., 8000.), scale='erb'):
     if np.any(freq_lims >= fs / 2.):
         raise ValueError('frequency limits must not exceed Nyquist')
     assert freq_lims.ndim == 1 and freq_lims.size == 2
-    if scale not in ('erb', 'loghz', 'hz'):
-        raise ValueError('Frequency scale must be "erb", "hz", or "loghz".')
+    if scale not in ('erb', 'log', 'hz'):
+        raise ValueError('Frequency scale must be "erb", "hz", or "log".')
     if scale == 'erb':
         freq_lims_erbn = _freq_to_erbn(freq_lims)
         delta_erb = np.diff(freq_lims_erbn) / n_bands
         cutoffs = _erbn_to_freq(freq_lims_erbn[0] +
                                 delta_erb * np.arange(n_bands + 1))
         assert np.allclose(cutoffs[[0, -1]], freq_lims)  # should be
-    elif scale == 'loghz':
+    elif scale == 'log':
         freq_lims_log = np.log2(freq_lims)
         delta = np.diff(freq_lims_log) / n_bands
         cutoffs = 2. ** (freq_lims_log[0] + delta * np.arange(n_bands + 1))
@@ -107,7 +107,7 @@ def get_bands(data, fs, edges, order=2, zero_phase=False, axis=-1):
 
 
 def get_env(data, fs, lp_order=4, lp_cutoff=160., zero_phase=False, axis=-1):
-    """
+    """Calculate a low-pass envelope of a signal
 
     Parameters
     ----------
@@ -213,7 +213,7 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
 
 
 @verbose_dec
-def vocode(data, fs, n_bands=16, freq_lims=(125., 8000.), scale='erb',
+def vocode(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
            order=2, lp_cutoff=160., lp_order=4, mode='noise',
            rate=200, seed=None, axis=-1, verbose=None):
     """Vocode stimuli using a variety of methods
@@ -230,7 +230,7 @@ def vocode(data, fs, n_bands=16, freq_lims=(125., 8000.), scale='erb',
         2-element list of lower and upper frequency bounds.
     scale : str
         Scale on which to equally space the bands. Possible values are "erb",
-        "loghz" (base-2), and "hz".
+        "log" (base-2), and "hz".
     order : int
         Order of analysis and synthesis.
         NOTE: Using too high an order can cause instability,
@@ -259,7 +259,8 @@ def vocode(data, fs, n_bands=16, freq_lims=(125., 8000.), scale='erb',
 
     Notes
     -----
-    Adapted from an algorithm described by Zachary Smith (Cochlear Corp.).
+    The default settings are adapted from a cochlear implant simulation
+    algorithm described by Zachary Smith (Cochlear Corp.).
     """
     edges = get_band_freqs(fs, n_bands=n_bands, freq_lims=freq_lims,
                            scale=scale)
