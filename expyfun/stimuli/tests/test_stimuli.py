@@ -156,8 +156,12 @@ def test_vocoder():
     assert_raises(ValueError, vocode, data, 44100, freq_lims=(200, 30000))
     # bad mode
     assert_raises(ValueError, vocode, data, 44100, mode='foo')
-    voc1 = vocode(data, 20000, mode='noise', order=2)
+    # bad seed
+    assert_raises(TypeError, vocode, data, 44100, seed='foo')
+    voc1 = vocode(data, 20000, mode='noise')
     voc2 = vocode(data, 20000, mode='tone', order=4, seed=0)
+    voc3 = vocode(data, 20000, mode='poisson', seed=np.random.RandomState(123))
     # XXX This is about the best we can do for now...
     assert_array_equal(voc1.shape, data.shape)
     assert_array_equal(voc2.shape, data.shape)
+    assert_array_equal(voc3.shape, data.shape)

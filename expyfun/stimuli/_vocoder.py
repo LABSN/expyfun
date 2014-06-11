@@ -181,15 +181,11 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
         rng = seed
     elif seed is None:
         rng = np.random
+    elif isinstance(seed, int):
+        rng = np.random.RandomState(seed)
     else:
-        try:
-            seed = int(seed)
-            rng = np.random.RandomState(seed)
-        except TypeError:
-            raise TypeError('"seed" must be castable to int(), an instance of'
-                            ' numpy.random.RandomState, or None.')
-            raise
-
+        raise TypeError('"seed" must be an int, an instance of '
+                        'numpy.random.RandomState, or None.')
     carrs = []
     fs = float(fs)
     n_samp = data.shape[axis]
