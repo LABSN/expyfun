@@ -5,7 +5,7 @@
 import numpy as np
 from scipy.signal import butter, lfilter
 
-from .._utils import verbose_dec, logger
+from .._utils import verbose_dec
 
 
 def _freq_to_erbn(f):
