@@ -8,7 +8,7 @@ from scipy.signal import butter, lfilter
 
 from expyfun._utils import _TempDir, _has_scipy_version
 from expyfun.stimuli import (read_wav, write_wav, rms, play_sound,
-                             convolve_hrtf, window_edges, vocode_ci)
+                             convolve_hrtf, window_edges, vocode)
 
 warnings.simplefilter('always')
 
@@ -146,18 +146,18 @@ def _voc_similarity(orig, voc):
 
 
 def test_vocoder():
-    """Test noise and tone vocoding
+    """Test noise, tone, and click vocoding
     """
     data = np.random.randn(10000)
     env = np.random.randn(10000)
     b, a = butter(4, 0.001, 'lowpass')
     data *= lfilter(b, a, env)
     # bad limits
-    assert_raises(ValueError, vocode_ci, data, 44100, freq_lims=(200, 30000))
+    assert_raises(ValueError, vocode, data, 44100, freq_lims=(200, 30000))
     # bad mode
-    assert_raises(ValueError, vocode_ci, data, 44100, mode='foo')
-    voc1 = vocode_ci(data, 20000, mode='noise', order=2)
-    voc2 = vocode_ci(data, 20000, mode='tone', order=4, rand_seed=0)
+    assert_raises(ValueError, vocode, data, 44100, mode='foo')
+    voc1 = vocode(data, 20000, mode='noise', order=2)
+    voc2 = vocode(data, 20000, mode='tone', order=4, seed=0)
     # XXX This is about the best we can do for now...
     assert_array_equal(voc1.shape, data.shape)
     assert_array_equal(voc2.shape, data.shape)
