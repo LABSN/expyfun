@@ -83,3 +83,8 @@ def test_rt_chisq():
         bar = ea.rt_chisq(foo, axis=axis)
         assert_true(np.all(np.equal(np.delete(foo.shape, axis),
                                     np.array(bar.shape))))
+    foo_bad = np.concatenate((np.random.rand(30), [100.]))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        bar = ea.rt_chisq(foo_bad)
+    assert_equal(len(w), 1)  # warn that there was a likely bad value
