@@ -130,6 +130,7 @@ def rt_chisq(x, axis=None):
         >>> plt.plot(lsp, pdf)
         >>> plt.hist(x, normed=True)
     """
+    x = np.asarray(x)
     if np.any(np.less(x, 0)):  # save the user some pain
         raise ValueError('x cannot have negative values')
     if axis is None:
@@ -141,9 +142,10 @@ def rt_chisq(x, axis=None):
                                np.delete(np.arange(x.ndim), axis)))
         df = np.transpose(params, pmut)[0]
         scale = np.transpose(params, pmut)[2]
-    n_bad = np.any(x > np.median(x) + np.std(x) * 3)
+    n_bad = np.sum(x > np.median(x) + np.std(x) * 3)
     if n_bad > 0:
-        warnings.warn('{0} likely bad values in x'.format(n_bad, x.size))
+        warnings.warn('{0} likely bad values in x (of {1})'
+                      ''.format(n_bad, x.size))
     peak = np.maximum(0, (df - 2)) * scale
     return peak
 
