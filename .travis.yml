@@ -4,9 +4,10 @@ python:
     - "2.7"
 
 env:
-    - PYTHON=2.7 DEPS=full    # pandas, pylink (+ necessary Eyelink sofware)
-    - PYTHON=2.7 DEPS=minimal
-    - PYTHON=3.3 DEPS=full _EXPYFUN_SILENT=true  # pandas
+    - PYTHON=2.7 DEPS=full TEST=standard    # pandas, pylink (+ EL sofware)
+    - PYTHON=2.7 DEPS=minimal TEST=standard
+    - PYTHON=3.3 DEPS=full TEST=standard _EXPYFUN_SILENT=true  # pandas
+    - PYTHON=3.3 DEPS=minimal TEST=extra
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
 
 virtualenv:
@@ -31,7 +32,12 @@ before_install:
         conda install --yes --quiet scipy matplotlib nose coverage;
         travis_retry pip install -q coveralls;
       fi;
-    - travis_retry pip install --user -q nose-timer http://pyglet.googlecode.com/archive/tip.zip flake8
+    # Only install these deps if necessary (slow on Py3k)
+    - if [ "${TEST}" == "extra" ]; then
+        travis_retry pip install -q flake8;
+      else
+        travis_retry pip install -q nose-timer http://pyglet.googlecode.com/archive/tip.zip;
+      fi;
     # Full dependencies (pandas and Pylink)
     # We use a custom version of EL software here until a patch is released XXX
     - SRC_DIR=${PWD}
@@ -63,11 +69,16 @@ before_install:
 
 install:
     - cd ${SRC_DIR}
-    - python setup.py install
+    - if [ "${TEST}" != "extra" ]; then
+        python setup.py install;
+      fi;
 
 script:
-    - nosetests --with-timer --timer-top-n=5;
-    - make flake
+    - if [ "${TEST}" == "extra" ]; then
+        make flake;
+      else
+        nosetests --with-timer --timer-top-n=5;
+      fi;
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands

@@ -24,9 +24,14 @@ clean-ctags:
 clean: clean-build clean-pyc clean-so clean-ctags
 
 flake:
-	if command -v flake8 > /dev/null; then \
+	@if command -v flake8 > /dev/null; then \
+           echo "Running flake8"; \
 		flake8 --count expyfun examples; \
-	fi
+           echo "Done."; \
+	else \
+           echo "flake8 not found, please install it!"; \
+     fi;
+
 
 in: inplace # just a shortcut
 inplace:
@@ -40,4 +45,3 @@ test: clean nosetests flake
 
 test-doc:
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
-
