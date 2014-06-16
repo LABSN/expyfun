@@ -27,10 +27,11 @@ def _replicate_color(color, pts):
     return np.tile(color, len(pts) // 2)
 
 
-##############################################################################
+#
 # Text
 
 class Text(object):
+
     """A text object
 
     Parameters
@@ -38,7 +39,7 @@ class Text(object):
     ec : instance of ExperimentController
         Parent EC.
     text : str
-        The text to display. 
+        The text to display.
     pos : array
         2-element array consisting of X- and Y-position coordinates.
     color : matplotlib Color
@@ -59,33 +60,34 @@ class Text(object):
     anchor_y : str
         Vertical text anchor (e.g., `'center'`).
     units : str
-        Units to use.These will apply to all spatial aspects of the drawn 
+        Units to use. These will apply to all spatial aspects of the drawn
         shape e.g. size, position.
     multiline : bool
-        Whether or not the text will wrap to fit in screen, appropriate for multiline text.
-        Inappropriate for text requiring precise positioning.
+        Whether or not the text will wrap to fit in screen, appropriate for
+        multiline text. Inappropriate for text requiring precise positioning.
 
     Returns
     -------
     line : instance of Line
         The line object.
     """
+
     def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
                  width='auto', anchor_x='center', anchor_y='center',
-                 units='norm', multiline=False):
+                 units='norm', wrap=False):
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, units, 'pix')
-        
+
         if width == 'auto':
-            width = float(ec.window_size_pix[0]) *0.8
+            width = float(ec.window_size_pix[0]) * 0.8
         elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
         self._text = pyglet.text.Label(text + ' ', x=pos[0], y=pos[1],
-                                           width=width, height=height,
-                                           multiline=multiline, dpi=int(ec.dpi),
-                                           anchor_x=anchor_x,
-                                           anchor_y=anchor_y)
+                                       width=width, height=height,
+                                       multiline=wrap, dpi=int(ec.dpi),
+                                       anchor_x=anchor_x,
+                                       anchor_y=anchor_y)
         self._text.color = tuple(_convert_color(color))
         self._text.font_name = font_name
         self._text.font_size = font_size
@@ -95,11 +97,13 @@ class Text(object):
         self._text.draw()
 
 
-##############################################################################
+#
 # Triangulations
 
 class _Triangular(object):
+
     """Super class for objects that use trianglulations and/or lines"""
+
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
         self._ec = ec
         self.set_fill_color(fill_color)
@@ -170,6 +174,7 @@ class _Triangular(object):
 
 
 class Line(_Triangular):
+
     """A connected set of line segments
 
     Parameters
@@ -179,7 +184,7 @@ class Line(_Triangular):
     coords : array-like
         2 x N set of X, Y coordinates.
     units : str
-        Units to use.These will apply to all spatial aspects of the drawn 
+        Units to use. These will apply to all spatial aspects of the drawn
         shape e.g. size, position.
     line_color : matplotlib Color
         Color of the line.
@@ -193,6 +198,7 @@ class Line(_Triangular):
     line : instance of Line
         The line object.
     """
+
     def __init__(self, ec, coords, units='norm', line_color='white',
                  line_width=1.0, line_loop=False):
         _Triangular.__init__(self, ec, fill_color=None, line_color=line_color,
@@ -223,6 +229,7 @@ class Line(_Triangular):
 
 
 class Rectangle(_Triangular):
+
     """A rectangle
 
     Parameters
@@ -232,7 +239,7 @@ class Rectangle(_Triangular):
     pos : array-like
         4-element array-like with X, Y center and width, height.
     units : str
-        Units to use.These will apply to all spatial aspects of the drawn 
+        Units to use. These will apply to all spatial aspects of the drawn
         shape e.g. size, position.
     fill_color : matplotlib Color | None
         Color to fill with. None is transparent.
@@ -246,6 +253,7 @@ class Rectangle(_Triangular):
     line : instance of Rectangle
         The rectangle object.
     """
+
     def __init__(self, ec, pos, units='norm', fill_color='white',
                  line_color=None, line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
@@ -283,6 +291,7 @@ class Rectangle(_Triangular):
 
 
 class Circle(_Triangular):
+
     """A circle or ellipse
 
     Parameters
@@ -295,7 +304,7 @@ class Circle(_Triangular):
     pos : array-like
         2-element array-like with X, Y center positions.
     units : str
-        Units to use.These will apply to all spatial aspects of the drawn 
+        Units to use. These will apply to all spatial aspects of the drawn
         shape e.g. size, position.
     n_edges : int
         Number of edges to use (must be >= 4) to approximate a circle.
@@ -311,6 +320,7 @@ class Circle(_Triangular):
     circle : instance of Circle
         The circle object.
     """
+
     def __init__(self, ec, radius=1, pos=(0, 0), units='norm',
                  n_edges=200, fill_color='white', line_color=None,
                  line_width=1.0):
@@ -375,10 +385,11 @@ class Circle(_Triangular):
         if not (pos.ndim == 1 and pos.size == 2):
             raise ValueError('pos must be a 2-element array-like vector')
         # convert to pixel (OpenGL) units
-        
+
         self._pos = self._ec._convert_units(pos[:, np.newaxis],
                                             units, 'pix')[:, 0]
         self._recalculate()
+
     def _recalculate(self):
         """Helper to recalculate point coordinates"""
         edges = self._n_edges
@@ -392,6 +403,7 @@ class Circle(_Triangular):
 
 
 class ConcentricCircles(object):
+
     """A set of filled concentric circles drawn without edges
 
     Parameters
@@ -405,7 +417,7 @@ class ConcentricCircles(object):
     pos : array-like
         2-element array-like with the X, Y center position.
     units : str
-        Units to use.These will apply to all spatial aspects of the drawn 
+        Units to use. These will apply to all spatial aspects of the drawn
     colors : list or tuple of matplotlib Colors
         Color to fill each circle with.
 
@@ -414,6 +426,7 @@ class ConcentricCircles(object):
     circle : instance of Circle
         The circle object.
     """
+
     def __init__(self, ec, radii=(0.2, 0.05), pos=(0, 0), units='norm',
                  colors=('w', 'k')):
         radii = np.array(radii, float)
@@ -512,6 +525,7 @@ class ConcentricCircles(object):
 
 
 class FixationDot(ConcentricCircles):
+
     """A reasonable centered fixation dot
 
     This uses concentric circles, the inner of which has a radius of one
@@ -530,6 +544,7 @@ class FixationDot(ConcentricCircles):
     fix : instance of FixationDot
         The fixation dot.
     """
+
     def __init__(self, ec, colors=('w', 'k')):
         if len(colors) != 2:
             raise ValueError('colors must have length 2')
@@ -539,10 +554,11 @@ class FixationDot(ConcentricCircles):
         self.set_radius(1, 1, units='pix')
 
 
-##############################################################################
+#
 # Image display
 
 class RawImage(object):
+
     """Create image from array for on-screen display
 
     Parameters
@@ -564,6 +580,7 @@ class RawImage(object):
     img : instance of RawImage
         The image object.
     """
+
     def __init__(self, ec, image_buffer, pos=(0, 0), scale=1., units='norm'):
         self._ec = ec
         self.set_image(image_buffer)

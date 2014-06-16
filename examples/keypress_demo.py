@@ -42,7 +42,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
 
     ##################
     # wait_for_presses
-    ec.screen_text('press some keys<br><br>wait_for_presses(max_wait={})'
+    ec.screen_text('press some keys wait_for_presses(max_wait={})'
                    ''.format(wait_dur))
     screenshot = ec.screenshot()
     ec.flip()
@@ -59,7 +59,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
 
     ############################################
     # wait_for_presses, relative to master clock
-    ec.screen_text('press some keys<br><br>wait_for_presses(max_wait={},<br>'
+    ec.screen_text('press some keys wait_for_presses(max_wait={},<br>'
                    'relative_to=0.0)'.format(wait_dur))
     ec.flip()
     pressed = ec.wait_for_presses(wait_dur, relative_to=0.0)
