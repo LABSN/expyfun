@@ -4,7 +4,8 @@ from nose.tools import assert_raises, assert_true, assert_equal
 from numpy.testing import assert_allclose
 from copy import deepcopy
 
-from expyfun import ExperimentController, wait_secs, visual
+from expyfun import (ExperimentController, wait_secs, visual,
+                     get_keyboard_input)
 from expyfun._utils import _TempDir, interactive_test, _hide_window
 
 warnings.simplefilter('always')
@@ -355,3 +356,6 @@ def test_button_presses_and_window_size():
             assert_equal(out[0], '1')
         else:
             warnings.warn('press "1" faster next time')
+        ec.screen_text('Enter text, then press return')
+        ec.flip()
+        get_keyboard_input('test')
