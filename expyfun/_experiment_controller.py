@@ -395,7 +395,7 @@ class ExperimentController(object):
             Horizontal/vertical alignment of the text relative to ``pos``
         units : str
             Units for ``pos``.
-        multiline : bool
+        wrap : bool
             Whether or not the text will wrap to fit in screen, appropriate
             for multiline text. Inappropriate for text requiring
             precise positioning.
@@ -437,7 +437,7 @@ class ExperimentController(object):
             the prompt displays until max_wait seconds have passed.
         clear_after : bool
             If True, the screen will be cleared before returning.
-        multiline : bool
+        wrap : bool
             Whether or not the text will wrap to fit in screen, appropriate
             for multiline text. Inappropriate for text requiring precise
             positioning.
