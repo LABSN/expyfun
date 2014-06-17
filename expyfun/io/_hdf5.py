@@ -138,4 +138,5 @@ def _read_list(root, type_):
             break
         data.append(_triage_read(node))
         ii += 1
+    assert len(data) == ii
     return data
