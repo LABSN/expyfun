@@ -56,6 +56,7 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
         ec.flip()
         if not el.wait_for_fix([x, y], max_wait=5., units='deg'):
             print('Fixation {0} failed'.format(ii + 1))
+    ec.trial_ok()
     el.stop()  # stop recording to save the file
     ec.screen_prompt('All done!', max_wait=1.0)
     # eyelink auto-closes (el.close()) because it gets registered with EC

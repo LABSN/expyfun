@@ -40,8 +40,8 @@ nosetests.xml
 *.wav
 
 # Due to examples
-examples/rawData
-rawData
+examples/data
+data
 
 doc/_build/
 doc/build/

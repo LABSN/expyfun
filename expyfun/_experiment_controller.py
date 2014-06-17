@@ -112,7 +112,7 @@ class ExperimentController(object):
     @verbose_dec
     def __init__(self, exp_name, audio_controller=None, response_device=None,
                  stim_rms=0.01, stim_fs=44100, stim_db=65, noise_db=45,
-                 output_dir='rawData', window_size=None, screen_num=None,
+                 output_dir='data', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  verbose=None, check_rms='windowed', suppress_resamp=False):
