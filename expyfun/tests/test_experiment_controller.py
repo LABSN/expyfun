@@ -334,11 +334,12 @@ def test_visual(ac=None):
         assert_raises(ValueError, line.set_coords, [0])
         line.set_coords([0, 1])
         ec.set_background_color('black')
-        text=visual.Text(ec, 'Hey', pos=[0, 0], color=[1,1,1], wrap=False)
+        text = visual.Text(ec, 'Hello Everybody!', pos=[0, 0], color=[1, 1, 1],
+                           wrap=False)
         text.draw()
-        text=visual.Text(ec, 'Hey', pos=[0, 0], color=[1,1,1], wrap=True)
+        text = visual.Text(ec, 'Thank you, come again.', pos=[0, 0],
+                           color=[1, 1, 1])
         text.draw()
-
 
 
 @interactive_test
