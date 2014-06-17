@@ -28,7 +28,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
 
     ###############
     # screen_prompt
-    pressed = ec.screen_prompt('press any key screen_prompt('
+    pressed = ec.screen_prompt('press any key \nscreen_prompt('
                                'max_wait={})'.format(wait_dur),
                                max_wait=wait_dur, timestamp=True, )
     ec.write_data_line('screen_prompt', pressed)
@@ -42,7 +42,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
 
     ##################
     # wait_for_presses
-    ec.screen_text('press some keys wait_for_presses(max_wait={})'
+    ec.screen_text('press some keys \nwait_for_presses(max_wait={})'
                    ''.format(wait_dur), )
     screenshot = ec.screenshot()
     ec.flip()
@@ -59,7 +59,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
 
     ############################################
     # wait_for_presses, relative to master clock
-    ec.screen_text('press some keys wait_for_presses(max_wait={}, '
+    ec.screen_text('press some keys \nwait_for_presses(max_wait={}, '
                    'relative_to=0.0)'.format(wait_dur))
     ec.flip()
     pressed = ec.wait_for_presses(wait_dur, relative_to=0.0)
@@ -75,8 +75,8 @@ with ExperimentController('KeypressDemo', screen_num=0,
 
     ##########################################
     # listen_presses / wait_secs / get_presses
-    ec.screen_text('press some keys listen_presses() wait_secs({0})'
-                   ' get_presses()'.format(wait_dur))
+    ec.screen_text('press some keys \nlisten_presses() \nwait_secs({0})'
+                   '\nget_presses()'.format(wait_dur))
     ec.flip()
     ec.listen_presses()
     ec.wait_secs(wait_dur)
@@ -93,8 +93,8 @@ with ExperimentController('KeypressDemo', screen_num=0,
 
     ####################################################################
     # listen_presses / wait_secs / get_presses, relative to master clock
-    ec.screen_text('press a few keys listen_presses()'
-                   ' wait_secs({0}) get_presses(relative_to=0.0)'
+    ec.screen_text('press a few keys \nlisten_presses()'
+                   '\nwait_secs({0}) \nget_presses(relative_to=0.0)'
                    ''.format(wait_dur))
     ec.flip()
     ec.listen_presses()
@@ -115,16 +115,16 @@ with ExperimentController('KeypressDemo', screen_num=0,
     disp_time = wait_dur
     countdown = ec.current_time + disp_time
     ec.call_on_next_flip(ec.listen_presses)
-    ec.screen_text('press some keys listen_presses()'
-                   ' while loop {} get_presses()'.format(disp_time),)
+    ec.screen_text('press some keys \nlisten_presses()'
+                   '\nwhile loop {}\nget_presses()'.format(disp_time),)
     ec.flip()
     while ec.current_time < countdown:
         cur_time = round(countdown - ec.current_time, 1)
         if cur_time != disp_time:
             disp_time = cur_time
             # redraw text with updated disp_time
-            ec.screen_text('press some keys listen_presses() '
-                           'while loop {} get_presses()'.format(disp_time))
+            ec.screen_text('press some keys \nlisten_presses() '
+                           '\nwhile loop {} \nget_presses()'.format(disp_time))
             ec.flip()
     pressed = ec.get_presses()
     ec.write_data_line('listen / while / get_presses', pressed)
@@ -142,16 +142,16 @@ with ExperimentController('KeypressDemo', screen_num=0,
     disp_time = wait_dur
     countdown = ec.current_time + disp_time
     ec.call_on_next_flip(ec.listen_presses)
-    ec.screen_text('press some keys listen_presses() while loop '
-                   '{} get_presses(relative_to=0.0)'.format(disp_time))
+    ec.screen_text('press some keys \nlisten_presses() \nwhile loop '
+                   '{} \nget_presses(relative_to=0.0)'.format(disp_time))
     ec.flip()
     while ec.current_time < countdown:
         cur_time = round(countdown - ec.current_time, 1)
         if cur_time != disp_time:
             disp_time = cur_time
             # redraw text with updated disp_time
-            ec.screen_text('press some keys listen_presses() while '
-                           'loop {} get_presses(relative_to=0.0)'
+            ec.screen_text('press some keys \nlisten_presses() \nwhile '
+                           'loop {} \nget_presses(relative_to=0.0)'
                            ''.format(disp_time),)
             ec.flip()
     pressed = ec.get_presses(relative_to=0.0)
