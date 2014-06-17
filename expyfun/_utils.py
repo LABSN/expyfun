@@ -61,6 +61,13 @@ try:
 except ImportError:
     from urllib.request import urlopen
 
+try:
+    import tables  # noqa, analysis:ignore
+except Exception:
+    has_pytables = False
+else:
+    has_pytables = True
+
 
 ###############################################################################
 # LOGGING
@@ -227,6 +234,15 @@ def _check_units(units):
         raise ValueError('"units" must be one of {}, not {}'
                          ''.format(good_units, units))
 
+
+def _check_pytables():
+    """Helper to error if Pytables is not found"""
+    if not has_pytables:
+        raise ImportError('pytables could not be imported')
+    import tables as tb
+    return tb
+
+
 ###############################################################################
 # DECORATORS
 
@@ -366,6 +382,7 @@ def verbose_dec(function, *args, **kwargs):
 
 requires_pylink = skipif(has_pylink is False, 'Requires functional pylink')
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
+requires_pytables = skipif(has_pytables is False, 'Requires pytables')
 
 
 def _has_scipy_version(version):

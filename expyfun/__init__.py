@@ -10,8 +10,9 @@ from ._utils import verbose_dec as verbose
 from ._experiment_controller import (ExperimentController, wait_secs,
                                      get_keyboard_input)
 from ._eyelink_controller import EyelinkController
-from . import analyze  # fast enough, include here
+from . import analyze
 from . import codeblocks
+from . import io
 from . import stimuli
 
 # INIT LOGGING

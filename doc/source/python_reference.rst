@@ -47,11 +47,19 @@ Functions:
    convolve_hrtf
    compute_mls_impulse_response
    play_sound
-   read_wav
    repeated_mls
    rms
    vocode_ci
    window_edges
+
+.. currentmodule:: expyfun.io
+
+Functions:
+
+.. autosummary::
+   read_hdf5_dict
+   read_wav
+   write_hdf5_dict
    write_wav
 
 .. currentmodule:: expyfun.visual
