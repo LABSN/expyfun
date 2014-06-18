@@ -54,13 +54,13 @@ def _triage_write(key, value, root, *write_params):
         for key, sub_value in value.items():
             if not isinstance(key, string_types):
                 raise TypeError('All dict keys must be strings')
-            _triage_write('key{0}'.format(key), sub_value, sub_root,
+            _triage_write('key_{0}'.format(key), sub_value, sub_root,
                           *write_params)
     elif isinstance(value, (list, tuple)):
         title = 'list' if isinstance(value, list) else 'tuple'
         sub_root = create_group(root, key, title)
         for vi, sub_value in enumerate(value):
-            _triage_write('idx{0}'.format(vi), sub_value, sub_root,
+            _triage_write('idx_{0}'.format(vi), sub_value, sub_root,
                           *write_params)
     elif isinstance(value, (int, float, str)):
         if isinstance(value, int):
@@ -117,13 +117,13 @@ def _triage_read(node):
         if type_str == 'dict':
             data = dict()
             for subnode in node:
-                key = subnode._v_name[3:]  # cut off "idx" or "key" prefix
+                key = subnode._v_name[4:]  # cut off "idx_" or "key_" prefix
                 data[key] = _triage_read(subnode)
         elif type_str in ['list', 'tuple']:
             data = list()
             ii = 0
             while True:
-                subnode = getattr(node, 'idx{0}'.format(ii), None)
+                subnode = getattr(node, 'idx_{0}'.format(ii), None)
                 if subnode is None:
                     break
                 data.append(_triage_read(subnode))
