@@ -29,8 +29,6 @@ def write_hdf5(fname, data, overwrite=False):
     if op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, use overwrite=True to overwrite'
                       % fname)
-    if not isinstance(data, dict):
-        raise TypeError('data must be a dict')
     o_f = tb.open_file if hasattr(tb, 'open_file') else tb.openFile
     with o_f(fname, mode='w') as fid:
         if hasattr(fid, 'create_group'):
