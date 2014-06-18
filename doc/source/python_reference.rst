@@ -57,9 +57,9 @@ Functions:
 Functions:
 
 .. autosummary::
-   read_hdf5_dict
+   read_hdf5
    read_wav
-   write_hdf5_dict
+   write_hdf5
    write_wav
 
 .. currentmodule:: expyfun.visual
