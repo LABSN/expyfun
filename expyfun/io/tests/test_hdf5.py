@@ -15,7 +15,7 @@ def test_hdf5():
     """Test HDF5 IO
     """
     test_file = op.join(tempdir, 'test.hdf5')
-    x = dict(a=dict(b=np.zeros(3)), c=np.zeros(2, np.complex256),
+    x = dict(a=dict(b=np.zeros(3)), c=np.zeros(2, np.complex128),
              d=[dict(e=(1, -2., 'hello'))])
     assert_raises(TypeError, write_hdf5, test_file, 1)
     write_hdf5(test_file, x)
