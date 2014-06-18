@@ -34,6 +34,7 @@ Optional:
 - pandas (some plotting functions)
 - joblib (parallel processing)
 - mne-python (CUDA filtering/resampling)
+- pytables (HDF5 write/read)
 
 
 Licensing

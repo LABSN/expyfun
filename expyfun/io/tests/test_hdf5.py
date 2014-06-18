@@ -5,11 +5,12 @@ from nose.tools import assert_raises, assert_true
 import numpy as np
 
 from expyfun.io import write_hdf5, read_hdf5
-from expyfun._utils import _TempDir, object_diff
+from expyfun._utils import _TempDir, object_diff, requires_pytables
 
 tempdir = _TempDir()
 
 
+@requires_pytables
 def test_hdf5():
     """Test HDF5 IO
     """
