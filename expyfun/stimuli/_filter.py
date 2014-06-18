@@ -179,5 +179,5 @@ try:
     if LooseVersion(mne.__version__) < LooseVersion('0.8'):
         raise ImportError('mne-python too old')
     from mne.filter import resample
-except ImportError:
+except Exception:
     resample = _resample
