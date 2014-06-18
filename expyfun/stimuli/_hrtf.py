@@ -2,9 +2,9 @@
 """
 
 import numpy as np
-from scipy import signal
 import gzip
 
+from ._filter import resample
 from .._utils import fetch_data_file
 
 
@@ -89,8 +89,6 @@ def convolve_hrtf(data, fs, angle, source='barb'):
     brir, brir_fs, leftward = _get_hrtf(angle, 'barb')
     order = [1, 0] if leftward else [0, 1]
     if not np.allclose(brir_fs, fs, rtol=0, atol=0.5):
-        blen = [int(round(len(x) * (fs / brir_fs))) for x in brir]
-        brir = [signal.resample(b, n, window='boxcar')
-                for b, n in zip(brir, blen)]
+        brir = [resample(b, fs, brir_fs) for b in brir]
     out = np.array([np.convolve(data, brir[o]) for o in order])
     return out

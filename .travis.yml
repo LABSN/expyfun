@@ -53,6 +53,7 @@ before_install:
           mv pylink /home/$USER/anaconda/site-packages;
           conda install --yes --quiet pandas;
         fi;
+        pip install mne;
         echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list;
         echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list;
         travis_retry sudo apt-get update -qq;
