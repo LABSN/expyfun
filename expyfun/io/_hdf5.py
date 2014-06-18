@@ -63,13 +63,13 @@ def _triage_write(key, value, root, *write_params):
             _triage_write('idx{0}'.format(vi), sub_value, sub_root,
                           *write_params)
     elif isinstance(value, (int, float, str)):
-        value = np.atleast_1d(value)
         if isinstance(value, int):
             title = 'int'
         elif isinstance(value, float):
             title = 'float'
         else:
             title = 'str'
+        value = np.atleast_1d(value)
         atom = tb.Atom.from_dtype(value.dtype)
         s = create_c_array(root, key, atom, (1,),
                            title=title, filters=filters)
@@ -137,7 +137,13 @@ def _triage_read(node):
     elif type_str == 'ndarray':
         data = np.array(node)
     elif type_str in ('int', 'float', 'str'):
-        data = np.array(node)[0]
+        if type_str == 'int':
+            cast = int
+        elif type_str == 'float':
+            cast = float
+        else:
+            cast = str
+        data = cast(np.array(node)[0])
     else:
         raise TypeError('Unknown node type: {0}'.format(type_str))
     return data

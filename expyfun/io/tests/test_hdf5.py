@@ -5,8 +5,7 @@ from nose.tools import assert_raises, assert_true
 import numpy as np
 
 from expyfun.io import write_hdf5, read_hdf5
-from expyfun._utils import _TempDir
-import pickle
+from expyfun._utils import _TempDir, object_diff
 
 tempdir = _TempDir()
 
@@ -23,9 +22,5 @@ def test_hdf5():
     write_hdf5(test_file, x, overwrite=True)
     assert_raises(IOError, read_hdf5, test_file + 'FOO')  # not found
     xx = read_hdf5(test_file)
-    # XXX Need to add real tests
-    print(x)
-    print(xx)
-    a = pickle.dumps(x)
-    b = pickle.dumps(xx)
-    assert_true(a == b)  # don't use assert_equal, output is terrible
+    print(object_diff(x, xx))
+    assert_true(object_diff(x, xx) == '')  # no assert_equal, ugly output
