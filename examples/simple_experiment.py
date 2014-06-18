@@ -16,7 +16,7 @@ from os import path as op
 import numpy as np
 from scipy import io as sio
 
-from expyfun import ExperimentController
+from expyfun import ExperimentController, get_keyboard_input
 from expyfun._utils import set_log_level
 import expyfun.analyze as ea
 
@@ -70,25 +70,33 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
 
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]
-    not_yet_pressed = live_keys[:]
 
-    # show instructions until all buttons have been pressed at least once
-    ec.screen_text(instructions)
-    screenshot = ec.screenshot()
-    ec.flip()
-    while len(not_yet_pressed) > 0:
-        pressed, timestamp = ec.wait_one_press(live_keys=live_keys)
-        for p in pressed:
-            p = int(p)
-            ec.load_buffer(wavs[p - 1])
-            ec.play()
-            ec.wait_secs(len(wavs[p - 1]) / float(ec.fs))
-            ec.stop()
-            if p in not_yet_pressed:
-                not_yet_pressed.pop(not_yet_pressed.index(p))
-    ec.clear_buffer()
-    ec.flip()  # clears the screen
-    ec.wait_secs(isi)
+    # do training, or not
+    ec.set_visible(False)
+    train = get_keyboard_input('Run training (0=no, 1=yes [default]): ',
+                               1, int)
+    ec.set_visible(True)
+
+    if train:
+        not_yet_pressed = live_keys[:]
+
+        # show instructions until all buttons have been pressed at least once
+        ec.screen_text(instructions)
+        screenshot = ec.screenshot()
+        ec.flip()
+        while len(not_yet_pressed) > 0:
+            pressed, timestamp = ec.wait_one_press(live_keys=live_keys)
+            for p in pressed:
+                p = int(p)
+                ec.load_buffer(wavs[p - 1])
+                ec.play()
+                ec.wait_secs(len(wavs[p - 1]) / float(ec.fs))
+                ec.stop()
+                if p in not_yet_pressed:
+                    not_yet_pressed.pop(not_yet_pressed.index(p))
+        ec.clear_buffer()
+        ec.flip()  # clears the screen
+        ec.wait_secs(isi)
 
     # show instructions finished screen
     ec.screen_prompt(instr_finished, live_keys=live_keys)
