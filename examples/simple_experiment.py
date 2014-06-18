@@ -82,7 +82,6 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
 
         # show instructions until all buttons have been pressed at least once
         ec.screen_text(instructions)
-        screenshot = ec.screenshot()
         ec.flip()
         while len(not_yet_pressed) > 0:
             pressed, timestamp = ec.wait_one_press(live_keys=live_keys)
@@ -103,8 +102,9 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
     ec.wait_secs(isi)
 
     ec.call_on_next_flip(ec.start_noise())
-    ec.screen_prompt('<center>OK, here we go!</center>',
-                     max_wait=feedback_dur, live_keys=None)
+    ec.screen_text('<center>OK, here we go!</center>')
+    screenshot = ec.screenshot()
+    ec.wait_one_press(max_wait=feedback_dur, live_keys=None)
     ec.wait_secs(isi)
 
     single_trial_order = trial_order[range(len(trial_order) / 2)]
