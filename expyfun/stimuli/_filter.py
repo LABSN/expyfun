@@ -6,6 +6,7 @@ import numpy as np
 from scipy.fftpack import ifft, fft, ifftshift, fftfreq
 from scipy.signal import get_window
 import warnings
+from distutils.version import LooseVersion
 
 from .._parallel import parallel_func, _check_n_jobs
 
@@ -174,6 +175,9 @@ def _smart_pad(x, n_pad):
 
 
 try:
+    import mne
+    if LooseVersion(mne.__version__) < LooseVersion('0.8'):
+        raise ImportError('mne-python too old')
     from mne.filter import resample
 except ImportError:
     resample = _resample
