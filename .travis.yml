@@ -38,7 +38,7 @@ before_install:
       else
         travis_retry pip install -q nose-timer http://pyglet.googlecode.com/archive/tip.zip;
       fi;
-    # Full dependencies (pandas and Pylink)
+    # Full dependencies (pandas, Pylink, mne-python)
     # We use a custom version of EL software here until a patch is released XXX
     - SRC_DIR=${PWD}
     - cd ~
@@ -53,6 +53,7 @@ before_install:
           mv pylink /home/$USER/anaconda/site-packages;
           conda install --yes --quiet pandas;
         fi;
+        pip install mne;
         echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list;
         echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list;
         travis_retry sudo apt-get update -qq;

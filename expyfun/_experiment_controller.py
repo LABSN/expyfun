@@ -10,7 +10,6 @@ import os
 import warnings
 from os import path as op
 from functools import partial
-from scipy.signal import resample
 import traceback as tb
 import pyglet
 from pyglet import gl
@@ -23,6 +22,7 @@ from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, Mouse
+from .stimuli._filter import resample
 from .visual import Text, Rectangle, _convert_color
 
 
@@ -1064,8 +1064,7 @@ class ExperimentController(object):
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs), 2))
-            num_samples = len(samples) * self.fs / float(self.stim_fs)
-            samples = resample(samples, int(num_samples), window='boxcar')
+            samples = resample(samples, self.fs, self.stim_fs)
 
         # make stereo if not already
         if samples.ndim == 1:
