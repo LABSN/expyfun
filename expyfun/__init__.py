@@ -7,7 +7,8 @@ __version__ = '2.0.0.git'
 from ._utils import (set_log_level, set_log_file, set_config,
                      get_config, get_config_path, fetch_data_file)
 from ._utils import verbose_dec as verbose
-from ._experiment_controller import ExperimentController, wait_secs
+from ._experiment_controller import (ExperimentController, wait_secs,
+                                     get_keyboard_input)
 from ._eyelink_controller import EyelinkController
 from . import analyze  # fast enough, include here
 from . import codeblocks

@@ -350,8 +350,8 @@ class ExperimentController(object):
             self._mouse_handler = Mouse(self._win)
             t = np.arange(44100 // 3) / 44100.
             car = sum([np.sin(2 * np.pi * f * t) for f in [800, 1000, 1200]])
-            data = np.tile(car * np.exp(-t * 10) / 4, (2, 3))
-            self._beep = SoundPlayer(data, 44100)
+            self._beep = None
+            self._beep_data = np.tile(car * np.exp(-t * 10) / 4, (2, 3))
 
             # finish initialization
             logger.info('Expyfun: Initialization complete')
@@ -954,7 +954,9 @@ class ExperimentController(object):
         This is useful for e.g., notifying that it's time for an
         eye-tracker calibration.
         """
-        self._beep.stop()
+        if self._beep is not None:
+            self._beep.delete()
+        self._beep = SoundPlayer(self._beep_data, 44100)
         self._beep.play()
 
     def start_noise(self):
@@ -1388,7 +1390,43 @@ def _get_items(d, fixed, title):
         if key in fixed:
             print('{0}: {1}'.format(key, val))
         else:
-            d[key] = input('{0}: '.format(key))
+            d[key] = get_keyboard_input('{0}: '.format(key))
+
+
+def get_keyboard_input(prompt, default=None, out_type=str):
+    """Get keyboard input of a specific type
+
+    Parameters
+    ----------
+    prompt : str
+        Prompt to use.
+    default : object | None
+        If user enters nothing, this will be used. If None, the user
+        will be repeatedly prompted until a valid response is found.
+    out_type : type
+        Type to coerce to. If coersion fails, the user will be prompted
+        again.
+
+    Returns
+    -------
+    response : of type ``out_type``
+        The user response.
+    """
+    if not isinstance(out_type, type):
+        raise TypeError('out_type must be a type')
+    good = False
+    while not good:
+        response = input(prompt)
+        if response == '' and default is not None:
+            response = default
+        try:
+            response = out_type(response)
+        except ValueError:
+            pass
+        else:
+            good = True
+    assert isinstance(response, out_type)
+    return response
 
 
 def _get_dev_db(audio_controller):

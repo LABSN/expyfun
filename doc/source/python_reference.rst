@@ -30,6 +30,7 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   get_keyboard_input
    wait_secs
 
 Experiment Design
