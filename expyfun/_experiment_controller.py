@@ -33,7 +33,6 @@ from .visual import Text, Rectangle, _convert_color
 
 
 class ExperimentController(object):
-
     """Interface for hardware control (audio, buttonbox, eye tracker, etc.)
 
     Parameters
@@ -379,7 +378,7 @@ class ExperimentController(object):
                             self._audio_type))
         return string
 
-# SCREEN METHODS ###############################
+################################ SCREEN METHODS ###############################
     def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
                     font_size=24, wrap=True):
         """Show some text on the screen.
@@ -397,21 +396,14 @@ class ExperimentController(object):
             Units for ``pos``.
         wrap : bool
             Whether or not the text will wrap to fit in screen, appropriate
-            for multiline text. Inappropriate for text requiring
+            for multi-line text. Inappropriate for text requiring
             precise positioning.
 
         Returns
         -------
         Instance of visual.Text
         """
-        scr_txt = Text(
-            self,
-            text,
-            pos,
-            color,
-            font_name,
-            font_size,
-            wrap=wrap)
+        scr_txt = Text(self,text,pos, color, font_name, font_size, wrap=wrap)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         return scr_txt
@@ -439,7 +431,7 @@ class ExperimentController(object):
             If True, the screen will be cleared before returning.
         wrap : bool
             Whether or not the text will wrap to fit in screen, appropriate
-            for multiline text. Inappropriate for text requiring precise
+            for multi-line text. Inappropriate for text requiring precise
             positioning.
 
         Returns
@@ -698,7 +690,7 @@ class ExperimentController(object):
     def monitor_size_pix(self):
         return np.array(self._monitor['SCREEN_SIZE_PIX'])
 
-# OPENGL METHODS ###############################
+################################ OPENGL METHODS ###############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         # Use 16x sampling here
         config_kwargs = dict(depth_size=8, double_buffer=True, stereo=False,
@@ -815,7 +807,7 @@ class ExperimentController(object):
         self._win.set_visible(visible)
         logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
 
-# KEYPRESS METHODS ############################
+############################### KEYPRESS METHODS ##############################
     def listen_presses(self):
         """Start listening for keypresses.
         """
@@ -927,7 +919,7 @@ class ExperimentController(object):
         """
         self._response_handler.check_force_quit()
 
-# MOUSE METHODS ##################################
+############################### MOUSE METHODS #################################
     def get_mouse_position(self, units='pix'):
         """Mouse position in screen coordinates
 
@@ -961,7 +953,7 @@ class ExperimentController(object):
         if flip:
             self.flip()
 
-# AUDIO METHODS ###############################
+############################### AUDIO METHODS #################################
     def system_beep(self):
         """Play a system beep
 
@@ -1132,7 +1124,7 @@ class ExperimentController(object):
                              ', or None.')
         self._check_rms = check_rms
 
-# OTHER METHODS ###############################
+############################### OTHER METHODS #################################
     @property
     def data_fname(self):
         """Date filename"""
@@ -1355,7 +1347,7 @@ class ExperimentController(object):
             return False
         return True
 
-# READ-ONLY PROPERTIES ###########################
+############################### READ-ONLY PROPERTIES ##########################
     @property
     def id_types(self):
         """Trial ID types needed for each trial"""

@@ -31,7 +31,6 @@ def _replicate_color(color, pts):
 # Text
 
 class Text(object):
-
     """A text object
 
     Parameters
@@ -60,9 +59,9 @@ class Text(object):
     anchor_y : str
         Vertical text anchor (e.g., `'center'`).
     units : str
-        Units to use. These will apply to all spatial aspects of the drawn
+        Units to use. These will apply to all spatial aspects of the drawing.
         shape e.g. size, position.
-    multiline : bool
+    wrap : bool
         Whether or not the text will wrap to fit in screen, appropriate for
         multiline text. Inappropriate for text requiring precise positioning.
 
@@ -101,9 +100,7 @@ class Text(object):
 # Triangulations
 
 class _Triangular(object):
-
     """Super class for objects that use trianglulations and/or lines"""
-
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
         self._ec = ec
         self.set_fill_color(fill_color)
@@ -174,7 +171,6 @@ class _Triangular(object):
 
 
 class Line(_Triangular):
-
     """A connected set of line segments
 
     Parameters
@@ -184,7 +180,7 @@ class Line(_Triangular):
     coords : array-like
         2 x N set of X, Y coordinates.
     units : str
-        Units to use. These will apply to all spatial aspects of the drawn
+        Units to use. These will apply to all spatial aspects of the drawing.
         shape e.g. size, position.
     line_color : matplotlib Color
         Color of the line.
@@ -229,7 +225,6 @@ class Line(_Triangular):
 
 
 class Rectangle(_Triangular):
-
     """A rectangle
 
     Parameters
@@ -239,7 +234,7 @@ class Rectangle(_Triangular):
     pos : array-like
         4-element array-like with X, Y center and width, height.
     units : str
-        Units to use. These will apply to all spatial aspects of the drawn
+        Units to use. These will apply to all spatial aspects of the drawing.
         shape e.g. size, position.
     fill_color : matplotlib Color | None
         Color to fill with. None is transparent.
@@ -291,7 +286,6 @@ class Rectangle(_Triangular):
 
 
 class Circle(_Triangular):
-
     """A circle or ellipse
 
     Parameters
@@ -304,7 +298,7 @@ class Circle(_Triangular):
     pos : array-like
         2-element array-like with X, Y center positions.
     units : str
-        Units to use. These will apply to all spatial aspects of the drawn
+        Units to use. These will apply to all spatial aspects of the drawing.
         shape e.g. size, position.
     n_edges : int
         Number of edges to use (must be >= 4) to approximate a circle.
@@ -320,7 +314,6 @@ class Circle(_Triangular):
     circle : instance of Circle
         The circle object.
     """
-
     def __init__(self, ec, radius=1, pos=(0, 0), units='norm',
                  n_edges=200, fill_color='white', line_color=None,
                  line_width=1.0):
@@ -385,7 +378,6 @@ class Circle(_Triangular):
         if not (pos.ndim == 1 and pos.size == 2):
             raise ValueError('pos must be a 2-element array-like vector')
         # convert to pixel (OpenGL) units
-
         self._pos = self._ec._convert_units(pos[:, np.newaxis],
                                             units, 'pix')[:, 0]
         self._recalculate()
@@ -403,7 +395,6 @@ class Circle(_Triangular):
 
 
 class ConcentricCircles(object):
-
     """A set of filled concentric circles drawn without edges
 
     Parameters
@@ -417,7 +408,7 @@ class ConcentricCircles(object):
     pos : array-like
         2-element array-like with the X, Y center position.
     units : str
-        Units to use. These will apply to all spatial aspects of the drawn
+        Units to use. These will apply to all spatial aspects of the drawing.
     colors : list or tuple of matplotlib Colors
         Color to fill each circle with.
 
@@ -525,7 +516,6 @@ class ConcentricCircles(object):
 
 
 class FixationDot(ConcentricCircles):
-
     """A reasonable centered fixation dot
 
     This uses concentric circles, the inner of which has a radius of one
@@ -558,7 +548,6 @@ class FixationDot(ConcentricCircles):
 # Image display
 
 class RawImage(object):
-
     """Create image from array for on-screen display
 
     Parameters
