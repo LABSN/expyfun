@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import warnings
+import numpy as np
 import scipy as sp
 import os
 import os.path as op
@@ -60,6 +61,13 @@ try:
     from urllib2 import urlopen
 except ImportError:
     from urllib.request import urlopen
+
+try:
+    import tables  # noqa, analysis:ignore
+except Exception:
+    has_pytables = False
+else:
+    has_pytables = True
 
 
 ###############################################################################
@@ -227,6 +235,15 @@ def _check_units(units):
         raise ValueError('"units" must be one of {}, not {}'
                          ''.format(good_units, units))
 
+
+def _check_pytables():
+    """Helper to error if Pytables is not found"""
+    if not has_pytables:
+        raise ImportError('pytables could not be imported')
+    import tables as tb
+    return tb
+
+
 ###############################################################################
 # DECORATORS
 
@@ -366,6 +383,7 @@ def verbose_dec(function, *args, **kwargs):
 
 requires_pylink = skipif(has_pylink is False, 'Requires functional pylink')
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
+requires_pytables = skipif(has_pytables is False, 'Requires pytables')
 
 
 def _has_scipy_version(version):
@@ -625,3 +643,67 @@ def _sanitize(text_like):
     """Cast as string, encode as UTF-8 and sanitize any escape characters.
     """
     return unicode(text_like).encode('unicode_escape').decode('utf-8')
+
+
+def _sort_keys(x):
+    """Sort and return keys of dict"""
+    keys = list(x.keys())  # note: not thread-safe
+    idx = np.argsort([str(k) for k in keys])
+    keys = [keys[ii] for ii in idx]
+    return keys
+
+
+def object_diff(a, b, pre=''):
+    """Compute all differences between two python variables
+
+    Parameters
+    ----------
+    a : object
+        Currently supported: dict, list, tuple, ndarray, int, str, bytes,
+        float, StringIO, BytesIO.
+    b : object
+        Must be same type as ``a``.
+    pre : str
+        String to prepend to each line.
+
+    Returns
+    -------
+    diffs : str
+        A string representation of the differences.
+
+    Notes
+    -----
+    Taken from mne-python with permission.
+    """
+    out = ''
+    if type(a) != type(b):
+        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    elif isinstance(a, dict):
+        k1s = _sort_keys(a)
+        k2s = _sort_keys(b)
+        m1 = set(k2s) - set(k1s)
+        if len(m1):
+            out += pre + ' x1 missing keys %s\n' % (m1)
+        for key in k1s:
+            if key not in k2s:
+                out += pre + ' x2 missing key %s\n' % key
+            else:
+                out += object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+    elif isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
+        else:
+            for xx1, xx2 in zip(a, b):
+                out += object_diff(xx1, xx2, pre='')
+    elif isinstance(a, (string_types, int, float, bytes)):
+        if a != b:
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif a is None:
+        if b is not None:
+            out += pre + ' a is None, b is not (%s)\n' % (b)
+    elif isinstance(a, np.ndarray):
+        if not np.array_equal(a, b):
+            out += pre + ' array mismatch\n'
+    else:
+        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
+    return out

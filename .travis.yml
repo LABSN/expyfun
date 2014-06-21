@@ -38,7 +38,7 @@ before_install:
       else
         travis_retry pip install -q nose-timer http://pyglet.googlecode.com/archive/tip.zip;
       fi;
-    # Full dependencies (pandas, Pylink, mne-python)
+    # Full dependencies (pandas, Pylink, mne-python, pytables)
     # We use a custom version of EL software here until a patch is released XXX
     - SRC_DIR=${PWD}
     - cd ~
@@ -48,10 +48,10 @@ before_install:
         mv pylink4python2.7_linux_x64/pylink2.7 pylink;
         if [ "${PYTHON}" == "2.7" ]; then
           mv pylink ~/.local/lib/python2.7/site-packages;
-          sudo apt-get install -qq -y python-pandas;
+          sudo apt-get install -qq -y python-pandas python-tables;
         else
           mv pylink /home/$USER/anaconda/site-packages;
-          conda install --yes --quiet pandas;
+          conda install --yes --quiet pandas tables;
         fi;
         pip install mne;
         echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list;

@@ -17,7 +17,7 @@ import numpy as np
 from scipy import io as sio
 
 from expyfun import ExperimentController, get_keyboard_input
-from expyfun._utils import set_log_level
+from expyfun import set_log_level
 import expyfun.analyze as ea
 
 
