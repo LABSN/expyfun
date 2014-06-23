@@ -417,7 +417,6 @@ class ConcentricCircles(object):
     circle : instance of Circle
         The circle object.
     """
-
     def __init__(self, ec, radii=(0.2, 0.05), pos=(0, 0), units='norm',
                  colors=('w', 'k')):
         radii = np.array(radii, float)
@@ -534,7 +533,6 @@ class FixationDot(ConcentricCircles):
     fix : instance of FixationDot
         The fixation dot.
     """
-
     def __init__(self, ec, colors=('w', 'k')):
         if len(colors) != 2:
             raise ValueError('colors must have length 2')
@@ -569,7 +567,6 @@ class RawImage(object):
     img : instance of RawImage
         The image object.
     """
-
     def __init__(self, ec, image_buffer, pos=(0, 0), scale=1., units='norm'):
         self._ec = ec
         self.set_image(image_buffer)

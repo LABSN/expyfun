@@ -403,7 +403,7 @@ class ExperimentController(object):
         -------
         Instance of visual.Text
         """
-        scr_txt = Text(self,text,pos, color, font_name, font_size, wrap=wrap)
+        scr_txt = Text(self, text, pos, color, font_name, font_size, wrap=wrap)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         return scr_txt
