@@ -102,7 +102,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
     ec.wait_secs(isi)
 
     ec.call_on_next_flip(ec.start_noise())
-    ec.screen_text('<center>OK, here we go!</center>')
+    ec.screen_text('OK, here we go!', wrap=False)
     screenshot = ec.screenshot()
     ec.wait_one_press(max_wait=feedback_dur, live_keys=None)
     ec.wait_secs(isi)
@@ -153,7 +153,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
     ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])
     ec.start_stimulus()
     ec.wait_secs(len(concat_wavs) / float(ec.stim_fs))
-    ec.screen_text('<center>Go!</center>')
+    ec.screen_text('Go!', wrap=False)
     ec.flip()
     pressed = ec.wait_for_presses(max_resp_time + 1, min_resp_time,
                                   live_keys, False)

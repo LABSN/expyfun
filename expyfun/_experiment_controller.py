@@ -378,9 +378,9 @@ class ExperimentController(object):
                             self._audio_type))
         return string
 
-############################### SCREEN METHODS ###############################
+################################ SCREEN METHODS ##############################
     def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
-                    font_size=24):
+                    font_size=24, wrap=True):
         """Show some text on the screen.
 
         Parameters
@@ -394,18 +394,22 @@ class ExperimentController(object):
             Horizontal/vertical alignment of the text relative to ``pos``
         units : str
             Units for ``pos``.
+        wrap : bool
+            Whether or not the text will wrap to fit in screen, appropriate
+            for multi-line text. Inappropriate for text requiring
+            precise positioning.
 
         Returns
         -------
         Instance of visual.Text
         """
-        scr_txt = Text(self, text, pos, color, font_name, font_size)
+        scr_txt = Text(self, text, pos, color, font_name, font_size, wrap=wrap)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
-                      timestamp=False, clear_after=True):
+                      timestamp=False, clear_after=True, wrap=True):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -425,6 +429,10 @@ class ExperimentController(object):
             the prompt displays until max_wait seconds have passed.
         clear_after : bool
             If True, the screen will be cleared before returning.
+        wrap : bool
+            Whether or not the text will wrap to fit in screen, appropriate
+            for multi-line text. Inappropriate for text requiring precise
+            positioning.
 
         Returns
         -------
@@ -440,7 +448,7 @@ class ExperimentController(object):
         if not all([isinstance(t, string_types) for t in text]):
             raise TypeError('text must be a string or list of strings')
         for t in text:
-            self.screen_text(t)
+            self.screen_text(t, wrap=wrap)
             self.flip()
             out = self.wait_one_press(max_wait, min_wait, live_keys,
                                       timestamp)
@@ -682,7 +690,7 @@ class ExperimentController(object):
     def monitor_size_pix(self):
         return np.array(self._monitor['SCREEN_SIZE_PIX'])
 
-############################### OPENGL METHODS ###############################
+################################ OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         # Use 16x sampling here
         config_kwargs = dict(depth_size=8, double_buffer=True, stereo=False,
@@ -799,7 +807,7 @@ class ExperimentController(object):
         self._win.set_visible(visible)
         logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
 
-############################ KEYPRESS METHODS ############################
+############################### KEYPRESS METHODS #############################
     def listen_presses(self):
         """Start listening for keypresses.
         """
@@ -911,7 +919,7 @@ class ExperimentController(object):
         """
         self._response_handler.check_force_quit()
 
-############################# MOUSE METHODS ##################################
+############################### MOUSE METHODS ################################
     def get_mouse_position(self, units='pix'):
         """Mouse position in screen coordinates
 
@@ -945,7 +953,7 @@ class ExperimentController(object):
         if flip:
             self.flip()
 
-################################ AUDIO METHODS ###############################
+############################### AUDIO METHODS #################################
     def system_beep(self):
         """Play a system beep
 
@@ -1040,7 +1048,7 @@ class ExperimentController(object):
             The correctly formatted audio samples.
         """
         # check data type
-        if type(samples) is list:
+        if isinstance(samples, list):
             samples = np.asarray(samples, dtype='float32')
         elif samples.dtype != 'float32':
             samples = np.float32(samples)
@@ -1116,7 +1124,7 @@ class ExperimentController(object):
                              ', or None.')
         self._check_rms = check_rms
 
-################################ OTHER METHODS ###############################
+############################### OTHER METHODS ################################
     @property
     def data_fname(self):
         """Date filename"""
@@ -1339,7 +1347,7 @@ class ExperimentController(object):
             return False
         return True
 
-############################# READ-ONLY PROPERTIES ###########################
+############################### READ-ONLY PROPERTIES #########################
     @property
     def id_types(self):
         """Trial ID types needed for each trial"""

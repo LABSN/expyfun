@@ -38,8 +38,7 @@ class Text(object):
     ec : instance of ExperimentController
         Parent EC.
     text : str
-        The text to display. Accepts a subset of HTML commands (see pyglet
-        doc).
+        The text to display.
     pos : array
         2-element array consisting of X- and Y-position coordinates.
     color : matplotlib Color
@@ -60,7 +59,11 @@ class Text(object):
     anchor_y : str
         Vertical text anchor (e.g., `'center'`).
     units : str
-        Units to use.
+        Units to use. These will apply to all spatial aspects of the drawing.
+        shape e.g. size, position.
+    wrap : bool
+        Whether or not the text will wrap to fit in screen, appropriate for
+        multiline text. Inappropriate for text requiring precise positioning.
 
     Returns
     -------
@@ -70,18 +73,18 @@ class Text(object):
     def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
                  width='auto', anchor_x='center', anchor_y='center',
-                 units='norm'):
+                 units='norm', wrap=False):
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, units, 'pix')
         if width == 'auto':
             width = float(ec.window_size_pix[0]) * 0.8
         elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
-        self._text = pyglet.text.HTMLLabel(text + ' ', x=pos[0], y=pos[1],
-                                           width=width, height=height,
-                                           multiline=True, dpi=int(ec.dpi),
-                                           anchor_x=anchor_x,
-                                           anchor_y=anchor_y)
+        self._text = pyglet.text.Label(text + ' ', x=pos[0], y=pos[1],
+                                       width=width, height=height,
+                                       multiline=wrap, dpi=int(ec.dpi),
+                                       anchor_x=anchor_x,
+                                       anchor_y=anchor_y)
         self._text.color = tuple(_convert_color(color))
         self._text.font_name = font_name
         self._text.font_size = font_size
@@ -175,7 +178,8 @@ class Line(_Triangular):
     coords : array-like
         2 x N set of X, Y coordinates.
     units : str
-        Units to use.
+        Units to use. These will apply to all spatial aspects of the drawing.
+        shape e.g. size, position.
     line_color : matplotlib Color
         Color of the line.
     line_width : float
@@ -227,7 +231,8 @@ class Rectangle(_Triangular):
     pos : array-like
         4-element array-like with X, Y center and width, height.
     units : str
-        Units to use.
+        Units to use. These will apply to all spatial aspects of the drawing.
+        shape e.g. size, position.
     fill_color : matplotlib Color | None
         Color to fill with. None is transparent.
     line_color : matplotlib Color | None
@@ -289,7 +294,8 @@ class Circle(_Triangular):
     pos : array-like
         2-element array-like with X, Y center positions.
     units : str
-        Units to use.
+        Units to use. These will apply to all spatial aspects of the drawing.
+        shape e.g. size, position.
     n_edges : int
         Number of edges to use (must be >= 4) to approximate a circle.
     fill_color : matplotlib Color | None
@@ -398,7 +404,7 @@ class ConcentricCircles(object):
     pos : array-like
         2-element array-like with the X, Y center position.
     units : str
-        Units to use.
+        Units to use. These will apply to all spatial aspects of the drawing.
     colors : list or tuple of matplotlib Colors
         Color to fill each circle with.
 
