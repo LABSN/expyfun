@@ -27,7 +27,7 @@ def _replicate_color(color, pts):
     return np.tile(color, len(pts) // 2)
 
 
-#
+###############################################################################
 # Text
 
 class Text(object):
@@ -70,14 +70,12 @@ class Text(object):
     line : instance of Line
         The line object.
     """
-
     def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
                  width='auto', anchor_x='center', anchor_y='center',
                  units='norm', wrap=False):
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, units, 'pix')
-
         if width == 'auto':
             width = float(ec.window_size_pix[0]) * 0.8
         elif isinstance(width, string_types):
@@ -96,7 +94,7 @@ class Text(object):
         self._text.draw()
 
 
-#
+###############################################################################
 # Triangulations
 
 class _Triangular(object):
@@ -194,7 +192,6 @@ class Line(_Triangular):
     line : instance of Line
         The line object.
     """
-
     def __init__(self, ec, coords, units='norm', line_color='white',
                  line_width=1.0, line_loop=False):
         _Triangular.__init__(self, ec, fill_color=None, line_color=line_color,
@@ -248,7 +245,6 @@ class Rectangle(_Triangular):
     line : instance of Rectangle
         The rectangle object.
     """
-
     def __init__(self, ec, pos, units='norm', fill_color='white',
                  line_color=None, line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
@@ -542,7 +538,7 @@ class FixationDot(ConcentricCircles):
         self.set_radius(1, 1, units='pix')
 
 
-#
+###############################################################################
 # Image display
 
 class RawImage(object):
