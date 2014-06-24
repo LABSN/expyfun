@@ -1450,7 +1450,7 @@ def _get_dev_db(audio_controller):
     elif audio_controller == 'RZ6':
         return 114
     elif audio_controller == 'pyglet':
-        return 90  # TODO: this value not yet calibrated, may vary by system
+        return 100  # TODO: this value not yet calibrated, may vary by system
     elif audio_controller == 'dummy':  # only used for testing
         return 90
     else:
