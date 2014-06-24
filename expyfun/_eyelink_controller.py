@@ -438,7 +438,7 @@ class EyelinkController(object):
         check_interval : float
             Time to use between position checks (seconds).
         units : str
-            Units for `fix_pos`.
+            Units for `fix_pos`. See ``check_units`` for options.
 
         Returns
         -------
@@ -483,7 +483,7 @@ class EyelinkController(object):
         vert : float
             Vertical distance (up and down, each) to use.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
         allowed_types = ['HV5']
         if ctype not in allowed_types:

@@ -16,7 +16,7 @@ from pyglet import gl
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
-                     _check_units, set_log_file, flush_logger,
+                     check_units, set_log_file, flush_logger,
                      string_types, input)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
@@ -390,14 +390,18 @@ class ExperimentController(object):
         pos : list | tuple
             x, y position of the text. In the default units (-1 to 1, with
             positive going up and right) the default is dead center (0, 0).
-        h_align, v_align : str
-            Horizontal/vertical alignment of the text relative to ``pos``
         units : str
-            Units for ``pos``.
+            Units for ``pos``. See ``check_units`` for options.
+        color : matplotlib color
+            The text color.
+        font_name : str
+            The name of the font to use.
+        font_size : float
+            The font size (in points) to use.
         wrap : bool
             Whether or not the text will wrap to fit in screen, appropriate
             for multi-line text. Inappropriate for text requiring
-            precise positioning.
+            precise positioning or centering.
 
         Returns
         -------
@@ -591,8 +595,8 @@ class ExperimentController(object):
 
     def _convert_units(self, verts, fro, to):
         """Convert between different screen units"""
-        _check_units(to)
-        _check_units(fro)
+        check_units(to)
+        check_units(fro)
         verts = np.array(np.atleast_2d(verts), dtype=float)
         if verts.shape[0] != 2:
             raise RuntimeError('verts must have 2 rows')
@@ -926,14 +930,14 @@ class ExperimentController(object):
         Parameters
         ----------
         units : str
-            Units to return.
+            Units to return. See ``check_units`` for options.
 
         Returns
         -------
         position : ndarray
             The mouse position.
         """
-        _check_units(units)
+        check_units(units)
         pos = np.array(self._mouse_handler.pos)
         pos = self._convert_units(pos[:, np.newaxis], 'norm', units)[:, 0]
         return pos
