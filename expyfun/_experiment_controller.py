@@ -390,8 +390,6 @@ class ExperimentController(object):
         pos : list | tuple
             x, y position of the text. In the default units (-1 to 1, with
             positive going up and right) the default is dead center (0, 0).
-        h_align, v_align : str
-            Horizontal/vertical alignment of the text relative to ``pos``
         units : str
             Units for ``pos``.
         wrap : bool
