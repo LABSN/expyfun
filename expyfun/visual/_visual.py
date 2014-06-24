@@ -12,7 +12,7 @@ import pyglet
 from matplotlib.colors import colorConverter
 from pyglet import gl
 
-from .._utils import _check_units, string_types
+from .._utils import check_units, string_types
 
 
 def _convert_color(color):
@@ -55,12 +55,12 @@ class Text(object):
         the screen width, useful for instructions. None will automatically
         allocate sufficient space, but not that this disables text wrapping.
     anchor_x : str
-        Horizontal text anchor (e.g., `'center'`).
+        Horizontal text anchor (e.g., ``'center'``).
     anchor_y : str
-        Vertical text anchor (e.g., `'center'`).
+        Vertical text anchor (e.g., ``'center'``).
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
-        shape e.g. size, position.
+        shape e.g. size, position. See ``check_units`` for options.
     wrap : bool
         Whether or not the text will wrap to fit in screen, appropriate for
         multiline text. Inappropriate for text requiring precise positioning.
@@ -179,7 +179,7 @@ class Line(_Triangular):
         2 x N set of X, Y coordinates.
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
-        shape e.g. size, position.
+        shape e.g. size, position. See ``check_units`` for options.
     line_color : matplotlib Color
         Color of the line.
     line_width : float
@@ -209,7 +209,7 @@ class Line(_Triangular):
         coords : array-like
             2 x N set of X, Y coordinates.
         """
-        _check_units(units)
+        check_units(units)
         coords = np.array(coords, dtype=float)
         if coords.ndim == 1:
             coords = coords[:, np.newaxis]
@@ -232,7 +232,7 @@ class Rectangle(_Triangular):
         4-element array-like with X, Y center and width, height.
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
-        shape e.g. size, position.
+        shape e.g. size, position. See ``check_units`` for options.
     fill_color : matplotlib Color | None
         Color to fill with. None is transparent.
     line_color : matplotlib Color | None
@@ -260,9 +260,9 @@ class Rectangle(_Triangular):
         pos : array-like
             X, Y, width, height of the rectangle.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
-        _check_units(units)
+        check_units(units)
         # do this in normalized units, then convert
         pos = np.array(pos)
         if not (pos.ndim == 1 and pos.size == 4):
@@ -295,7 +295,7 @@ class Circle(_Triangular):
         2-element array-like with X, Y center positions.
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
-        shape e.g. size, position.
+        shape e.g. size, position. See ``check_units`` for options.
     n_edges : int
         Number of edges to use (must be >= 4) to approximate a circle.
     fill_color : matplotlib Color | None
@@ -342,9 +342,9 @@ class Circle(_Triangular):
             X- and Y-direction extents (radii) of the circle / ellipse.
             A single value (float) will be replicated for both directions.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
-        _check_units(units)
+        check_units(units)
         radius = np.atleast_1d(radius).astype(float)
         if radius.ndim != 1 or radius.size > 2:
             raise ValueError('radius must be a 1- or 2-element '
@@ -367,9 +367,9 @@ class Circle(_Triangular):
         pos : array-like
             X, Y center of the circle.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
-        _check_units(units)
+        check_units(units)
         pos = np.array(pos, dtype=float)
         if not (pos.ndim == 1 and pos.size == 2):
             raise ValueError('pos must be a 2-element array-like vector')
@@ -405,6 +405,7 @@ class ConcentricCircles(object):
         2-element array-like with the X, Y center position.
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
+        See ``check_units`` for options.
     colors : list or tuple of matplotlib Colors
         Color to fill each circle with.
 
@@ -437,7 +438,7 @@ class ConcentricCircles(object):
         pos : array-like
             X, Y center of the circle.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
         for circle in self._circles:
             circle.set_pos(pos, units)
@@ -452,7 +453,7 @@ class ConcentricCircles(object):
         idx : int
             Index of the circle.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
         self._circles[idx].set_radius(radius, units)
 
@@ -465,7 +466,7 @@ class ConcentricCircles(object):
             List of radii to assign to the circles. Must contain the same
             number of radii as the number of circles.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
         radii = np.array(radii, float)
         if radii.ndim != 1 or radii.size != len(self):
@@ -484,7 +485,7 @@ class ConcentricCircles(object):
         idx : int
             Index of the circle.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
         self._circles[idx].set_fill_color(color)
 
@@ -556,7 +557,7 @@ class RawImage(object):
         The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
         large, etc.
     units : str
-        Units to use for the position.
+        Units to use for the position. See ``check_units`` for options.
 
     Returns
     -------
@@ -609,7 +610,7 @@ class RawImage(object):
         pos : array-like
             2-element array-like with X, Y (center) arguments.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
         pos = np.array(pos, float)
         if pos.ndim != 1 or pos.size != 2:
@@ -640,7 +641,7 @@ class RawImage(object):
         pos : array-like
             2-element array-like with X, Y (center) arguments.
         units : str
-            Units to use.
+            Units to use. See ``check_units`` for options.
         """
         scale = float(scale)
         self._scale = scale
