@@ -46,7 +46,7 @@ class PygletSoundController(object):
     """Use pyglet audio capabilities"""
     def __init__(self, ec, stim_fs):
         logger.info('Expyfun: Setting up Pyglet audio')
-        self.fs = 44100
+        self.fs = stim_fs
 
         # Need to generate at RMS=1 to match TDT circuit
         noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs

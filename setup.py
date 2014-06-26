@@ -4,7 +4,7 @@
 #    Re-used based on mne-python code.
 
 import os
-from os import path as op
+import subprocess
 
 # we are using a setuptools namespace
 import setuptools  # analysis:ignore
@@ -19,44 +19,87 @@ MAINTAINER_EMAIL = 'drmccloy@uw.edu'
 URL = 'http://github.com/LABSN/expyfun'
 LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'http://github.com/LABSN/expyfun'
-with open(os.path.join('expyfun', '__init__.py'), 'r') as fid:
-    for line in fid:
-        if '__version__' in line:
-            VERSION = line.strip().split(' = ')[1]
-            break
 
-if __name__ == "__main__":
+# version
+version_file = os.path.join('expyfun', '_version.py')
+with open(version_file, 'r') as fid:
+    line = fid.readline()
+    VERSION = line.strip().split(' = ')[1][1:-1]
+
+
+def git_version():
+    """Helper adapted from Numpy"""
+    def _minimal_ext_cmd(cmd):
+        # minimal env; LANGUAGE is used on win32
+        env = dict(LANGUAGE='C', LANG='C', LC_ALL='C')
+        for k in ['SYSTEMROOT', 'PATH']:
+            v = os.environ.get(k)
+            if v is not None:
+                env[k] = v
+        return subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                env=env).communicate()[0]
+    if os.path.exists('.git'):
+        try:
+            out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+            GIT_REVISION = out.strip()
+        except OSError:
+            GIT_REVISION = "Unknown"
+    else:
+        GIT_REVISION = "Unknown"
+    return GIT_REVISION[:7]
+
+FULL_VERSION = VERSION + '-' + git_version()
+
+
+def write_version(version):
+    with open(version_file, 'w') as fid:
+        fid.write('__version__ = \'{0}\'\n'.format(version))
+
+
+def setup_package(script_args=None):
+    """Actually invoke the setup call"""
     if os.path.exists('MANIFEST'):
         os.remove('MANIFEST')
+    kwargs = dict(
+        name=DISTNAME,
+        maintainer=MAINTAINER,
+        include_package_data=True,
+        maintainer_email=MAINTAINER_EMAIL,
+        description=DESCRIPTION,
+        license=LICENSE,
+        url=URL,
+        version=FULL_VERSION,
+        download_url=DOWNLOAD_URL,
+        long_description=open('README.rst').read(),
+        zip_safe=False,  # the package can run out of an .egg file
+        classifiers=['Intended Audience :: Science/Research',
+                     'Intended Audience :: Developers',
+                     'License :: OSI Approved',
+                     'Programming Language :: Python',
+                     'Topic :: Software Development',
+                     'Topic :: Scientific/Engineering',
+                     'Operating System :: Microsoft :: Windows',
+                     'Operating System :: POSIX',
+                     'Operating System :: Unix',
+                     'Operating System :: MacOS'],
+        platforms='any',
+        packages=['expyfun', 'expyfun.tests',
+                  'expyfun.analyze', 'expyfun.analyze.tests',
+                  'expyfun.codeblocks',
+                  'expyfun._externals',
+                  'expyfun.io', 'expyfun.io.tests',
+                  'expyfun.stimuli', 'expyfun.stimuli.tests',
+                  'expyfun.visual', 'expyfun.visual.tests'],
+        package_data={'expyfun': [os.path.join('data', '*')]},
+        scripts=[])
+    if script_args is not None:
+        kwargs['script_args'] = script_args
+    try:
+        write_version(FULL_VERSION)
+        setup(**kwargs)
+    finally:
+        write_version(VERSION)
 
-    setup(name=DISTNAME,
-          maintainer=MAINTAINER,
-          include_package_data=True,
-          maintainer_email=MAINTAINER_EMAIL,
-          description=DESCRIPTION,
-          license=LICENSE,
-          url=URL,
-          version=VERSION,
-          download_url=DOWNLOAD_URL,
-          long_description=open('README.rst').read(),
-          zip_safe=False,  # the package can run out of an .egg file
-          classifiers=['Intended Audience :: Science/Research',
-                       'Intended Audience :: Developers',
-                       'License :: OSI Approved',
-                       'Programming Language :: Python',
-                       'Topic :: Software Development',
-                       'Topic :: Scientific/Engineering',
-                       'Operating System :: Microsoft :: Windows',
-                       'Operating System :: POSIX',
-                       'Operating System :: Unix',
-                       'Operating System :: MacOS'],
-          platforms='any',
-          packages=['expyfun', 'expyfun.tests',
-                    'expyfun.analyze', 'expyfun.analyze.tests',
-                    'expyfun.codeblocks',
-                    'expyfun._externals',
-                    'expyfun.io', 'expyfun.io.tests',
-                    'expyfun.stimuli', 'expyfun.stimuli.tests',
-                    'expyfun.visual', 'expyfun.visual.tests'],
-          package_data={'expyfun': [op.join('data', '*')]},
-          scripts=[])
+
+if __name__ == "__main__":
+    setup_package()
