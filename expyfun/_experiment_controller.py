@@ -111,7 +111,7 @@ class ExperimentController(object):
 
     @verbose_dec
     def __init__(self, exp_name, audio_controller=None, response_device=None,
-                 stim_rms=0.01, stim_fs=44100, stim_db=65, noise_db=45,
+                 stim_rms=0.01, stim_fs=24414, stim_db=65, noise_db=45,
                  output_dir='data', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
@@ -1450,7 +1450,7 @@ def _get_dev_db(audio_controller):
     elif audio_controller == 'RZ6':
         return 114
     elif audio_controller == 'pyglet':
-        return 90  # TODO: this value not yet calibrated, may vary by system
+        return 100  # TODO: this value not yet calibrated, may vary by system
     elif audio_controller == 'dummy':  # only used for testing
         return 90
     else:
