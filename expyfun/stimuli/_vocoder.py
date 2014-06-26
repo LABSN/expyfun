@@ -4,6 +4,7 @@
 
 import numpy as np
 from scipy.signal import butter, lfilter, filtfilt
+import warnings
 
 from .._utils import verbose_dec
 
@@ -202,7 +203,8 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
                 carrier = rng.rand(*data.shape)
             else:  # mode == 'poisson'
                 prob = rate / fs
-                carrier = rng.choice([0., 1.], n_samp, p=[1 - prob, prob])
+                with warnings.catch_warnings(record=True):  # numpy silliness
+                    carrier = rng.choice([0., 1.], n_samp, p=[1 - prob, prob])
             b, a = butter(order, [2 * lf / fs, 2 * hf / fs], 'bandpass')
             carrier = lfilter(b, a, carrier, axis=axis)
             carrier /= np.sqrt(np.mean(carrier * carrier, axis=axis,

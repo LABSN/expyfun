@@ -36,6 +36,9 @@ Optional:
 - mne-python (CUDA filtering/resampling)
 - pytables (HDF5 write/read)
 
+System-level:
+- git (for automated version downloading)
+
 
 Licensing
 ^^^^^^^^^
