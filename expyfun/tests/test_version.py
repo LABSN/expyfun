@@ -17,7 +17,7 @@ def test_version():
     assert_raises(AssertionError, assert_version, 'x' * 7)
     assert_version(__version__[-7:])
 
-    v = 'e0fc0cf'  # XXX CHANGE TO LAST VERSION AFTER MERGE!
+    v = '36e7da0'  # XXX CHANGE TO LAST VERSION AFTER MERGE!
     if not _has_git:
         assert_raises(ImportError, download_version, v, tempdir)
     else:
