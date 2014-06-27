@@ -22,7 +22,7 @@ from expyfun import download_version, run_subprocess
 # directory so we don't break any other code examples, but usually you'd
 # want to do it in the experiment directory:
 temp_dir = tempfile.mkdtemp()
-download_version('36e7da0', temp_dir)
+download_version('f6c4f51', temp_dir)
 
 # Now we would normally need to restart Python so the next ``import expyfun``
 # call imported the proper version. We'd want to add an ``assert_version``
@@ -33,7 +33,7 @@ download_version('36e7da0', temp_dir)
 cmd = """
 from expyfun import assert_version
 
-assert_version('36e7da0')
+assert_version('f6c4f51')
 """
 try:
     run_subprocess(['python', '-c', cmd], cwd=temp_dir)
