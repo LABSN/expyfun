@@ -31,15 +31,16 @@ def _check_version_format(version):
                         ''.format(version))
 
 
-def download_version(version, dest_dir):
+def download_version(version, dest_dir=None):
     """Download specific expyfun version
 
     Parameters
     ----------
     version : str
         Version to check out (7-character git commit number).
-    dest_dir : str
-        Destination directory.
+    dest_dir : str | None
+        Destination directory. If None, the current working
+        directory is used.
 
     Notes
     -----
@@ -47,9 +48,14 @@ def download_version(version, dest_dir):
     """
     _check_git()
     _check_version_format(version)
-    if not op.isdir(dest_dir):
+    if dest_dir is None:
+        dest_dir = os.getcwd()
+    if not isinstance(dest_dir, string_types) or not op.isdir(dest_dir):
         raise IOError('Destination directory {0} does not exist'
                       ''.format(dest_dir))
+    if op.isdir(op.join(dest_dir, 'expyfun')):
+        raise IOError('Destination directory {0} already has "expyfun" '
+                      'subdirectory'.format(dest_dir))
 
     # fetch locally and get the proper version
     tempdir = _TempDir()

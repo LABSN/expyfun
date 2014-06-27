@@ -206,8 +206,6 @@ def run_subprocess(command, **kwargs):
 
     output = (stdout_, stderr)
     if p.returncode:
-        print(stdout_)
-        print(stderr)
         err_fun = subprocess.CalledProcessError.__init__
         if 'output' in inspect.getargspec(err_fun).args:
             raise subprocess.CalledProcessError(p.returncode, command, output)

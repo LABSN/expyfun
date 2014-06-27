@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from os import path as op
 from nose.tools import assert_raises, assert_true, assert_equal
 
@@ -30,3 +31,12 @@ def test_version():
         with open(op.join(ex_dir, '_version.py')) as fid:
             line = fid.readline().strip()
         assert_equal(line.split(' = ')[1][-8:-1], v)
+
+        # auto dir determination
+        orig_dir = os.getcwd()
+        os.chdir(tempdir)
+        try:
+            assert_true(op.isdir('expyfun'))
+            assert_raises(IOError, download_version, v)
+        finally:
+            os.chdir(orig_dir)
