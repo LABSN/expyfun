@@ -22,7 +22,7 @@ msg_dur = 3.0
 
 with ExperimentController('KeypressDemo', screen_num=0,
                           window_size=[640, 480], full_screen=False,
-                          stim_db=0, noise_db=0, stim_fs=0,
+                          stim_db=0, noise_db=0,
                           participant='foo', session='001') as ec:
     ec.wait_secs(isi)
 
