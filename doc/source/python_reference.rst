@@ -30,6 +30,8 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   assert_version
+   download_version
    get_keyboard_input
    wait_secs
 
