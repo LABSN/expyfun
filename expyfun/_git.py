@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 from os import path as op
 import sys
@@ -60,8 +59,7 @@ def download_version(version, dest_dir=None):
     # fetch locally and get the proper version
     tempdir = _TempDir()
     expyfun_dir = op.join(tempdir, 'expyfun')  # git will auto-create this dir
-    # XXX CHANGE URL TO LABSN / UPSTREAM AFTER MERGE!
-    repo_url = 'git://github.com/Eric89GXL/expyfun.git'
+    repo_url = 'git://github.com/LABSN/expyfun.git'
     run_subprocess(['git', 'clone', repo_url, expyfun_dir])
     try:
         run_subprocess(['git', 'checkout', version], cwd=expyfun_dir)
