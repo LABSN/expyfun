@@ -96,7 +96,7 @@ def get_bands(data, fs, edges, order=2, zero_phase=False, axis=-1):
     filts = []
     for lf, hf in edges:
         # band-pass
-        b, a = butter(order, [lf / fs, hf / fs], 'bandpass')
+        b, a = butter(order, [2 * lf / fs, 2 * hf / fs], 'bandpass')
         filt = filtfilt if zero_phase else lfilter
         band = filt(b, a, data, axis=axis)
         bands.append(band)
@@ -131,7 +131,7 @@ def get_env(data, fs, lp_order=4, lp_cutoff=160., zero_phase=False, axis=-1):
     """
     if lp_cutoff >= fs / 2.:
         raise ValueError('frequency limits must not exceed Nyquist')
-    cutoff = lp_cutoff / float(fs)
+    cutoff = 2 * lp_cutoff / float(fs)
     data[data < 0] = 0.  # half-wave rectify
     b, a = butter(lp_order, cutoff, 'lowpass')
     filt = filtfilt if zero_phase else lfilter
@@ -203,7 +203,7 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
             else:  # mode == 'poisson'
                 prob = rate / fs
                 carrier = rng.choice([0., 1.], n_samp, p=[1 - prob, prob])
-            b, a = butter(order, [lf / fs, hf / fs], 'bandpass')
+            b, a = butter(order, [2 * lf / fs, 2 * hf / fs], 'bandpass')
             carrier = lfilter(b, a, carrier, axis=axis)
             carrier /= np.sqrt(np.mean(carrier * carrier, axis=axis,
                                        keepdims=True))  # rms of 1
