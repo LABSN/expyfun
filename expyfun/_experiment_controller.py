@@ -480,7 +480,7 @@ class ExperimentController(object):
         Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
         gl.glClearColor(*(_convert_color(color) / 255.))
 
-    def start_stimulus(self, start_of_trial=True, flip=True):
+    def start_stimulus(self, start_of_trial=True, flip=True, when=None):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
 
         Parameters
@@ -491,6 +491,11 @@ class ExperimentController(object):
             ``flip_and_play`` is to be used mid-trial (should be rare!).
         flip : bool
             If False, don't flip the screen.
+        when : float | None
+            Time to start stimulus. If None, start immediately.
+            Note that due to flip timing limitations, this is only a
+            guaranteed *minimum* (not absolute) wait time before the
+            flip completes (if ``flip`` is ``True``).
 
         Returns
         -------
@@ -515,11 +520,13 @@ class ExperimentController(object):
         if flip:
             self._on_next_flip = ([self._play] + self._ofp_critical_funs +
                                   self._on_next_flip)
-            stimulus_time = self.flip()
+            stimulus_time = self.flip(when)
         else:
+            if when is not None:
+                self.wait_until(when)
             funs = [self._play] + self._ofp_critical_funs
             self._win.dispatch_events()
-            stimulus_time = self._clock.get_time()
+            stimulus_time = self.get_time()
             for fun in funs:
                 fun()
         return stimulus_time
@@ -535,7 +542,7 @@ class ExperimentController(object):
         logger.exp('Expyfun: Playing audio')
         # ensure self._play comes first in list:
         self._play()
-        return self._clock.get_time()
+        return self.get_time()
 
     def call_on_next_flip(self, function, *args, **kwargs):
         """Add a function to be executed on next flip only.
@@ -747,8 +754,15 @@ class ExperimentController(object):
         self.set_visible(v_)
         win.dispatch_events()
 
-    def flip(self):
+    def flip(self, when=None):
         """Flip screen, then run any "on-flip" functions.
+
+        Parameters
+        ----------
+        when : float | None
+            Time to flip. If None, flip immediately. Note that due to flip
+            timing limitations, this is only a guaranteed *minimum* (not
+            absolute) wait time before the flip completes.
 
         Returns
         -------
@@ -760,6 +774,8 @@ class ExperimentController(object):
         Order of operations is: screen flip, functions added with
         ``on_next_flip``, followed by functions added with ``on_every_flip``.
         """
+        if when is not None:
+            self.wait_until(when)
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
         self._win.switch_to()
@@ -772,7 +788,7 @@ class ExperimentController(object):
         gl.glVertex2i(10, 10)
         gl.glEnd()
         gl.glFinish()
-        flip_time = self._clock.get_time()
+        flip_time = self.get_time()
         for function in call_list:
             function()
         self.write_data_line('flip', flip_time)
@@ -1133,6 +1149,16 @@ class ExperimentController(object):
     def data_fname(self):
         """Date filename"""
         return self._data_file.name
+
+    def get_time(self):
+        """Return current master clock time
+
+        Returns
+        -------
+        time : float
+            Time since ExperimentController was created.
+        """
+        return self._clock.get_time()
 
     def write_data_line(self, event_type, value=None, timestamp=None):
         """Add a line of data to the output CSV.
