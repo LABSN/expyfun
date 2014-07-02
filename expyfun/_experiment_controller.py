@@ -1306,8 +1306,7 @@ class ExperimentController(object):
         if not np.all(np.logical_or(id_ == 1, id_ == 0)):
             raise ValueError('All values of id must be 0 or 1')
         id_ = 2 ** (id_.astype(int) + 2)  # 4's and 8's
-        # Put 8, 8 on ends
-        id_ = np.concatenate(([8], id_, [8]))
+        # Note: we no longer put 8, 8 on ends
         self._stamp_ttl_triggers(id_)
 
     def stamp_triggers(self, ids):
