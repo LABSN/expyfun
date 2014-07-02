@@ -495,7 +495,9 @@ class ExperimentController(object):
             Time to start stimulus. If None, start immediately.
             Note that due to flip timing limitations, this is only a
             guaranteed *minimum* (not absolute) wait time before the
-            flip completes (if ``flip`` is ``True``).
+            flip completes (if ``flip`` is ``True``). As a result, in some
+            cases ``when`` should be set to a value smaller than your true
+            intended flip time.
 
         Returns
         -------
@@ -762,7 +764,9 @@ class ExperimentController(object):
         when : float | None
             Time to flip. If None, flip immediately. Note that due to flip
             timing limitations, this is only a guaranteed *minimum* (not
-            absolute) wait time before the flip completes.
+            absolute) wait time before the flip completes. As a result, in
+            some cases ``when`` should be set to a value smaller than your
+            true intended flip time.
 
         Returns
         -------
