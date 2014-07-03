@@ -117,3 +117,40 @@ class ParallelTrigger(object):
         """
         if hasattr(self, '_port'):
             del self._port
+
+
+def decimals_to_binary(decimals, n_bits):
+    """Convert a sequence of decimal numbers to a sequence of binary numbers
+
+    Parameters
+    ----------
+    decimals : array-like
+        Array of integers to convert. Must all be >= 0.
+    n_bits : array-like
+        Array of the number of bits to use to represent each decimal number.
+
+    Returns
+    -------
+    binary : list
+        Binary representation.
+
+    Notes
+    -----
+    This function is useful for generating IDs to be stamped using the TDT.
+    """
+    decimals = np.array(decimals, int)
+    if decimals.ndim != 1 or (decimals < 0).any():
+        raise ValueError('decimals must be 1D with all nonnegative values')
+    n_bits = np.array(n_bits, int)
+    if decimals.shape != n_bits.shape:
+        raise ValueError('n_bits must have same shape as decimals')
+    if (n_bits <= 0).any():
+        raise ValueError('all n_bits must be positive')
+    binary = list()
+    for d, b in zip(decimals, n_bits):
+        if d > 2 ** (b - 1):
+            raise ValueError('cannot convert number {0} using {1} bits'
+                             ''.format(d, b))
+        binary.extend([int(bb) for bb in np.binary_repr(d, b)])
+    assert len(binary) == n_bits.sum()  # make sure we didn't do something dumb
+    return binary

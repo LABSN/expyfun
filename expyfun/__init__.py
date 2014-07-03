@@ -12,6 +12,7 @@ from ._git import assert_version, download_version
 from ._experiment_controller import (ExperimentController, wait_secs,
                                      get_keyboard_input)
 from ._eyelink_controller import EyelinkController
+from ._trigger_controllers import decimals_to_binary
 from . import analyze
 from . import codeblocks
 from . import io
