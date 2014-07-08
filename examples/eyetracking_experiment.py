@@ -21,12 +21,12 @@ import expyfun.analyze as ea
 with ExperimentController('testExp', full_screen=True, participant='foo',
                           session='001', output_dir=None) as ec:
     el = EyelinkController(ec)
-    ec.screen_prompt('Welcome to the experiment!<br><br>First, we will '
-                     'perform a screen calibration.<br><br>Press a button '
+    ec.screen_prompt('Welcome to the experiment!\n\nFirst, we will '
+                     'perform a screen calibration.\n\nPress a button '
                      'to continue.')
     el.calibrate()  # by default this starts recording EyeLink data
     ec.screen_prompt('Excellent! Now, follow the red circle around the edge '
-                     'of the big white circle.<br><br>Press a button to '
+                     'of the big white circle.\n\nPress a button to '
                      'continue')
 
     # make some circles to be drawn

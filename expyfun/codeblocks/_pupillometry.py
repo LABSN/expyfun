@@ -69,7 +69,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     el.calibrate()
     if prompt:
         ec.screen_prompt('We will now determine the dynamic '
-                         'range of your pupil.<br><br>'
+                         'range of your pupil.\n\n'
                          'Press a button to continue.')
     levels = np.concatenate(([0.], 2 ** np.arange(8) / 255.))
     fixs = levels + 0.2
@@ -213,13 +213,13 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     ec.clear_buffer()
     ec.set_background_color(bgcolor)
     instr = ('Remember to press the button as quickly as possible following '
-             'each "wobble" sound.<br><br>Press the response button to '
+             'each "wobble" sound.\n\nPress the response button to '
              'continue.')
     if prompt:
         notes = [('We will now determine the response of your pupil to sound '
-                  'changes.<br><br>Your job is to press the repsonse button '
+                  'changes.\n\nYour job is to press the repsonse button '
                   'as quickly as possible when you hear a "wobble" instead '
-                  'of a "beep".<br><br>Press a button to hear the "beep".'),
+                  'of a "beep".\n\nPress a button to hear the "beep".'),
                  ('Now press a button to hear the "wobble".')]
         for text, stim in zip(notes, (tone_stim, sweep_stim)):
             ec.screen_prompt(text)

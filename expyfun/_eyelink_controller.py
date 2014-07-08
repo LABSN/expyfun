@@ -312,7 +312,7 @@ class EyelinkController(object):
         fname = self._open_file()
         if prompt:
             self._ec.screen_prompt('We will now perform a screen calibration.'
-                                   '<br><br>Press a button to continue.')
+                                   '\n\nPress a button to continue.')
         fname = None
         logger.info('EyeLink: Entering calibration')
         self._ec.flush()
