@@ -18,20 +18,9 @@ import numpy as np
 from expyfun import ExperimentController
 import expyfun.analyze as ea
 
-ac = 'pyglet'
-stim_fs = 44100
-#ac = dict(TYPE='tdt', TDT_MODEL='RM1')
-#stim_fs = 24414
-
-tc = 'dummy'
-#tc = 'parallel'
-#tc = 'tdt'
-
 # Fullscreen MUST be used to guarantee flip accuracy!
-with ExperimentController('SyncTest', screen_num=0, full_screen=True,
-                          stim_db=90, noise_db=-np.inf, stim_fs=stim_fs,
-                          participant='s', session='0', audio_controller=ac,
-                          trigger_controller=tc, output_dir=None,
+with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
+                          participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None) as ec:
     ec.load_buffer(np.r_[0.1, np.zeros(99)])  # RMS == 0.01
     pressed = None
@@ -42,13 +31,11 @@ with ExperimentController('SyncTest', screen_num=0, full_screen=True,
         ec.set_background_color('black')
         t2 = ec.flip()
         diff = round(1000 * (t2 - t1), 2)
-        ec.screen_text('<center><b>IFI (ms):<br>{}</b></center>'.format(diff))
-        if screenshot is None:
-            screenshot = ec.screenshot()
+        ec.screen_text('IFI (ms): {}'.format(diff), wrap=False)
+        screenshot = ec.screenshot() if screenshot is None else screenshot
         ec.flip()
         pressed = ec.wait_one_press(0.5)[0]
         ec.stop()
-        ec.trial_ok()
 
 import matplotlib.pyplot as plt
 plt.ion()
