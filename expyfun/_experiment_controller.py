@@ -380,7 +380,7 @@ class ExperimentController(object):
 
 ################################ SCREEN METHODS ##############################
     def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
-                    font_size=24, wrap=True):
+                    font_size=24, wrap=True, units='norm'):
         """Show some text on the screen.
 
         Parameters
@@ -391,7 +391,8 @@ class ExperimentController(object):
             x, y position of the text. In the default units (-1 to 1, with
             positive going up and right) the default is dead center (0, 0).
         units : str
-            Units for ``pos``. See ``check_units`` for options.
+            Units for ``pos``. See ``check_units`` for options. Applies to
+            ``pos`` but not ``font_size``.
         color : matplotlib color
             The text color.
         font_name : str
@@ -407,7 +408,9 @@ class ExperimentController(object):
         -------
         Instance of visual.Text
         """
-        scr_txt = Text(self, text, pos, color, font_name, font_size, wrap=wrap)
+        check_units(units)
+        scr_txt = Text(self, text, pos, color, font_name, font_size,
+                       wrap=wrap, units=units)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         return scr_txt
