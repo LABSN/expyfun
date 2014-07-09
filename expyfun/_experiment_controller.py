@@ -409,7 +409,6 @@ class ExperimentController(object):
         Instance of visual.Text
         """
         check_units(units)
-#        pos = self._convert_units(np.array(pos)[:, np.newaxis], units, 'norm')
         scr_txt = Text(self, text, pos, color, font_name, font_size,
                        wrap=wrap, units=units)
         scr_txt.draw()
