@@ -67,8 +67,8 @@ class Text(object):
 
     Returns
     -------
-    line : instance of Line
-        The line object.
+    text : instance of Text
+        The text object.
     """
     def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
