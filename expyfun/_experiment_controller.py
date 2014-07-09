@@ -391,7 +391,8 @@ class ExperimentController(object):
             x, y position of the text. In the default units (-1 to 1, with
             positive going up and right) the default is dead center (0, 0).
         units : str
-            Units for ``pos``. See ``check_units`` for options.
+            Units for ``pos``. See ``check_units`` for options. Applies to
+            ``pos`` but not ``font_size``.
         color : matplotlib color
             The text color.
         font_name : str
