@@ -687,6 +687,40 @@ def running_rms(signal, win_length):
     return sqrt(convolve(signal ** 2, ones(win_length) / win_length, 'valid'))
 
 
+def _fix_audio_dims(signal, n_channels=None):
+    """Make it so a valid audio buffer is in the standard dimensions
+
+    Parameters
+    ----------
+    signal : array_like
+        The signal whose dimensions should be checked and fixed.
+    n_channels : int or None
+        The number of channels that the output should have. If ``None``, don't
+        change the number of channels (and assume vectors have one channel).
+        Setting ``n_channels`` to 1 when the input is stereo will result in an
+        error, since stereo-mono conversion is non-trivial and beyond the
+        scope of this function.
+    """
+    signal = np.asarray(signal)
+    if n_channels is not None and n_channels not in [1, 2]:
+        raise ValueError('Number of channels must be None, 1, or 2.')
+    if signal.ndim == 2:
+        if signal.shape[0] not in [1, 2]:
+            raise ValueError('Audio shape must be (N,), (1, N), or (2, N).')
+        if (n_channels is None) or (n_channels == signal.shape[0]):
+            return signal
+        elif n_channels == 1:
+            raise ValueError('Requested mono output but gave stereo input.')
+        else:  # n_channels == 2
+            return np.tile(signal, (2, 1))
+    elif signal.ndim == 1:
+        if n_channels is None:
+            n_channels = 1
+        return np.tile(signal[np.newaxis, :], (n_channels, 1))
+    else:
+        raise ValueError('Input array must 1- or 2-dimensional.')
+
+
 def _sanitize(text_like):
     """Cast as string, encode as UTF-8 and sanitize any escape characters.
     """

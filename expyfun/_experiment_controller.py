@@ -1014,8 +1014,8 @@ class ExperimentController(object):
         Parameters
         ----------
         samples : np.array
-            Audio data as floats scaled to (-1,+1), formatted as an Nx1 or Nx2
-            numpy array with dtype float32.
+            Audio data as floats scaled to (-1,+1), formatted as numpy array
+            with shape (1, N), (2, N), or (N,) dtype float32.
         """
         samples = self._validate_audio(samples) * self._stim_scaler
         logger.exp('Expyfun: Loading {} samples to buffer'
