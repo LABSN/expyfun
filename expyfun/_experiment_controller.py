@@ -1092,7 +1092,7 @@ class ExperimentController(object):
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs), 2))
-            samples = resample(samples, self.fs, self.stim_fs)
+            samples = resample(samples, self.fs, self.stim_fs, axis=0)
 
         # check RMS
         if self._check_rms is not None:
