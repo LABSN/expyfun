@@ -5,7 +5,7 @@ import numpy as np
 import gzip
 
 from ._filter import resample
-from .._utils import fetch_data_file
+from .._utils import fetch_data_file, _fix_audio_dims
 
 
 # This was used to generate "barb_anech.gz":
@@ -62,7 +62,7 @@ def convolve_hrtf(data, fs, angle, source='barb'):
 
     Parameters
     ----------
-    data : 1-dimensional array-like
+    data : 1-dimensional or 1xN array-like
         Data to operate on.
     fs : float
         The sample rate of the data. (HRTFs will be resampled if necessary.)
@@ -83,8 +83,7 @@ def convolve_hrtf(data, fs, angle, source='barb'):
         raise ValueError('Source "{0}" unknown, must be one of {1}'
                          ''.format(source, known_sources))
     data = np.array(data, np.float64)
-    if data.ndim != 1:
-        raise ValueError('data must be 1-dimensional')
+    data = _fix_audio_dims(data, n_channels=1).ravel()
 
     brir, brir_fs, leftward = _get_hrtf(angle, 'barb')
     order = [1, 0] if leftward else [0, 1]

@@ -687,6 +687,57 @@ def running_rms(signal, win_length):
     return sqrt(convolve(signal ** 2, ones(win_length) / win_length, 'valid'))
 
 
+def _fix_audio_dims(signal, n_channels=None):
+    """Make it so a valid audio buffer is in the standard dimensions
+
+    Parameters
+    ----------
+    signal : array_like
+        The signal whose dimensions should be checked and fixed.
+    n_channels : int or None
+        The number of channels that the output should have. If ``None``, don't
+        change the number of channels (and assume vectors have one channel).
+        Setting ``n_channels`` to 1 when the input is stereo will result in an
+        error, since stereo-mono conversion is non-trivial and beyond the
+        scope of this function.
+
+    Returns
+    -------
+    signal_fixed : array
+        The signal with standard dimensions.
+    """
+    # Check requested channel output
+    if n_channels not in [None, 1, 2]:
+        raise ValueError('Number of channels out must be ``None``, ``1``, '
+                         'or ``2``.')
+
+    signal = np.asarray(signal)
+
+    # Check dimensionality
+    if signal.ndim > 2:
+        raise ValueError('Sound data has more than two dimensions.')
+    elif signal.ndim == 2:
+        if np.min(signal.shape) > 2:
+            raise ValueError('Sound data has more than two channels.')
+        if signal.shape[0] > 2:  # Needs to be correct for remainder of checks
+            signal = signal.T
+        if signal.shape[0] not in [1, 2]:
+            raise ValueError('Audio shape must be (N,), (1, N), or (2, N).')
+        if signal.shape[0] == 2 and n_channels == 1:
+            raise ValueError('Requested mono output but gave stereo input.')
+
+    # Return data with correct dimensions
+    if signal.ndim == 2:
+        if (n_channels is None) or (n_channels == signal.shape[0]):
+            return signal
+        else:  # n_channels == 2
+            return np.tile(signal, (2, 1))
+    else:  # signal.ndim == 1:
+        if n_channels is None:
+            n_channels = 1
+        return np.tile(signal[np.newaxis, :], (n_channels, 1))
+
+
 def _sanitize(text_like):
     """Cast as string, encode as UTF-8 and sanitize any escape characters.
     """

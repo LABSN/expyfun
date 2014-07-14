@@ -2,7 +2,7 @@ from nose.tools import assert_true, assert_raises, assert_equal
 import os
 import warnings
 
-from expyfun._utils import get_config, set_config, deprecated
+from expyfun._utils import get_config, set_config, deprecated, _fix_audio_dims
 
 warnings.simplefilter('always')
 
@@ -53,3 +53,20 @@ def test_deprecated():
         warnings.simplefilter('always')
         deprecated_class()
     assert_true(len(w) == 1)
+
+
+def test_audio_dims():
+    """Test audio dimension fixing"""
+    x = range(10)
+    _fix_audio_dims(x)
+    y1 = _fix_audio_dims(x, 1)
+    _fix_audio_dims(y1)
+    _fix_audio_dims(y1, 1)
+    _fix_audio_dims(y1, 2)
+    y2 = _fix_audio_dims(x, 2)
+    _fix_audio_dims(y2)
+    _fix_audio_dims(y2, 2)
+    assert_raises(ValueError, _fix_audio_dims, y2, 1)
+    assert_raises(ValueError, _fix_audio_dims, y1, 3)
+    from numpy import zeros
+    assert_raises(ValueError, _fix_audio_dims, zeros((2, 2, 2)))

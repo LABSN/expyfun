@@ -17,7 +17,7 @@ from pyglet import gl
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
                      check_units, set_log_file, flush_logger,
-                     string_types, input)
+                     string_types, _fix_audio_dims, input)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
@@ -1014,8 +1014,8 @@ class ExperimentController(object):
         Parameters
         ----------
         samples : np.array
-            Audio data as floats scaled to (-1,+1), formatted as an Nx1 or Nx2
-            numpy array with dtype float32.
+            Audio data as floats scaled to (-1,+1), formatted as numpy array
+            with shape (1, N), (2, N), or (N,) dtype float32.
         """
         samples = self._validate_audio(samples) * self._stim_scaler
         logger.exp('Expyfun: Loading {} samples to buffer'
@@ -1085,28 +1085,14 @@ class ExperimentController(object):
             raise ValueError('Sound data exceeds +/- 1.')
             # samples /= np.max(np.abs(samples),axis=0)
 
-        # check dimensionality
-        if samples.ndim > 2:
-            raise ValueError('Sound data has more than two dimensions.')
-
-        # check shape
-        if samples.ndim == 2 and min(samples.shape) > 2:
-            raise ValueError('Sound data has more than two channels.')
-        elif len(samples.shape) == 2 and samples.shape[0] <= 2:
-            samples = samples.T
+        # check shape and dimensions, make stereo
+        samples = _fix_audio_dims(samples, 2).T
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs), 2))
-            samples = resample(samples, self.fs, self.stim_fs)
-
-        # make stereo if not already
-        if samples.ndim == 1:
-            samples = np.array((samples, samples)).T
-        elif 1 in samples.shape:
-            samples = samples.ravel()
-            samples = np.array((samples, samples)).T
+            samples = resample(samples, self.fs, self.stim_fs, axis=0)
 
         # check RMS
         if self._check_rms is not None:
