@@ -1085,21 +1085,14 @@ class ExperimentController(object):
             raise ValueError('Sound data exceeds +/- 1.')
             # samples /= np.max(np.abs(samples),axis=0)
 
-        # check shape and dimensions
-        samples = _fix_audio_dims(samples, 2)
+        # check shape and dimensions, make stereo
+        samples = _fix_audio_dims(samples, 2).T
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs), 2))
             samples = resample(samples, self.fs, self.stim_fs)
-
-        # make stereo if not already
-        if samples.ndim == 1:
-            samples = np.array((samples, samples)).T
-        elif 1 in samples.shape:
-            samples = samples.ravel()
-            samples = np.array((samples, samples)).T
 
         # check RMS
         if self._check_rms is not None:
