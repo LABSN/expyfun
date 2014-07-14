@@ -17,7 +17,7 @@ from pyglet import gl
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
                      check_units, set_log_file, flush_logger,
-                     string_types, _fix_audio_dims,input)
+                     string_types, _fix_audio_dims, input)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
@@ -1085,15 +1085,8 @@ class ExperimentController(object):
             raise ValueError('Sound data exceeds +/- 1.')
             # samples /= np.max(np.abs(samples),axis=0)
 
-        # check dimensionality
-        if samples.ndim > 2:
-            raise ValueError('Sound data has more than two dimensions.')
-
-        # check shape
-        if samples.ndim == 2 and min(samples.shape) > 2:
-            raise ValueError('Sound data has more than two channels.')
-        elif len(samples.shape) == 2 and samples.shape[0] <= 2:
-            samples = samples.T
+        # check shape and dimensions
+        samples = _fix_audio_dims(samples, 2)
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:

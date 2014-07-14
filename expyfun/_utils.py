@@ -719,9 +719,9 @@ def _fix_audio_dims(signal, n_channels=None):
     elif signal.ndim == 2:
         if np.min(signal.shape) > 2:
             raise ValueError('Sound data has more than two channels.')
-        if signal.shape[0] > 2:  # Needs to be right for remainder of checks
+        if signal.shape[0] > 2:  # Needs to be correct for remainder of checks
             signal = signal.T
-        if signal.shape not in [1, 2]:
+        if signal.shape[0] not in [1, 2]:
             raise ValueError('Audio shape must be (N,), (1, N), or (2, N).')
         if signal.shape[0] == 2 and n_channels == 1:
             raise ValueError('Requested mono output but gave stereo input.')
