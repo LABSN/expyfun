@@ -700,25 +700,42 @@ def _fix_audio_dims(signal, n_channels=None):
         Setting ``n_channels`` to 1 when the input is stereo will result in an
         error, since stereo-mono conversion is non-trivial and beyond the
         scope of this function.
+
+    Returns
+    -------
+    signal_fixed : array
+        The signal with standard dimensions.
     """
+    # Check requested channel output
+    if n_channels not in [None, 1, 2]:
+        raise ValueError('Number of channels out must be ``None``, ``1``, '
+                         'or ``2``.')
+
     signal = np.asarray(signal)
-    if n_channels is not None and n_channels not in [1, 2]:
-        raise ValueError('Number of channels must be None, 1, or 2.')
-    if signal.ndim == 2:
-        if signal.shape[0] not in [1, 2]:
+
+    # Check dimensionality
+    if signal.ndim > 2:
+        raise ValueError('Sound data has more than two dimensions.')
+    elif signal.ndim == 2:
+        if np.min(signal.shape) > 2:
+            raise ValueError('Sound data has more than two channels.')
+        if signal.shape[0] > 2:  # Needs to be right for remainder of checks
+            signal = signal.T
+        if signal.shape not in [1, 2]:
             raise ValueError('Audio shape must be (N,), (1, N), or (2, N).')
+        if signal.shape[0] == 2 and n_channels == 1:
+            raise ValueError('Requested mono output but gave stereo input.')
+
+    # Return data with correct dimensions
+    if signal.ndim == 2:
         if (n_channels is None) or (n_channels == signal.shape[0]):
             return signal
-        elif n_channels == 1:
-            raise ValueError('Requested mono output but gave stereo input.')
         else:  # n_channels == 2
             return np.tile(signal, (2, 1))
-    elif signal.ndim == 1:
+    else:  # signal.ndim == 1:
         if n_channels is None:
             n_channels = 1
         return np.tile(signal[np.newaxis, :], (n_channels, 1))
-    else:
-        raise ValueError('Input array must 1- or 2-dimensional.')
 
 
 def _sanitize(text_like):
