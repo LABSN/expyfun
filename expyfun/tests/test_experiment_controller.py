@@ -261,6 +261,7 @@ def test_ec(ac=None, rd=None):
         ec.stop()
         ec.start_stimulus(start_of_trial=False)
         ec.get_mouse_position()
+        ec.get_mouse_buttons()
         ec.toggle_cursor(False)
         ec.toggle_cursor(True, True)
         ec.wait_secs(0.001)
