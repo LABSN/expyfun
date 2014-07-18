@@ -973,7 +973,8 @@ class ExperimentController(object):
         buttons : list
             The list of pressed mouse buttons: 0 left, 1 middle, 2 right.
         """
-        return self._mouse_handler.buttons
+        names = np.array(['left', 'middle', 'right'])
+        return list(names[self._mouse_handler.buttons])
 
     def toggle_cursor(self, visibility, flip=False):
         """Show or hide the mouse

@@ -227,8 +227,4 @@ class Mouse(object):
     def buttons(self):
         """The current press status of the mouse buttons"""
         # 0 is left, 1 is middle, 2 is right
-        pressed = []
-        b = self.win._mouse_buttons[1:4]
-        if True in b:
-            pressed = [b.index(True)]
-        return pressed
+        return np.where(self.win._mouse_buttons[1:])[0]
