@@ -965,6 +965,18 @@ class ExperimentController(object):
         pos = self._convert_units(pos[:, np.newaxis], 'norm', units)[:, 0]
         return pos
 
+    def get_mouse_buttons(self):
+        """Mouse position in screen coordinates
+
+        Returns
+        -------
+        buttons : list
+            The list of pressed mouse buttons, with possible elements:
+            ``'left'``, ``'middle'``, ``'right'``.
+        """
+        names = np.array(['left', 'middle', 'right'])
+        return list(names[self._mouse_handler.buttons])
+
     def toggle_cursor(self, visibility, flip=False):
         """Show or hide the mouse
 

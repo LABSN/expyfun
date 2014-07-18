@@ -222,3 +222,9 @@ class Mouse(object):
         x = (self.win._mouse_x - self.win.width / 2.) / (self.win.width / 2.)
         y = (self.win._mouse_y - self.win.height / 2.) / (self.win.height / 2.)
         return np.array([x, y])
+
+    @property
+    def buttons(self):
+        """The current press status of the mouse buttons"""
+        # 0 is left, 1 is middle, 2 is right
+        return np.where(self.win._mouse_buttons[1:])[0]
