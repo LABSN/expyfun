@@ -16,7 +16,7 @@ def test_hdf5():
     """
     test_file = op.join(tempdir, 'test.hdf5')
     x = dict(a=dict(b=np.zeros(3)), c=np.zeros(2, np.complex128),
-             d=[dict(e=(1, -2., 'hello'))])
+             d=[dict(e=(1, -2., 'hello')), None])
     write_hdf5(test_file, 1)
     assert_equal(read_hdf5(test_file), 1)
     assert_raises(IOError, write_hdf5, test_file, x)  # file exists
