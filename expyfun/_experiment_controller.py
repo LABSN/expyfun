@@ -971,7 +971,8 @@ class ExperimentController(object):
         Returns
         -------
         buttons : list
-            The list of pressed mouse buttons: 0 left, 1 middle, 2 right.
+            The list of pressed mouse buttons, with possible elements:
+            ``'left'``, ``'middle'``, ``'right'``.
         """
         names = np.array(['left', 'middle', 'right'])
         return list(names[self._mouse_handler.buttons])
