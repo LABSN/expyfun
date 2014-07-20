@@ -68,7 +68,7 @@ def _triage_write(key, value, root, *write_params):
     elif isinstance(value, (int, float)):
         if isinstance(value, int):
             title = 'int'
-        elif isinstance(value, float):
+        else:  # isinstance(value, float):
             title = 'float'
         value = np.atleast_1d(value)
         atom = tb.Atom.from_dtype(value.dtype)
