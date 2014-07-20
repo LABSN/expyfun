@@ -5,7 +5,7 @@
 import numpy as np
 from os import path as op
 
-from .._utils import _check_pytables, string_types
+from .._utils import _check_pytables, string_types, text_type
 
 
 ##############################################################################
@@ -65,17 +65,26 @@ def _triage_write(key, value, root, *write_params):
         s = create_c_array(root, key, atom, (1,), title='None',
                            filters=filters)
         s[:] = False
-    elif isinstance(value, (int, float, str)):
+    elif isinstance(value, (int, float)):
         if isinstance(value, int):
             title = 'int'
         elif isinstance(value, float):
             title = 'float'
-        else:
-            title = 'str'
         value = np.atleast_1d(value)
         atom = tb.Atom.from_dtype(value.dtype)
         s = create_c_array(root, key, atom, (1,),
                            title=title, filters=filters)
+        s[:] = value
+    elif isinstance(value, string_types):
+        atom = tb.UInt8Atom()
+        if isinstance(value, text_type):  # unicode
+            value = np.fromstring(value.encode('utf-8'), np.uint8)
+            title = 'unicode'
+        else:
+            value = np.fromstring(value.encode('ASCII'), np.uint8)
+            title = 'ascii'
+        s = create_c_array(root, key, atom, (len(value),), title=title,
+                           filters=filters)
         s[:] = value
     elif isinstance(value, np.ndarray):
         atom = tb.Atom.from_dtype(value.dtype)
@@ -139,14 +148,16 @@ def _triage_read(node):
                                       ''.format(type_str))
     elif type_str == 'ndarray':
         data = np.array(node)
-    elif type_str in ('int', 'float', 'str'):
+    elif type_str in ('int', 'float'):
         if type_str == 'int':
             cast = int
-        elif type_str == 'float':
+        else:  # type_str == 'float':
             cast = float
-        else:
-            cast = str
         data = cast(np.array(node)[0])
+    elif type_str in ('unicode', 'ascii', 'str'):  # 'str' for backward compat
+        decoder = 'utf-8' if type_str == 'unicode' else 'ASCII'
+        cast = text_type if type_str == 'unicode' else str
+        data = cast(np.array(node).tostring().decode(decoder))
     elif type_str == 'None':
         data = None
     else:
