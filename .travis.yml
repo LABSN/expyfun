@@ -51,7 +51,7 @@ before_install:
           sudo apt-get install -qq -y python-pandas python-tables;
         else
           mv pylink /home/$USER/anaconda/site-packages;
-          conda install --yes --quiet pandas tables;
+          conda install --yes --quiet pandas pytables;
         fi;
         pip install mne;
         echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list;
