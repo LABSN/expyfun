@@ -52,13 +52,14 @@ else:
 # for py3k (eventually)
 if sys.version.startswith('2'):
     string_types = basestring  # noqa
-    input = raw_input  # input is raw_input in py3k
-    text_type = unicode
-    from urllib2 import urlopen
+    input = raw_input  # noqa, input is raw_input in py3k
+    text_type = unicode  # noqa
+    from urllib2 import urlopen  # noqa
 else:
     string_types = str
     text_type = str
     from urllib.request import urlopen
+    input = input
 
 ###############################################################################
 # LOGGING
