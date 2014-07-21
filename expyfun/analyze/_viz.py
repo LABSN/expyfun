@@ -78,8 +78,8 @@ def format_pval(pval, latex=True, scheme='default'):
 def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             groups=None, eq_group_widths=False, gap_size=0.2,
             brackets=None, bracket_text=None, bracket_group_lines=False,
-            bar_names=None, group_names=None, bar_kwargs=None,
-            err_kwargs=None, line_kwargs=None, bracket_kwargs=None,
+            bar_names=None, group_names=None, bar_kwargs=None, err_kwargs=None,
+            line_kwargs=None, bracket_kwargs=None, pval_kwargs=None,
             figure_kwargs=None, smart_defaults=True, fname=None, ax=None):
     """Makes barplots w/ optional line overlays, grouping, & signif. brackets.
 
@@ -143,6 +143,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     line_kwargs : dict
         Arguments passed to ``matplotlib.pyplot.plot()`` (e.g., color, marker,
         linestyle).
+    pval_kwargs : dict
+        arguments passed to ``matplotlib.pyplot.text()`` when drawing bracket
+        labels.
     bracket_kwargs : dict
         arguments passed to ``matplotlib.pyplot.plot()`` (e.g., color, marker,
         linestyle).
@@ -217,6 +220,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         err_kwargs = dict()
     if line_kwargs is None:
         line_kwargs = dict()
+    if pval_kwargs is None:
+        pval_kwargs = dict()
     if bracket_kwargs is None:
         bracket_kwargs = dict()
     if figure_kwargs is None:
@@ -309,7 +314,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         brk_offset = np.diff(p.get_ylim()) * 0.025
         brk_height = np.diff(p.get_ylim()) * 0.05
         # prelim: calculate text height
-        t = plt.text(0.5, 0.5, bracket_text[0])
+        t = plt.text(0.5, 0.5, bracket_text[0], fontdict=pval_kwargs)
         t.set_bbox(dict(boxstyle='round, pad=0'))
         plt.draw()
         bb = t.get_bbox_patch().get_window_extent()
