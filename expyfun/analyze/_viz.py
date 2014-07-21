@@ -338,7 +338,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             lr = []  # x
             ll = []  # y lower
             hh = []  # y upper
-            ed = 0
+            ed = 0.
             for br in pair:
                 if hasattr(br, 'append'):  # group
                     bri = groups.index(br)
@@ -364,8 +364,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                     ix = len(allx) - allx[::-1].index(curx) - 1
                     cury = brk_top[ix // 2] + brk_offset  # * count
                 for l, r in brk_lrx:
-                    if l < curx < r and cury < max(brk_top):
-                        ed += 1
+                    while l < curx < r and cury < max(brk_top) - ed * txth:
+                        ed += 0.5
                 # draw horiz line spanning groups if desired
                 if hasattr(br, 'append') and bracket_group_lines:
                     gbr = [bar_centers[x] for x in groups[bri]]
