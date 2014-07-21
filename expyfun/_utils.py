@@ -42,27 +42,6 @@ except ImportError:
 else:
     has_pandas = True
 
-
-# for py3k (eventually)
-try:
-    string_types = basestring  # noqa
-except NameError:
-    string_types = str  # noqa
-try:
-    input = raw_input  # input is raw_input in py3k
-except NameError:
-    input = input
-
-try:
-    x = unicode('test')  # noqa
-except NameError:
-    unicode = str
-
-try:
-    from urllib2 import urlopen
-except ImportError:
-    from urllib.request import urlopen
-
 try:
     import tables  # noqa, analysis:ignore
 except Exception:
@@ -70,6 +49,17 @@ except Exception:
 else:
     has_pytables = True
 
+# for py3k (eventually)
+if sys.version.startswith('2'):
+    string_types = basestring  # noqa
+    input = raw_input  # noqa, input is raw_input in py3k
+    text_type = unicode  # noqa
+    from urllib2 import urlopen  # noqa
+else:
+    string_types = str
+    text_type = str
+    from urllib.request import urlopen
+    input = input
 
 ###############################################################################
 # LOGGING
@@ -741,7 +731,7 @@ def _fix_audio_dims(signal, n_channels=None):
 def _sanitize(text_like):
     """Cast as string, encode as UTF-8 and sanitize any escape characters.
     """
-    return unicode(text_like).encode('unicode_escape').decode('utf-8')
+    return text_type(text_like).encode('unicode_escape').decode('utf-8')
 
 
 def _sort_keys(x):
