@@ -391,7 +391,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             # bracket text
             txt = p.annotate(st, (tx, yh), xytext=(0, 2),
                              textcoords='offset points', ha='center',
-                             va='baseline', annotation_clip=False)
+                             va='baseline', annotation_clip=False,
+                             **pval_kwargs)
             txt.set_bbox(dict(facecolor='w', alpha=0, boxstyle='round, pad=1'))
             # boost ymax if needed
             ybnd = p.get_ybound()
