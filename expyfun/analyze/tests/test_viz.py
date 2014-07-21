@@ -84,6 +84,8 @@ def test_format_pval():
     foo = ea.format_pval(1e-10, latex=False)
     bar = ea.format_pval(1e-10, scheme='ross')
     baz = ea.format_pval([0.2, 0.02])
+    fuu = ea.format_pval(0.002, scheme='stars')
     assert_equal(foo, 'p < 10^-9')
     assert_equal(bar, '$p < 10^{{-9}}$')
     assert_equal(baz[0], '$n.s.$')
+    assert_equal(fuu, '${*}{*}$')
