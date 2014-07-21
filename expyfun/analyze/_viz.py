@@ -26,8 +26,9 @@ def format_pval(pval, latex=True, scheme='default'):
     latex : bool
         Whether to use LaTeX wrappers suitable for use with matplotlib.
     scheme : str
-        A keyword indicating the formatting scheme. Currently supports "ross"
-        and "default"; any other string will yield the same as "default".
+        A keyword indicating the formatting scheme. Currently supports "stars",
+        "ross", and "default"; any other string will yield the same as
+        "default".
 
     Returns
     -------
@@ -56,6 +57,12 @@ def format_pval(pval, latex=True, scheme='default'):
                               for x in pval[pval > 0.0001]]
         pv[pval < 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak +
                              wrap for x in expon[pval < 0.0001]]
+    elif scheme == 'stars':
+        star = '{*}' if latex else '*'
+        pv[pval >= 0.05] = wrap + '' + wrap
+        pv[pval < 0.05] = wrap + star + wrap
+        pv[pval < 0.01] = wrap + star * 2 + wrap
+        pv[pval < 0.001] = wrap + star * 3 + wrap
     else:  # scheme == 'default'
         pv[pval >= 0.05] = wrap + 'n.s.' + wrap
         pv[pval < 0.05] = wrap + 'p < 0.05' + wrap
