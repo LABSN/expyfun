@@ -52,7 +52,7 @@ Functions:
    play_sound
    repeated_mls
    rms
-   vocode_ci
+   vocode
    window_edges
 
 .. currentmodule:: expyfun.io
@@ -60,6 +60,9 @@ Functions:
 Functions:
 
 .. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
    read_hdf5
    read_wav
    write_hdf5
