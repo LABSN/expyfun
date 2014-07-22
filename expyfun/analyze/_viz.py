@@ -77,10 +77,11 @@ def format_pval(pval, latex=True, scheme='default'):
 
 def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             groups=None, eq_group_widths=False, gap_size=0.2,
-            brackets=None, bracket_text=None, bracket_group_lines=False,
-            bar_names=None, group_names=None, bar_kwargs=None, err_kwargs=None,
-            line_kwargs=None, bracket_kwargs=None, pval_kwargs=None,
-            figure_kwargs=None, smart_defaults=True, fname=None, ax=None):
+            brackets=None, bracket_text=None, bracket_inline=False,
+            bracket_group_lines=False, bar_names=None, group_names=None,
+            bar_kwargs=None, err_kwargs=None, line_kwargs=None,
+            bracket_kwargs=None, pval_kwargs=None, figure_kwargs=None,
+            smart_defaults=True, fname=None, ax=None):
     """Makes barplots w/ optional line overlays, grouping, & signif. brackets.
 
     Parameters
@@ -128,6 +129,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         list than non-adjacent pairs.
     bracket_text : str | list | None
         Text to display above brackets.
+    bracket_inline : bool
+        If ``True``, bracket text will be vertically centered along a broken
+        bracket line. If ``False``, text will be above the line.
     bracket_group_lines : bool
         When drawing brackets between groups rather than single bars, should a
         horizontal line be drawn at each foot of the bracket to indicate this?
@@ -314,7 +318,10 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         brk_offset = np.diff(p.get_ylim()) * 0.025
         brk_height = np.diff(p.get_ylim()) * 0.05
         # prelim: calculate text height
-        t = plt.text(0.5, 0.5, bracket_text[0], fontdict=pval_kwargs)
+        pvk = pval_kwargs.copy()
+        if 'xytext' in pvk.keys():
+            del pvk['xytext']
+        t = plt.text(0.5, 0.5, bracket_text[0], fontdict=pvk)
         t.set_bbox(dict(boxstyle='round, pad=0'))
         plt.draw()
         bb = t.get_bbox_patch().get_window_extent()
@@ -382,18 +389,30 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         # plot brackets
         for ((xl, xr), (yl, yr), yh, tx, st) in zip(brk_lrx, brk_lry, brk_top,
                                                     brk_txt, bracket_text):
+            # bracket text
+            if 'va' not in pval_kwargs.keys():
+                pval_kwargs['va'] = 'center' if bracket_inline else 'baseline'
+            if 'xytext' not in pval_kwargs.keys():
+                pval_kwargs['xytext'] = (0, 0) if bracket_inline else (0, 2)
+            txt = p.annotate(st, (tx, yh), textcoords='offset points',
+                             ha='center', annotation_clip=False, **pval_kwargs)
+            txt.set_bbox(dict(facecolor='w', alpha=0,
+                              boxstyle='round, pad=0.25'))
+            plt.draw()
             # bracket lines
             lline = ((xl, xl), (yl, yh))
             rline = ((xr, xr), (yr, yh))
-            hline = ((xl, xr), (yh, yh))
-            for x, y in [lline, rline, hline]:
+            if bracket_inline:
+                bb = txt.get_bbox_patch().get_window_extent()
+                txtw = np.diff(p.transData.inverted().transform(bb),
+                               axis=0).ravel()[0]
+                xm = np.mean([xl, xr]) - txtw / 2.
+                xn = np.mean([xl, xr]) + txtw / 2.
+                hline = [((xl, xm), (yh, yh)), ((xn, xr), (yh, yh))]
+            else:
+                hline = [((xl, xr), (yh, yh))]
+            for x, y in [lline, rline] + hline:
                 p.plot(x, y, **bracket_kwargs)
-            # bracket text
-            txt = p.annotate(st, (tx, yh), xytext=(0, 2),
-                             textcoords='offset points', ha='center',
-                             va='baseline', annotation_clip=False,
-                             **pval_kwargs)
-            txt.set_bbox(dict(facecolor='w', alpha=0, boxstyle='round, pad=1'))
             # boost ymax if needed
             ybnd = p.get_ybound()
             if ybnd[-1] < yh + txth:
