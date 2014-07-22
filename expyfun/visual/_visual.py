@@ -281,6 +281,66 @@ class Rectangle(_Triangular):
         self._line_points = self._points  # all 4 points used for line drawing
 
 
+class Diamond(_Triangular):
+    """A diamond
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    pos : array-like
+        4-element array-like with X, Y center and width, height.
+    units : str
+        Units to use. These will apply to all spatial aspects of the drawing.
+        shape e.g. size, position. See ``check_units`` for options.
+    fill_color : matplotlib Color | None
+        Color to fill with. None is transparent.
+    line_color : matplotlib Color | None
+        Color of the border line. None is transparent.
+    line_width : float
+        Line width in pixels.
+
+    Returns
+    -------
+    line : instance of Rectangle
+        The rectangle object.
+    """
+    def __init__(self, ec, pos, units='norm', fill_color='white',
+                 line_color=None, line_width=1.0):
+        _Triangular.__init__(self, ec, fill_color=fill_color,
+                             line_color=line_color, line_width=line_width,
+                             line_loop=True)
+        self.set_pos(pos, units)
+
+    def set_pos(self, pos, units='norm'):
+        """Set the position of the rectangle
+
+        Parameters
+        ----------
+        pos : array-like
+            X, Y, width, height of the rectangle.
+        units : str
+            Units to use. See ``check_units`` for options.
+        """
+        check_units(units)
+        # do this in normalized units, then convert
+        pos = np.array(pos)
+        if not (pos.ndim == 1 and pos.size == 4):
+            raise ValueError('pos must be a 4-element array-like vector')
+        self._pos = pos
+        w = self._pos[2]
+        h = self._pos[3]
+        points = np.array([[w / 2., 0.],
+                           [0., h / 2.],
+                           [-w / 2., 0.],
+                           [0., -h / 2.]]).T
+        points += np.array(self._pos[:2])[:, np.newaxis]
+        points = self._ec._convert_units(points, units, 'pix')
+        self._points = points.T.flatten()
+        self._tris = np.array([0, 1, 2, 0, 2, 3])
+        self._line_points = self._points  # all 4 points used for line drawing
+
+
 class Circle(_Triangular):
     """A circle or ellipse
 
