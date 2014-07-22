@@ -301,6 +301,8 @@ def test_visual(ac=None):
         assert_raises(ValueError, circ.set_pos, [1])
         rect = visual.Rectangle(ec, [0, 0, 1, 1], line_width=1.0)
         rect.draw()
+        diamond = visual.Diamond(ec, [0, 0, 1, 1], line_width=1.0)
+        diamond.draw()
         assert_raises(TypeError, visual.ConcentricCircles, ec, colors=dict())
         assert_raises(TypeError, visual.ConcentricCircles, ec,
                       colors=np.array([]))

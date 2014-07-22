@@ -78,6 +78,7 @@ Classes:
 
    Circle
    ConcentricCircles
+   Diamond
    FixationDot
    Line
    RawImage

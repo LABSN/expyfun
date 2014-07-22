@@ -30,22 +30,19 @@ with ExperimentController('test', session='1', participant='2',
         img_buffer[ii * 40:(ii + 1) * 40, :, ii] = 1.0
     img = visual.RawImage(ec, img_buffer, scale=2.)
 
-    # make a line
+    # make a line, rectangle, diamond, and circle
     line = visual.Line(ec, [[-2, 2, 2, -2], [-2, 2, -2, -2]], units='deg',
                        line_color='w', line_width=2.0)
-
-    # make a rectangle
     rect = visual.Rectangle(ec, [0, 0, 2, 2], units='deg', fill_color='y')
-
-    # make a circle
+    diamond = visual.Diamond(ec, [0, 0, 4, 4], units='deg', fill_color=None,
+                             line_color='gray', line_width=2.0)
     circle = visual.Circle(ec, 1, units='deg', line_color='w', fill_color='k',
                            line_width=2.0)
 
     # do the drawing, then flip
-    img.draw()
-    line.draw()
-    rect.draw()
-    circle.draw()
+    for obj in [img, line, rect, diamond, circle]:
+        obj.draw()
+
     screenshot = ec.screenshot()  # must be called *before* the flip
     ec.flip()
     ec.wait_for_presses(0.5)
