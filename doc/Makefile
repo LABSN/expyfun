@@ -10,12 +10,15 @@ PAPER         =
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d build/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
+REMOTE_PATH_USER= ~/expyfun_temp/
+REMOTE_PATH     = /lvmraid/www/html/expyfun/
 
 .PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html      to make standalone HTML files"
+	@echo "  upload    to upload the files to lester.ilabs.uw.edu"
 	@echo "  dirhtml   to make HTML files named index.html in directories"
 	@echo "  pickle    to make pickle files"
 	@echo "  json      to make JSON files"
@@ -35,6 +38,12 @@ html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
+
+upload:
+	@rsync -rltvz --delete --perms --rsh="ssh -p 2222" --chmod=g+w build/html/ lester.ilabs.uw.edu:$(REMOTE_PATH_USER)
+	@ssh -t -p 2222 lester.ilabs.uw.edu "sudo rm -rf $(REMOTE_PATH) && sudo mv $(REMOTE_PATH_USER) $(REMOTE_PATH) && sudo chown -R apache:apache $(REMOTE_PATH)"
+	@echo
+	@echo "Upload finished. The new docs are online."
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) build/dirhtml
