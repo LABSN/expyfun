@@ -989,18 +989,6 @@ class ExperimentController(object):
         pos = self._convert_units(pos[:, np.newaxis], 'norm', units)[:, 0]
         return pos
 
-    def get_mouse_buttons(self):
-        """Mouse position in screen coordinates
-
-        Returns
-        -------
-        buttons : list
-            The list of clicked mouse buttons, with possible elements:
-            ``'left'``, ``'middle'``, ``'right'``.
-        """
-        names = np.array(['left', 'middle', 'right'])
-        return list(names[self._mouse_handler.buttons])
-
     def toggle_cursor(self, visibility, flip=False):
         """Show or hide the mouse
 
@@ -1042,16 +1030,64 @@ class ExperimentController(object):
         Returns
         -------
         clicked : tuple | str | None
-            If ``timestamp==True``, returns a tuple (str, float) indicating the
-            first button clicked and its timestamp (or ``(None, None)`` if no
-            acceptable button was clicked between ``min_wait`` and
-            ``max_wait``). If ``timestamp==False``, returns a string indicating
-            the first  button clicked (or ``None`` if no acceptable key was
-            clicked).
+            If ``timestamp==True``, returns a tuple (str, int, int, float)
+            indicating the first button clicked and its timestamp (or
+            ``(None, None, None, None)`` if no acceptable button was clicked
+            between ``min_wait`` and ``max_wait``). If ``timestamp==False``,
+            returns a tuple (str, int, int) indicating the first button clicked
+            (or ``(None, None, None)`` if no acceptable key was clicked).
         """
         return self._mouse_handler.wait_one_click(max_wait, min_wait,
                                                   live_buttons, timestamp,
                                                   relative_to)
+
+    def wait_for_click_on(self, objects, max_wait=np.inf, min_wait=0.0,
+                          live_buttons=None, timestamp=True, relative_to=None):
+        """Returns the first click after min_wait over a visual object.
+
+        Parameters
+        ----------
+        objects : list | Rectangle | Circle
+            A list of objects (or a single object) that the user may click on.
+            Supported types are: Rectangle, Circle
+        max_wait : float
+            Duration after which control is returned if no button is clicked.
+        min_wait : float
+            Duration for which to ignore button clicks.
+        live_buttons : list | None
+            List of strings indicating acceptable buttons.
+            ``live_buttons=None`` accepts all mouse clicks.
+        timestamp : bool
+            Whether the mouse click should be timestamped. If ``True``, returns
+            the mouse click time relative to the value given in
+            ``relative_to``.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            ``timestamp==False``.  If ``None``, timestamps are relative to the
+            time ``wait_one_click`` was called.
+
+        Returns
+        -------
+        clicked : tuple | str | None
+            If ``timestamp==True``, returns a tuple (str, int, int, float)
+            indicating the first valid button clicked and its timestamp (or
+            ``(None, None, None, None)`` if no acceptable button was clicked
+            between ``min_wait`` and ``max_wait``). If ``timestamp==False``,
+            returns a tuple (str, int, int) indicating the first button clicked
+            (or ``(None, None, None)`` if no acceptable key was clicked).
+        index : the index of the object in the list of objects that was clicked
+            on. Returns None if time ran out before a valid click. If objects
+            were overlapping, it returns the index of the object that comes
+            first in the ```objects``` argument.
+        """
+        legal_types = self._mouse_handler._legal_types
+        if isinstance(objects, legal_types):
+            objects = [objects]
+        elif not isinstance(objects, list):
+            assert TypeError('objects must be a list or one of: %s' %
+                             str(legal_types))
+        return self._mouse_handler.wait_for_click_on(
+            objects, max_wait, min_wait, live_buttons, timestamp, relative_to)
 
     def _log_clicks(self, clicked):
         """Write mouse clicks to data file.

@@ -11,6 +11,7 @@ from functools import partial
 import pyglet
 from pyglet.window import mouse
 
+from .visual import Rectangle, Circle, Diamond, ConcentricCircles
 from ._utils import wait_secs, clock, string_types
 
 
@@ -212,7 +213,6 @@ class Mouse(object):
     """
 
     def __init__(self, ec, visible=False):
-        self._visible = visible
         self.win = ec._win
         self.set_visible(visible)
         self.master_clock = ec._master_clock
@@ -229,6 +229,7 @@ class Mouse(object):
                               mouse.RIGHT: 'right'}
         self._button_ids = {'left': mouse.LEFT, 'middle': mouse.MIDDLE,
                             'right': mouse.RIGHT}
+        self._legal_types = (Rectangle, Circle)
 
     def set_visible(self, visible):
         """Sets the visibility of the mouse
@@ -308,10 +309,9 @@ class Mouse(object):
                        timestamp, relative_to):
         """Returns only the first button clicked after min_wait.
         """
-        relative_to, start_time = self._init_wait_click(max_wait, min_wait,
-                                                        live_buttons,
-                                                        timestamp,
-                                                        relative_to)
+        relative_to, start_time, was_visible = self._init_wait_click(
+            max_wait, min_wait, live_buttons, timestamp, relative_to)
+
         clicked = []
         while (not len(clicked) and
                self.master_clock() - start_time < max_wait):
@@ -330,14 +330,46 @@ class Mouse(object):
                         timestamp, relative_to):
         """Returns all clicks between min_wait and max_wait.
         """
-        relative_to, start_time = self._init_wait_click(max_wait, min_wait,
-                                                        live_buttons,
-                                                        timestamp,
-                                                        relative_to)
+        relative_to, start_time, was_visible = self._init_wait_click(
+            max_wait, min_wait, live_buttons, timestamp, relative_to)
+
         clicked = []
         while (self.master_clock() - start_time < max_wait):
             clicked = self._retrieve_events(live_buttons)
         return self._correct_clicks(clicked, timestamp, relative_to)
+
+    def wait_for_click_on(self, objects, max_wait, min_wait,
+                          live_buttons, timestamp, relative_to):
+        """Waits for a click on one of the supplied window objects
+        """
+        relative_to, start_time, was_visible = self._init_wait_click(
+            max_wait, min_wait, live_buttons, timestamp, relative_to)
+
+        self.set_visible(was_visible)  # Must be visible to function
+        index = None
+        ci = 0
+        while (self.master_clock() - start_time < max_wait and
+               index is None):
+            clicked = self._retrieve_events(live_buttons)
+            while ci < len(clicked) and index is None:  # clicks first
+                oi = 0
+                while oi < len(objects) and index is None:  # then objects
+                    if self._point_in_object(clicked[ci][1:3], objects[oi]):
+                        index = oi
+                    oi += 1
+                ci += 1
+
+        # handle non-clicks
+        if index is not None:
+            clicked = self._correct_clicks(clicked, timestamp, relative_to)[0]
+        elif timestamp:
+            clicked = (None, None, None, None)
+        else:
+            clicked = None
+
+        # Since visibility was forced, set back to what it was before call
+        self.set_visible(was_visible)
+        return clicked, index
 
     def _correct_clicks(self, clicked, timestamp, relative_to):
         """Correct timing of clicks"""
@@ -369,4 +401,36 @@ class Mouse(object):
         wait_secs(min_wait)
         self._check_force_quit()
         self._clear_events()
-        return relative_to, start_time
+        return relative_to, start_time, self.visible
+
+    # Define some functions for determining if a click point is in an object
+    def _point_in_object(self, pos, obj):
+        """Determine if a point is within a visual objec
+        """
+        if isinstance(obj, (Rectangle, Circle, Diamond)):
+            return self._point_in_tris(pos, obj)
+        elif isinstance(obj, ConcentricCircles):
+            return np.any([self._point_in_tris(pos, c) for c in obj._circles])
+
+    def _point_in_tris(self, pos, obj):
+        """Check to see if a point is in any of the triangles
+        """
+        found = False
+        index = 0
+        while index < len(obj._tris) and not found:
+            points = obj._tris[index:index + 3]
+            tri = np.array([[obj._points[2 * p], obj._points[2 * p + 1]] for
+                            p in points])
+            found = self._point_in_tri(pos, tri)
+            index += 3
+        return found
+
+    def _point_in_tri(self, pos, tri):
+        """Check to see if a point is in a single triangle
+        """
+        signs = np.sign([np.cross(tri[np.mod(i + 1, 3)] - tri[i],
+                                  pos - tri[i]) for i in range(3)])
+        if np.all(signs[1:] == signs[0]):
+            return True
+        else:
+            return False
