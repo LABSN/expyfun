@@ -187,49 +187,49 @@ class Keyboard(object):
         return relative_to, start_time
 
 
-class MouseOld(object):
-    """Class to track mouse properties and events
-
-    Parameters
-    ----------
-    win : instance of pyglet Window
-        The window the mouse is attached to.
-    visible : bool
-        Initial mouse visibility.
-    """
-    def __init__(self, window, visible=False):
-        self._visible = visible
-        self.win = window
-        self.set_visible(visible)
-
-    def set_visible(self, visible):
-        """Sets the visibility of the mouse
-
-        Parameters
-        ----------
-        visible : bool
-            If True, make mouse visible.
-        """
-        self.win.set_mouse_visible(visible)
-        self._visible = visible
-
-    @property
-    def visible(self):
-        """Mouse visibility"""
-        return self._visible
-
-    @property
-    def pos(self):
-        """The current position of the mouse in normalized units"""
-        x = (self.win._mouse_x - self.win.width / 2.) / (self.win.width / 2.)
-        y = (self.win._mouse_y - self.win.height / 2.) / (self.win.height / 2.)
-        return np.array([x, y])
-
-    @property
-    def buttons(self):
-        """The current press status of the mouse buttons"""
-        # 0 is left, 1 is middle, 2 is right
-        return np.where(self.win._mouse_buttons[1:])[0]
+#class Mouse(object):
+#    """Class to track mouse properties and events
+#
+#    Parameters
+#    ----------
+#    win : instance of pyglet Window
+#        The window the mouse is attached to.
+#    visible : bool
+#        Initial mouse visibility.
+#    """
+#    def __init__(self, window, visible=False):
+#        self._visible = visible
+#        self.win = window
+#        self.set_visible(visible)
+#
+#    def set_visible(self, visible):
+#        """Sets the visibility of the mouse
+#
+#        Parameters
+#        ----------
+#        visible : bool
+#            If True, make mouse visible.
+#        """
+#        self.win.set_mouse_visible(visible)
+#        self._visible = visible
+#
+#    @property
+#    def visible(self):
+#        """Mouse visibility"""
+#        return self._visible
+#
+#    @property
+#    def pos(self):
+#        """The current position of the mouse in normalized units"""
+#        x = (self.win._mouse_x - self.win.width / 2.) / (self.win.width / 2.)
+#        y = (self.win._mouse_y - self.win.height / 2.) / (self.win.height / 2.)
+#        return np.array([x, y])
+#
+#    @property
+#    def buttons(self):
+#        """The current press status of the mouse buttons"""
+#        # 0 is left, 1 is middle, 2 is right
+#        return np.where(self.win._mouse_buttons[1:])[0]
 
 
 class Mouse(object):
@@ -241,16 +241,13 @@ class Mouse(object):
         The window the mouse is attached to.
     visible : bool
         Initial mouse visibility.
-    """
-    """Retrieve presses from various devices.
 
     Public metohds:
         __init__
-        listen_presses
-        get_presses
-        wait_one_press
-        wait_for_presses
-        check_force_quit
+        listen_clicks
+        get_clicks
+        wait_one_click
+        wait_for_clicks
 
     Methods to override by subclasses:
         _get_timebase
@@ -269,8 +266,7 @@ class Mouse(object):
         self.get_time_corr = partial(ec._get_time_correction, 'mouseclick')
         self.time_correction = self.get_time_corr()
         self.win = ec._win
-        self.check_force_quit = ec.check_force_quit
-        # always init pyglet response handler for error (and non-error) keys
+        self._check_force_quit = ec.check_force_quit
         self.win.on_mouse_press = self._on_pyglet_mouse_click
         self._mouse_buffer = []
         self._button_names = {mouse.LEFT: 'left', mouse.MIDDLE: 'middle',
@@ -315,12 +311,10 @@ class Mouse(object):
         return clock()
 
     def _clear_mouse_events(self):
-        self.win.dispatch_events()  # XXX THIS MIGHT CREATE PROBLEMS
+        self.win.dispatch_events()
         self._mouse_buffer = []
 
     def _retrieve_mouse_events(self, live_buttons):
-        if live_buttons is not None:
-            live_buttons = [x for x in live_buttons]
         self.win.dispatch_events()  # pump events on pyglet windows
         targets = []
         for button in self._mouse_buffer:
@@ -354,17 +348,18 @@ class Mouse(object):
         clicked = self._retrieve_events(live_buttons)
         return self._correct_clicks(clicked, timestamp, relative_to)
 
-    def wait_one_click(self, max_wait, min_wait, live_keys,
+    def wait_one_click(self, max_wait, min_wait, live_buttons,
                        timestamp, relative_to):
         """Returns only the first button clicked after min_wait.
         """
         relative_to, start_time = self._init_wait_click(max_wait, min_wait,
-                                                        live_keys, timestamp,
+                                                        live_buttons,
+                                                        timestamp,
                                                         relative_to)
         clicked = []
         while (not len(clicked) and
                self.master_clock() - start_time < max_wait):
-            clicked = self._retrieve_events(live_keys)
+            clicked = self._retrieve_events(live_buttons)
 
         # handle non-clicks
         if len(clicked):
@@ -395,7 +390,7 @@ class Mouse(object):
                        b, x, y, s in clicked]
             self.log_clicks(clicked)
             buttons = [(b, x, y) for b, x, y, _ in clicked]
-            self.check_force_quit()
+            self._check_force_quit()
             if timestamp:
                 clicked = [(b, x, y, s - relative_to) for
                            b, x, y, s in clicked]
@@ -416,6 +411,6 @@ class Mouse(object):
         if timestamp and relative_to is None:
             relative_to = start_time
         wait_secs(min_wait)
-        self.check_force_quit()
+        self._check_force_quit()
         self._clear_events()
         return relative_to, start_time

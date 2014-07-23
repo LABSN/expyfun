@@ -848,7 +848,7 @@ class ExperimentController(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are cast as strings, so a list of ints will also work.
-            live_keys=None accepts all keypresses.
+            ``live_keys=None`` accepts all keypresses.
         timestamp : bool
             Whether the keypress should be timestamped. If True, returns the
             button press time relative to the value given in ``relative_to``.
@@ -948,28 +948,27 @@ class ExperimentController(object):
 
 ############################### MOUSE METHODS ################################
     def listen_clicks(self):
-        """Start listening for keypresses.
+        """Start listening for mouse clicks.
         """
         self._mouse_handler.listen_clicks()
 
-    def get_clicks(self, live_keys=None, timestamp=True, relative_to=None):
+    def get_clicks(self, live_buttons=None, timestamp=True, relative_to=None):
         """Get the entire keyboard / button box buffer.
 
         Parameters
         ----------
-        live_keys : list | None
-            List of strings indicating acceptable keys or buttons. Other data
-            types are cast as strings, so a list of ints will also work.
-            live_keys=None accepts all keypresses.
+        live_buttons : list | None
+            List of strings indicating acceptable buttons.
+            ``live_buttons=None`` accepts all mouse clicks.
         timestamp : bool
-            Whether the keypress should be timestamped. If True, returns the
-            button press time relative to the value given in ``relative_to``.
+            Whether the mouse click should be timestamped. If True, returns the
+            button click time relative to the value given in ``relative_to``.
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
             timestamp==False.  If ``None``, timestamps are relative to the time
-            ``listen_presses`` was last called.
+            ``listen_clicks`` was last called.
         """
-        return self._mouse_handler.get_clicks(live_keys, timestamp,
+        return self._mouse_handler.get_clicks(live_buttons, timestamp,
                                               relative_to)
 
     def get_mouse_position(self, units='pix'):
@@ -1028,10 +1027,9 @@ class ExperimentController(object):
             Duration after which control is returned if no button is clicked.
         min_wait : float
             Duration for which to ignore button clicks.
-        live_keys : list | None
-            List of strings indicating acceptable keys or buttons. Other data
-            types are cast as strings, so a list of ints will also work.
-            ``live_keys=None`` accepts all mouse clicks.
+        live_clicks : list | None
+            List of strings indicating acceptable buttons.
+            ``live_buttons=None`` accepts all mouse clicks.
         timestamp : bool
             Whether the mouse click should be timestamped. If ``True``, returns
             the mouse click time relative to the value given in
