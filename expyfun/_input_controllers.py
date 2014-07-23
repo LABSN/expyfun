@@ -187,63 +187,19 @@ class Keyboard(object):
         return relative_to, start_time
 
 
-#class Mouse(object):
-#    """Class to track mouse properties and events
-#
-#    Parameters
-#    ----------
-#    win : instance of pyglet Window
-#        The window the mouse is attached to.
-#    visible : bool
-#        Initial mouse visibility.
-#    """
-#    def __init__(self, window, visible=False):
-#        self._visible = visible
-#        self.win = window
-#        self.set_visible(visible)
-#
-#    def set_visible(self, visible):
-#        """Sets the visibility of the mouse
-#
-#        Parameters
-#        ----------
-#        visible : bool
-#            If True, make mouse visible.
-#        """
-#        self.win.set_mouse_visible(visible)
-#        self._visible = visible
-#
-#    @property
-#    def visible(self):
-#        """Mouse visibility"""
-#        return self._visible
-#
-#    @property
-#    def pos(self):
-#        """The current position of the mouse in normalized units"""
-#        x = (self.win._mouse_x - self.win.width / 2.) / (self.win.width / 2.)
-#        y = (self.win._mouse_y - self.win.height / 2.) / (self.win.height / 2.)
-#        return np.array([x, y])
-#
-#    @property
-#    def buttons(self):
-#        """The current press status of the mouse buttons"""
-#        # 0 is left, 1 is middle, 2 is right
-#        return np.where(self.win._mouse_buttons[1:])[0]
-
-
 class Mouse(object):
     """Class to track mouse properties and events
 
     Parameters
     ----------
-    win : instance of pyglet Window
-        The window the mouse is attached to.
+    ec : instance of ``ExperimentController``
+        The controller for the current experiment
     visible : bool
         Initial mouse visibility.
 
     Public metohds:
         __init__
+        set_visible
         listen_clicks
         get_clicks
         wait_one_click

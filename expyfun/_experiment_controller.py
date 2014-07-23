@@ -1027,7 +1027,7 @@ class ExperimentController(object):
             Duration after which control is returned if no button is clicked.
         min_wait : float
             Duration for which to ignore button clicks.
-        live_clicks : list | None
+        live_buttons : list | None
             List of strings indicating acceptable buttons.
             ``live_buttons=None`` accepts all mouse clicks.
         timestamp : bool
@@ -1044,9 +1044,10 @@ class ExperimentController(object):
         clicked : tuple | str | None
             If ``timestamp==True``, returns a tuple (str, float) indicating the
             first button clicked and its timestamp (or ``(None, None)`` if no
-            acceptable key was clicked between ``min_wait`` and ``max_wait``).
-            If ``timestamp==False``, returns a string indicating the first
-            button clicked (or ``None`` if no acceptable key was clicked).
+            acceptable button was clicked between ``min_wait`` and
+            ``max_wait``). If ``timestamp==False``, returns a string indicating
+            the first  button clicked (or ``None`` if no acceptable key was
+            clicked).
         """
         return self._mouse_handler.wait_one_click(max_wait, min_wait,
                                                   live_buttons, timestamp,
