@@ -148,8 +148,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         Arguments passed to ``matplotlib.pyplot.plot()`` (e.g., color, marker,
         linestyle).
     pval_kwargs : dict
-        arguments passed to ``matplotlib.pyplot.text()`` when drawing bracket
-        labels.
+        Arguments passed to ``matplotlib.pyplot.annotate()`` when drawing
+        bracket labels.
     bracket_kwargs : dict
         arguments passed to ``matplotlib.pyplot.plot()`` (e.g., color, marker,
         linestyle).
@@ -317,16 +317,13 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                              'labels.')
         brk_offset = np.diff(p.get_ylim()) * 0.025
         brk_height = np.diff(p.get_ylim()) * 0.05
-        # prelim: calculate text height
-        pvk = pval_kwargs.copy()
-        if 'xytext' in pvk.keys():
-            del pvk['xytext']
-        t = plt.text(0.5, 0.5, bracket_text[0], fontdict=pvk)
-        t.set_bbox(dict(boxstyle='round, pad=0'))
+        # temporarily plot a textbox to get its height
+        t = plt.annotate(bracket_text[0], (0, 0), **pval_kwargs)
+        t.set_bbox(dict(boxstyle='round, pad=0.25'))
         plt.draw()
         bb = t.get_bbox_patch().get_window_extent()
         txth = np.diff(p.transData.inverted().transform(bb),
-                       axis=0).ravel()[-1]  # + brk_offset / 2.
+                       axis=0).ravel()[-1]
         t.remove()
         # find highest points
         if lines and len(h.shape) == 2:  # brackets must be above lines
@@ -390,12 +387,16 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         for ((xl, xr), (yl, yr), yh, tx, st) in zip(brk_lrx, brk_lry, brk_top,
                                                     brk_txt, bracket_text):
             # bracket text
+            defaults = dict(ha='center', annotation_clip=False,
+                            textcoords='offset points')
+            for k, v in defaults.items():
+                if k not in pval_kwargs.keys():
+                    pval_kwargs[k] = v
             if 'va' not in pval_kwargs.keys():
                 pval_kwargs['va'] = 'center' if bracket_inline else 'baseline'
             if 'xytext' not in pval_kwargs.keys():
                 pval_kwargs['xytext'] = (0, 0) if bracket_inline else (0, 2)
-            txt = p.annotate(st, (tx, yh), textcoords='offset points',
-                             ha='center', annotation_clip=False, **pval_kwargs)
+            txt = p.annotate(st, (tx, yh), **pval_kwargs)
             txt.set_bbox(dict(facecolor='w', alpha=0,
                               boxstyle='round, pad=0.25'))
             plt.draw()
@@ -425,7 +426,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         p.xaxis.set_ticklabels(bar_names, va='baseline')
     if group_names is not None:
         ymin = ylim[0] if ylim is not None else p.get_ylim()[0]
-        yoffset = -2 * rcParams['font.size']
+        yoffset = -2.5 * rcParams['font.size']
         for gn, gp in zip(group_names, group_centers):
             p.annotate(gn, xy=(gp, ymin), xytext=(0, yoffset),
                        xycoords='data', textcoords='offset points',
