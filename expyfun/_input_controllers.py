@@ -345,7 +345,7 @@ class Mouse(object):
         relative_to, start_time, was_visible = self._init_wait_click(
             max_wait, min_wait, live_buttons, timestamp, relative_to)
 
-        self.set_visible(was_visible)  # Must be visible to function
+        self.set_visible(True)  # Must be visible to function
         index = None
         ci = 0
         while (self.master_clock() - start_time < max_wait and
