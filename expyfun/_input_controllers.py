@@ -402,9 +402,10 @@ class Mouse(object):
         wait_secs(min_wait)
         self._check_force_quit()
         self._clear_events()
+        was_visible = self.visible
         if visible is not None:
             self.set_visible(visible)
-        return relative_to, start_time, self.visible
+        return relative_to, start_time, was_visible
 
     # Define some functions for determining if a click point is in an object
     def _point_in_object(self, pos, obj):
