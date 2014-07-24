@@ -347,7 +347,7 @@ class ExperimentController(object):
             self._ttl_stamp_func = _ttl_stamp_func
 
             # other basic components
-            self._mouse_handler = Mouse(self._win)
+            self._mouse_handler = Mouse(self)
             t = np.arange(44100 // 3) / 44100.
             car = sum([np.sin(2 * np.pi * f * t) for f in [800, 1000, 1200]])
             self._beep = None
@@ -848,7 +848,7 @@ class ExperimentController(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are cast as strings, so a list of ints will also work.
-            live_keys=None accepts all keypresses.
+            ``live_keys=None`` accepts all keypresses.
         timestamp : bool
             Whether the keypress should be timestamped. If True, returns the
             button press time relative to the value given in ``relative_to``.
@@ -947,6 +947,30 @@ class ExperimentController(object):
         self._response_handler.check_force_quit()
 
 ############################### MOUSE METHODS ################################
+    def listen_clicks(self):
+        """Start listening for mouse clicks.
+        """
+        self._mouse_handler.listen_clicks()
+
+    def get_clicks(self, live_buttons=None, timestamp=True, relative_to=None):
+        """Get the entire keyboard / button box buffer.
+
+        Parameters
+        ----------
+        live_buttons : list | None
+            List of strings indicating acceptable buttons.
+            ``live_buttons=None`` accepts all mouse clicks.
+        timestamp : bool
+            Whether the mouse click should be timestamped. If True, returns the
+            button click time relative to the value given in ``relative_to``.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            timestamp==False.  If ``None``, timestamps are relative to the time
+            ``listen_clicks`` was last called.
+        """
+        return self._mouse_handler.get_clicks(live_buttons, timestamp,
+                                              relative_to)
+
     def get_mouse_position(self, units='pix'):
         """Mouse position in screen coordinates
 
@@ -965,18 +989,6 @@ class ExperimentController(object):
         pos = self._convert_units(pos[:, np.newaxis], 'norm', units)[:, 0]
         return pos
 
-    def get_mouse_buttons(self):
-        """Mouse position in screen coordinates
-
-        Returns
-        -------
-        buttons : list
-            The list of pressed mouse buttons, with possible elements:
-            ``'left'``, ``'middle'``, ``'right'``.
-        """
-        names = np.array(['left', 'middle', 'right'])
-        return list(names[self._mouse_handler.buttons])
-
     def toggle_cursor(self, visibility, flip=False):
         """Show or hide the mouse
 
@@ -987,10 +999,109 @@ class ExperimentController(object):
         """
         try:
             self._mouse_handler.set_visible(visibility)
+            # TODO move mouse to lower right corner for windows no-hide bug
         except Exception:
             pass  # pyglet bug on Linux!
         if flip:
             self.flip()
+
+    def wait_one_click(self, max_wait=np.inf, min_wait=0.0, live_buttons=None,
+                       timestamp=True, relative_to=None, visible=None):
+        """Returns only the first mouse button clicked after min_wait.
+
+        Parameters
+        ----------
+        max_wait : float
+            Duration after which control is returned if no button is clicked.
+        min_wait : float
+            Duration for which to ignore button clicks.
+        live_buttons : list | None
+            List of strings indicating acceptable buttons.
+            ``live_buttons=None`` accepts all mouse clicks.
+        timestamp : bool
+            Whether the mouse click should be timestamped. If ``True``, returns
+            the mouse click time relative to the value given in
+            ``relative_to``.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            ``timestamp==False``.  If ``None``, timestamps are relative to the
+            time ``wait_one_click`` was called.
+        visible : None | bool
+            Whether to show the cursor while in the function. ``None`` has no
+            effect and is the default. A boolean will show it (or not) while
+            the function has control and then set visibility back to its
+            previous value afterwards.
+
+        Returns
+        -------
+        clicked : tuple | str | None
+            If ``timestamp==True``, returns a tuple (str, int, int, float)
+            indicating the first button clicked and its timestamp (or
+            ``(None, None, None, None)`` if no acceptable button was clicked
+            between ``min_wait`` and ``max_wait``). If ``timestamp==False``,
+            returns a tuple (str, int, int) indicating the first button clicked
+            (or ``(None, None, None)`` if no acceptable key was clicked).
+        """
+        return self._mouse_handler.wait_one_click(max_wait, min_wait,
+                                                  live_buttons, timestamp,
+                                                  relative_to, visible)
+
+    def wait_for_click_on(self, objects, max_wait=np.inf, min_wait=0.0,
+                          live_buttons=None, timestamp=True, relative_to=None):
+        """Returns the first click after min_wait over a visual object.
+
+        Parameters
+        ----------
+        objects : list | Rectangle | Circle
+            A list of objects (or a single object) that the user may click on.
+            Supported types are: Rectangle, Circle
+        max_wait : float
+            Duration after which control is returned if no button is clicked.
+        min_wait : float
+            Duration for which to ignore button clicks.
+        live_buttons : list | None
+            List of strings indicating acceptable buttons.
+            ``live_buttons=None`` accepts all mouse clicks.
+        timestamp : bool
+            Whether the mouse click should be timestamped. If ``True``, returns
+            the mouse click time relative to the value given in
+            ``relative_to``.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            ``timestamp==False``.  If ``None``, timestamps are relative to the
+            time ``wait_one_click`` was called.
+
+        Returns
+        -------
+        clicked : tuple | str | None
+            If ``timestamp==True``, returns a tuple (str, int, int, float)
+            indicating the first valid button clicked and its timestamp (or
+            ``(None, None, None, None)`` if no acceptable button was clicked
+            between ``min_wait`` and ``max_wait``). If ``timestamp==False``,
+            returns a tuple (str, int, int) indicating the first button clicked
+            (or ``(None, None, None)`` if no acceptable key was clicked).
+        index : the index of the object in the list of objects that was clicked
+            on. Returns None if time ran out before a valid click. If objects
+            were overlapping, it returns the index of the object that comes
+            first in the ```objects``` argument.
+        """
+        legal_types = self._mouse_handler._legal_types
+        if isinstance(objects, legal_types):
+            objects = [objects]
+        elif not isinstance(objects, list):
+            assert TypeError('objects must be a list or one of: %s' %
+                             str(legal_types))
+        return self._mouse_handler.wait_for_click_on(
+            objects, max_wait, min_wait, live_buttons, timestamp, relative_to)
+
+    def _log_clicks(self, clicked):
+        """Write mouse clicks to data file.
+        """
+        # This function will typically be called by self._response_handler
+        # after it retrieves some mouse clicks
+        for button, x, y, stamp in clicked:
+            self.write_data_line('mouseclick', '%s,%i,%i' % (button, x, y),
+                                 stamp)
 
 ############################### AUDIO METHODS #################################
     def system_beep(self):
