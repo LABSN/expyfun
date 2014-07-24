@@ -41,10 +41,13 @@ with ExperimentController('MouseDemo', screen_num=0,
     ec.flip()
     ec.wait_one_click()
 
+    ec.toggle_cursor(False)
     ec.screen_text('Press the left button.', wrap=False)
     screenshot = ec.screenshot()
     ec.flip()
-    ec.wait_one_click(live_buttons=['left'])
+    ec.wait_one_click(live_buttons=['left'], visible=True)
+    ec.wait_secs(0.5)
+    ec.toggle_cursor(True)
 
     ###########################
     # listen_clicks, get_clicks
@@ -68,6 +71,8 @@ with ExperimentController('MouseDemo', screen_num=0,
 
     ###########################
     # wait_for_click_on
+    ec.toggle_cursor(False)
+    ec.wait_secs(1)
     c = Circle(ec, 150, units='pix')
     r = Rectangle(ec, (0.5, 0.5, 0.2, 0.2), units='norm', fill_color='r')
     cc = ConcentricCircles(ec, pos=[0.6, -0.4],
@@ -76,7 +81,6 @@ with ExperimentController('MouseDemo', screen_num=0,
     dot = FixationDot(ec)
     objects = [c, r, cc, d, dot]
 
-    ec.toggle_cursor(True)
     ec.screen_prompt('Click on some objects...', max_wait=msg_dur, wrap=False)
     for ti in range(3):
         for o in objects:
@@ -86,7 +90,6 @@ with ExperimentController('MouseDemo', screen_num=0,
         objects[ind].draw()
         ec.flip()
         ec.wait_secs(0.2)
-
 
 import matplotlib.pyplot as plt
 plt.ion()

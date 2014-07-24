@@ -306,11 +306,11 @@ class Mouse(object):
         return self._correct_clicks(clicked, timestamp, relative_to)
 
     def wait_one_click(self, max_wait, min_wait, live_buttons,
-                       timestamp, relative_to):
+                       timestamp, relative_to, visible):
         """Returns only the first button clicked after min_wait.
         """
         relative_to, start_time, was_visible = self._init_wait_click(
-            max_wait, min_wait, live_buttons, timestamp, relative_to)
+            max_wait, min_wait, live_buttons, timestamp, relative_to, visible)
 
         clicked = []
         while (not len(clicked) and
@@ -327,11 +327,11 @@ class Mouse(object):
         return clicked
 
     def wait_for_clicks(self, max_wait, min_wait, live_buttons,
-                        timestamp, relative_to):
+                        timestamp, relative_to, visible=None):
         """Returns all clicks between min_wait and max_wait.
         """
         relative_to, start_time, was_visible = self._init_wait_click(
-            max_wait, min_wait, live_buttons, timestamp, relative_to)
+            max_wait, min_wait, live_buttons, timestamp, relative_to, visible)
 
         clicked = []
         while (self.master_clock() - start_time < max_wait):
@@ -343,9 +343,8 @@ class Mouse(object):
         """Waits for a click on one of the supplied window objects
         """
         relative_to, start_time, was_visible = self._init_wait_click(
-            max_wait, min_wait, live_buttons, timestamp, relative_to)
+            max_wait, min_wait, live_buttons, timestamp, relative_to, True)
 
-        self.set_visible(True)  # Must be visible to function
         index = None
         ci = 0
         while (self.master_clock() - start_time < max_wait and
@@ -387,7 +386,7 @@ class Mouse(object):
         return clicked
 
     def _init_wait_click(self, max_wait, min_wait, live_buttons, timestamp,
-                         relative_to):
+                         relative_to, visible):
         """Actions common to ``wait_one_click`` and ``wait_for_clicks``
         """
         if np.isinf(max_wait) and live_buttons == []:
@@ -395,12 +394,16 @@ class Mouse(object):
                              ' mouse buttons.')
         if not min_wait <= max_wait:
             raise ValueError('min_wait must be less than max_wait')
+        if visible not in [True, False, None]:
+            raise ValueError('set_visible must be one of (True, False, None)')
         start_time = self.master_clock()
         if timestamp and relative_to is None:
             relative_to = start_time
         wait_secs(min_wait)
         self._check_force_quit()
         self._clear_events()
+        if visible is not None:
+            self.set_visible(visible)
         return relative_to, start_time, self.visible
 
     # Define some functions for determining if a click point is in an object

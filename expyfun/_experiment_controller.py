@@ -1006,7 +1006,7 @@ class ExperimentController(object):
             self.flip()
 
     def wait_one_click(self, max_wait=np.inf, min_wait=0.0, live_buttons=None,
-                       timestamp=True, relative_to=None):
+                       timestamp=True, relative_to=None, visible=None):
         """Returns only the first mouse button clicked after min_wait.
 
         Parameters
@@ -1026,6 +1026,11 @@ class ExperimentController(object):
             A time relative to which timestamping is done. Ignored if
             ``timestamp==False``.  If ``None``, timestamps are relative to the
             time ``wait_one_click`` was called.
+        visible : None | bool
+            Whether to show the cursor while in the function. ``None`` has no
+            effect and is the default. A boolean will show it (or not) while
+            the function has control and then set visibility back to its
+            previous value afterwards.
 
         Returns
         -------
@@ -1039,7 +1044,7 @@ class ExperimentController(object):
         """
         return self._mouse_handler.wait_one_click(max_wait, min_wait,
                                                   live_buttons, timestamp,
-                                                  relative_to)
+                                                  relative_to, visible)
 
     def wait_for_click_on(self, objects, max_wait=np.inf, min_wait=0.0,
                           live_buttons=None, timestamp=True, relative_to=None):
