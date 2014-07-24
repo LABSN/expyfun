@@ -32,7 +32,6 @@ with ExperimentController('MouseDemo', screen_num=0,
     ec.toggle_cursor(False)
     ec.screen_prompt("Now you don't (maybe--Windows is buggy)",
                      max_wait=msg_dur, wrap=False)
-
     ec.toggle_cursor(True)
 
     ################
