@@ -11,7 +11,7 @@ from functools import partial
 import pyglet
 from pyglet.window import mouse
 
-from .visual import Rectangle, Circle, Diamond, ConcentricCircles
+from .visual import Rectangle, Circle, Diamond, ConcentricCircles, FixationDot
 from ._utils import wait_secs, clock, string_types
 
 
@@ -413,7 +413,7 @@ class Mouse(object):
         """
         if isinstance(obj, (Rectangle, Circle, Diamond)):
             return self._point_in_tris(pos, obj)
-        elif isinstance(obj, ConcentricCircles):
+        elif isinstance(obj, (ConcentricCircles, FixationDot)):
             return np.any([self._point_in_tris(pos, c) for c in obj._circles])
 
     def _point_in_tris(self, pos, obj):

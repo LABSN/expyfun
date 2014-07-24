@@ -42,7 +42,6 @@ with ExperimentController('MouseDemo', screen_num=0,
 
     ec.toggle_cursor(False)
     ec.screen_text('Press the left button.', wrap=False)
-    screenshot = ec.screenshot()
     ec.flip()
     ec.wait_one_click(live_buttons=['left'], visible=True)
     ec.wait_secs(0.5)
@@ -62,8 +61,8 @@ with ExperimentController('MouseDemo', screen_num=0,
     ec.screen_prompt('Move the mouse around...', max_wait=msg_dur, wrap=False)
     stop_time = ec.current_time + wait_dur
     while ec.current_time < stop_time:
-        ec.screen_text('%0.1f, %0.1f' % tuple([p for p in
-                                               ec.get_mouse_position()]),
+        ec.screen_text('%i, %i' % tuple([p for p in
+                                         ec.get_mouse_position()]),
                        wrap=False)
         ec.check_force_quit()
         ec.flip()
@@ -84,6 +83,7 @@ with ExperimentController('MouseDemo', screen_num=0,
     for ti in range(3):
         for o in objects:
             o.draw()
+        screenshot = ec.screenshot()
         ec.flip()
         click, ind = ec.wait_for_click_on(objects)
         objects[ind].draw()
