@@ -7,7 +7,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
 from scipy.signal import butter, lfilter
 
-from expyfun._utils import _TempDir
+from expyfun._utils import _TempDir, requires_pytables
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
                              vocode)
 
@@ -16,6 +16,7 @@ warnings.simplefilter('always')
 tempdir = _TempDir()
 
 
+@requires_pytables
 def test_hrtf_convolution():
     """Test HRTF convolution
     """
