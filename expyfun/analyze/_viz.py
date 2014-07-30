@@ -218,6 +218,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     if isinstance(group_names, string_types):
         group_names = [group_names]
     # arg defaults
+    if brackets is None:
+        brackets = []
     if bar_kwargs is None:
         bar_kwargs = dict()
     if err_kwargs is None:
@@ -310,7 +312,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         for subj in xy:
             p.plot(subj[0], subj[1], **line_kwargs)
     # draw significance brackets
-    if brackets is not None:
+    if len(brackets):
         brackets = [tuple(x) for x in brackets]  # forgive list/tuple mix-ups
         if not len(brackets) == len(bracket_text):
             raise ValueError('Mismatch between number of brackets and bracket '
