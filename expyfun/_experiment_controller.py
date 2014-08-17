@@ -390,9 +390,6 @@ class ExperimentController(object):
         pos : list | tuple
             x, y position of the text. In the default units (-1 to 1, with
             positive going up and right) the default is dead center (0, 0).
-        units : str
-            Units for ``pos``. See ``check_units`` for options. Applies to
-            ``pos`` but not ``font_size``.
         color : matplotlib color
             The text color.
         font_name : str
@@ -403,6 +400,9 @@ class ExperimentController(object):
             Whether or not the text will wrap to fit in screen, appropriate
             for multi-line text. Inappropriate for text requiring
             precise positioning or centering.
+        units : str
+            Units for ``pos``. See ``check_units`` for options. Applies to
+            ``pos`` but not ``font_size``.
 
         Returns
         -------
@@ -417,7 +417,7 @@ class ExperimentController(object):
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
                       timestamp=False, clear_after=True,
-                      color='white', pos=[0, 0], font_name='Arial',
+                      pos=[0, 0], color='white', font_name='Arial',
                       font_size=24, wrap=True, units='norm'):
         """Display text and (optionally) wait for user continuation
 
@@ -441,9 +441,6 @@ class ExperimentController(object):
         pos : list | tuple
             x, y position of the text. In the default units (-1 to 1, with
             positive going up and right) the default is dead center (0, 0).
-        units : str
-            Units for ``pos``. See ``check_units`` for options. Applies to
-            ``pos`` but not ``font_size``.
         color : matplotlib color
             The text color.
         font_name : str
@@ -454,6 +451,9 @@ class ExperimentController(object):
             Whether or not the text will wrap to fit in screen, appropriate
             for multi-line text. Inappropriate for text requiring
             precise positioning or centering.
+        units : str
+            Units for ``pos``. See ``check_units`` for options. Applies to
+            ``pos`` but not ``font_size``.
 
         Returns
         -------
