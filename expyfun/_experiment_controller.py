@@ -416,7 +416,9 @@ class ExperimentController(object):
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
-                      timestamp=False, clear_after=True, wrap=True):
+                      timestamp=False, clear_after=True,
+                      color='white', pos=[0, 0], font_name='Arial',
+                      font_size=24, wrap=True, units='norm'):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -436,10 +438,22 @@ class ExperimentController(object):
             the prompt displays until max_wait seconds have passed.
         clear_after : bool
             If True, the screen will be cleared before returning.
+        pos : list | tuple
+            x, y position of the text. In the default units (-1 to 1, with
+            positive going up and right) the default is dead center (0, 0).
+        units : str
+            Units for ``pos``. See ``check_units`` for options. Applies to
+            ``pos`` but not ``font_size``.
+        color : matplotlib color
+            The text color.
+        font_name : str
+            The name of the font to use.
+        font_size : float
+            The font size (in points) to use.
         wrap : bool
             Whether or not the text will wrap to fit in screen, appropriate
-            for multi-line text. Inappropriate for text requiring precise
-            positioning.
+            for multi-line text. Inappropriate for text requiring
+            precise positioning or centering.
 
         Returns
         -------
@@ -455,7 +469,8 @@ class ExperimentController(object):
         if not all([isinstance(t, string_types) for t in text]):
             raise TypeError('text must be a string or list of strings')
         for t in text:
-            self.screen_text(t, wrap=wrap)
+            self.screen_text(t, pos=pos, color=color, font_name=font_name,
+                             font_size=font_size, wrap=wrap, units=units)
             self.flip()
             out = self.wait_one_press(max_wait, min_wait, live_keys,
                                       timestamp)
