@@ -75,6 +75,17 @@ def format_pval(pval, latex=True, scheme='default'):
     return(pv)
 
 
+def _initiate(obj, typ):
+    """Returns obj if obj is not None, else returns new instance of typ
+    obj : an object
+        An object (most likely one that a user passed into a function) that,
+        if ``None``, should be initiated as an empty object of some other type.
+    typ : an object type
+        Expected values are list, dict, int, bool, etc.
+    """
+    return typ() if obj is None else obj
+
+
 def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             groups=None, eq_group_widths=False, gap_size=0.2,
             brackets=None, bracket_text=None, bracket_inline=False,
@@ -217,21 +228,14 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         bracket_text = [bracket_text]
     if isinstance(group_names, string_types):
         group_names = [group_names]
-    # arg defaults
-    if brackets is None:
-        brackets = []
-    if bar_kwargs is None:
-        bar_kwargs = dict()
-    if err_kwargs is None:
-        err_kwargs = dict()
-    if line_kwargs is None:
-        line_kwargs = dict()
-    if pval_kwargs is None:
-        pval_kwargs = dict()
-    if bracket_kwargs is None:
-        bracket_kwargs = dict()
-    if figure_kwargs is None:
-        figure_kwargs = dict()
+    # arg defaults: if arg is not type, instantiate as type
+    brackets = _initiate(brackets, list)
+    bar_kwargs = _initiate(bar_kwargs, dict)
+    err_kwargs = _initiate(err_kwargs, dict)
+    line_kwargs = _initiate(line_kwargs, dict)
+    pval_kwargs = _initiate(pval_kwargs, dict)
+    figure_kwargs = _initiate(figure_kwargs, dict)
+    bracket_kwargs = _initiate(bracket_kwargs, dict)
     # user-supplied Axes
     if ax is not None:
         bar_kwargs['axes'] = ax
@@ -344,8 +348,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             lr = []  # x
             ll = []  # y lower
             hh = []  # y upper
-            ed = 0.
             for br in pair:
+                ed = 0.
                 if hasattr(br, 'append'):  # group
                     bri = groups.index(br)
                     curc = [bar_centers[x] for x in groups[bri]]
@@ -366,11 +370,10 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                         mustclear = max(mustclear, brk_top[ix // 2])
                     cury = mustclear + brk_offset
                 elif curx in allx:
-                    #count = allx.count(curx)
                     ix = len(allx) - allx[::-1].index(curx) - 1
-                    cury = brk_top[ix // 2] + brk_offset  # * count
-                for l, r in brk_lrx:
-                    while l < curx < r and cury < max(brk_top) - ed * txth:
+                    cury = brk_top[ix // 2] + brk_offset
+                for idx, (l, r) in enumerate(brk_lrx):
+                    while l < curx < r and cury < brk_top[idx] - ed * txth:
                         ed += 0.5
                 # draw horiz line spanning groups if desired
                 if hasattr(br, 'append') and bracket_group_lines:
@@ -384,7 +387,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             brk_lrx.append(tuple(lr))
             brk_lry.append(tuple(ll))
             brk_top.append(np.max(hh))
-            brk_txt.append(np.mean(lr))  # text x
+            brk_txt.append(np.mean(lr))  # text x position
         # plot brackets
         for ((xl, xr), (yl, yr), yh, tx, st) in zip(brk_lrx, brk_lry, brk_top,
                                                     brk_txt, bracket_text):
