@@ -240,6 +240,7 @@ class Mouse(object):
             If True, make mouse visible.
         """
         self.win.set_mouse_visible(visible)
+        self.win.set_mouse_platform_visible(visible)  # Pyglet workaround
         self._visible = visible
 
     @property
