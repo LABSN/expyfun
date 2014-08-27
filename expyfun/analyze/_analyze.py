@@ -30,6 +30,13 @@ def press_times_to_hmfc(presses, targets, maskers, tmin, tmax):
     hmfco : list
         Hits, misses, false alarms, correct rejections, and other presses
         (not within the window for a target or a masker).
+
+    Notes
+    -----
+    Multiple presses within a single "target window" (i.e., between ``tmin``
+    and ``tmax`` of a target) or "masker window" get treated as a single
+    press by this function. However, there is no such de-bouncing of responses
+    to "other" times.
     """
     # Sanity check that targets and maskers don't overlap (due to tmin/tmax)
     targets = np.atleast_1d(targets) + tmin
