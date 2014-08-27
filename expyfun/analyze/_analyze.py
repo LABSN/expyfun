@@ -9,6 +9,64 @@ from functools import partial
 from collections import namedtuple
 
 
+def press_times_to_hmfc(presses, targets, maskers, tmin, tmax):
+    """Convert press times to hits/misses/FA/CR
+
+    Parameters
+    ----------
+    presses : list
+        List of press times (in seconds).
+    targets : list
+        List of target times.
+    maskers : list | None
+        List of masker times.
+    tmin : float
+        Minimum time after a target to consider a press.
+    tmax : float
+        Maximum time after a target to consider a press.
+
+    Returns
+    -------
+    hmfco : list
+        Hits, misses, false alarms, correct rejections, and other presses
+        (not within the window for a target or a masker).
+    """
+    # Sanity check that targets and maskers don't overlap (due to tmin/tmax)
+    targets = np.atleast_1d(targets) + tmin
+    maskers = np.atleast_1d(maskers) + tmin
+    dur = float(tmax - tmin)
+    assert dur > 0
+    presses = np.sort(np.atleast_1d(presses))
+    assert targets.ndim == maskers.ndim == presses.ndim == 1
+    all_times = np.concatenate(([-np.inf], targets, maskers, [np.inf]))
+    order = np.argsort(all_times)
+    inv_order = np.argsort(order)
+    all_times = all_times[order]
+    if not np.all(all_times[:-1] + dur <= all_times[1:]):
+        raise ValueError('Analysis windows for targets and maskers overlap')
+    # Let's just loop (could probably be done with vector math, but it's
+    # too hard and unlikely to be correct)
+    locs = np.searchsorted(all_times, presses, 'right')
+    if len(locs) > 0:
+        assert locs.max() < len(all_times)  # should be True b/c of np.inf
+        assert locs.min() >= 1
+
+    # figure out which presses were to target or masker (valid_idx)
+    in_window = (presses <= all_times[locs - 1] + dur)
+    valid_idx = np.where(in_window)[0]
+    invalid_idx = np.where(~in_window)[0]
+    n_other = len(invalid_idx)
+
+    # figure out which of valid presses were to target or masker
+    used = np.unique(locs[valid_idx])  # unique to remove double-presses
+    orig_places = (inv_order[used - 1] - 1)
+    n_hit = sum(orig_places < len(targets))
+    n_fa = len(used) - n_hit
+    n_miss = len(targets) - n_hit
+    n_cr = len(maskers) - n_fa
+    return n_hit, n_miss, n_fa, n_cr, n_other
+
+
 def logit(prop, max_events=None):
     """Convert proportion (expressed in the range [0, 1]) to logit.
 
