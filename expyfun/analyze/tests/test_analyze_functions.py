@@ -1,5 +1,5 @@
 from nose.tools import assert_raises, assert_equal, assert_true
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 try:
     from scipy.special import logit as splogit
 except ImportError:
@@ -10,6 +10,59 @@ import warnings
 import expyfun.analyze as ea
 
 warnings.simplefilter('always')
+
+
+def test_presses_to_hmfc():
+    """Test converting press times to HMFC"""
+    # Simple example
+    targets = [0., 1.]
+    foils = [0.5, 1.5]
+    tmin, tmax = 0.1, 0.6
+
+    presses = [0.25, 1.25]
+    hmfco = [2, 0, 0, 2, 0]
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+
+    presses = [0.75, 1.601]  # just past the boundary
+    hmfco = [0, 2, 2, 0, 0]
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+
+    presses = [0.75, 1.55]  # smaller than tmin
+    hmfco = [1, 1, 1, 1, 0]
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+
+    presses = [0.75, 2.11]  # greater than tmax
+    hmfco = [0, 2, 1, 1, 1]
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+
+    # A complicated example
+    targets = [0, 2, 3]
+    foils = [1, 4]
+    tmin, tmax = 0., 0.5
+
+    presses = [0.1, 1.2, 1.3, 2.1, 2.7, 5.]  # multiple presses to same targ
+    hmfco = [2, 1, 1, 1, 2]
+
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+
+    presses = []  # no presses
+    hmfco = [0, 3, 0, 2, 0]
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+
+    presses = [-1, 7, 8]  # all errant presses
+    hmfco = [0, 3, 0, 2, 3]
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+
+    # Bad inputs
+    assert_raises(ValueError, ea.press_times_to_hmfc,
+                  presses, targets, foils, tmin, 1.1)
 
 
 def test_dprime():
