@@ -24,7 +24,7 @@ def test_presses_to_hmfc():
     out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
     assert_array_equal(out, hmfco)
 
-    presses = [0.75, 1.6]  # right on the boundary
+    presses = [0.75, 1.601]  # just past the boundary
     hmfco = [0, 2, 2, 0, 0]
     out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
     assert_array_equal(out, hmfco)
