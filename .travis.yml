@@ -4,9 +4,9 @@ python:
     - "2.7"
 
 env:
-    - PYTHON=2.7 DEPS=full TEST=standard    # pandas, pylink (+ EL sofware)
+    - PYTHON=2.7 DEPS=full TEST=standard
     - PYTHON=2.7 DEPS=minimal TEST=standard
-    - PYTHON=3.3 DEPS=full TEST=standard _EXPYFUN_SILENT=true  # pandas
+    - PYTHON=3.3 DEPS=full TEST=standard _EXPYFUN_SILENT=true
     - PYTHON=3.3 DEPS=minimal TEST=extra
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
 
@@ -38,14 +38,11 @@ before_install:
       else
         travis_retry pip install -q nose-timer http://pyglet.googlecode.com/archive/tip.zip;
       fi;
-    # Full dependencies (pandas, Pylink, mne-python, pytables)
+    # Full dependencies (pandas, mne-python, pytables)
     # We use a custom version of EL software here until a patch is released XXX
     - SRC_DIR=${PWD}
     - cd ~
     - if [ "${DEPS}" == "full" ]; then
-        wget --no-check-certificate https://lester.ilabs.uw.edu/files/pylink4python2.7_linux_x64.tar.gz;
-        tar xzf pylink4python2.7_linux_x64.tar.gz;
-        mv pylink4python2.7_linux_x64/pylink2.7 pylink;
         if [ "${PYTHON}" == "2.7" ]; then
           mv pylink ~/.local/lib/python2.7/site-packages;
           sudo apt-get install -qq -y python-pandas python-tables;
@@ -54,13 +51,6 @@ before_install:
           conda install --yes --quiet pandas pytables;
         fi;
         pip install mne;
-        echo "deb http://archive.canonical.com/ lucid partner" | sudo tee -a /etc/apt/sources.list;
-        echo "deb http://download.sr-support.com/x64 /" | sudo tee -a /etc/apt/sources.list;
-        travis_retry sudo apt-get update -qq;
-        travis_retry sudo apt-get install -qq -y --force-yes eyelink-display-software1.9 menu-xdg;
-        wget --no-check-certificate https://lester.ilabs.uw.edu/files/libeyelink.tar.gz;
-        tar xzf libeyelink.tar.gz;
-        sudo mv ${PWD}/lib/*so* /usr/lib;
       fi;
     - sudo ldconfig;
     # We need to create a (fake) display on Travis, let's use a funny resolution
