@@ -9,7 +9,8 @@ from functools import partial
 from collections import namedtuple
 
 
-def press_times_to_hmfc(presses, targets, maskers, tmin, tmax):
+def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
+                        return_type='counts'):
     """Convert press times to hits/misses/FA/CR
 
     Parameters
@@ -18,12 +19,15 @@ def press_times_to_hmfc(presses, targets, maskers, tmin, tmax):
         List of press times (in seconds).
     targets : list
         List of target times.
-    maskers : list | None
-        List of masker times.
+    foils : list | None
+        List of foil (distractor) times.
     tmin : float
-        Minimum time after a target to consider a press.
+        Minimum time after a target/foil to consider a press.
     tmax : float
-        Maximum time after a target to consider a press.
+        Maximum time after a target/foil to consider a press.
+    return_type : str
+        Currently only ``'counts'`` is supported. Eventually we will
+        add rection-time support as well.
 
     Returns
     -------
@@ -38,19 +42,19 @@ def press_times_to_hmfc(presses, targets, maskers, tmin, tmax):
     press by this function. However, there is no such de-bouncing of responses
     to "other" times.
     """
-    # Sanity check that targets and maskers don't overlap (due to tmin/tmax)
+    # Sanity check that targets and foils don't overlap (due to tmin/tmax)
     targets = np.atleast_1d(targets) + tmin
-    maskers = np.atleast_1d(maskers) + tmin
+    foils = np.atleast_1d(foils) + tmin
     dur = float(tmax - tmin)
     assert dur > 0
     presses = np.sort(np.atleast_1d(presses))
-    assert targets.ndim == maskers.ndim == presses.ndim == 1
-    all_times = np.concatenate(([-np.inf], targets, maskers, [np.inf]))
+    assert targets.ndim == foils.ndim == presses.ndim == 1
+    all_times = np.concatenate(([-np.inf], targets, foils, [np.inf]))
     order = np.argsort(all_times)
     inv_order = np.argsort(order)
     all_times = all_times[order]
     if not np.all(all_times[:-1] + dur <= all_times[1:]):
-        raise ValueError('Analysis windows for targets and maskers overlap')
+        raise ValueError('Analysis windows for targets and foils overlap')
     # Let's just loop (could probably be done with vector math, but it's
     # too hard and unlikely to be correct)
     locs = np.searchsorted(all_times, presses, 'right')
@@ -69,7 +73,7 @@ def press_times_to_hmfc(presses, targets, maskers, tmin, tmax):
     n_hit = sum(orig_places < len(targets))
     n_fa = len(used) - n_hit
     n_miss = len(targets) - n_hit
-    n_cr = len(maskers) - n_fa
+    n_cr = len(foils) - n_fa
     return n_hit, n_miss, n_fa, n_cr, n_other
 
 
