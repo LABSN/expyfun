@@ -2,7 +2,7 @@ from nose.tools import assert_raises, assert_true
 import warnings
 
 from expyfun import EyelinkController, ExperimentController
-from expyfun._utils import _TempDir, requires_pylink, _hide_window
+from expyfun._utils import _TempDir, _hide_window
 
 warnings.simplefilter('always')
 
@@ -13,7 +13,6 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 
 
 @_hide_window
-@requires_pylink
 def test_eyelink_methods():
     """Test EL methods
     """

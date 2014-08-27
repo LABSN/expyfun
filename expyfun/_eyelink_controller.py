@@ -150,6 +150,9 @@ class EyelinkController(object):
     def __init__(self, ec, link='default', fs=1000, verbose=None):
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
+        if link is not None and pylink is None:
+            raise ImportError('Could not import pylink, please ensure it '
+                              'is installed correctly to use the EyeLink')
         valid_fs = (250, 500, 1000, 2000)
         if fs not in valid_fs:
             raise ValueError('fs must be one of {0}'.format(list(valid_fs)))
@@ -279,7 +282,7 @@ class EyelinkController(object):
         logger.info('Eyelink: Opening remote file with filename {}'
                     ''.format(file_name))
         _check(self._eyelink.openDataFile(file_name),
-               'Remote file ' + file_name + " could not be opened: {1}")
+               'Remote file "' + file_name + '" could not be opened: {0}')
         self._current_open_file = file_name
         self._file_list.append(file_name)
         return self._current_open_file
