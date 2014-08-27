@@ -54,8 +54,7 @@ def press_times_to_hmfc(presses, targets, maskers, tmin, tmax):
     # figure out which presses were to target or masker (valid_idx)
     in_window = (presses <= all_times[locs - 1] + dur)
     valid_idx = np.where(in_window)[0]
-    invalid_idx = np.where(~in_window)[0]
-    n_other = len(invalid_idx)
+    n_other = np.sum(~in_window)
 
     # figure out which of valid presses were to target or masker
     used = np.unique(locs[valid_idx])  # unique to remove double-presses
