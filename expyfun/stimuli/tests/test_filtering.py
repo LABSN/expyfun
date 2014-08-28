@@ -14,7 +14,7 @@ def test_resample():
     """Test resampling
     """
     x = np.random.normal(0, 1, (10, 10, 10))
-    x_rs = resample(x, 1, 2, 10)
+    x_rs = resample(x, 1, 2, 10, n_jobs=2)
     assert_equal(x.shape, (10, 10, 10))
     assert_equal(x_rs.shape, (10, 10, 5))
 
