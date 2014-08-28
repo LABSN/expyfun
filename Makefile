@@ -28,12 +28,12 @@ clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
 flake:
 	@if command -v flake8 > /dev/null; then \
-           echo "Running flake8"; \
+		echo "Running flake8"; \
 		flake8 --count expyfun examples; \
-           echo "Done."; \
 	else \
-           echo "flake8 not found, please install it!"; \
-     fi;
+		echo "flake8 not found, please install it!"; \
+		exit 1; \
+	fi;
 
 
 in: inplace # just a shortcut

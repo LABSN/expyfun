@@ -626,13 +626,24 @@ def set_config(key, value):
 
 
 def fake_button_press(ec, button, delay=0.):
-    """Utility to fake a button press after a delay"""
-    # uses threads to ensure that control is passed back, so other commands
-    # can be called
+    """Fake a button press after a delay
+
+    Notes
+    -----
+    This function only works with the keyboard controller (not TDT)!
+    It uses threads to ensure that control is passed back, so other commands
+    can be called (like wait_for_presses).
+    """
     def send():
         ec._response_handler._on_pyglet_keypress(button, [], True)
+    Timer(delay, send).start() if delay > 0. else send()
 
-    Timer(delay, send).start() if delay > 0 else send()
+
+def fake_mouse_click(ec, x, y, button, delay=0.):
+    """Fake a mouse click after a delay"""
+    def send():
+        ec._mouse_handler._on_pyglet_mouse_click(x, y, button, modifiers=[])
+    Timer(delay, send).start() if delay > 0. else send()
 
 
 def _check_pyglet_version(raise_error=False):
