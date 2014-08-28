@@ -187,7 +187,7 @@ def run_subprocess(command, **kwargs):
     p = subprocess.Popen(command, **kw)
     stdout_, stderr = p.communicate()
 
-    output = (stdout_, stderr)
+    output = (stdout_.decode(), stderr.decode())
     if p.returncode:
         err_fun = subprocess.CalledProcessError.__init__
         if 'output' in inspect.getargspec(err_fun).args:
