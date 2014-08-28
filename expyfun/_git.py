@@ -30,13 +30,20 @@ def _check_version_format(version):
                         ''.format(version))
 
 
-def download_version(version, dest_dir=None):
+def _active_version(wd):
+    """Helper to get the currently active version"""
+    return run_subprocess(['git', 'rev-parse', 'HEAD'], cwd=wd)[0][:7]
+
+
+def download_version(version='current', dest_dir=None):
     """Download specific expyfun version
 
     Parameters
     ----------
     version : str
         Version to check out (7-character git commit number).
+        Can also be ``'current'`` (default) to download whatever the
+        latest ``upstream/master`` version is.
     dest_dir : str | None
         Destination directory. If None, the current working
         directory is used.
@@ -61,23 +68,31 @@ def download_version(version, dest_dir=None):
     expyfun_dir = op.join(tempdir, 'expyfun')  # git will auto-create this dir
     repo_url = 'git://github.com/LABSN/expyfun.git'
     run_subprocess(['git', 'clone', repo_url, expyfun_dir])
+    version = _active_version(expyfun_dir) if version == 'current' else version
     try:
         run_subprocess(['git', 'checkout', version], cwd=expyfun_dir)
     except Exception as exp:
         raise RuntimeError('Could not check out version {0}: {1}'
                            ''.format(version, str(exp)))
+    assert _active_version(expyfun_dir) == version
 
     # install
     orig_dir = os.getcwd()
     os.chdir(expyfun_dir)
     sys.path.insert(0, expyfun_dir)  # ensure our new "setup" is imported
+    orig_stdout = sys.stdout
     try:
         from setup import git_version, setup_package
         assert git_version().lower() == version[:7].lower()
-        setup_package(script_args=['build', '--build-purelib', dest_dir])
+        with open(os.devnull, 'w') as f:
+            sys.stdout = f
+            setup_package(script_args=['build', '--build-purelib', dest_dir])
     finally:
+        sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))
         os.chdir(orig_dir)
+    print('Successfully checked out expyfun version:\n\n%s\n\ninto '
+          'destination directory:\n\n%s\n' % (version, op.join(dest_dir)))
 
 
 def assert_version(version):
