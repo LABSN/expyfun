@@ -8,6 +8,7 @@ from expyfun._utils import _TempDir
 from expyfun._git import _has_git
 
 tempdir = _TempDir()
+tempdir_2 = _TempDir()
 
 
 def test_version():
@@ -40,3 +41,5 @@ def test_version():
             assert_raises(IOError, download_version, v)
         finally:
             os.chdir(orig_dir)
+        # make sure we can get latest version
+        download_version(dest_dir=tempdir_2)
