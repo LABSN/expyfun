@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-import platform
 
 from ._utils import wait_secs, verbose_dec
 

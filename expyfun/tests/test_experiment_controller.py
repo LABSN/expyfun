@@ -6,6 +6,7 @@ from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
 from expyfun._utils import _TempDir, interactive_test, _hide_window
+from expyfun.stimuli import get_tdt_rates
 
 warnings.simplefilter('always')
 
@@ -150,14 +151,18 @@ def test_ec(ac=None, rd=None):
         # run rest of test with audio_controller == 'pyglet'
         this_ac = 'pyglet'
         this_rd = 'keyboard'
+        this_tc = 'dummy'
         this_fs = 44100
     else:
+        assert ac == 'tdt'
         # run rest of test with audio_controller == 'tdt'
         this_ac = ac
         this_rd = rd
-        this_fs = 24414
+        this_tc = ac
+        this_fs = get_tdt_rates()['25k']
     with ExperimentController(*std_args, audio_controller=this_ac,
                               response_device=this_rd,
+                              trigger_controller=this_tc,
                               stim_fs=this_fs, **std_kwargs) as ec:
         stamp = ec.current_time
         ec.write_data_line('hello')
