@@ -42,6 +42,13 @@ except Exception:
 else:
     has_pytables = True
 
+try:
+    import joblib  # noqa, analysis:ignore
+except Exception:
+    has_joblib = False
+else:
+    has_joblib = True
+
 # for py3k (eventually)
 if sys.version.startswith('2'):
     string_types = basestring  # noqa
@@ -414,6 +421,7 @@ def verbose_dec(function, *args, **kwargs):
 
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
 requires_pytables = skipif(has_pytables is False, 'Requires pytables')
+requires_joblib = skipif(has_joblib is False, 'Requires joblib')
 
 
 def _has_scipy_version(version):
