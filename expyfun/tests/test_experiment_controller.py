@@ -5,8 +5,10 @@ from numpy.testing import assert_allclose
 from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import _TempDir, _hide_window, fake_button_press
+from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
+                            fake_mouse_click)
 from expyfun.stimuli import get_tdt_rates
+from expyfun.visual import Rectangle
 
 warnings.simplefilter('always')
 
@@ -371,3 +373,27 @@ def test_button_presses_and_window_size():
         fake_button_press(ec, '1', 0.3)
         out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
         assert_equal(out[0], '1')
+
+
+@_hide_window
+def test_mouse_clicks():
+    """Test EC mouse click support
+    """
+    with ExperimentController(*std_args, participant='foo', session='01',
+                              output_dir=temp_dir) as ec:
+        rect = Rectangle(ec, [0, 0, 2, 2])
+        fake_mouse_click(ec, [1, 2], delay=0.3)
+        assert_equal(ec.wait_for_click_on(rect, 1.5, timestamp=False)[0],
+                     ('left', 1, 2))
+        fake_mouse_click(ec, [2, 1], 'middle', delay=0.3)
+        out = ec.wait_one_click(1.5, 0., ['middle'], timestamp=True)
+        assert_true(out[3] < 1.5)
+        assert_equal(out[:3], ('middle', 2, 1))
+        fake_mouse_click(ec, [3, 2], 'left', delay=0.3)
+        fake_mouse_click(ec, [4, 5], 'right', delay=0.3)
+        out = ec.wait_for_clicks(1.5, timestamp=False)
+        assert_equal(len(out), 2)
+        assert_equal(out[0], ('left', 3, 2))
+        assert_equal(out[1], ('right', 4, 5))
+        out = ec.wait_for_clicks(0.1)
+        assert_equal(len(out), 0)

@@ -625,7 +625,7 @@ def set_config(key, value):
 # MISC
 
 
-def fake_button_press(ec, button, delay=0.):
+def fake_button_press(ec, button='1', delay=0.):
     """Fake a button press after a delay
 
     Notes
@@ -639,10 +639,12 @@ def fake_button_press(ec, button, delay=0.):
     Timer(delay, send).start() if delay > 0. else send()
 
 
-def fake_mouse_click(ec, x, y, button, delay=0.):
+def fake_mouse_click(ec, pos, button='left', delay=0.):
     """Fake a mouse click after a delay"""
+    button = dict(left=1, middle=2, right=4)[button]  # trans to pyglet
+
     def send():
-        ec._mouse_handler._on_pyglet_mouse_click(x, y, button, modifiers=[])
+        ec._mouse_handler._on_pyglet_mouse_click(pos[0], pos[1], button, [])
     Timer(delay, send).start() if delay > 0. else send()
 
 
