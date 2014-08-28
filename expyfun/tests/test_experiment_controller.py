@@ -359,14 +359,17 @@ def test_button_presses_and_window_size():
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
                               participant='foo', session='01') as ec:
-        fake_button_press(ec, '1', 0.1)
-        assert_equal(ec.screen_prompt('press 1', live_keys=['1']), '1')
+        fake_button_press(ec, '1', 0.3)
+        assert_equal(ec.screen_prompt('press 1', live_keys=['1'],
+                                      max_wait=2.), '1')
         ec.screen_text('press 1 again')
         ec.flip()
-        fake_button_press(ec, '1', 0.1)
-        assert_equal(ec.wait_one_press(live_keys=[1])[0], '1')
+        fake_button_press(ec, '1', 0.3)
+        assert_equal(ec.wait_one_press(live_keys=[1],
+                                       max_wait=2.)[0], '1')
         ec.screen_text('press 1 one last time')
         ec.flip()
-        fake_button_press(ec, '1', 0.1)
-        out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
+        fake_button_press(ec, '1', 0.3)
+        out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False,
+                                  max_wait=2.)
         assert_equal(out[0], '1')
