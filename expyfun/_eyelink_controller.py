@@ -15,11 +15,29 @@ import subprocess
 import time
 import pyglet
 
+# Constants
+TRIAL_OK = 0
+IN_RECORD_MODE = 4
+
+CR_HAIR_COLOR = 1
+PUPIL_HAIR_COLOR = 2
+PUPIL_BOX_COLOR = 3
+SEARCH_LIMIT_BOX_COLOR = 4
+MOUSE_CURSOR_COLOR = 5
+
+
+def dummy_fun(*args, **kwargs):
+    """A dummy function used by EL dummy mode"""
+    return TRIAL_OK
+
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink
+    cal_super_class = pylink.EyeLinkCustomDisplay
+    openGraphicsEx = pylink.openGraphicsEx
 except ImportError:
-    pylink = None  # analysis:ignore
+    cal_super_class = object
+    openGraphicsEx = dummy_fun
 
 from .visual import FixationDot, Circle, RawImage, Line, Text
 from ._utils import get_config, verbose_dec, logger, string_types
@@ -57,22 +75,48 @@ def _get_key_trans_dict():
 
 def _get_color_dict():
     """Helper to translate pylink colors to pyglet"""
-    color_dict = {str(pylink.CR_HAIR_COLOR): (1.0, 1.0, 1.0),
-                  str(pylink.PUPIL_HAIR_COLOR): (1.0, 1.0, 1.0),
-                  str(pylink.PUPIL_BOX_COLOR): (0.0, 1.0, 0.0),
-                  str(pylink.SEARCH_LIMIT_BOX_COLOR): (1.0, 0.0, 0.0),
-                  str(pylink.MOUSE_CURSOR_COLOR): (1.0, 0.0, 0.0)}
+    color_dict = {str(CR_HAIR_COLOR): (1.0, 1.0, 1.0),
+                  str(PUPIL_HAIR_COLOR): (1.0, 1.0, 1.0),
+                  str(PUPIL_BOX_COLOR): (0.0, 1.0, 0.0),
+                  str(SEARCH_LIMIT_BOX_COLOR): (1.0, 0.0, 0.0),
+                  str(MOUSE_CURSOR_COLOR): (1.0, 0.0, 0.0)}
     return color_dict
 
 
 def _check(val, msg, out='error'):
     """Helper to check output"""
-    if val != pylink.TRIAL_OK:
+    if val != TRIAL_OK:
         msg = msg.format(val)
         if out == 'warn':
             logger.warn(msg)
         else:
             raise RuntimeError()
+
+
+_dummy_names = [
+    'setSaccadeVelocityThreshold', 'setAccelerationThreshold',
+    'setUpdateInterval', 'setFixationUpdateAccumulate', 'setFileEventFilter',
+    'setLinkEventFilter', 'setFileSampleFilter', 'setLinkSampleFilter',
+    'setPupilSizeDiameter', 'setAcceptTargetFixationButton',
+    'openDataFile', 'startRecording', 'waitForModeReady',
+    'isRecording', 'stopRecording', 'closeDataFile', 'doTrackerSetup',
+    'receiveDataFile', 'close', 'eyeAvailable', 'sendCommand',
+]
+
+
+class DummyEl(object):
+    def __init__(self):
+        for name in _dummy_names:
+            setattr(self, name, dummy_fun)
+        self.getTrackerVersion = lambda: 'Dummy'
+        self.getDummyMode = lambda: True
+        self.getCurrentMode = lambda: IN_RECORD_MODE
+        self.waitForBlockStart = lambda a, b, c: 1
+
+    def sendMessage(self, msg):
+        if not isinstance(msg, string_types):
+            raise TypeError('msg must be str')
+        return TRIAL_OK
 
 
 class EyelinkController(object):
@@ -104,11 +148,11 @@ class EyelinkController(object):
     """
     @verbose_dec
     def __init__(self, ec, link='default', fs=1000, verbose=None):
-        if pylink is None:
-            raise ImportError('Could not import pylink, please ensure it '
-                              'is installed correctly')
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
+        if link is not None and pylink is None:
+            raise ImportError('Could not import pylink, please ensure it '
+                              'is installed correctly to use the EyeLink')
         valid_fs = (250, 500, 1000, 2000)
         if fs not in valid_fs:
             raise ValueError('fs must be one of {0}'.format(list(valid_fs)))
@@ -134,7 +178,7 @@ class EyelinkController(object):
             if cmd.returncode:
                 raise RuntimeError('could not connect to Eyelink @ %s, '
                                    'is it turned on?' % link)
-        self._eyelink = pylink.EyeLink(link)
+        self._eyelink = DummyEl() if link is None else pylink.EyeLink(link)
         self._file_list = []
         self._size = np.array(self._ec.window_size_pix)
         self._ec._extra_cleanup_fun += [self._close]
@@ -237,10 +281,8 @@ class EyelinkController(object):
         assert len(file_name) <= 8
         logger.info('Eyelink: Opening remote file with filename {}'
                     ''.format(file_name))
-        val = self._eyelink.openDataFile(file_name)
-        if val != pylink.TRIAL_OK:
-            raise RuntimeError('Remote file "{0}" could not be opened: {1}'
-                               ''.format(file_name, val))
+        _check(self._eyelink.openDataFile(file_name),
+               'Remote file "' + file_name + '" could not be opened: {0}')
         self._current_open_file = file_name
         self._file_list.append(file_name)
         return self._current_open_file
@@ -261,7 +303,7 @@ class EyelinkController(object):
             raise RuntimeError('Eyelink is not recording')
         # double-check
         mode = self._eyelink.getCurrentMode()
-        if not self.dummy_mode and mode != pylink.IN_RECORD_MODE:
+        if mode != IN_RECORD_MODE:
             raise RuntimeError('Eyelink is not recording: {0}'.format(mode))
         self._ec.flush()
         self._toggle_dummy_cursor(True)
@@ -269,7 +311,7 @@ class EyelinkController(object):
     @property
     def recording(self):
         """Returns boolean for whether or not the Eyelink is recording"""
-        return (self._eyelink.isRecording() == pylink.TRIAL_OK)
+        return (self._eyelink.isRecording() == TRIAL_OK)
 
     def stop(self):
         """Stop Eyelink recording and close current file"""
@@ -319,10 +361,10 @@ class EyelinkController(object):
         # enter Eyetracker camera setup mode, calibration and validation
         self._ec.flip()
         cal = _Calibrate(self._ec, beep)
-        pylink.openGraphicsEx(cal)
+        openGraphicsEx(cal)
         cal.setup_event_handlers()
         cal.play_beep(0)
-        if not (self.dummy_mode or self._fake_calibration):
+        if not self._fake_calibration:
             self._eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
@@ -568,16 +610,10 @@ class EyelinkController(object):
         return eu
 
 
-if pylink is not None:
-    super_class = pylink.EyeLinkCustomDisplay
-else:
-    super_class = object
-
-
-class _Calibrate(super_class):
+class _Calibrate(cal_super_class):
     """Show and control calibration screen"""
     def __init__(self, ec, beep=False):
-        super_class.__init__(self)
+        cal_super_class.__init__(self)
         self.__target_beep__ = None
         self.__target_beep__done__ = None
         self.__target_beep__error__ = None

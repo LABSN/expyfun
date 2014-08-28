@@ -29,13 +29,6 @@ from ._externals import decorator
 pyglet.options['debug_gl'] = False
 
 try:
-    import pylink  # noqa, analysis:ignore
-except ImportError:
-    has_pylink = False
-else:
-    has_pylink = True
-
-try:
     import pandas  # noqa, analysis:ignore
 except ImportError:
     has_pandas = False
@@ -419,7 +412,6 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
-requires_pylink = skipif(has_pylink is False, 'Requires functional pylink')
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
 requires_pytables = skipif(has_pytables is False, 'Requires pytables')
 
