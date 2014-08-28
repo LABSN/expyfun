@@ -54,6 +54,9 @@ class ParallelTrigger(object):
                  verbose=None):
         self._stamp_trigger = self._parallel_trigger
         if mode == 'parallel':
+            raise NotImplementedError('Parallel port triggering has not '
+                                      'been sufficiently tested')
+            """
             if 'Linux' in platform.system():
                 address = '/dev/parport0' if address is None else address
                 import parallel as _p
@@ -82,6 +85,7 @@ class ParallelTrigger(object):
                 self._set_data = _set_data
             else:
                 raise NotImplementedError
+            """
         else:  # mode == 'dummy':
             self._stamp_trigger = self._dummy_trigger
         self.high_duration = high_duration

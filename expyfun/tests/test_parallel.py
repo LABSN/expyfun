@@ -15,7 +15,7 @@ def fun(x):
     return x
 
 
-@requires_joblib()
+@requires_joblib
 def test_parallel():
     """Test parallel support
     """

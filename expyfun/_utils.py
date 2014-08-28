@@ -99,10 +99,7 @@ def set_log_level(verbose=None, return_old_level=False):
     if verbose is None:
         verbose = get_config('EXPYFUN_LOGGING_LEVEL', 'INFO')
     elif isinstance(verbose, bool):
-        if verbose is True:
-            verbose = 'INFO'
-        else:
-            verbose = 'WARNING'
+        verbose = 'INFO' if verbose is True else 'WARNING'
     if isinstance(verbose, string_types):
         verbose = verbose.upper()
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
