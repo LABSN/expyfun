@@ -38,17 +38,16 @@ before_install:
       else
         travis_retry pip install -q nose-timer http://pyglet.googlecode.com/archive/tip.zip;
       fi;
-    # Full dependencies (pandas, mne-python, pytables)
-    # We use a custom version of EL software here until a patch is released XXX
+    # Full dependencies (pandas, mne-python, pytables, joblib)
     - SRC_DIR=${PWD}
     - cd ~
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
           mv pylink ~/.local/lib/python2.7/site-packages;
-          sudo apt-get install -qq -y python-pandas python-tables;
+          sudo apt-get install -qq -y python-pandas python-tables python-joblib;
         else
           mv pylink /home/$USER/anaconda/site-packages;
-          conda install --yes --quiet pandas pytables;
+          conda install --yes --quiet pandas pytables joblib;
         fi;
         pip install mne;
       fi;
