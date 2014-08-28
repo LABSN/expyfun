@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose
 from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import _TempDir, interactive_test, _hide_window
+from expyfun._utils import _TempDir, _hide_window, fake_button_press
 from expyfun.stimuli import get_tdt_rates
 
 warnings.simplefilter('always')
@@ -351,7 +351,7 @@ def test_visual(ac=None):
         text.draw()
 
 
-@interactive_test
+@_hide_window
 def test_button_presses_and_window_size():
     """Test EC window_size=None and button press capture (press 1 thrice)
     """
@@ -359,14 +359,14 @@ def test_button_presses_and_window_size():
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
                               participant='foo', session='01') as ec:
+        fake_button_press(ec, '1', 0.1)
         assert_equal(ec.screen_prompt('press 1', live_keys=['1']), '1')
         ec.screen_text('press 1 again')
         ec.flip()
+        fake_button_press(ec, '1', 0.1)
         assert_equal(ec.wait_one_press(live_keys=[1])[0], '1')
         ec.screen_text('press 1 one last time')
         ec.flip()
+        fake_button_press(ec, '1', 0.1)
         out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
-        if len(out) > 0:
-            assert_equal(out[0], '1')
-        else:
-            warnings.warn('press "1" faster next time')
+        assert_equal(out[0], '1')

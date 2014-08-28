@@ -51,10 +51,10 @@ class ParallelTrigger(object):
     @verbose_dec
     def __init__(self, mode='dummy', address=None, high_duration=0.001,
                  verbose=None):
-        self._stamp_trigger = self._parallel_trigger
         if mode == 'parallel':
             raise NotImplementedError('Parallel port triggering has not '
                                       'been sufficiently tested')
+            #self._stamp_trigger = self._parallel_trigger
             #if 'Linux' in platform.system():
             #    address = '/dev/parport0' if address is None else address
             #    import parallel as _p

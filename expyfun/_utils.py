@@ -23,6 +23,8 @@ from numpy.testing.decorators import skipif
 import logging
 import datetime
 from timeit import default_timer as clock
+from threading import Timer
+
 from ._externals import decorator
 
 # set this first thing to make sure it "takes"
@@ -517,7 +519,6 @@ known_config_types = ['RESPONSE_DEVICE',
                       'SCREEN_WIDTH',
                       'SCREEN_DISTANCE',
                       'SCREEN_SIZE_PIX',
-                      'EXPYFUN_INTERACTIVE_TESTING',
                       'EXPYFUN_LOGGING_LEVEL',
                       ]
 
@@ -623,6 +624,17 @@ def set_config(key, value):
 ###############################################################################
 # MISC
 
+
+def fake_button_press(ec, button, delay=0.):
+    """Utility to fake a button press after a delay"""
+    # uses threads to ensure that control is passed back, so other commands
+    # can be called
+    def send():
+        ec._response_handler._on_pyglet_keypress(button, [], True)
+
+    Timer(delay, send).start() if delay > 0 else send()
+
+
 def _check_pyglet_version(raise_error=False):
     """Check pyglet version, return True if usable.
     """
@@ -632,10 +644,6 @@ def _check_pyglet_version(raise_error=False):
                           'version 1.2, and you are running '
                           '{0}'.format(pyglet.version))
     return is_usable
-
-
-interactive_test = skipif(get_config('EXPYFUN_INTERACTIVE_TESTING', 'False') !=
-                          'True', 'Interactive testing disabled.')
 
 
 def wait_secs(secs, ec=None):
