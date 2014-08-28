@@ -365,11 +365,9 @@ def test_button_presses_and_window_size():
         ec.screen_text('press 1 again')
         ec.flip()
         fake_button_press(ec, '1', 0.3)
-        assert_equal(ec.wait_one_press(live_keys=[1],
-                                       max_wait=2.)[0], '1')
+        assert_equal(ec.wait_one_press(2., live_keys=[1], '1'))
         ec.screen_text('press 1 one last time')
         ec.flip()
         fake_button_press(ec, '1', 0.3)
-        out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False,
-                                  max_wait=2.)
+        out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
         assert_equal(out[0], '1')
