@@ -7,6 +7,7 @@ from scipy import signal
 from ..visual import FixationDot
 from ..analyze import sigmoid
 from .._utils import logger, verbose_dec
+from ..stimuli import window_edges
 
 
 def _check_pyeparse():
@@ -194,17 +195,13 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     #
     fs = ec.stim_fs
     n_samp = int(fs * stim_dur)
-    window = signal.windows.hanning(int(0.01 * fs))
-    idx = len(window) // 2
-    window = np.concatenate((window[:idx + 1], np.ones(n_samp - 2 * idx - 2),
-                             window[idx:]))
     freqs = np.ones(n_samp) * f0
     t = np.arange(n_samp).astype(float) / fs
     tone_stim = np.sin(2 * np.pi * freqs * t)
     freqs = 100 * np.sin(2 * np.pi * (1 / stim_dur) * t) + f0
     sweep_stim = np.sin(2 * np.pi * np.cumsum(freqs) / fs)
-    tone_stim *= (ec._stim_rms * np.sqrt(2)) * window
-    sweep_stim *= (ec._stim_rms * np.sqrt(2)) * window
+    tone_stim = window_edges(tone_stim * ec._stim_rms * np.sqrt(2), fs)
+    sweep_stim = window_edges(sweep_stim * ec._stim_rms * np.sqrt(2), fs)
 
     #
     # Subject "Training"
