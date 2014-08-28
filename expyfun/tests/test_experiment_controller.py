@@ -353,7 +353,7 @@ def test_visual(ac=None):
 
 @_hide_window
 def test_button_presses_and_window_size():
-    """Test EC window_size=None and button press capture (press 1 thrice)
+    """Test EC window_size=None and button press capture
     """
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
@@ -361,11 +361,11 @@ def test_button_presses_and_window_size():
                               participant='foo', session='01') as ec:
         fake_button_press(ec, '1', 0.3)
         assert_equal(ec.screen_prompt('press 1', live_keys=['1'],
-                                      max_wait=2.), '1')
+                                      max_wait=1.5), '1')
         ec.screen_text('press 1 again')
         ec.flip()
         fake_button_press(ec, '1', 0.3)
-        assert_equal(ec.wait_one_press(2., live_keys=[1], '1'))
+        assert_equal(ec.wait_one_press(1.5, live_keys=[1])[0], '1')
         ec.screen_text('press 1 one last time')
         ec.flip()
         fake_button_press(ec, '1', 0.3)
