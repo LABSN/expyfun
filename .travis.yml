@@ -6,8 +6,8 @@ python:
 env:
     - PYTHON=2.7 DEPS=full TEST=standard
     - PYTHON=2.7 DEPS=minimal TEST=standard
-    - PYTHON=3.3 DEPS=full TEST=standard _EXPYFUN_SILENT=true
-    - PYTHON=3.3 DEPS=minimal TEST=extra
+    - PYTHON=3.4 DEPS=full TEST=standard _EXPYFUN_SILENT=true
+    - PYTHON=3.4 DEPS=minimal TEST=extra
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
 
 virtualenv:
@@ -32,6 +32,7 @@ before_install:
         conda install --yes --quiet scipy matplotlib nose coverage;
         travis_retry pip install -q coveralls;
       fi;
+    - python --version
     # Only install these deps if necessary (slow on Py3k)
     - if [ "${TEST}" == "extra" ]; then
         travis_retry pip install -q flake8;
@@ -43,10 +44,8 @@ before_install:
     - cd ~
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
-          mv pylink ~/.local/lib/python2.7/site-packages;
           sudo apt-get install -qq -y python-pandas python-tables python-joblib;
         else
-          mv pylink /home/$USER/anaconda/site-packages;
           conda install --yes --quiet pandas pytables joblib;
         fi;
         pip install mne;
