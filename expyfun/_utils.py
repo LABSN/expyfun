@@ -634,17 +634,15 @@ def fake_button_press(ec, button='1', delay=0.):
     It uses threads to ensure that control is passed back, so other commands
     can be called (like wait_for_presses).
     """
-    def send():
-        ec._response_handler._on_pyglet_keypress(button, [], True)
+    send = lambda: ec._response_handler._on_pyglet_keypress(button, [], True)
     Timer(delay, send).start() if delay > 0. else send()
 
 
 def fake_mouse_click(ec, pos, button='left', delay=0.):
     """Fake a mouse click after a delay"""
     button = dict(left=1, middle=2, right=4)[button]  # trans to pyglet
-
-    def send():
-        ec._mouse_handler._on_pyglet_mouse_click(pos[0], pos[1], button, [])
+    send = lambda: ec._mouse_handler._on_pyglet_mouse_click(pos[0], pos[1],
+                                                            button, [])
     Timer(delay, send).start() if delay > 0. else send()
 
 
