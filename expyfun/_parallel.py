@@ -4,8 +4,6 @@
 
 # Adapted from mne-python with permission
 
-import warnings
-
 
 def parallel_func(func, n_jobs):
     """Return parallel instance with delayed function
@@ -35,18 +33,8 @@ def parallel_func(func, n_jobs):
         parallel = list
         return parallel, my_func, n_jobs
 
-    try:
-        from joblib import Parallel, delayed
-    except ImportError:
-        try:
-            from sklearn.externals.joblib import Parallel, delayed
-        except ImportError:
-            warnings.warn('joblib not installed. Cannot run in parallel.')
-            n_jobs = 1
-            my_func = func
-            parallel = list
-            return parallel, my_func, n_jobs
-
+    # let it error out if the user tries to do parallel w/o joblib
+    from joblib import Parallel, delayed
     # create keyword arguments for Parallel
     n_jobs = _check_n_jobs(n_jobs)
     parallel = Parallel(n_jobs, verbose=0)
@@ -68,20 +56,9 @@ def _check_n_jobs(n_jobs):
         The checked number of jobs. Always positive.
     """
     if not isinstance(n_jobs, int):
-        raise ValueError('n_jobs must be an integer')
-    elif n_jobs <= 0:
-        try:
-            import multiprocessing
-            n_cores = multiprocessing.cpu_count()
-            n_jobs = min(n_cores + n_jobs + 1, n_cores)
-            if n_jobs <= 0:
-                raise ValueError('If n_jobs has a negative value it must not '
-                                 'be less than the number of CPUs present. '
-                                 'You\'ve got %s CPUs' % n_cores)
-        except ImportError:
-            # only warn if they tried to use something other than 1 job
-            if n_jobs != 1:
-                warnings.warn('multiprocessing not installed. Cannot run in '
-                              'parallel.')
-                n_jobs = 1
+        raise TypeError('n_jobs must be an integer')
+    if n_jobs <= 0:
+        import multiprocessing
+        n_cores = multiprocessing.cpu_count()
+        n_jobs = max(min(n_cores + n_jobs + 1, n_cores), 1)
     return n_jobs

@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-import platform
 
 from ._utils import wait_secs, verbose_dec
 
@@ -52,36 +51,38 @@ class ParallelTrigger(object):
     @verbose_dec
     def __init__(self, mode='dummy', address=None, high_duration=0.001,
                  verbose=None):
-        self._stamp_trigger = self._parallel_trigger
         if mode == 'parallel':
-            if 'Linux' in platform.system():
-                address = '/dev/parport0' if address is None else address
-                import parallel as _p
-                self._port = _p.Parallel(address)
-                self._set_data = self._port.setData
-            elif 'Windows' in platform.system():
-                from ctypes import windll
-                if not hasattr(windll, 'inpout32'):
-                    raise SystemError('Must have inpout32 installed')
+            raise NotImplementedError('Parallel port triggering has not '
+                                      'been sufficiently tested')
+            #self._stamp_trigger = self._parallel_trigger
+            #if 'Linux' in platform.system():
+            #    address = '/dev/parport0' if address is None else address
+            #    import parallel as _p
+            #    self._port = _p.Parallel(address)
+            #    self._set_data = self._port.setData
+            #elif 'Windows' in platform.system():
+            #    from ctypes import windll
+            #    if not hasattr(windll, 'inpout32'):
+            #        raise SystemError('Must have inpout32 installed')
 
-                addr = 0x0378 if address is None else address
-                base = int(addr, 16) if addr[:2] == '0x' else addr
-                self._port = windll.inpout32
-                mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
-                # Use ECP to put the port into byte mode
-                val = int((self._port.Inp32(base + 0x402) & ~mask) | (1 << 5))
-                self.port.Out32(base + 0x402, val)
+            #    addr = 0x0378 if address is None else address
+            #    base = int(addr, 16) if addr[:2] == '0x' else addr
+            #    self._port = windll.inpout32
+            #    mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
+            #    # Use ECP to put the port into byte mode
+            #    val = int((self._port.Inp32(base + 0x402) & ~mask) | (1 << 5))
+            #    self.port.Out32(base + 0x402, val)
 
-                # Now to make sure the port is in output mode we need to make
-                # sure that bit 5 of the control register is not set
-                val = int(self._port.Inp32(base + 2) & ~np.uint8(1 << 5))
-                self._port.Out32(base + 2, val)
+            #    # Now to make sure the port is in output mode we need to make
+            #    # sure that bit 5 of the control register is not set
+            #    val = int(self._port.Inp32(base + 2) & ~np.uint8(1 << 5))
+            #    self._port.Out32(base + 2, val)
 
-                def _set_data(data):
-                    return self._port.Out32(base, data)
-                self._set_data = _set_data
-            else:
-                raise NotImplementedError
+            #    def _set_data(data):
+            #        return self._port.Out32(base, data)
+            #    self._set_data = _set_data
+            #else:
+            #    raise NotImplementedError
         else:  # mode == 'dummy':
             self._stamp_trigger = self._dummy_trigger
         self.high_duration = high_duration
@@ -90,11 +91,11 @@ class ParallelTrigger(object):
         """Fake stamping"""
         pass
 
-    def _parallel_trigger(self, trig):
-        """Stamp a single byte via parallel port"""
-        self._set_data(int(trig))
-        wait_secs(self.high_duration)
-        self._set_data(0)
+    #def _parallel_trigger(self, trig):
+    #    """Stamp a single byte via parallel port"""
+    #    self._set_data(int(trig))
+    #    wait_secs(self.high_duration)
+    #    self._set_data(0)
 
     def stamp_triggers(self, triggers, delay=0.03):
         """Stamp a list of triggers with a given inter-trigger delay

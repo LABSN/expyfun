@@ -2,7 +2,6 @@
 """
 
 import numpy as np
-from scipy import signal
 
 from ..visual import FixationDot
 from ..analyze import sigmoid

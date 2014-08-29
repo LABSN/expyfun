@@ -1061,6 +1061,46 @@ class ExperimentController(object):
                                                   live_buttons, timestamp,
                                                   relative_to, visible)
 
+    def wait_for_clicks(self, max_wait=np.inf, min_wait=0.0, live_buttons=None,
+                        timestamp=True, relative_to=None, visible=None):
+        """Returns all clicks between min_wait and max_wait.
+
+        Parameters
+        ----------
+        max_wait : float
+            Duration after which control is returned if no button is clicked.
+        min_wait : float
+            Duration for which to ignore button clicks.
+        live_buttons : list | None
+            List of strings indicating acceptable buttons.
+            ``live_buttons=None`` accepts all mouse clicks.
+        timestamp : bool
+            Whether the mouse click should be timestamped. If ``True``, returns
+            the mouse click time relative to the value given in
+            ``relative_to``.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            ``timestamp==False``.  If ``None``, timestamps are relative to the
+            time ``wait_one_click`` was called.
+        visible : None | bool
+            Whether to show the cursor while in the function. ``None`` has no
+            effect and is the default. A boolean will show it (or not) while
+            the function has control and then set visibility back to its
+            previous value afterwards.
+
+        Returns
+        -------
+        clicks : list of tuple
+            Returns a list of the clicks between min_wait and max_wait.
+            If ``timestamp==True``, each entry is a tuple (str, int, int,
+            float) indicating the button clicked and its timestamp.
+            If ``timestamp==False``, each entry is a tuple (str, int, int)
+            indicating the button clicked.
+        """
+        return self._mouse_handler.wait_for_clicks(max_wait, min_wait,
+                                                   live_buttons, timestamp,
+                                                   relative_to, visible)
+
     def wait_for_click_on(self, objects, max_wait=np.inf, min_wait=0.0,
                           live_buttons=None, timestamp=True, relative_to=None):
         """Returns the first click after min_wait over a visual object.

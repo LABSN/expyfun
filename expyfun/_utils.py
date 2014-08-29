@@ -23,6 +23,8 @@ from numpy.testing.decorators import skipif
 import logging
 import datetime
 from timeit import default_timer as clock
+from threading import Timer
+
 from ._externals import decorator
 
 # set this first thing to make sure it "takes"
@@ -41,6 +43,13 @@ except Exception:
     has_pytables = False
 else:
     has_pytables = True
+
+try:
+    import joblib  # noqa, analysis:ignore
+except Exception:
+    has_joblib = False
+else:
+    has_joblib = True
 
 # for py3k (eventually)
 if sys.version.startswith('2'):
@@ -92,10 +101,7 @@ def set_log_level(verbose=None, return_old_level=False):
     if verbose is None:
         verbose = get_config('EXPYFUN_LOGGING_LEVEL', 'INFO')
     elif isinstance(verbose, bool):
-        if verbose is True:
-            verbose = 'INFO'
-        else:
-            verbose = 'WARNING'
+        verbose = 'INFO' if verbose is True else 'WARNING'
     if isinstance(verbose, string_types):
         verbose = verbose.upper()
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
@@ -414,6 +420,7 @@ def verbose_dec(function, *args, **kwargs):
 
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
 requires_pytables = skipif(has_pytables is False, 'Requires pytables')
+requires_joblib = skipif(has_joblib is False, 'Requires joblib')
 
 
 def _has_scipy_version(version):
@@ -512,7 +519,6 @@ known_config_types = ['RESPONSE_DEVICE',
                       'SCREEN_WIDTH',
                       'SCREEN_DISTANCE',
                       'SCREEN_SIZE_PIX',
-                      'EXPYFUN_INTERACTIVE_TESTING',
                       'EXPYFUN_LOGGING_LEVEL',
                       ]
 
@@ -618,6 +624,28 @@ def set_config(key, value):
 ###############################################################################
 # MISC
 
+
+def fake_button_press(ec, button='1', delay=0.):
+    """Fake a button press after a delay
+
+    Notes
+    -----
+    This function only works with the keyboard controller (not TDT)!
+    It uses threads to ensure that control is passed back, so other commands
+    can be called (like wait_for_presses).
+    """
+    send = lambda: ec._response_handler._on_pyglet_keypress(button, [], True)
+    Timer(delay, send).start() if delay > 0. else send()
+
+
+def fake_mouse_click(ec, pos, button='left', delay=0.):
+    """Fake a mouse click after a delay"""
+    button = dict(left=1, middle=2, right=4)[button]  # trans to pyglet
+    send = lambda: ec._mouse_handler._on_pyglet_mouse_click(pos[0], pos[1],
+                                                            button, [])
+    Timer(delay, send).start() if delay > 0. else send()
+
+
 def _check_pyglet_version(raise_error=False):
     """Check pyglet version, return True if usable.
     """
@@ -627,10 +655,6 @@ def _check_pyglet_version(raise_error=False):
                           'version 1.2, and you are running '
                           '{0}'.format(pyglet.version))
     return is_usable
-
-
-interactive_test = skipif(get_config('EXPYFUN_INTERACTIVE_TESTING', 'False') !=
-                          'True', 'Interactive testing disabled.')
 
 
 def wait_secs(secs, ec=None):

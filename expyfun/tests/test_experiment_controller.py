@@ -5,7 +5,10 @@ from numpy.testing import assert_allclose
 from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import _TempDir, interactive_test, _hide_window
+from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
+                            fake_mouse_click)
+from expyfun.stimuli import get_tdt_rates
+from expyfun.visual import Rectangle
 
 warnings.simplefilter('always')
 
@@ -150,14 +153,18 @@ def test_ec(ac=None, rd=None):
         # run rest of test with audio_controller == 'pyglet'
         this_ac = 'pyglet'
         this_rd = 'keyboard'
+        this_tc = 'dummy'
         this_fs = 44100
     else:
+        assert ac == 'tdt'
         # run rest of test with audio_controller == 'tdt'
         this_ac = ac
         this_rd = rd
-        this_fs = 24414
+        this_tc = ac
+        this_fs = get_tdt_rates()['25k']
     with ExperimentController(*std_args, audio_controller=this_ac,
                               response_device=this_rd,
+                              trigger_controller=this_tc,
                               stim_fs=this_fs, **std_kwargs) as ec:
         stamp = ec.current_time
         ec.write_data_line('hello')
@@ -346,22 +353,47 @@ def test_visual(ac=None):
         text.draw()
 
 
-@interactive_test
+@_hide_window
 def test_button_presses_and_window_size():
-    """Test EC window_size=None and button press capture (press 1 thrice)
+    """Test EC window_size=None and button press capture
     """
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
                               participant='foo', session='01') as ec:
-        assert_equal(ec.screen_prompt('press 1', live_keys=['1']), '1')
+        fake_button_press(ec, '1', 0.3)
+        assert_equal(ec.screen_prompt('press 1', live_keys=['1'],
+                                      max_wait=1.5), '1')
         ec.screen_text('press 1 again')
         ec.flip()
-        assert_equal(ec.wait_one_press(live_keys=[1])[0], '1')
+        fake_button_press(ec, '1', 0.3)
+        assert_equal(ec.wait_one_press(1.5, live_keys=[1])[0], '1')
         ec.screen_text('press 1 one last time')
         ec.flip()
+        fake_button_press(ec, '1', 0.3)
         out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
-        if len(out) > 0:
-            assert_equal(out[0], '1')
-        else:
-            warnings.warn('press "1" faster next time')
+        assert_equal(out[0], '1')
+
+
+@_hide_window
+def test_mouse_clicks():
+    """Test EC mouse click support
+    """
+    with ExperimentController(*std_args, participant='foo', session='01',
+                              output_dir=temp_dir) as ec:
+        rect = Rectangle(ec, [0, 0, 2, 2])
+        fake_mouse_click(ec, [1, 2], delay=0.3)
+        assert_equal(ec.wait_for_click_on(rect, 1.5, timestamp=False)[0],
+                     ('left', 1, 2))
+        fake_mouse_click(ec, [2, 1], 'middle', delay=0.3)
+        out = ec.wait_one_click(1.5, 0., ['middle'], timestamp=True)
+        assert_true(out[3] < 1.5)
+        assert_equal(out[:3], ('middle', 2, 1))
+        fake_mouse_click(ec, [3, 2], 'left', delay=0.3)
+        fake_mouse_click(ec, [4, 5], 'right', delay=0.3)
+        out = ec.wait_for_clicks(1.5, timestamp=False)
+        assert_equal(len(out), 2)
+        assert_true(any(o == ('left', 3, 2) for o in out))
+        assert_true(any(o == ('right', 4, 5) for o in out))
+        out = ec.wait_for_clicks(0.1)
+        assert_equal(len(out), 0)
