@@ -18,18 +18,18 @@ before_install:
     # Only use Pulseaudio on 2.7 because on Travis 3.3 causes some strange error...
     - travis_retry sudo apt-get update -qq
     - if [ "${PYTHON}" == "2.7" ]; then
-        travis_retry sudo apt-get install -qq -y pulseaudio python-nose python-coverage python-scipy python-matplotlib;
+        travis_retry sudo apt-get install -qq -y pulseaudio python-nose python-coverage python-scipy python-matplotlib python-setuptools;
         dbus-launch pulseaudio --start;
         travis_retry sudo pip install -q coveralls;
       else
-        wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh;
+        wget http://repo.continuum.io/miniconda/Miniconda-3.6.0-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
-        ./miniconda.sh -b;
-        export PATH=/home/$USER/anaconda/bin:$PATH;
+        ./miniconda.sh -b -p ~/anaconda;
+        export PATH=~/anaconda/bin:$PATH;
         conda update --yes conda;
         conda create -n testenv --yes --quiet pip python=$PYTHON;
         source activate testenv;
-        conda install --yes --quiet scipy matplotlib nose coverage;
+        conda install --yes scipy matplotlib nose coverage setuptools;
         travis_retry pip install -q coveralls;
       fi;
     - python --version
