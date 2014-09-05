@@ -17,9 +17,10 @@ from .._utils import check_units, string_types
 
 def _convert_color(color):
     """Convert 3- or 4-element color into OpenGL usable color"""
+    color = (0., 0., 0., 0.) if color is None else color
     color = 255 * np.array(colorConverter.to_rgba(color))
     color = color.astype(np.uint8)
-    return color
+    return tuple(color)
 
 
 def _replicate_color(color, pts):
@@ -85,9 +86,19 @@ class Text(object):
                                        multiline=wrap, dpi=int(ec.dpi),
                                        anchor_x=anchor_x,
                                        anchor_y=anchor_y)
-        self._text.color = tuple(_convert_color(color))
+        self._text.color = _convert_color(color)
         self._text.font_name = font_name
         self._text.font_size = font_size
+
+    def set_color(self, color):
+        """Set the text color
+
+        Parameters
+        ----------
+        color : matplotlib Color | None
+            The color. Use None for no color.
+        """
+        self._text.color = _convert_color(color)
 
     def draw(self):
         """Draw the object to the display buffer"""
@@ -114,10 +125,7 @@ class _Triangular(object):
         fill_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
-        if fill_color is not None:
-            self._fill_color = _convert_color(fill_color)
-        else:
-            self._fill_color = None
+        self._fill_color = _convert_color(fill_color)
 
     def set_line_color(self, line_color):
         """Set the object color
@@ -127,10 +135,7 @@ class _Triangular(object):
         fill_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
-        if line_color is not None:
-            self._line_color = _convert_color(line_color)
-        else:
-            self._line_color = None
+        self._line_color = _convert_color(line_color)
 
     def set_line_width(self, line_width):
         """Set the line width in pixels
