@@ -10,6 +10,11 @@ warnings.simplefilter('always')
 temp_dir = _TempDir()
 
 
+def _check_warnings(w):
+    """Silly helper to deal with MPL deprecation warnings"""
+    assert all(['expyfun' not in ww.filename for ww in w])
+
+
 @requires_pandas
 def test_barplot_with_pandas():
     """Test bar plot function pandas support"""
@@ -62,8 +67,10 @@ def test_barplot():
     extns = ['eps', 'pdf', 'png', 'raw', 'svg']  # jpg, tif not supported
     for ext in extns:
         fname = op.join(temp_dir, 'temp.' + ext)
-        ea.barplot(tmp, groups=[[0, 1, 2], [3]], err_bars='sd', axis=0,
-                   fname=fname)
+        with warnings.catch_warnings(record=True) as w:
+            ea.barplot(tmp, groups=[[0, 1, 2], [3]], err_bars='sd', axis=0,
+                       fname=fname)
+        _check_warnings(w)
     assert_raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
     assert_raises(ValueError, ea.barplot, tmp, err_bars='foo')
     assert_raises(ValueError, ea.barplot, tmp, gap_size=1.1)
