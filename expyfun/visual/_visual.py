@@ -153,14 +153,14 @@ class _Triangular(object):
 
     def draw(self):
         """Draw the object to the display buffer"""
-        if self._fill_color is not None:
+        if self._points is not None:
             color = _replicate_color(self._fill_color, self._points)
             pyglet.graphics.draw_indexed(len(self._points) // 2,
                                          gl.GL_TRIANGLES,
                                          self._tris,
                                          ('v2f', self._points),
                                          ('c4B', color))
-        if self._line_color is not None and self._line_width > 0.0:
+        if self._line_points is not None and self._line_width > 0.0:
             color = _replicate_color(self._line_color, self._line_points)
             gl.glLineWidth(self._line_width)
             if self._line_loop:
