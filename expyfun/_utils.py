@@ -57,11 +57,13 @@ if sys.version.startswith('2'):
     input = raw_input  # noqa, input is raw_input in py3k
     text_type = unicode  # noqa
     from urllib2 import urlopen  # noqa
+    from cStringIO import StringIO  # noqa
 else:
     string_types = str
     text_type = str
     from urllib.request import urlopen
     input = input
+    from io import StringIO  # noqa
 
 ###############################################################################
 # LOGGING

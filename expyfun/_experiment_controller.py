@@ -496,7 +496,7 @@ class ExperimentController(object):
         """
         # we go a little over here to be safe from round-off errors
         Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
-        gl.glClearColor(*(_convert_color(color) / 255.))
+        gl.glClearColor(*[c / 255. for c in _convert_color(color)])
 
     def start_stimulus(self, start_of_trial=True, flip=True, when=None):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.

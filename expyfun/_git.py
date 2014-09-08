@@ -3,7 +3,7 @@ import os
 from os import path as op
 import sys
 
-from ._utils import _TempDir, string_types, run_subprocess
+from ._utils import _TempDir, string_types, run_subprocess, StringIO
 from ._version import __version__
 
 this_version = __version__[-7:]
@@ -84,9 +84,8 @@ def download_version(version='current', dest_dir=None):
     try:
         from setup import git_version, setup_package
         assert git_version().lower() == version[:7].lower()
-        with open(os.devnull, 'w') as f:
-            sys.stdout = f
-            setup_package(script_args=['build', '--build-purelib', dest_dir])
+        sys.stdout = StringIO()
+        setup_package(script_args=['build', '--build-purelib', dest_dir])
     finally:
         sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))

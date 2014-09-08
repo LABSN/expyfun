@@ -348,6 +348,7 @@ def test_visual(ac=None):
         text = visual.Text(ec, 'Hello Everybody!', pos=[0, 0], color=[1, 1, 1],
                            wrap=False)
         text.draw()
+        text.set_color(None)
         text = visual.Text(ec, 'Thank you, come again.', pos=[0, 0],
                            color=[1, 1, 1])
         text.draw()
