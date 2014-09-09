@@ -4,9 +4,8 @@
   :target: https://travis-ci.org/LABSN/expyfun/
 .. image:: https://coveralls.io/repos/LABSN/expyfun/badge.png
   :target: https://coveralls.io/r/LABSN/expyfun
-.. image:: https://zenodo.org/badge/doi/10.5281/zenodo.11541.png
-  :target: http://dx.doi.org/10.5281/zenodo.11541
-  
+.. image:: https://zenodo.org/badge/doi/10.5281/zenodo.11640.png
+  :target: http://dx.doi.org/10.5281/zenodo.11640  
 `expyfun`_
 =========
 
