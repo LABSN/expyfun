@@ -46,9 +46,10 @@ before_install:
         if [ "${PYTHON}" == "2.7" ]; then
           sudo apt-get install -qq -y python-pandas python-tables python-joblib;
         else
-          conda install --yes --quiet pandas pytables joblib;
+          conda install --yes --quiet pandas pytables;
+          travis_retry pip install -q joblib;
         fi;
-        pip install mne;
+        travis_retry pip install -q mne;
       fi;
     - sudo ldconfig;
     # We need to create a (fake) display on Travis, let's use a funny resolution
