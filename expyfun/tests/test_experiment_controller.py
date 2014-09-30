@@ -166,6 +166,9 @@ def test_ec(ac=None, rd=None):
                               response_device=this_rd,
                               trigger_controller=this_tc,
                               stim_fs=this_fs, **std_kwargs) as ec:
+        assert_true(ec.participant == std_kwargs['participant'])
+        assert_true(ec.session == std_kwargs['session'])
+        assert_true(ec.exp_name == std_args[0])
         stamp = ec.current_time
         ec.write_data_line('hello')
         ec.wait_until(stamp + 0.02)
