@@ -18,3 +18,5 @@ def test_conversion():
                         0, 1,
                         0, 1, 0, 0,
                         0, 1, 0, 1])
+    assert_array_equal(decimals_to_binary([0, 3], [2, 2]), [0, 0, 1, 1])
+    assert_array_equal(decimals_to_binary([3, 0], [2, 2]), [1, 1, 0, 0])
