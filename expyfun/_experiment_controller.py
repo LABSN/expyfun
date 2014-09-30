@@ -1317,6 +1317,18 @@ class ExperimentController(object):
 
 ############################### OTHER METHODS ################################
     @property
+    def participant(self):
+        return self._exp_info['participant']
+
+    @property
+    def session(self):
+        return self._exp_info['session']
+
+    @property
+    def exp_name(self):
+        return self._exp_info['exp_name']
+
+    @property
     def data_fname(self):
         """Date filename"""
         return self._data_file.name
