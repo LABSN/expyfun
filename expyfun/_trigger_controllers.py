@@ -149,7 +149,7 @@ def decimals_to_binary(decimals, n_bits):
         raise ValueError('all n_bits must be positive')
     binary = list()
     for d, b in zip(decimals, n_bits):
-        if d > 2 ** (b - 1):
+        if d > 2 ** b - 1:
             raise ValueError('cannot convert number {0} using {1} bits'
                              ''.format(d, b))
         binary.extend([int(bb) for bb in np.binary_repr(d, b)])
