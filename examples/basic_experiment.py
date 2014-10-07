@@ -21,10 +21,13 @@ from expyfun.visual import FixationDot
 # set configuration
 fs = 24414.  # default for ExperimentController
 dur = 1.0
-tone = np.sin(2 * np.pi * 1000 * np.arange(int(fs * dur)))
+tone = np.sin(2 * np.pi * 1000 * np.arange(int(fs * dur)) / float(fs))
+tone *= 0.01 * np.sqrt(2)  # Set RMS to 0.01
 
 with ExperimentController('testExp', participant='foo', session='001',
                           output_dir=None) as ec:
+    ec.screen_prompt('Press a button to hear the tone')
+
     dot = FixationDot(ec)
     ec.clear_buffer()
     ec.load_buffer(tone)
