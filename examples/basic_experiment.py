@@ -26,7 +26,7 @@ tone *= 0.01 * np.sqrt(2)  # Set RMS to 0.01
 
 with ExperimentController('testExp', participant='foo', session='001',
                           output_dir=None) as ec:
-    ec.screen_prompt('Press a button to hear the tone')
+    ec.screen_prompt('Press a button when you hear the tone', max_wait=1)
 
     dot = FixationDot(ec)
     ec.clear_buffer()
@@ -39,7 +39,7 @@ with ExperimentController('testExp', participant='foo', session='001',
     presses = ec.wait_for_presses(dur)
     ec.stop()
     ec.trial_ok()
-    print('Presses:\n%s' % presses)
+    print('Presses:\n{}'.format(presses))
 
 
 import matplotlib.pyplot as plt
