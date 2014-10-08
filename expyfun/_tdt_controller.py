@@ -62,7 +62,7 @@ class TDTController(Keyboard):
     """
     def __init__(self, tdt_params):
         legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE',
-                      'TDT_DELAY']
+                      'TDT_DELAY', 'TDT_TRIG_DELAY']
         if tdt_params is None:
             tdt_params = {'TYPE': 'tdt'}
         if not isinstance(tdt_params, dict):
@@ -74,8 +74,10 @@ class TDTController(Keyboard):
         # Fix a couple keys
         if tdt_params['TDT_DELAY'] is None:
             tdt_params['TDT_DELAY'] = '0'
+        if tdt_params['TDT_TRIG_DELAY'] is None:
+            tdt_params['TDT_TRIG_DELAY'] = '0'
         tdt_params['TDT_DELAY'] = int(tdt_params['TDT_DELAY'])
-        tdt_params['TDT_DELAY'] = int(tdt_params['TDT_DELAY'])
+        tdt_params['TDT_TRIG_DELAY'] = int(tdt_params['TDT_TRIG_DELAY'])
         if tdt_params['TDT_MODEL'] is None:
             tdt_params['TDT_MODEL'] = 'dummy'
 
@@ -153,7 +155,8 @@ class TDTController(Keyboard):
         time.sleep(0.25)
         self.rpcox.SetTagVal('phase', -1)
         self.clear_buffer()
-        self._set_delay(tdt_params['TDT_DELAY'])
+        self._set_delay(tdt_params['TDT_DELAY'],
+                        tdt_params['TDT_TRIG_DELAY'])
 
     def _add_keyboard_init(self, ec, force_quit_keys):
         """Helper to init as keyboard"""
@@ -220,12 +223,15 @@ class TDTController(Keyboard):
         self._trigger(5)
         logger.debug('Expyfun: Resetting TDT ring buffer')
 
-    def _set_delay(self, delay):
+    def _set_delay(self, delay, delay_trig):
         """Set the delay (in ms) of the system
         """
         assert isinstance(delay, int)  # this should never happen
+        assert isinstance(delay_trig, int)
         self.rpcox.SetTagVal('onsetdel', delay)
         logger.info('Expyfun: Setting TDT delay to %s' % delay)
+        self.rpcox.SetTagVal('trigdel', delay_trig)
+        logger.info('Expyfun: Setting TDT trigger delay to %s' % delay_trig)
 
 ################################ TRIGGER METHODS #############################
     def stamp_triggers(self, triggers, delay=0.03):

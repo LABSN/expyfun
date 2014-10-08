@@ -36,6 +36,7 @@ try:
     cal_super_class = pylink.EyeLinkCustomDisplay
     openGraphicsEx = pylink.openGraphicsEx
 except ImportError:
+    pylink = None
     cal_super_class = object
     openGraphicsEx = dummy_fun
 
@@ -325,13 +326,13 @@ class EyelinkController(object):
         self._current_open_file = None
         self._toggle_dummy_cursor(False)
 
-    def calibrate(self, beep=True, prompt=True):
+    def calibrate(self, beep=False, prompt=True):
         """Calibrate the eyetracker
 
         Parameters
         ----------
         beep : bool
-            If True, beep when calibration begins.
+            If True, beep for each calibration target.
         prompt : bool
             If True, a standard screen prompt will be shown.
 
