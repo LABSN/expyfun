@@ -1612,7 +1612,7 @@ def _get_items(d, fixed, title):
             d[key] = get_keyboard_input('{0}: '.format(key))
 
 
-def get_keyboard_input(prompt, default=None, out_type=str):
+def get_keyboard_input(prompt, default=None, out_type=str, valid=None):
     """Get keyboard input of a specific type
 
     Parameters
@@ -1625,12 +1625,18 @@ def get_keyboard_input(prompt, default=None, out_type=str):
     out_type : type
         Type to coerce to. If coersion fails, the user will be prompted
         again.
+    valid : list | None
+        An iterable that contains all the allowable inputs. Keeps asking until
+        it recceives a valid input. Does not check if None.
 
     Returns
     -------
     response : of type ``out_type``
         The user response.
     """
+    # TODO: Let valid be an iterable OR a function handle, such that you could
+    # pass a lambda, e.g., that made sure a float was in a given range
+    # TODO: add tests
     if not isinstance(out_type, type):
         raise TypeError('out_type must be a type')
     good = False
@@ -1643,7 +1649,8 @@ def get_keyboard_input(prompt, default=None, out_type=str):
         except ValueError:
             pass
         else:
-            good = True
+            if valid is None or response in valid:
+                good = True
     assert isinstance(response, out_type)
     return response
 
