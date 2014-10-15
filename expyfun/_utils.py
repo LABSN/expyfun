@@ -17,7 +17,6 @@ from shutil import rmtree
 import atexit
 import json
 from distutils.version import LooseVersion
-import pyglet
 from numpy import sqrt, convolve, ones
 from numpy.testing.decorators import skipif
 import logging
@@ -28,7 +27,12 @@ from threading import Timer
 from ._externals import decorator
 
 # set this first thing to make sure it "takes"
-pyglet.options['debug_gl'] = False
+try:
+    import pyglet
+    pyglet.options['debug_gl'] = False
+    del pyglet
+except Exception:
+    pass
 
 try:
     import pandas  # noqa, analysis:ignore
@@ -651,6 +655,7 @@ def fake_mouse_click(ec, pos, button='left', delay=0.):
 def _check_pyglet_version(raise_error=False):
     """Check pyglet version, return True if usable.
     """
+    import pyglet
     is_usable = LooseVersion(pyglet.version) >= LooseVersion('1.2')
     if raise_error is True and is_usable is False:
         raise ImportError('On Linux, you must run at least Pyglet '
@@ -672,7 +677,8 @@ def wait_secs(secs, ec=None):
     This function uses a while loop. Although this slams the CPU, it will
     guarantee that events (keypresses, etc.) are processed.
     """
-    #hog the cpu, checking time
+    # hog the cpu, checking time
+    import pyglet
     t0 = clock()
     wins = pyglet.window.get_platform().get_default_display().get_windows()
     while (clock() - t0) < secs:

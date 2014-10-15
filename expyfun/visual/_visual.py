@@ -8,9 +8,7 @@
 # make RawImage work
 
 import numpy as np
-import pyglet
 from matplotlib.colors import colorConverter
-from pyglet import gl
 
 from .._utils import check_units, string_types
 
@@ -75,6 +73,7 @@ class Text(object):
                  font_name='Arial', font_size=24, height=None,
                  width='auto', anchor_x='center', anchor_y='center',
                  units='norm', wrap=False):
+        import pyglet
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, units, 'pix')
         if width == 'auto':
@@ -153,6 +152,8 @@ class _Triangular(object):
 
     def draw(self):
         """Draw the object to the display buffer"""
+        import pyglet
+        from pyglet import gl
         if self._points is not None:
             color = _replicate_color(self._fill_color, self._points)
             pyglet.graphics.draw_indexed(len(self._points) // 2,
@@ -643,6 +644,8 @@ class RawImage(object):
         image_buffer : array
             N x M x 3 (or 4) array. Color values should range between 0 and 1.
         """
+        import pyglet
+        from pyglet import gl
         image_buffer = np.array(image_buffer, dtype=float)
         if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
             raise RuntimeError('image_buffer incorrect size: {}'

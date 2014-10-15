@@ -8,16 +8,20 @@
 import numpy as np
 from scipy import fftpack
 import sys
-import pyglet
 import os
 _linux = ('silent',) if os.getenv('_EXPYFUN_SILENT') == 'true' else ('pulse',)
 _opts_dict = dict(linux2=_linux,
                   win32=('directsound',),
                   darwin=('openal',))
 _opts_dict['linux'] = _opts_dict['linux2']  # new name on Py3k
-pyglet.options['audio'] = _opts_dict[sys.platform]
-from pyglet.media import Player
-from ._externals.ndarraysource import NdarraySource
+try:
+    import pyglet
+    pyglet.options['audio'] = _opts_dict[sys.platform]
+    from pyglet.media import Player, StaticMemorySource, AudioFormat
+except Exception:
+    StaticMemorySource = Player = object
+    AudioFormat = None
+
 from ._utils import logger, flush_logger
 
 
@@ -28,6 +32,7 @@ def _check_pyglet_audio():
 
 class SoundPlayer(Player):
     def __init__(self, data, fs, loop=False):
+        assert AudioFormat is not None
         super(SoundPlayer, self).__init__()
         _check_pyglet_audio()
         self.queue(NdarraySource(data, fs))
@@ -46,6 +51,7 @@ class PygletSoundController(object):
     """Use pyglet audio capabilities"""
     def __init__(self, ec, stim_fs):
         logger.info('Expyfun: Setting up Pyglet audio')
+        assert AudioFormat is not None
         self.fs = stim_fs
 
         # Need to generate at RMS=1 to match TDT circuit
@@ -110,3 +116,32 @@ class PygletSoundController(object):
         # cleanup pyglet instances
         self.audio.delete()
         self.noise.delete()
+
+
+class NdarraySource(StaticMemorySource):
+    """Play sound from numpy array
+
+    :Parameters:
+        `data` : ndarray
+            float data with shape n_channels x n_samples. If ``data`` is
+            1D, then the sound is assumed to be mono. Note that data
+            will be clipped between +/- 1.
+        `fs` : int
+            Sample rate for the data.
+    """
+    def __init__(self, data, fs):
+        assert AudioFormat is not None  # shouldn't happen if we get here
+        fs = int(fs)
+        if data.ndim not in (1, 2):
+            raise ValueError('Data must have one or two dimensions')
+        n_ch = data.shape[0] if data.ndim == 2 else 1
+        data = data.T.ravel('C')
+        data[data < -1] = -1
+        data[data > 1] = 1
+        data = (data * (2 ** 15)).astype('int16').tostring()
+        audio_format = AudioFormat(channels=n_ch, sample_size=16,
+                                   sample_rate=fs)
+        super(NdarraySource, self).__init__(data, audio_format)
+
+    def _get_queue_source(self):
+        return self
