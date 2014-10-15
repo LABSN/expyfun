@@ -15,10 +15,10 @@ print(__doc__)
 from os import path as op
 import ast
 
-import expyfun.analyze as ea
+from expyfun.io import read_tab
 
 fname = op.join(op.dirname(__file__), 'sample.tab')  # from simple_experiment
-data = ea.read_tab(fname)
+data = read_tab(fname)
 print('Number of trials: %s' % len(data))
 keys = list(data[0].keys())
 print('Data keys:     %s\n' % keys)
