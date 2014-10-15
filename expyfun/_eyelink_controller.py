@@ -13,7 +13,6 @@ from os import path as op
 import sys
 import subprocess
 import time
-import pyglet
 
 # Constants
 TRIAL_OK = 0
@@ -48,28 +47,28 @@ eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 
 def _get_key_trans_dict():
     """Helper to translate pyglet keys to pylink codes"""
-    key_trans_dict = {str(pyglet.window.key.F1): pylink.F1_KEY,
-                      str(pyglet.window.key.F2): pylink.F2_KEY,
-                      str(pyglet.window.key.F3): pylink.F3_KEY,
-                      str(pyglet.window.key.F4): pylink.F4_KEY,
-                      str(pyglet.window.key.F5): pylink.F5_KEY,
-                      str(pyglet.window.key.F6): pylink.F6_KEY,
-                      str(pyglet.window.key.F7): pylink.F7_KEY,
-                      str(pyglet.window.key.F8): pylink.F8_KEY,
-                      str(pyglet.window.key.F9): pylink.F9_KEY,
-                      str(pyglet.window.key.F10): pylink.F10_KEY,
-                      str(pyglet.window.key.PAGEUP): pylink.PAGE_UP,
-                      str(pyglet.window.key.PAGEDOWN): pylink.PAGE_DOWN,
-                      str(pyglet.window.key.UP): pylink.CURS_UP,
-                      str(pyglet.window.key.DOWN): pylink.CURS_DOWN,
-                      str(pyglet.window.key.LEFT): pylink.CURS_LEFT,
-                      str(pyglet.window.key.RIGHT): pylink.CURS_RIGHT,
-                      str(pyglet.window.key.BACKSPACE): '\b',
-                      str(pyglet.window.key.RETURN): pylink.ENTER_KEY,
-                      str(pyglet.window.key.ESCAPE): pylink.ESC_KEY,
-                      str(pyglet.window.key.NUM_ADD): pyglet.window.key.PLUS,
-                      str(pyglet.window.key.NUM_SUBTRACT):
-                      pyglet.window.key.MINUS,
+    from pyglet.window import key
+    key_trans_dict = {str(key.F1): pylink.F1_KEY,
+                      str(key.F2): pylink.F2_KEY,
+                      str(key.F3): pylink.F3_KEY,
+                      str(key.F4): pylink.F4_KEY,
+                      str(key.F5): pylink.F5_KEY,
+                      str(key.F6): pylink.F6_KEY,
+                      str(key.F7): pylink.F7_KEY,
+                      str(key.F8): pylink.F8_KEY,
+                      str(key.F9): pylink.F9_KEY,
+                      str(key.F10): pylink.F10_KEY,
+                      str(key.PAGEUP): pylink.PAGE_UP,
+                      str(key.PAGEDOWN): pylink.PAGE_DOWN,
+                      str(key.UP): pylink.CURS_UP,
+                      str(key.DOWN): pylink.CURS_DOWN,
+                      str(key.LEFT): pylink.CURS_LEFT,
+                      str(key.RIGHT): pylink.CURS_RIGHT,
+                      str(key.BACKSPACE): '\b',
+                      str(key.RETURN): pylink.ENTER_KEY,
+                      str(key.ESCAPE): pylink.ESC_KEY,
+                      str(key.NUM_ADD): key.PLUS,
+                      str(key.NUM_SUBTRACT): key.MINUS,
                       }
     return key_trans_dict
 
@@ -297,7 +296,7 @@ class EyelinkController(object):
             out = 'check' if ii < 4 else 'error'
             _check(self._eyelink.startRecording(1, 1, 1, 1),
                    'Recording could not be started: {0}', out)
-        #self._eyelink.waitForModeReady(100)  # doesn't work
+        # self._eyelink.waitForModeReady(100)  # doesn't work
         _check(not self._eyelink.waitForBlockStart(100, 1, 0),
                'No link samples received: {0}')
         if not self.recording:

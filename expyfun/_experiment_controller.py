@@ -11,8 +11,11 @@ import warnings
 from os import path as op
 from functools import partial
 import traceback as tb
-import pyglet
-from pyglet import gl
+try:
+    import pyglet
+    from pyglet import gl
+except Exception:  # maybe we don't have a display (e.g., in terminal)
+    pyglet = gl = None
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
@@ -378,7 +381,7 @@ class ExperimentController(object):
                             self._audio_type))
         return string
 
-################################ SCREEN METHODS ##############################
+# ############################### SCREEN METHODS ##############################
     def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
                     font_size=24, wrap=True, units='norm'):
         """Show some text on the screen.
@@ -721,7 +724,7 @@ class ExperimentController(object):
     def monitor_size_pix(self):
         return np.array(self._monitor['SCREEN_SIZE_PIX'])
 
-################################ OPENGL METHODS ##############################
+# ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         # Use 16x sampling here
         config_kwargs = dict(depth_size=8, double_buffer=True, stereo=False,
@@ -849,7 +852,7 @@ class ExperimentController(object):
         self._win.set_visible(visible)
         logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
 
-############################### KEYPRESS METHODS #############################
+# ############################## KEYPRESS METHODS #############################
     def listen_presses(self):
         """Start listening for keypresses.
         """
@@ -961,7 +964,7 @@ class ExperimentController(object):
         """
         self._response_handler.check_force_quit()
 
-############################### MOUSE METHODS ################################
+# ############################## MOUSE METHODS ################################
     def listen_clicks(self):
         """Start listening for mouse clicks.
         """
@@ -1158,7 +1161,7 @@ class ExperimentController(object):
             self.write_data_line('mouseclick', '%s,%i,%i' % (button, x, y),
                                  stamp)
 
-############################### AUDIO METHODS #################################
+# ############################## AUDIO METHODS ################################
     def system_beep(self):
         """Play a system beep
 
@@ -1315,7 +1318,7 @@ class ExperimentController(object):
                              ', or None.')
         self._check_rms = check_rms
 
-############################### OTHER METHODS ################################
+# ############################## OTHER METHODS ################################
     @property
     def participant(self):
         return self._exp_info['participant']
@@ -1559,7 +1562,7 @@ class ExperimentController(object):
             return False
         return True
 
-############################### READ-ONLY PROPERTIES #########################
+# ############################## READ-ONLY PROPERTIES #########################
     @property
     def id_types(self):
         """Trial ID types needed for each trial"""

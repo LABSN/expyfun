@@ -8,8 +8,6 @@
 
 import numpy as np
 from functools import partial
-import pyglet
-from pyglet.window import mouse
 
 from .visual import Rectangle, Circle, Diamond, ConcentricCircles, FixationDot
 from ._utils import wait_secs, clock, string_types
@@ -80,7 +78,8 @@ class Keyboard(object):
         if emulated:
             this_key = str(symbol)
         else:
-            this_key = pyglet.window.key.symbol_string(symbol).lower()
+            from pyglet.window import key
+            this_key = key.symbol_string(symbol).lower()
             this_key = this_key.lstrip('_').lstrip('NUM_')
         self._keyboard_buffer.append((this_key, key_time))
 
@@ -213,6 +212,7 @@ class Mouse(object):
     """
 
     def __init__(self, ec, visible=False):
+        from pyglet.window import mouse
         self.win = ec._win
         self.set_visible(visible)
         self.master_clock = ec._master_clock
