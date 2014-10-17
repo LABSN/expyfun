@@ -1484,8 +1484,8 @@ class ExperimentController(object):
             Value(s) to stamp.
         check : str
             If 'binary', enforce standard binary value stamping of only values
-            ``[1, 2, 4, 8]``. If 'int', enforce values as integers between
-            1 and 255.
+            ``[1, 2, 4, 8]``. If 'int4', enforce values as integers between
+            1 and 15.
 
         Notes
         -----
@@ -1497,12 +1497,13 @@ class ExperimentController(object):
         subject to change!).
         """
         ids = [ids] if not isinstance(ids, list) else ids
-        if not all(isinstance(id_, int) and 1 <= id_ <= 255 for id_ in ids):
-            raise ValueError('ids must all be integers between 1 and 255')
+        if not all(isinstance(id_, int) and 1 <= id_ <= 15 for id_ in ids):
+            raise ValueError('ids must all be integers between 1 and 15')
         if check == 'binary':
             _vals = [1, 2, 4, 8]
             if not all(id_ in _vals for id_ in ids):
-                raise ValueError('ids must all be integers: {0}'.format(ids))
+                raise ValueError('with check="binary", ids must all be '
+                                 '1, 2, 4, or 8: {0}'.format(ids))
         self._stamp_ttl_triggers(ids)
 
     def flush(self):
