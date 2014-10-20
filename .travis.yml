@@ -39,14 +39,14 @@ before_install:
       else
         travis_retry pip install -q nose-timer http://pyglet.googlecode.com/archive/tip.zip;
       fi;
-    # Full dependencies (pandas, mne-python, pytables, joblib)
+    # Full dependencies (pandas, mne-python, h5py, joblib)
     - SRC_DIR=${PWD}
     - cd ~
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
           sudo apt-get install -qq -y python-pandas python-tables python-joblib;
         else
-          conda install --yes --quiet pandas pytables;
+          conda install --yes --quiet pandas h5py;
           travis_retry pip install -q joblib;
         fi;
         travis_retry pip install -q mne;

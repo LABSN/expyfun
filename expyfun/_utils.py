@@ -42,11 +42,11 @@ else:
     has_pandas = True
 
 try:
-    import tables  # noqa, analysis:ignore
+    import h5py  # noqa, analysis:ignore
 except Exception:
-    has_pytables = False
+    has_h5py = False
 else:
-    has_pytables = True
+    has_h5py = True
 
 try:
     import joblib  # noqa, analysis:ignore
@@ -67,7 +67,7 @@ else:
     text_type = str
     from urllib.request import urlopen
     input = input
-    from io import StringIO  # noqa
+    from io import StringIO  # noqa, analysis:ignore
 
 ###############################################################################
 # LOGGING
@@ -279,12 +279,12 @@ def check_units(units):
                          ''.format(good_units, units))
 
 
-def _check_pytables():
-    """Helper to error if Pytables is not found"""
-    if not has_pytables:
-        raise ImportError('pytables could not be imported')
-    import tables as tb
-    return tb
+def _check_h5py():
+    """Helper to error if h5py is not found"""
+    if not has_h5py:
+        raise ImportError('h5py could not be imported')
+    import h5py
+    return h5py
 
 
 ###############################################################################
@@ -425,7 +425,7 @@ def verbose_dec(function, *args, **kwargs):
 
 
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
-requires_pytables = skipif(has_pytables is False, 'Requires pytables')
+requires_h5py = skipif(has_h5py is False, 'Requires h5py')
 requires_joblib = skipif(has_joblib is False, 'Requires joblib')
 
 
