@@ -120,6 +120,8 @@ def read_hdf5(fname):
 def _triage_read(node):
     h5py = _check_h5py()
     type_str = node.attrs['TITLE']
+    if isinstance(type_str, bytes):
+        type_str = type_str.decode()
     if isinstance(node, h5py.Group):
         if type_str == 'dict':
             data = dict()

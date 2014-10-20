@@ -283,7 +283,6 @@ def _check_h5py():
     """Helper to error if h5py is not found"""
     if not has_h5py:
         raise ImportError('h5py could not be imported')
-    import h5py
     return h5py
 
 
