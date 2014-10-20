@@ -333,21 +333,20 @@ class ExperimentController(object):
                 if not isinstance(self._ac, TDTController):
                     raise ValueError('trigger_controller can only be "tdt" if '
                                      'tdt is used for audio')
-                _ttl_stamp_func = self._ac.stamp_triggers
+                self._stamp_ttl_triggers = self._ac.stamp_triggers
             elif trigger_controller['type'] in ['parallel', 'dummy']:
                 if 'address' not in trigger_controller['type']:
                     addr = get_config('TRIGGER_ADDRESS')
                     trigger_controller['address'] = addr
                 out = ParallelTrigger(trigger_controller['type'],
                                       trigger_controller.get('address'))
-                _ttl_stamp_func = out.stamp_triggers
+                self._stamp_ttl_triggers = out.stamp_triggers
                 self._extra_cleanup_fun.append(out.close)
             else:
                 raise ValueError('trigger_controller type must be '
                                  '"parallel", "dummy", or "tdt", not '
                                  '{0}'.format(trigger_controller['type']))
             self._id_call_dict['ttl_id'] = self._stamp_binary_id
-            self._ttl_stamp_func = _ttl_stamp_func
 
             # other basic components
             self._mouse_handler = Mouse(self)
@@ -575,14 +574,8 @@ class ExperimentController(object):
         function : function | None
             The function to call. If ``None``, all the "on every flip"
             functions will be cleared.
-
-        *args
-        -----
-        Function arguments.
-
-        **kwargs
-        --------
-        Function keyword arguments.
+        *args, **kwargs : arguments and keyword arguments
+            Arguments to pass to the function when calling it.
 
         Notes
         -----
@@ -603,14 +596,8 @@ class ExperimentController(object):
         function : function | None
             The function to call. If ``None``, all the "on every flip"
             functions will be cleared.
-
-        *args
-        -----
-        Function arguments.
-
-        **kwargs
-        --------
-        Function keyword arguments.
+        *args, **kwargs : arguments and keyword arguments
+            Arguments to pass to the function when calling it.
 
         Notes
         -----
@@ -1491,29 +1478,38 @@ class ExperimentController(object):
         # Note: we no longer put 8, 8 on ends
         self._stamp_ttl_triggers(id_)
 
-    def stamp_triggers(self, ids):
+    def stamp_triggers(self, ids, check='binary'):
         """Stamp binary values
 
         Parameters
         ----------
         ids : int | list of int
-            Values must be 1, 2, 4, or 8.
+            Value(s) to stamp.
+        check : str
+            If 'binary', enforce standard binary value stamping of only values
+            ``[1, 2, 4, 8]``. If 'int4', enforce values as integers between
+            1 and 15.
 
         Notes
         -----
         This may be (nearly) instantaneous, or take a while, depending
         on the type of triggering (TDT or parallel).
-        """
-        if not isinstance(ids, list):
-            ids = [ids]
-        _vals = [1, 2, 4, 8]
-        if not all(isinstance(id_, int) and id_ in _vals for id_ in ids):
-            raise ValueError('ids must all be integers: {0}'.format(ids))
-        self._stamp_ttl_triggers(ids)
 
-    def _stamp_ttl_triggers(self, ids):
-        """Helper to stamp triggers without input checking"""
-        self._ttl_stamp_func(ids)
+        If absolute minimal latency is required, consider using the
+        private function _stamp_ttl_triggers (for advanced use only,
+        subject to change!).
+        """
+        if check not in ('int4', 'binary'):
+            raise ValueError('Check must be either "int4" or "binary"')
+        ids = [ids] if not isinstance(ids, list) else ids
+        if not all(isinstance(id_, int) and 1 <= id_ <= 15 for id_ in ids):
+            raise ValueError('ids must all be integers between 1 and 15')
+        if check == 'binary':
+            _vals = [1, 2, 4, 8]
+            if not all(id_ in _vals for id_ in ids):
+                raise ValueError('with check="binary", ids must all be '
+                                 '1, 2, 4, or 8: {0}'.format(ids))
+        self._stamp_ttl_triggers(ids)
 
     def flush(self):
         """Flush logs and data files

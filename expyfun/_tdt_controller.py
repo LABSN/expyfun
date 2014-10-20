@@ -248,7 +248,7 @@ class TDTController(Keyboard):
         for ti, trig in enumerate(triggers):
             self.rpcox.SetTagVal('trgname', trig)
             self._trigger(6)
-            if ti < len(triggers):
+            if ti < len(triggers) - 1:
                 wait_secs(delay)
 
     def _trigger(self, trig):
