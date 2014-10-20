@@ -1496,6 +1496,8 @@ class ExperimentController(object):
         private function _stamp_ttl_triggers (for advanced use only,
         subject to change!).
         """
+        if check not in ('int4', 'binary'):
+            raise ValueError('Check must be either "int4" or "binary"')
         ids = [ids] if not isinstance(ids, list) else ids
         if not all(isinstance(id_, int) and 1 <= id_ <= 15 for id_ in ids):
             raise ValueError('ids must all be integers between 1 and 15')
