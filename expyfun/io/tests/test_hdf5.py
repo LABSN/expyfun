@@ -5,12 +5,12 @@ from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
 
 from expyfun.io import write_hdf5, read_hdf5
-from expyfun._utils import _TempDir, object_diff, requires_pytables
+from expyfun._utils import _TempDir, object_diff, requires_h5py
 
 tempdir = _TempDir()
 
 
-@requires_pytables
+@requires_h5py
 def test_hdf5():
     """Test HDF5 IO
     """
@@ -20,8 +20,14 @@ def test_hdf5():
     write_hdf5(test_file, 1)
     assert_equal(read_hdf5(test_file), 1)
     assert_raises(IOError, write_hdf5, test_file, x)  # file exists
-    write_hdf5(test_file, x, overwrite=True)
+
+    write_hdf5(test_file, x, overwrite=True)  # with compression
     assert_raises(IOError, read_hdf5, test_file + 'FOO')  # not found
+    xx = read_hdf5(test_file)
+    print(object_diff(x, xx))
+    assert_true(object_diff(x, xx) == '')  # no assert_equal, ugly output
+
+    write_hdf5(test_file, x, overwrite=True, compression=0)
     xx = read_hdf5(test_file)
     print(object_diff(x, xx))
     assert_true(object_diff(x, xx) == '')  # no assert_equal, ugly output

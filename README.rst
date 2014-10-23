@@ -36,7 +36,7 @@ Optional:
 - pandas (some plotting functions)
 - joblib (parallel processing)
 - mne-python (CUDA filtering/resampling)
-- pytables (HDF5 write/read)
+- h5py (HDF5 write/read)
 
 System-level:
 - git (for automated version downloading)

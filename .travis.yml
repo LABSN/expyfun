@@ -16,11 +16,13 @@ virtualenv:
 before_install:
     # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
     # Only use Pulseaudio on 2.7 because on Travis 3.3 causes some strange error...
+    # Only do coverage on 2.7 b/c it's slow on Py3k
     - travis_retry sudo apt-get update -qq
     - if [ "${PYTHON}" == "2.7" ]; then
         travis_retry sudo apt-get install -qq -y pulseaudio python-nose python-coverage python-scipy python-matplotlib python-setuptools;
         dbus-launch pulseaudio --start;
         travis_retry sudo pip install -q coveralls;
+        COVERAGE=--with-coverage;
       else
         wget http://repo.continuum.io/miniconda/Miniconda-3.6.0-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
@@ -31,6 +33,7 @@ before_install:
         source activate testenv;
         conda install --yes scipy matplotlib nose coverage setuptools;
         travis_retry pip install -q coveralls;
+        COVERAGE=;
       fi;
     - python --version
     # Only install these deps if necessary (slow on Py3k)
@@ -39,14 +42,14 @@ before_install:
       else
         travis_retry pip install -q nose-timer http://pyglet.googlecode.com/archive/tip.zip;
       fi;
-    # Full dependencies (pandas, mne-python, pytables, joblib)
+    # Full dependencies (pandas, mne-python, h5py, joblib)
     - SRC_DIR=${PWD}
     - cd ~
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
           sudo apt-get install -qq -y python-pandas python-tables python-joblib;
         else
-          conda install --yes --quiet pandas pytables;
+          conda install --yes --quiet pandas h5py;
           travis_retry pip install -q joblib;
         fi;
         travis_retry pip install -q mne;
@@ -67,9 +70,11 @@ script:
     - if [ "${TEST}" == "extra" ]; then
         make flake;
       else
-        nosetests --with-timer --timer-top-n=5;
+        nosetests --with-timer --timer-top-n=5 $COVERAGE --verbosity=2;
       fi;
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
-    - coveralls
+    - if [ "${PYTHON}" == "2.7" ];
+        coveralls
+      fi;
