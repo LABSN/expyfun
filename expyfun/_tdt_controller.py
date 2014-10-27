@@ -153,7 +153,7 @@ class TDTController(Keyboard):
         else:
             raise SystemError('Expyfun: Problem starting TDT circuit.')
         time.sleep(0.25)
-        self.rpcox.SetTagVal('phase', -1)
+        self._set_noise_corr()
         self.clear_buffer()
         self._set_delay(tdt_params['TDT_DELAY'],
                         tdt_params['TDT_TRIG_DELAY'])
@@ -164,6 +164,11 @@ class TDTController(Keyboard):
         Keyboard.__init__(self, ec, force_quit_keys)
 
 ################################ AUDIO METHODS ###############################
+    def _set_noise_corr(self, val=0):
+        """Helper to set the noise correlation, only -1, 0, 1 supported"""
+        assert val in (-1, 0, 1)
+        self.rpcox.SetTagVal('noise_corr', int(val))
+
     def load_buffer(self, data):
         """Load audio samples into TDT buffer.
 
