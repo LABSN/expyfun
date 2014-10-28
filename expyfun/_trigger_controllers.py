@@ -97,7 +97,7 @@ class ParallelTrigger(object):
     #    wait_secs(self.high_duration)
     #    self._set_data(0)
 
-    def stamp_triggers(self, triggers, delay=0.03, wait_for_last=False):
+    def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
         """Stamp a list of triggers with a given inter-trigger delay
 
         Parameters

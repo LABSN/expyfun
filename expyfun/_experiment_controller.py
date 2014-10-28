@@ -1479,7 +1479,7 @@ class ExperimentController(object):
         # Note: we no longer put 8, 8 on ends
         self._stamp_ttl_triggers(id_, wait_for_last=wait_for_last)
 
-    def stamp_triggers(self, ids, check='binary', wait_for_last=False):
+    def stamp_triggers(self, ids, check='binary', wait_for_last=True):
         """Stamp binary values
 
         Parameters
