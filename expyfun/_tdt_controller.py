@@ -239,7 +239,7 @@ class TDTController(Keyboard):
         logger.info('Expyfun: Setting TDT trigger delay to %s' % delay_trig)
 
 ################################ TRIGGER METHODS #############################
-    def stamp_triggers(self, triggers, delay=0.03):
+    def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
         """Stamp a list of triggers with a given inter-trigger delay
 
         Parameters
@@ -249,11 +249,13 @@ class TDTController(Keyboard):
             with each entry an integer with fewer than 8 bits (max 255).
         delay : float
             The inter-trigger delay.
+        wait_for_last : bool
+            If True, wait for last trigger to be stamped before returning.
         """
         for ti, trig in enumerate(triggers):
             self.rpcox.SetTagVal('trgname', trig)
             self._trigger(6)
-            if ti < len(triggers) - 1:
+            if ti < len(triggers) - 1 or wait_for_last:
                 wait_secs(delay)
 
     def _trigger(self, trig):

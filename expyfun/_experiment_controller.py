@@ -1463,12 +1463,13 @@ class ExperimentController(object):
         """Stamp id -- currently anything allowed"""
         self.write_data_line('trial_id', id_)
 
-    def _stamp_binary_id(self, id_):
+    def _stamp_binary_id(self, id_, wait_for_last=True):
         """Helper for ec to stamp a set of IDs using binary controller
 
         This makes TDT and parallel port give the same output. Eventually
         we may want to customize it so that parallel could work differently,
-        but for now it's unified."""
+        but for now it's unified.
+        """
         if not isinstance(id_, (list, tuple, np.ndarray)):
             raise TypeError('id must be array-like')
         id_ = np.array(id_)
@@ -1476,9 +1477,9 @@ class ExperimentController(object):
             raise ValueError('All values of id must be 0 or 1')
         id_ = 2 ** (id_.astype(int) + 2)  # 4's and 8's
         # Note: we no longer put 8, 8 on ends
-        self._stamp_ttl_triggers(id_)
+        self._stamp_ttl_triggers(id_, wait_for_last=wait_for_last)
 
-    def stamp_triggers(self, ids, check='binary'):
+    def stamp_triggers(self, ids, check='binary', wait_for_last=True):
         """Stamp binary values
 
         Parameters
@@ -1489,6 +1490,8 @@ class ExperimentController(object):
             If 'binary', enforce standard binary value stamping of only values
             ``[1, 2, 4, 8]``. If 'int4', enforce values as integers between
             1 and 15.
+        wait_for_last : bool
+            If True, wait for last trigger to be stamped before returning.
 
         Notes
         -----
@@ -1509,7 +1512,7 @@ class ExperimentController(object):
             if not all(id_ in _vals for id_ in ids):
                 raise ValueError('with check="binary", ids must all be '
                                  '1, 2, 4, or 8: {0}'.format(ids))
-        self._stamp_ttl_triggers(ids)
+        self._stamp_ttl_triggers(ids, wait_for_last=wait_for_last)
 
     def flush(self):
         """Flush logs and data files
