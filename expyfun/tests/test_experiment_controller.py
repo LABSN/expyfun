@@ -314,6 +314,10 @@ def test_visual(ac=None):
         circ.draw()
         assert_raises(ValueError, circ.set_radius, [1, 2, 3])
         assert_raises(ValueError, circ.set_pos, [1])
+        assert_raises(ValueError, visual.Triangle, ec, [5, 6])
+        tri = visual.Triangle(ec, [[-1, 0, 1], [-1, 1, -1]], units='deg',
+                              line_width=1.0)
+        tri.draw()
         rect = visual.Rectangle(ec, [0, 0, 1, 1], line_width=1.0)
         rect.draw()
         diamond = visual.Diamond(ec, [0, 0, 1, 1], line_width=1.0)

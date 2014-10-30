@@ -9,7 +9,8 @@
 import numpy as np
 from functools import partial
 
-from .visual import Rectangle, Circle, Diamond, ConcentricCircles, FixationDot
+from .visual import (Triangle, Rectangle, Circle, Diamond, ConcentricCircles,
+                     FixationDot)
 from ._utils import wait_secs, clock, string_types
 
 
@@ -412,7 +413,7 @@ class Mouse(object):
     def _point_in_object(self, pos, obj):
         """Determine if a point is within a visual objec
         """
-        if isinstance(obj, (Rectangle, Circle, Diamond)):
+        if isinstance(obj, (Rectangle, Circle, Diamond, Triangle)):
             return self._point_in_tris(pos, obj)
         elif isinstance(obj, (ConcentricCircles, FixationDot)):
             return np.any([self._point_in_tris(pos, c) for c in obj._circles])

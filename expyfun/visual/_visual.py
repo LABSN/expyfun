@@ -269,7 +269,7 @@ class Triangle(_Triangular):
             2 x 3 set of X, Y coordinates.
         """
         check_units(units)
-        coords = np.array(coords, dtypr=float)
+        coords = np.array(coords, dtype=float)
         if coords.shape != (2, 3):
             raise ValueError('coords must be an array of size 2 x 3')
         coords = self._ec._convert_units(coords, units, 'pix')
