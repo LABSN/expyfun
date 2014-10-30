@@ -154,14 +154,15 @@ class _Triangular(object):
         """Draw the object to the display buffer"""
         import pyglet
         from pyglet import gl
-        if self._points is not None:
+        if self._points is not None and self._fill_color is not None:
             color = _replicate_color(self._fill_color, self._points)
             pyglet.graphics.draw_indexed(len(self._points) // 2,
                                          gl.GL_TRIANGLES,
                                          self._tris,
                                          ('v2f', self._points),
                                          ('c4B', color))
-        if self._line_points is not None and self._line_width > 0.0:
+        if (self._line_points is not None and self._line_width > 0.0 and
+                self._line_color is not None):
             color = _replicate_color(self._line_color, self._line_points)
             gl.glLineWidth(self._line_width)
             if self._line_loop:
@@ -225,6 +226,56 @@ class Line(_Triangular):
                              'having length 2')
         coords = self._ec._convert_units(coords, units, 'pix')
         self._line_points = coords.T.flatten()
+
+
+class Triangle(_Triangular):
+    """A triangle
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    coords : array-like
+        2 x 3 set of X, Y coordinates.
+    units : str
+        Units to use. These will apply to all spatial aspects of the drawing.
+        shape e.g. size, position. See ``check_units`` for options.
+    fill_color : matplotlib Color
+        Color of the triangle.
+    line_color : matplotlib Color | None
+        Color of the border line. None is transparent.
+    line_width : float
+        Line width in pixels.
+
+    Returns
+    -------
+    line : instance of Triangle
+        The triangle object.
+    """
+    def __init__(self, ec, coords, units='norm', fill_color='white',
+                 line_color=None, line_width=1.0):
+        _Triangular.__init__(self, ec, fill_color=fill_color,
+                             line_color=line_color, line_width=line_width,
+                             line_loop=True)
+        self.set_coords(coords, units)
+        self.set_fill_color(fill_color)
+
+    def set_coords(self, coords, units='norm'):
+        """Set triangle coordinates
+
+        Parameters
+        ----------
+        coords : array-like
+            2 x 3 set of X, Y coordinates.
+        """
+        check_units(units)
+        coords = np.array(coords, dtypr=float)
+        if coords.shape != (2, 3):
+            raise ValueError('coords must be an array of size 2 x 3')
+        coords = self._ec._convert_units(coords, units, 'pix')
+        self._points = coords.T.flatten()
+        self._tris = np.array([0, 1, 2])
+        self._line_points = self._points
 
 
 class Rectangle(_Triangular):
