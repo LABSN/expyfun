@@ -683,6 +683,7 @@ class RawImage(object):
     """
     def __init__(self, ec, image_buffer, pos=(0, 0), scale=1., units='norm'):
         self._ec = ec
+        self._img = None
         self.set_image(image_buffer)
         self.set_pos(pos, units)
         self.set_scale(scale)
@@ -693,31 +694,27 @@ class RawImage(object):
         Parameters
         ----------
         image_buffer : array
-            N x M x 3 (or 4) array. Color values should range between 0 and 1.
+            N x M x 3 (or 4) array. Can be type ``np.float64`` or ``np.uint8``.
+            If ``np.float64``, color values must range between 0 and 1.
+            ``np.uint8`` is slightly more efficient.
         """
-        import pyglet
-        from pyglet import gl
-        image_buffer = np.array(image_buffer, dtype=float)
+        from pyglet import image, sprite
+        image_buffer = np.ascontiguousarray(image_buffer)
+        if image_buffer.dtype not in (np.float64, np.uint8):
+            raise TypeError('image_buffer must be np.float64 or np.uint8')
+        if image_buffer.dtype == np.float64:
+            if image_buffer.max() > 1 or image_buffer.min() < 0:
+                raise ValueError('all float values must be between 0 and 1')
+            image_buffer = (image_buffer * 255).astype('uint8')
         if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
             raise RuntimeError('image_buffer incorrect size: {}'
                                ''.format(image_buffer.shape))
-        if image_buffer.max() > 1 or image_buffer.min() < 0:
-            raise ValueError('all values must be between 0 and 1')
-
         # add alpha channel if necessary
-        if image_buffer.shape[2] == 3:
-            alpha = np.ones_like(image_buffer[:, :, 0])[:, :, np.newaxis]
-            image_buffer = np.concatenate((image_buffer, alpha), axis=2)
-        image_buffer = np.ascontiguousarray(image_buffer[::-1])
-        # convert from numpy array to OpenGL RGBA
         dims = image_buffer.shape
-        image_buffer.shape = -1
-        image_buffer = (image_buffer * 255).astype('uint8')
-        data = (gl.GLubyte * image_buffer.size)(*image_buffer)
-        img = pyglet.image.ImageData(dims[1], dims[0], 'RGBA', data,
-                                     pitch=dims[1] * 4)
-        sprite = pyglet.sprite.Sprite(img)
-        self._sprite = sprite
+        fmt = 'RGB' if dims[2] == 3 else 'RGBA'
+        self._sprite = sprite.Sprite(image.ImageData(dims[1], dims[0], fmt,
+                                                     image_buffer.tostring(),
+                                                     -dims[1] * dims[2]))
 
     def set_pos(self, pos, units='norm'):
         """Set image position
