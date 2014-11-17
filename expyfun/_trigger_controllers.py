@@ -157,3 +157,39 @@ def decimals_to_binary(decimals, n_bits):
         binary.extend([int(bb) for bb in np.binary_repr(d, b)])
     assert len(binary) == n_bits.sum()  # make sure we didn't do something dumb
     return binary
+
+
+def binary_to_decimals(binary, n_bits):
+    """Convert a sequence of binary numbers to a sequence of decimal numbers
+
+    Parameters
+    ----------
+    binary : array-like
+        Array of integers to convert. Must all be 0 or 1.
+    n_bits : array-like
+        Array of the number of bits used to represent each decimal number.
+
+    Returns
+    -------
+    decimals : array-like
+        Array of integers.
+    """
+    if not np.array_equal(binary, np.array(binary, bool)):
+        raise ValueError('binary must only contain zeros and ones')
+    binary = np.array(binary, bool)
+    if binary.ndim != 1:
+        raise ValueError('binary must be 1 dimensional')
+    n_bits = np.atleast_1d(n_bits).astype(int)
+    if np.any(n_bits <= 0):
+        raise ValueError('n_bits must all be > 0')
+    if n_bits.sum() != len(binary):
+        raise ValueError('the sum of n_bits must be equal to the number of '
+                         'elements in binary')
+    offset = 0
+    outs = []
+    for nb in n_bits:
+        outs.append(np.sum(binary[offset:offset + nb] *
+                    (2 ** np.arange(nb - 1, -1, -1))))
+        offset += nb
+    assert offset == len(binary)
+    return np.array(outs)

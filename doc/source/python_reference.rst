@@ -31,6 +31,7 @@ Functions:
    :template: function.rst
 
    assert_version
+   binary_to_decimals
    decimals_to_binary
    download_version
    get_keyboard_input
