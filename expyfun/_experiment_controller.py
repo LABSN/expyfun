@@ -828,16 +828,25 @@ class ExperimentController(object):
         times = [self.flip() for _ in range(n_rep)]
         return 1. / np.median(np.diff(times[1:]))
 
-    def set_visible(self, visible=True):
+    def set_visible(self, visible=True, flip=True):
         """Set the window visibility
 
         Parameters
         ----------
         visible : bool
             The visibility.
+        flip : bool
+            If ``visible=True``, call ``flip()`` after setting visible.
+            This fixes an issue with the window background color not
+            being set properly for the first draw after setting visible;
+            by default (at least on Linux) the background is black when
+            the window is restored, regardless of what the glClearColor
+            had been set to.
         """
         self._win.set_visible(visible)
         logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
+        if visible and flip:
+            self.flip()
 
 # ############################## KEYPRESS METHODS #############################
     def listen_presses(self):
