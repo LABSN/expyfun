@@ -44,7 +44,8 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the project tests
-  - "_EXPYFUN_SILENT=true nosetests.exe --verbosity=2"
+  - "SET _EXPYFUN_SILENT=true"
+  - "nosetests.exe --verbosity=2"
 
 #after_test:
 #  # If tests are successful, create a whl package for the project.
