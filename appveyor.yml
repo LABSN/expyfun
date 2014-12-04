@@ -21,9 +21,6 @@ environment:
       PYTHON_ARCH: "64"
 
 install:
-  - ECHO "Filesystem root:"
-  - ps: "ls \"C:/\""
-
   # Install miniconda Python
   - "powershell ./make/install_python.ps1"
 
@@ -48,16 +45,3 @@ build: false  # Not a C# project, build stuff at the test step instead.
 test_script:
   # Run the project tests
   - "nosetests.exe --verbosity=2"
-
-#after_test:
-#  # If tests are successful, create a whl package for the project.
-#  - "python setup.py bdist_wheel bdist_wininst"
-#  - ps: "ls dist"
-
-#artifacts:
-#  # Archive the generated wheel package in the ci.appveyor.com build report.
-#  - path: dist\*
-
-#on_success:
-#  - TODO: upload the content of dist/*.whl to a public wheelhouse
-#
