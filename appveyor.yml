@@ -40,11 +40,13 @@ install:
   - "conda install --yes --quiet numpy scipy matplotlib coverage nose setuptools h5py pandas"
   - "pip install -q http://pyglet.googlecode.com/archive/tip.zip"
 
+  # Don't actually use the sound card (nonexistent)
+  - "SET _EXPYFUN_SILENT=true"
+
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the project tests
-  - "SET _EXPYFUN_SILENT=true"
   - "nosetests.exe --verbosity=2"
 
 #after_test:
