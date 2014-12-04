@@ -9,7 +9,9 @@ import numpy as np
 from scipy import fftpack
 import sys
 import os
-_linux = ('silent',) if os.getenv('_EXPYFUN_SILENT') == 'true' else ('pulse',)
+_use_silent = (os.getenv('_EXPYFUN_SILENT', '') == 'true')
+_linux = ('silent',) if _use_silent else ('pulse',)
+_win32 = ('silent',) if _use_silent else ('directsound',)
 _opts_dict = dict(linux2=_linux,
                   win32=('directsound',),
                   darwin=('openal',))
