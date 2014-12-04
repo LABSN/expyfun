@@ -37,7 +37,7 @@ install:
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
   # Install the dependencies of the project.
-  - "conda install --yes numpy scipy matplotlib coverage nose setuptools h5py joblib pandas"
+  - "conda install --yes numpy scipy matplotlib coverage nose setuptools h5py pandas"
   - "pip install http://pyglet.googlecode.com/archive/tip.zip"
 
 build: false  # Not a C# project, build stuff at the test step instead.
