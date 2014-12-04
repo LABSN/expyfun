@@ -10,15 +10,14 @@ from scipy import fftpack
 import sys
 import os
 _use_silent = (os.getenv('_EXPYFUN_SILENT', '') == 'true')
-_linux = ('silent',) if _use_silent else ('pulse',)
-_win32 = ('silent',) if _use_silent else ('directsound',)
-_opts_dict = dict(linux2=_linux,
+_opts_dict = dict(linux2=('pulse',),
                   win32=('directsound',),
                   darwin=('openal',))
 _opts_dict['linux'] = _opts_dict['linux2']  # new name on Py3k
+_driver = _opts_dict[sys.platform] if not _use_silent else ('silent',)
 try:
     import pyglet
-    pyglet.options['audio'] = _opts_dict[sys.platform]
+    pyglet.options['audio'] = _driver
     from pyglet.media import Player, StaticMemorySource, AudioFormat
 except Exception:
     StaticMemorySource = Player = object
@@ -29,7 +28,8 @@ from ._utils import logger, flush_logger
 
 def _check_pyglet_audio():
     if pyglet.media.get_audio_driver() is None:
-        raise SystemError('pyglet audio could not be initialized')
+        raise SystemError('pyglet audio ("%s") could not be initialized'
+                          % pyglet.options['audio'][0])
 
 
 class SoundPlayer(Player):
