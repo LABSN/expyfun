@@ -47,7 +47,7 @@ before_install:
     - cd ~
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
-          sudo apt-get install -qq -y python-pandas python-tables python-joblib;
+          sudo apt-get install -qq -y python-pandas python-h5py python-joblib;
         else
           conda install --yes --quiet pandas h5py;
           travis_retry pip install -q joblib;
