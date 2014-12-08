@@ -104,6 +104,74 @@ class Text(object):
         self._text.draw()
 
 
+class AttrText(object):
+    """A formatted text object
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    text : str
+        The text to display.
+    pos : array
+        2-element array consisting of X- and Y-position coordinates.
+    color : matplotlib Color
+        Color of the text.
+    font_name : str
+        Font to use.
+    font_size : float
+        Font size (points) to use.
+    height : float | None
+        Height of the text region. None will automatically allocate the
+        necessary size.
+    width : float | None | str
+        Width (in pixels) of the text region. `'auto'` will allocate 80% of
+        the screen width, useful for instructions. None will automatically
+        allocate sufficient space, but not that this disables text wrapping.
+    anchor_x : str
+        Horizontal text anchor (e.g., ``'center'``).
+    anchor_y : str
+        Vertical text anchor (e.g., ``'center'``).
+    units : str
+        Units to use. These will apply to all spatial aspects of the drawing.
+        shape e.g. size, position. See ``check_units`` for options.
+    wrap : bool
+        Whether or not the text will wrap to fit in screen, appropriate for
+        multiline text. Inappropriate for text requiring precise positioning.
+
+    Returns
+    -------
+    text : instance of Text
+        The text object.
+    """
+    def __init__(self, ec, text, pos=(0, 0), color='white',
+                 font_name='Arial', font_size=24, height=None,
+                 width='auto', anchor_x='center', anchor_y='center',
+                 units='norm', wrap=False):
+        import pyglet
+        pos = np.array(pos)[:, np.newaxis]
+        pos = ec._convert_units(pos, units, 'pix')
+        if width == 'auto':
+            width = float(ec.window_size_pix[0]) * 0.8
+        elif isinstance(width, string_types):
+            raise ValueError('"width", if str, must be "auto"')
+        preamble = ('{{font_name \'{}\'}}{{font_size {}}}{{color {}}}'
+                    '').format(font_name, font_size, _convert_color(color))
+        doc = pyglet.text.decode_attributed(preamble + text + ' ')
+        self._text = pyglet.text.layout.TextLayout(doc, width=width,
+                                                   height=height,
+                                                   multiline=wrap,
+                                                   dpi=int(ec.dpi))
+        self._text.x = pos[0]
+        self._text.y = pos[1]
+        self._text.anchor_x = anchor_x
+        self._text.anchor_y = anchor_y
+
+    def draw(self):
+        """Draw the object to the display buffer"""
+        self._text.draw()
+
+
 ##############################################################################
 # Triangulations
 
