@@ -411,7 +411,7 @@ class ExperimentController(object):
 
         Returns
         -------
-        Instance of visual.Text
+        Instance of visual.Text or visual.AttrText
         """
         check_units(units)
         if attributed:
