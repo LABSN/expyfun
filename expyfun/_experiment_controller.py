@@ -26,7 +26,7 @@ from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, Mouse
 from .stimuli._filter import resample
-from .visual import Text, AttrText, Rectangle, _convert_color
+from .visual import Text, Rectangle, _convert_color
 
 
 # Note: ec._trial_progress has three values:
@@ -382,7 +382,7 @@ class ExperimentController(object):
 
 # ############################### SCREEN METHODS ##############################
     def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
-                    font_size=24, wrap=True, units='norm', attributed=False):
+                    font_size=24, wrap=True, units='norm', attr=True):
         """Show some text on the screen.
 
         Parameters
@@ -405,21 +405,18 @@ class ExperimentController(object):
         units : str
             Units for ``pos``. See ``check_units`` for options. Applies to
             ``pos`` but not ``font_size``.
-        attributed : bool
+        attr : bool
             Should the text be interpreted with pyglet's ``decode_attributed``
-            method?
+            method? This allows inline formatting for text color, e.g.,
+            ``'This is {color (255, 0, 0, 255)}red text'``.
 
         Returns
         -------
-        Instance of visual.Text or visual.AttrText
+        Instance of visual.Text
         """
         check_units(units)
-        if attributed:
-            TextClass = AttrText
-        else:
-            TextClass = Text
-        scr_txt = TextClass(self, text, pos, color, font_name, font_size,
-                            wrap=wrap, units=units)
+        scr_txt = Text(self, text, pos, color, font_name, font_size,
+                       wrap=wrap, units=units, attr=attr)
         scr_txt.draw()
         self.call_on_next_flip(self.write_data_line, 'screen_text', text)
         return scr_txt
@@ -427,7 +424,7 @@ class ExperimentController(object):
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
                       timestamp=False, clear_after=True, pos=[0, 0],
                       color='white', font_name='Arial', font_size=24,
-                      wrap=True, units='norm', attributed=False):
+                      wrap=True, units='norm', attr=True):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -463,6 +460,10 @@ class ExperimentController(object):
         units : str
             Units for ``pos``. See ``check_units`` for options. Applies to
             ``pos`` but not ``font_size``.
+        attr : bool
+            Should the text be interpreted with pyglet's ``decode_attributed``
+            method? This allows inline formatting for text color, e.g.,
+            ``'This is {color (255, 0, 0, 255)}red text'``.
 
         Returns
         -------
@@ -480,7 +481,7 @@ class ExperimentController(object):
         for t in text:
             self.screen_text(t, pos=pos, color=color, font_name=font_name,
                              font_size=font_size, wrap=wrap, units=units,
-                             attributed=attributed)
+                             attr=attr)
             self.flip()
             out = self.wait_one_press(max_wait, min_wait, live_keys,
                                       timestamp)
