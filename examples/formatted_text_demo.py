@@ -33,7 +33,7 @@ fiv = 'Press any key to quit.'
 
 with ExperimentController('textDemo', participant='foo', session='001',
                           output_dir=None) as ec:
-    ec.wait_secs(0.1)  # without this, the first flip doesn't work?
+    ec.wait_secs(0.1)  # without this, first flip doesn't show on some systems
     txt_one = ec.screen_text(one, pos=[0, 0.5], attr=False)
     txt_two = ec.screen_text(two, pos=[0, 0.2], font_name='Times New Roman',
                              font_size=32, color='#00CEE9')
