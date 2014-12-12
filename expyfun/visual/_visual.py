@@ -66,7 +66,10 @@ class Text(object):
     attr : bool
         Should the text be interpreted with pyglet's ``decode_attributed``
         method? This allows inline formatting for text color, e.g.,
-        ``'This is {color (255, 0, 0, 255)}red text'``.
+        ``'This is {color (255, 0, 0, 255)}red text'``. If ``attr=True``, the
+        values of ``font_name``, ``font_size``, and ``color`` are automatically
+        prepended to ``text`` (though they will be overridden by any inline
+        formatting within ``text`` itself).
 
     Returns
     -------
@@ -85,8 +88,9 @@ class Text(object):
         elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
         self._attr = attr
+        text = text + ' '  # pyglet bug workaround
         if self._attr:
-            text = text.replace('\n', '\n ') + ' '  # pyglet bug workaround
+            text = text.replace('\n', '\n ')  # pyglet bug workaround
             preamble = ('{{font_name \'{}\'}}{{font_size {}}}{{color {}}}'
                         '').format(font_name, font_size, _convert_color(color))
             doc = pyglet.text.decode_attributed(preamble + text)
@@ -94,19 +98,16 @@ class Text(object):
                                                        height=height,
                                                        multiline=wrap,
                                                        dpi=int(ec.dpi))
-            self._text.x = pos[0]
-            self._text.y = pos[1]
-            self._text.anchor_x = anchor_x
-            self._text.anchor_y = anchor_y
         else:
-            self._text = pyglet.text.Label(text + ' ', x=pos[0], y=pos[1],
-                                           width=width, height=height,
-                                           multiline=wrap, dpi=int(ec.dpi),
-                                           anchor_x=anchor_x,
-                                           anchor_y=anchor_y)
+            self._text = pyglet.text.Label(text, width=width, height=height,
+                                           multiline=wrap, dpi=int(ec.dpi))
             self._text.color = _convert_color(color)
             self._text.font_name = font_name
             self._text.font_size = font_size
+        self._text.x = pos[0]
+        self._text.y = pos[1]
+        self._text.anchor_x = anchor_x
+        self._text.anchor_y = anchor_y
 
     def set_color(self, color):
         """Set the text color
