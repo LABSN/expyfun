@@ -63,6 +63,13 @@ class Text(object):
     wrap : bool
         Whether or not the text will wrap to fit in screen, appropriate for
         multiline text. Inappropriate for text requiring precise positioning.
+    attr : bool
+        Should the text be interpreted with pyglet's ``decode_attributed``
+        method? This allows inline formatting for text color, e.g.,
+        ``'This is {color (255, 0, 0, 255)}red text'``. If ``attr=True``, the
+        values of ``font_name``, ``font_size``, and ``color`` are automatically
+        prepended to ``text`` (though they will be overridden by any inline
+        formatting within ``text`` itself).
 
     Returns
     -------
@@ -72,7 +79,7 @@ class Text(object):
     def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
                  width='auto', anchor_x='center', anchor_y='center',
-                 units='norm', wrap=False):
+                 units='norm', wrap=False, attr=True):
         import pyglet
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, units, 'pix')
@@ -80,14 +87,27 @@ class Text(object):
             width = float(ec.window_size_pix[0]) * 0.8
         elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
-        self._text = pyglet.text.Label(text + ' ', x=pos[0], y=pos[1],
-                                       width=width, height=height,
-                                       multiline=wrap, dpi=int(ec.dpi),
-                                       anchor_x=anchor_x,
-                                       anchor_y=anchor_y)
-        self._text.color = _convert_color(color)
-        self._text.font_name = font_name
-        self._text.font_size = font_size
+        self._attr = attr
+        text = text + ' '  # pyglet bug workaround
+        if self._attr:
+            text = text.replace('\n', '\n ')  # pyglet bug workaround
+            preamble = ('{{font_name \'{}\'}}{{font_size {}}}{{color {}}}'
+                        '').format(font_name, font_size, _convert_color(color))
+            doc = pyglet.text.decode_attributed(preamble + text)
+            self._text = pyglet.text.layout.TextLayout(doc, width=width,
+                                                       height=height,
+                                                       multiline=wrap,
+                                                       dpi=int(ec.dpi))
+        else:
+            self._text = pyglet.text.Label(text, width=width, height=height,
+                                           multiline=wrap, dpi=int(ec.dpi))
+            self._text.color = _convert_color(color)
+            self._text.font_name = font_name
+            self._text.font_size = font_size
+        self._text.x = pos[0]
+        self._text.y = pos[1]
+        self._text.anchor_x = anchor_x
+        self._text.anchor_y = anchor_y
 
     def set_color(self, color):
         """Set the text color
@@ -97,7 +117,11 @@ class Text(object):
         color : matplotlib Color | None
             The color. Use None for no color.
         """
-        self._text.color = _convert_color(color)
+        if self._attr:
+            self._text.document.set_style(0, len(self._text.document.text),
+                                          {'color': _convert_color(color)})
+        else:
+            self._text.color = _convert_color(color)
 
     def draw(self):
         """Draw the object to the display buffer"""
