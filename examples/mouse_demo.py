@@ -10,12 +10,13 @@ in the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 from expyfun import ExperimentController
 import expyfun.analyze as ea
 from expyfun.visual import (Circle, Rectangle, Diamond, ConcentricCircles,
                             FixationDot)
+
+print(__doc__)
+
 
 wait_dur = 3.0
 msg_dur = 1.5

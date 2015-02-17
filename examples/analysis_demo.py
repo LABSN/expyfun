@@ -51,8 +51,9 @@ dprob = [0.9, 0.6]
 cblock = np.tile(np.atleast_2d(cprob).T, (2, len(subjs))).T
 dblock = np.tile(np.atleast_2d(np.repeat(dprob, 2)).T, len(subjs)).T
 probs = cblock * dblock
-rawscores = np.random.binomial(trials_per_cond, probs, (len(subjs), len(conds)
-                                                        * len(diffs)))
+rawscores = np.random.binomial(trials_per_cond, probs, (len(subjs),
+                                                        len(conds) *
+                                                        len(diffs)))
 hitmiss = np.c_[rawscores.ravel(), (trials_per_cond - rawscores).ravel()]
 dprimes = ea.dprime_2afc(hitmiss).reshape(rawscores.shape)
 results = pd.DataFrame(dprimes, index=subjs, columns=colnames)
