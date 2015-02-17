@@ -14,6 +14,9 @@ import sys
 import subprocess
 import time
 
+from .visual import FixationDot, Circle, RawImage, Line, Text
+from ._utils import get_config, verbose_dec, logger, string_types
+
 # Constants
 TRIAL_OK = 0
 IN_RECORD_MODE = 4
@@ -39,8 +42,6 @@ except ImportError:
     cal_super_class = object
     openGraphicsEx = dummy_fun
 
-from .visual import FixationDot, Circle, RawImage, Line, Text
-from ._utils import get_config, verbose_dec, logger, string_types
 
 eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
 

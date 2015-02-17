@@ -23,7 +23,7 @@ except Exception:
     StaticMemorySource = Player = object
     AudioFormat = None
 
-from ._utils import logger, flush_logger
+from ._utils import logger, flush_logger  # noqa
 
 
 def _check_pyglet_audio():

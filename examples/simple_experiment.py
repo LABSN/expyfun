@@ -10,15 +10,16 @@ the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 from os import path as op
 import numpy as np
 from scipy import io as sio
+import matplotlib.pyplot as plt
 
 from expyfun import ExperimentController, get_keyboard_input
 from expyfun import set_log_level
 import expyfun.analyze as ea
+
+print(__doc__)
 
 
 set_log_level('INFO')
@@ -171,6 +172,5 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
                      'any key to close.'.format(running_total, num_trials),
                      max_wait=feedback_dur)
 
-import matplotlib.pyplot as plt
 plt.ion()
 ea.plot_screen(screenshot)

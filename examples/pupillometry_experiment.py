@@ -10,12 +10,14 @@ using eye-tracking simpler.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
+
 from expyfun import ExperimentController, EyelinkController
 from expyfun.codeblocks import (find_pupil_dynamic_range,
                                 find_pupil_tone_impulse_response)
+
+print(__doc__)
 
 
 with ExperimentController('pupilExp', full_screen=True, participant='foo',
@@ -25,7 +27,6 @@ with ExperimentController('pupilExp', full_screen=True, participant='foo',
     prf, t_srf, e_prf = find_pupil_tone_impulse_response(ec, el, bgcolor,
                                                          fcolor)
 
-import matplotlib.pyplot as plt
 plt.ion()
 
 uni_lev = np.unique(lev)

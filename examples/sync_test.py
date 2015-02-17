@@ -12,11 +12,14 @@ whereas Compiz WMs did not (doubled timings).
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
+
 from expyfun import ExperimentController
 import expyfun.analyze as ea
+
+print(__doc__)
+
 
 # Fullscreen MUST be used to guarantee flip accuracy!
 with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
@@ -37,6 +40,5 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
         pressed = ec.wait_one_press(0.5)[0]
         ec.stop()
 
-import matplotlib.pyplot as plt
 plt.ion()
 ea.plot_screen(screenshot)

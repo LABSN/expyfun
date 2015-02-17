@@ -11,12 +11,12 @@ functions ``dprime_2afc()`` and ``barplot()``.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import expyfun.analyze as ea
+
+print(__doc__)
 
 # simulate some 2AFC data
 trials = 100

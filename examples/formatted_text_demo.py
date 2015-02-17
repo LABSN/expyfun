@@ -9,10 +9,12 @@ This example demonstrates differences between the Text and AttrText classes.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 from expyfun import ExperimentController, analyze
 from expyfun.visual import _convert_color
+
+print(__doc__)
 
 # Colors
 blue = _convert_color('#00CEE9')
@@ -45,6 +47,5 @@ with ExperimentController('textDemo', participant='foo', session='001',
         txt.draw()
     ec.screen_prompt(fiv, pos=[0, -0.5], color='#FF97AF')
 
-import matplotlib.pyplot as plt
 plt.ion()
 analyze.plot_screen(screenshot)

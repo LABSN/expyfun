@@ -10,9 +10,13 @@ This shows how to make simple vocoded stimuli.
 """
 
 import numpy as np
+import matplotlib.pyplot as mpl
 
 from expyfun.stimuli import vocode, play_sound, window_edges, read_wav, rms
 from expyfun import fetch_data_file
+
+print(__doc__)
+
 
 data, fs = read_wav(fetch_data_file('audio/dream.wav'))
 data = window_edges(data[0], fs)
@@ -35,9 +39,8 @@ data_allthree[2 * cutoff:] = data_click[2 * cutoff:]
 snd = play_sound(data_allthree, fs, norm=False, wait=False)
 
 # Uncomment this to play the original, too:
-#snd = play_sound(data, fs, norm=False, wait=False)
+# snd = play_sound(data, fs, norm=False, wait=False)
 
-import matplotlib.pyplot as mpl
 mpl.ion()
 ax1 = mpl.subplot(3, 1, 1)
 ax1.plot(t, data)
