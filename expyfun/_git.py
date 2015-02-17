@@ -2,6 +2,7 @@
 import os
 from os import path as op
 import sys
+import warnings
 
 from ._utils import _TempDir, string_types, run_subprocess, StringIO
 from ._version import __version__
@@ -85,7 +86,8 @@ def download_version(version='current', dest_dir=None):
         from setup import git_version, setup_package
         assert git_version().lower() == version[:7].lower()
         sys.stdout = StringIO()
-        setup_package(script_args=['build', '--build-purelib', dest_dir])
+        with warnings.catch_warnings(record=True):  # PEP440
+            setup_package(script_args=['build', '--build-purelib', dest_dir])
     finally:
         sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))

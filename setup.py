@@ -48,7 +48,7 @@ def git_version():
         GIT_REVISION = "Unknown"
     return GIT_REVISION[:7]
 
-FULL_VERSION = VERSION + '-' + git_version()
+FULL_VERSION = VERSION + '+' + git_version()
 
 
 def write_version(version):
