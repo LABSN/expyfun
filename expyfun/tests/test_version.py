@@ -19,7 +19,7 @@ def test_version():
     assert_raises(AssertionError, assert_version, 'x' * 7)
     assert_version(__version__[-7:])
 
-    v = 'c18133c'
+    v = '5682d9f'
     if not _has_git:
         assert_raises(ImportError, download_version, v, tempdir)
     else:
