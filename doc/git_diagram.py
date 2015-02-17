@@ -16,35 +16,54 @@ legend = """
 <<FONT POINT-SIZE="%s">
 <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4">
 <TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
-Local computer</TD></TR>
+Local computers</TD></TR>
 <TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
-Remote repository</TD></TR>
+Remote repositories</TD></TR>
 </TABLE></FONT>>""" % (edge_size, local_color, remote_color)
 legend = ''.join(legend.split('\n'))
 
 nodes = dict(
-    upstream='LABSN/expyfun.git',
-    u1='Eric89GXL/expyfun.git',
-    u2='drammock/expyfun.git',
-    u1_clone='/home/larsoner/expyun',
-    u2_clone='/home/drmccloy/expyun',
+    upstream='LABSN/expyfun\n'
+             'master\n'
+             ' ',
+    maint='Eric89GXL/expyfun\n'
+          'master\n'
+          'other_branch',
+    dev='rkmaddox/expyfun\n'
+        'master\n'
+        'fix_branch',
+    maint_clone='/home/larsoner/expyfun\n'
+                'master (origin/master)\n'
+                'other_branch (origin/other_branch)\n'
+                'ross_branch (rkmaddox/fix_branch)',
+    dev_clone='/home/rkmaddox/expyfun\n'
+              'master (origin/master)\n'
+              'fix_branch (origin/fix_branch)\n'
+              ' ',
+    user_clone='/home/akclee/expyfun\n'
+               'master (origin/master)\n'
+               ' \n'
+               ' ',
     legend=legend,
 )
 
-local_space = ('u1_repo', 'u2_repo')
-remote_space = ('upstream', 'u1_clone', 'u2_clone')
+remote_space = ('maint', 'dev', 'upstream')
+local_space = ('maint_clone', 'dev_clone', 'user_clone')
 
 edges = (
-    ('u1_clone', 'u1', 'origin'),
-    ('u2_clone', 'u2', 'origin'),
-    ('u1_clone', 'upstream', 'upstream'),
-    ('u2_clone', 'upstream', 'upstream'),
+    ('maint_clone', 'maint', 'origin'),
+    ('dev_clone', 'dev', 'origin'),
+    ('user_clone', 'upstream', 'origin'),
+    ('maint_clone', 'upstream', 'upstream'),
+    ('maint_clone', 'dev', 'rkmaddox'),
+    ('dev_clone', 'upstream', 'upstream'),
 )
 
 subgraphs = (
-    [('upstream', 'u1', 'u2'), ('Internet')],
-    [('u1'), ("Eric's computer")],
-    [('u2'), ("Dan's computer")],
+    [('upstream', 'maint', 'dev'), ('GitHub')],
+    [('maint_clone'), ('Maintainer')],
+    [('dev_clone'), ("Developer")],
+    [('user_clone'), ("User")],
 )
 
 
@@ -54,13 +73,13 @@ g = pgv.AGraph(name=title, directed=True)
 for key, label in nodes.items():
     label = label.split('\n')
     if len(label) > 1:
-        label[0] = ('<<FONT POINT-SIZE="%s">' % node_size
-                    + label[0] + '</FONT>')
+        label[0] = ('<<FONT POINT-SIZE="%s"><B>' % node_size
+                    + label[0] + '</B></FONT>')
         for li in range(1, len(label)):
             label[li] = ('<FONT POINT-SIZE="%s"><I>' % node_small_size
                          + label[li] + '</I></FONT>')
-        label[-1] = label[-1] + '>'
-        label = '<BR/>'.join(label)
+        label[-1] = label[-1] + '<BR ALIGN="LEFT"/>>'
+        label = '<BR ALIGN="LEFT"/>'.join(label)
     else:
         label = label[0]
     g.add_node(key, shape='plaintext', label=label)
@@ -76,8 +95,8 @@ for edge in edges:
     e.attr['fontsize'] = edge_size
 g.get_node
 # Change colors
-for these_nodes, color in zip((sensor_space, source_space),
-                              (sensor_color, source_color)):
+for these_nodes, color in zip((local_space, remote_space),
+                              (local_color, remote_color)):
     for node in these_nodes:
         g.get_node(node).attr['fillcolor'] = color
         g.get_node(node).attr['style'] = 'filled'
@@ -93,15 +112,6 @@ for gr in g.subgraphs() + [g]:
         x['fontname'] = font_face
 g.node_attr['shape'] = 'box'
 
-# A couple of special ones
-for ni, node in enumerate(('fwd', 'inv', 'trans')):
-    node = g.get_node(node)
-    node.attr['gradientangle'] = 270
-    colors = (source_color, sensor_color)
-    colors = colors if ni == 0 else colors[::-1]
-    node.attr['fillcolor'] = ':'.join(colors)
-    node.attr['style'] = 'filled'
-del node
 g.get_node('legend').attr.update(shape='plaintext', margin=0, rank='sink')
 # put legend in same rank/level as inverse
 l = g.add_subgraph(['legend', 'inv'], name='legendy')
