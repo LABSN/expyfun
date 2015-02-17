@@ -120,7 +120,11 @@ some changes. For example, maybe the user forgot to also add the necessary
     $ git commit -am 'FIX: Add missing file'
     $ git push origin fix_branch
 
-After this set of commands, the 
+After this set of commands, the pull request (PR) is automatically 
+updated to reflect this new addition. The cycle of commenting on and 
+updating the continues until the Maintainers_ are satisfied with the 
+changes. They will then merge the pull request to incorporate the 
+Developer_'s proposed changes into the GitHub repo.
 
 Once their branch gets merged into the :bash:`master` branch of
 `<github.com/LABSN/expyfun>`, the developer can do the following to get
