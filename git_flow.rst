@@ -3,6 +3,9 @@
 .. role:: bash(code)
    :language: bash
 
+.. role:: python(code)
+   :language: python
+
 Recommended GitHub workflow
 ===========================
 Typically there are three types of people who use GitHub to access source code:
