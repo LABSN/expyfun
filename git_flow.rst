@@ -203,8 +203,8 @@ development fork, the upstream repo, and also ``rkmaddox``'s fork::
     origin	git@github.com:/Eric89GXL/expyfun.git (push)
     ross	git://github.com/rkmaddox/expyfun.git (fetch)
     ross	git://github.com/rkmaddox/expyfun.git (push)
-    upstream	git://github.com/LABSN/expyfun.git (fetch)
-    upstream	git://github.com/LABSN/expyfun.git (push)
+    upstream	git@github.com:/LABSN/expyfun.git (fetch)
+    upstream	git@github.com:/LABSN/expyfun.git (push)
 
 Let's say ``rkmaddox`` has opened a PR on Github, and the maintainer wants
 to test out the code. This can be done this way::
