@@ -21,8 +21,8 @@ are released, but you don't think it's likely that you will ever want to fix
 bugs or add new features yourself, then probably you are a User (you can upgrade
 yourself to a Developer later if you need to).
 
-Users will want to take the "official" version of the software, make a copy of 
-it on their own computer, and run the code from there. Using ``expyfun`` as an 
+Users will want to take the "official" version of the software, make a copy of
+it on their own computer, and run the code from there. Using ``expyfun`` as an
 example, this is done on the command line like this::
 
     $ git clone git://github.com/LABSN/expyfun.git
