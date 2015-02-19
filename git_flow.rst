@@ -103,9 +103,10 @@ repositories on GitHub and the local computers of each of three different users:
 
 Developers (like user ``rkmaddox`` in the diagram) typically first go to the
 `official repo of the project <https://github.com/LABSN/expyfun>`_
-and fork the repository so that their changes can be sandboxed. Usually they
-would then set up the :bash:`origin` of their local copy of the codebase to
-point to their own fork, rather than the official repository. So after forking
+and `fork <https://help.github.com/articles/fork-a-repo/>`_ the repository so 
+that their changes can be sandboxed. Usually they would then set up the 
+:bash:`origin` of their local copy of the codebase to point to their own fork, 
+rather than the official repository. So after forking 
 `expyfun <https://github.com/LABSN/expyfun>`_ to his own GitHub account, user
 ``rkmaddox`` would run::
 
@@ -145,8 +146,8 @@ that branch, adds a file, commits the change to the branch, and then pushes the
 branch to a new remote branch (also called ``fix_branch``) on the ``origin``
 repo (i.e., their fork of the upstream repo). The user could then navigate to
 `the upstream expyfun repository <http://github.com/LABSN/expyfun/>`_
-and they would find a nice **Pull Request** button available to open a pull
-request.
+and they would find a nice **Pull Request** button available to open a 
+`pull request <https://help.github.com/articles/using-pull-requests/>`_.
 
 Maintainers_ would then typically comment on the pull request and ask for
 some changes. For example, maybe the user forgot to also add the necessary
@@ -163,8 +164,9 @@ some changes. For example, maybe the user forgot to also add the necessary
 After this set of commands, the pull request (PR) is automatically
 updated to reflect this new addition. The cycle of commenting on and
 updating the continues until the Maintainers_ are satisfied with the
-changes. They will then merge the pull request to incorporate the
-proposed changes into the upstream GitHub repo.
+changes. They will then 
+`merge <https://help.github.com/articles/merging-a-pull-request/>`_ the pull 
+request to incorporate the proposed changes into the upstream GitHub repo.
 
 Once their branch gets merged into the :bash:`master` branch of
 the upstream repo, the developer can do the following to get
@@ -233,3 +235,8 @@ in a similar way as the developer did earlier::
 
     $ git checkout master
     $ git pull upstream/master
+
+
+Still looking for more help? Check out all the `help articles on Github 
+<https://help.github.com>`_ and the `help articles on git 
+<https://git-scm.com/doc>`_.
