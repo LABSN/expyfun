@@ -22,16 +22,16 @@ bugs or add new features yourself, then probably you are a User (you can upgrade
 yourself to a Developer later if you need to).
 
 Users will want to take the "official" version of the software, make a copy of
-it on their own computer, and run the code from there. Using ``expyfun`` 
+it on their own computer, and run the code from there. Using ``expyfun``
 software as an example, this is done on the command line like this::
 
     $ git clone git://github.com/LABSN/expyfun.git
     $ cd expyfun
     $ python setup.py install
 
-The :bash:`git clone` command will create a folder ``expyfun`` in the current 
+The :bash:`git clone` command will create a folder ``expyfun`` in the current
 directory to store the source code, and the :bash:`python setup.py install`
-command will install the necessary parts of ``expyfun`` in the special places 
+command will install the necessary parts of ``expyfun`` in the special places
 where python
 looks when you do :python:`import expyfun` and call ``expyfun`` functions in
 your own scripts. The only thing you really need to decide first is where on
@@ -86,29 +86,32 @@ forth between these different versions while working within the same directory
 structure.
 
 In other words, typically there is only one repository for a given project on
-a user's local machine. That repository can have multiple `branches <http://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`_ within it.
-When a user switches between branches, they are effectively switching between
-different sets of files within that repository. The :bash:`git` protocol thus
+a developer's local machine. That repository can have multiple
+`branches <http://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`_
+within it.
+When a developer switches between branches, they are effectively switching
+between different copies of that repository. The :bash:`git` protocol thus
 modifies or updates files in-place, and you can keep track of different versions
-of the files by keeping track of branch names, instead of making temporary
-copies of files in other folders or appending `_newVersion` to the filename.
+of the files by keeping track of branch names, instead of storing temporary
+copies in other folders, or appending ``_newVersion`` to the filename.
 
-In addition to each user having a local git repository, they usually become
+In addition to each developer having a local git repository, they usually become
 associated with some number of remote repositories on
-`GitHub <https://github.com>`_. The user's local repository can "know" about any
-number of remote repositories, and users get to call those remote repositories
-whatever they want. Here is a diagram of the connections between the remote
-repositories on GitHub and the local computers of each of three different users:
+`GitHub <https://github.com>`_. The developer's local repository can "know"
+about any number of remote repositories, and users get to name those remote
+repositories whatever they want. Here is a diagram of the connections between
+the remote repositories on GitHub and the local computers of each of three
+collaborators on the ``expyfun`` project:
 
 .. _diagram:
 .. image:: https://cdn.rawgit.com/LABSN/expyfun/master/doc/git_flow.svg
 
-Developers (like user ``rkmaddox`` in the diagram) typically first go to the
+Developers (like ``rkmaddox`` in the diagram) typically first go to the
 `official repo of the project <https://github.com/LABSN/expyfun>`_
-and `fork <https://help.github.com/articles/fork-a-repo/>`_ the repository so 
-that their changes can be sandboxed. Usually they would then set up the 
-:bash:`origin` of their local copy of the codebase to point to their own fork, 
-rather than the official repository. So after forking 
+and `fork <https://help.github.com/articles/fork-a-repo/>`_ the repository so
+that their changes can be sandboxed. The convention is to then set up their
+local copy of the codebase with their own fork as the remote ``origin``, and
+connect to the official remote repo with the name ``upstream``. So after forking
 `expyfun <https://github.com/LABSN/expyfun>`_ to his own GitHub account, user
 ``rkmaddox`` would run::
 
@@ -116,8 +119,8 @@ rather than the official repository. So after forking
     $ cd expyfun
     $ git remote add upstream git://github.com/LABSN/expyfun.git
 
-Now this user is set up with the standard :bash:`origin`/:bash:`upstream` flow
-as::
+Now this user has the standard ``origin``/``upstream`` configuration, as seen
+below. Note the difference in the URIs between ``origin`` and ``upstream``::
 
     $ git remote -v
     origin	git@github.com:/rkmaddox/expyfun.git (fetch)
@@ -127,8 +130,12 @@ as::
     $ git branch
     * master
 
-Now to make a change, the flow would be something like this (to e.g., add
-some trivial file)::
+URIs beginning with ``git://`` are read-only connections, so ``rkmaddox`` can
+pull down new changes from ``upstream``, but won't be able to directly push his
+local changes to upstream. Instead, he would have to push to his fork
+(``origin``) first, and create a
+`pull request <https://help.github.com/articles/using-pull-requests/>`_.
+For example, to add some trivial file::
 
     $ git branch fix_branch
     $ git branch
@@ -146,10 +153,9 @@ some trivial file)::
 This creates a new branch called ``fix_branch`` on the local machine, checks out
 that branch, adds a file, commits the change to the branch, and then pushes the
 branch to a new remote branch (also called ``fix_branch``) on the ``origin``
-repo (i.e., their fork of the upstream repo). The user could then navigate to
-`the upstream expyfun repository <http://github.com/LABSN/expyfun/>`_
-and they would find a nice **Pull Request** button available to open a 
-`pull request <https://help.github.com/articles/using-pull-requests/>`_.
+repo (i.e., their fork of the official repo). ``rkmaddox`` could then navigate
+to `the website of the upstream repository <http://github.com/LABSN/expyfun/>`_
+and they would find a nice **Pull Request** button available.
 
 Maintainers_ would then typically comment on the pull request and ask for
 some changes. For example, maybe the user forgot to also add the necessary
@@ -166,11 +172,11 @@ some changes. For example, maybe the user forgot to also add the necessary
 After this set of commands, the pull request (PR) is automatically
 updated to reflect this new addition. The cycle of commenting on and
 updating the continues until the Maintainers_ are satisfied with the
-changes. They will then 
-`merge <https://help.github.com/articles/merging-a-pull-request/>`_ the pull 
+changes. They will then
+`merge <https://help.github.com/articles/merging-a-pull-request/>`_ the pull
 request to incorporate the proposed changes into the upstream GitHub repo.
 
-Once their branch gets merged into the :bash:`master` branch of
+Once their branch gets merged into the ``master`` branch of
 the upstream repo, the developer can do the following to get
 up to date on their local machine::
 
@@ -199,8 +205,9 @@ and then do::
     $ git remote add upstream git@github.com:/LABSN/expyfun.git
     $ git remote add ross git://github.com/rkmaddox/expyfun.git
 
-Now the maintainer's local repository knows about their own personal
-development fork, the upstream repo, and also ``rkmaddox``'s fork::
+Now the maintainer's local repository has push/pull access to their own personal
+development fork and the upstream repo, and has read-only access to
+``rkmaddox``'s fork::
 
     $ git remote -v
     origin	git@github.com:/Eric89GXL/expyfun.git (fetch)
@@ -217,18 +224,19 @@ to test out the code. This can be done this way::
     $ git checkout -b ross_branch ross/fix_branch
 
 The first command allows the local repository to know about the changes (if
-any) that have occurred out on Github at `<github.com/rkmaddox/expyfun.git>`_.
+any) that have occurred on ``rkmaddox``'s fork of the project
+(`<github.com/rkmaddox/expyfun.git>`_).
 In this case, a new branch named ``fix_branch`` has been added.
 
 The second command is more complex. :bash:`git checkout -b $NAME` is a command
 that first creates a branch named :bash:`$NAME`, then checks it out. The
 additional argument :bash:`ross/fix_branch` tells :bash:`git` to make the
-branch track changes from the remote branch :bash:`fix_branch` in the remote
-repository known as :bash:`ross`, which you may recall points to
+branch track changes from the remote branch ``fix_branch`` in the remote
+repository known as ``ross``, which you may recall points to
 `<github.com/rkmaddox/expyfun.git>`_. The full command can thus be interpreted
 in human-readable form as "create and check out a branch named
-:bash:`ross_branch` that tracks the changes in the branch
-:bash:`fix_branch` from the remote repo named :bash:`ross`". The maintainer can
+``ross_branch`` that tracks the changes in the branch
+``fix_branch`` from the remote repo named ``ross``". The maintainer can
 now inspect and test ``rkmaddox``'s code locally rather than just viewing the
 changes on the GitHub pull request page.
 
@@ -239,6 +247,6 @@ in a similar way as the developer did earlier::
     $ git pull upstream/master
 
 
-Still looking for more help? Check out all the `help articles on Github 
-<https://help.github.com>`_ and the `help articles on git 
+Still looking for more help? Check out all the `help articles on Github
+<https://help.github.com>`_ and the `help articles on git
 <https://git-scm.com/doc>`_.
