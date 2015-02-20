@@ -11,12 +11,12 @@ functions ``dprime_2afc()`` and ``barplot()``.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import expyfun.analyze as ea
+
+print(__doc__)
 
 # simulate some 2AFC data
 trials = 100
@@ -51,8 +51,9 @@ dprob = [0.9, 0.6]
 cblock = np.tile(np.atleast_2d(cprob).T, (2, len(subjs))).T
 dblock = np.tile(np.atleast_2d(np.repeat(dprob, 2)).T, len(subjs)).T
 probs = cblock * dblock
-rawscores = np.random.binomial(trials_per_cond, probs, (len(subjs), len(conds)
-                                                        * len(diffs)))
+rawscores = np.random.binomial(trials_per_cond, probs, (len(subjs),
+                                                        len(conds) *
+                                                        len(diffs)))
 hitmiss = np.c_[rawscores.ravel(), (trials_per_cond - rawscores).ravel()]
 dprimes = ea.dprime_2afc(hitmiss).reshape(rawscores.shape)
 results = pd.DataFrame(dprimes, index=subjs, columns=colnames)

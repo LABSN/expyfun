@@ -3,6 +3,10 @@ import numpy as np
 import platform
 from os import path as op
 from functools import partial
+
+from ._utils import get_config, wait_secs, logger, ZeroClock
+from ._input_controllers import Keyboard
+
 if 'Windows' in platform.platform():
     try:
         from tdt.util import connect_rpcox, connect_zbus
@@ -10,10 +14,6 @@ if 'Windows' in platform.platform():
         connect_rpcox, connect_zbus = None, None  # analysis:ignore
 else:
     connect_rpcox, connect_zbus = None, None
-
-
-from ._utils import get_config, wait_secs, logger, ZeroClock
-from ._input_controllers import Keyboard
 
 
 def _dummy_fun(self, name, ret, *args, **kwargs):
@@ -163,7 +163,7 @@ class TDTController(Keyboard):
         # do BaseKeyboard init last, to make sure circuit is running
         Keyboard.__init__(self, ec, force_quit_keys)
 
-################################ AUDIO METHODS ###############################
+# ############################### AUDIO METHODS ###############################
     def _set_noise_corr(self, val=0):
         """Helper to set the noise correlation, only -1, 0, 1 supported"""
         assert val in (-1, 0, 1)
@@ -238,7 +238,7 @@ class TDTController(Keyboard):
         self.rpcox.SetTagVal('trigdel', delay_trig)
         logger.info('Expyfun: Setting TDT trigger delay to %s' % delay_trig)
 
-################################ TRIGGER METHODS #############################
+# ############################### TRIGGER METHODS #############################
     def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
         """Stamp a list of triggers with a given inter-trigger delay
 
@@ -269,7 +269,7 @@ class TDTController(Keyboard):
         if not self.rpcox.SoftTrg(trig):
             logger.warning('SoftTrg failure for trigger: {}'.format(trig))
 
-################################ KEYBOARD METHODS ############################
+# ############################### KEYBOARD METHODS ############################
 
     def _get_timebase(self):
         """Return time since circuit was started (in seconds).
@@ -309,7 +309,7 @@ class TDTController(Keyboard):
         self.rpcox.Halt()
         logger.debug('Expyfun: Halting TDT circuit')
 
-############################# READ-ONLY PROPERTIES ###########################
+# ############################ READ-ONLY PROPERTIES ###########################
     @property
     def fs(self):
         """Playback frequency of the audio (samples / second)."""

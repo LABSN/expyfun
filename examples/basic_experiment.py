@@ -10,13 +10,13 @@ ExperimentController class.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 
 from expyfun import ExperimentController, analyze
 from expyfun.visual import FixationDot
+import matplotlib.pyplot as plt
 
+print(__doc__)
 
 # set configuration
 fs = 24414.  # default for ExperimentController
@@ -42,6 +42,5 @@ with ExperimentController('testExp', participant='foo', session='001',
     print('Presses:\n{}'.format(presses))
 
 
-import matplotlib.pyplot as plt
 plt.ion()
 analyze.plot_screen(screenshot)

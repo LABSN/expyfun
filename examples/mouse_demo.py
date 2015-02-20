@@ -10,12 +10,15 @@ in the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 from expyfun import ExperimentController
 import expyfun.analyze as ea
 from expyfun.visual import (Circle, Rectangle, Diamond, ConcentricCircles,
                             FixationDot)
+
+print(__doc__)
+
 
 wait_dur = 3.0
 msg_dur = 1.5
@@ -90,6 +93,5 @@ with ExperimentController('MouseDemo', screen_num=0,
         ec.flip()
         ec.wait_secs(0.2)
 
-import matplotlib.pyplot as plt
 plt.ion()
 ea.plot_screen(screenshot)

@@ -10,12 +10,13 @@ This example shows some of the functionality of ``read_tab``.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 from os import path as op
 import ast
 
 from expyfun.io import read_tab
+
+print(__doc__)
+
 
 fname = op.join(op.dirname(__file__), 'sample.tab')  # from simple_experiment
 data = read_tab(fname)

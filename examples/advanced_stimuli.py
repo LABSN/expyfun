@@ -9,6 +9,7 @@ of more advanced stimuli.
 """
 
 import numpy as np
+import matplotlib.pyplot as mpl
 
 from expyfun.stimuli import convolve_hrtf, play_sound, window_edges
 
@@ -26,7 +27,6 @@ move_sig = np.concatenate([convolve_hrtf(sig, fs, ang)
                            for ang in range(-90, 91, 15)], axis=1)
 play_sound(move_sig, fs, norm=False, wait=True)
 
-import matplotlib.pyplot as mpl
 mpl.ion()
 t = np.arange(move_sig.shape[1]) / float(fs)
 mpl.plot(t, move_sig.T)

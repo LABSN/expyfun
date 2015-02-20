@@ -226,9 +226,9 @@ class ExperimentController(object):
             mon_size = monitor['SCREEN_SIZE_PIX']
             monitor['SCREEN_DPI'] = (monitor['SCREEN_SIZE_PIX'][0] /
                                      (monitor['SCREEN_WIDTH'] * 0.393701))
-            monitor['SCREEN_HEIGHT'] = (monitor['SCREEN_WIDTH']
-                                        / float(monitor['SCREEN_SIZE_PIX'][0])
-                                        * float(monitor['SCREEN_SIZE_PIX'][1]))
+            monitor['SCREEN_HEIGHT'] = (monitor['SCREEN_WIDTH'] /
+                                        float(monitor['SCREEN_SIZE_PIX'][0]) *
+                                        float(monitor['SCREEN_SIZE_PIX'][1]))
             self._monitor = monitor
 
             #
@@ -1390,8 +1390,8 @@ class ExperimentController(object):
                            ''.format(round(diff * 10e6), clock_type))
         logger.debug('Expyfun: time correction between {} clock and EC '
                      'master clock is {}. This is a change of {}.'
-                     ''.format(clock_type, time_correction, time_correction
-                               - self._time_corrections[clock_type]))
+                     ''.format(clock_type, time_correction, time_correction -
+                               self._time_corrections[clock_type]))
         return time_correction
 
     def wait_secs(self, secs):

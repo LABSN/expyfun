@@ -10,10 +10,12 @@ in the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 from expyfun import ExperimentController
 import expyfun.analyze as ea
+
+print(__doc__)
 
 
 isi = 0.5
@@ -164,6 +166,5 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
 
-import matplotlib.pyplot as plt
 plt.ion()
 ea.plot_screen(screenshot)

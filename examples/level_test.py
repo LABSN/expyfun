@@ -14,12 +14,15 @@ distance.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
+
 from expyfun import ExperimentController
 from expyfun.visual import Rectangle
 import expyfun.analyze as ea
+
+print(__doc__)
+
 
 with ExperimentController('LevelTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
@@ -44,6 +47,5 @@ with ExperimentController('LevelTest', full_screen=True, noise_db=-np.inf,
         ec.wait_one_press(0.5)
         ec.stop()
 
-import matplotlib.pyplot as plt
 plt.ion()
 ea.plot_screen(screenshot)

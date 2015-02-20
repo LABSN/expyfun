@@ -10,12 +10,13 @@ using eye-tracking simpler.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
 
 from expyfun import ExperimentController, EyelinkController, visual
 import expyfun.analyze as ea
+
+print(__doc__)
 
 
 with ExperimentController('testExp', full_screen=True, participant='foo',
@@ -61,6 +62,5 @@ with ExperimentController('testExp', full_screen=True, participant='foo',
     ec.screen_prompt('All done!', max_wait=1.0)
     # eyelink auto-closes (el.close()) because it gets registered with EC
 
-import matplotlib.pyplot as plt
 plt.ion()
 ea.plot_screen(screenshot)

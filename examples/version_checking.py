@@ -9,11 +9,11 @@ This demonstrates how the version checking functions work.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import tempfile
 
 from expyfun import download_version, run_subprocess
+
+print(__doc__)
 
 
 # Let's say we want to fix our experiment to use a specific version of
