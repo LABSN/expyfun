@@ -84,7 +84,7 @@ forth between these different versions while working within the same directory
 structure.
 
 In other words, typically there is only one repository for a given project on
-a user's local machine. That repository can have multiple branches within it.
+a user's local machine. That repository can have multiple `branches <http://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`_ within it.
 When a user switches between branches, they are effectively switching between
 different sets of files within that repository. The :bash:`git` protocol thus
 modifies or updates files in-place, and you can keep track of different versions
