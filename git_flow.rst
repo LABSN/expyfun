@@ -22,15 +22,17 @@ bugs or add new features yourself, then probably you are a User (you can upgrade
 yourself to a Developer later if you need to).
 
 Users will want to take the "official" version of the software, make a copy of
-it on their own computer, and run the code from there. Using ``expyfun`` as an
-example, this is done on the command line like this::
+it on their own computer, and run the code from there. Using ``expyfun`` 
+software as an example, this is done on the command line like this::
 
     $ git clone git://github.com/LABSN/expyfun.git
     $ cd expyfun
     $ python setup.py install
 
-This will create a folder ``expyfun`` in the current directory to store the
-source code, and install the necessary parts in the special places where python
+The :bash:`git clone` command will create a folder ``expyfun`` in the current 
+directory to store the source code, and the :bash:`python setup.py install`
+command will install the necessary parts of ``expyfun`` in the special places 
+where python
 looks when you do :python:`import expyfun` and call ``expyfun`` functions in
 your own scripts. The only thing you really need to decide first is where on
 your computer to store the source code. When you want to update ``expyfun`` to a
