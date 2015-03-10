@@ -80,6 +80,8 @@ def test_dprime():
     assert_raises(ValueError, ea.dprime, (1, 2, 3))
     assert_raises(ValueError, ea.dprime_2afc, (1, 2, 3))
     assert_equal(np.sum(ea.dprime_2afc([[5, 1], [1, 5]])), 0)
+    # test simple larger dimensionality support
+    assert_equal(ea.dprime((5, 0, 1, 0)), ea.dprime([[[5, 0, 1, 0]]])[0][0])
 
 
 def test_logit():
