@@ -13,6 +13,7 @@ import os.path as op
 import inspect
 import sys
 import tempfile
+import ssl
 from shutil import rmtree
 import atexit
 import json
@@ -485,10 +486,15 @@ def fetch_data_file(fname):
     if not op.isdir(op.dirname(fname_out)):
         os.makedirs(op.dirname(fname_out))
     fname_url = 'https://lester.ilabs.uw.edu/files/{0}'.format(fname)
+    try:
+        # until we get proper certificates
+        context = ssl._create_unverified_context()
+    except AttributeError:
+        context = None
     if not op.isfile(fname_out):
         try:
             with open(fname_out, 'wb') as fid:
-                www = urlopen(fname_url, timeout=3.0)
+                www = urlopen(fname_url, timeout=3.0, context=context)
                 fid.write(www.read())
                 www.close()
         except Exception:
