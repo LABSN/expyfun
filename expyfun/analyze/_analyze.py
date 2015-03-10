@@ -273,18 +273,16 @@ def dprime(hmfc, zero_correction=True):
     Parameters
     ----------
     hmfc : array-like
-        Hits, misses, false-alarms, and correct-rejections, in that order, as a
-        four-element list, tuple, or numpy array, or an Nx4 array.
+        Hits, misses, false-alarms, and correct-rejections, in that order, as
+        array-like data with last dimension having size 4.
     zero_correction : bool
         Whether to add a correction factor of 0.5 to each category to prevent
         division-by-zero leading to infinite d-prime values.
 
     Returns
     -------
-    dp : float | array
-        If ``hmfc`` is a four-element list, tuple, or array, returns a single
-        float value. If ``hmfc`` is an Nx4 array, returns an array of dimension
-        (N,).
+    dp : array-like
+        Array of dprimes with shape ``hmfc.shape[:-1]``.
 
     Notes
     -----
@@ -293,21 +291,13 @@ def dprime(hmfc, zero_correction=True):
     correct rejections as 0. An alternative is to use ``dprime_2afc()``, which
     wraps to ``dprime()`` and does this assignment for you.
     """
-    vector = False
     hmfc = _check_dprime_inputs(hmfc)
-    if len(hmfc.shape) == 1:
-        vector = True
-        hmfc = np.atleast_2d(hmfc)
-    if zero_correction:
-        a = 0.5
-    else:
-        a = 0.0
-    dp = ss.norm.ppf((hmfc[:, 0] + a) / (hmfc[:, 0] + hmfc[:, 1] + 2 * a)) \
-        - ss.norm.ppf((hmfc[:, 2] + a) / (hmfc[:, 2] + hmfc[:, 3] + 2 * a))
-    if vector:
-        return dp[0]
-    else:
-        return dp
+    a = 0.5 if zero_correction else 0.0
+    dp = ss.norm.ppf((hmfc[..., 0] + a) /
+                     (hmfc[..., 0] + hmfc[..., 1] + 2 * a)) - \
+        ss.norm.ppf((hmfc[..., 2] + a) /
+                    (hmfc[..., 2] + hmfc[..., 3] + 2 * a))
+    return dp
 
 
 def dprime_2afc(hm, zero_correction=True):
@@ -317,18 +307,15 @@ def dprime_2afc(hm, zero_correction=True):
     ----------
     hm : array-like
         Correct trials (hits) and incorrect trials (misses), in that order, as
-        a two-element list, tuple, or numpy array. If an Nx2 array is provided,
-        it will return an array of dimension (N,).
+        array-like data with last dimension having size 4.
     zero_correction : bool
         Whether to add a correction factor of 0.5 to each category to prevent
         division-by-zero leading to infinite d-prime values.
 
     Returns
     -------
-    dp : float | array
-        If ``hm`` is a two-element list, tuple, or array, returns a single
-        float value. If ``hm`` is an Nx2 array, returns an array of dimension
-        (N,).
+    dp : array-like
+        Array of dprimes with shape ``hmfc.shape[:-1]``.
     """
     hmfc = _check_dprime_inputs(hm, True)
     return dprime(hmfc, zero_correction)
@@ -344,24 +331,19 @@ def _check_dprime_inputs(hmfc, tafc=False):
     tafc : bool
         Is this a 2AFC design?
     """
-    hmfc = np.array(hmfc)
-    if len(hmfc.shape) > 2:
-        raise ValueError('Argument to dprime() cannot have more than two '
-                         'dimensions.')
-    elif hmfc.shape[-1] != 2 and tafc:
-        raise ValueError('Array dimensions of argument to dprime_2afc() must '
-                         'be (2,) or (N, 2).')
-    elif hmfc.shape[-1] != 4 and not tafc:
-        raise ValueError('Array dimensions of argument to dprime() must be '
-                         '(4,) or (N, 4).')
-
-    if len(hmfc.shape) == 1 and tafc:
-        hmfc = np.c_[hmfc[0], 0, hmfc[1], 0]
-    elif tafc:
-        z = np.zeros_like(hmfc[:, 0])
-        hmfc = np.c_[hmfc[:, 0], z, hmfc[:, 1], z]
-    if hmfc.dtype not in [np.int64, np.int32]:
-        warnings.warn('Argument to dprime() cast to np.int64; floating '
-                      'point values will have been truncated.')
+    hmfc = np.asarray(hmfc)
+    if tafc:
+        if hmfc.shape[-1] != 2:
+            raise ValueError('Array must have last dimension 2.')
+    else:
+        if hmfc.shape[-1] != 4:
+            raise ValueError('Array must have last dimension 4')
+    if tafc:
+        z = np.zeros(hmfc.shape[:-1] + (4,), hmfc.dtype)
+        z[..., [0, 2]] = hmfc
+        hmfc = z
+    if hmfc.dtype not in (np.int64, np.int32):
+        warnings.warn('Argument (%s) to dprime() cast to np.int64; floating '
+                      'point values will have been truncated.' % hmfc.dtype)
         hmfc = hmfc.astype(np.int64)
     return hmfc
