@@ -13,9 +13,11 @@ import os.path as op
 import inspect
 import sys
 import tempfile
+import ssl
 from shutil import rmtree
 import atexit
 import json
+from functools import partial
 from distutils.version import LooseVersion
 from numpy import sqrt, convolve, ones
 from numpy.testing.decorators import skipif
@@ -485,10 +487,17 @@ def fetch_data_file(fname):
     if not op.isdir(op.dirname(fname_out)):
         os.makedirs(op.dirname(fname_out))
     fname_url = 'https://lester.ilabs.uw.edu/files/{0}'.format(fname)
+    try:
+        # until we get proper certificates
+        context = ssl._create_unverified_context()
+        this_urlopen = partial(urlopen, context=context)
+    except AttributeError:
+        context = None
+        this_urlopen = urlopen
     if not op.isfile(fname_out):
         try:
             with open(fname_out, 'wb') as fid:
-                www = urlopen(fname_url, timeout=3.0)
+                www = this_urlopen(fname_url, timeout=3.0)
                 fid.write(www.read())
                 www.close()
         except Exception:
