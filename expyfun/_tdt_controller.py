@@ -1,3 +1,11 @@
+"""Hardware interfaces for TDT RP2 and RZ6"""
+
+# Authors: Dan McCloy <drmccloy@uw.edu>
+#          Eric Larson <larsoner@uw.edu>
+#          Ross Maddox <rkmaddox@uw.edu>
+#
+# License: BSD (3-clause)
+
 import time
 import numpy as np
 import platform
