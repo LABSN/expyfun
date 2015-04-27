@@ -9,19 +9,23 @@ import numpy as np
 from scipy import fftpack
 import sys
 import os
+import pyglet
+
 _use_silent = (os.getenv('_EXPYFUN_SILENT', '') == 'true')
 _opts_dict = dict(linux2=('pulse',),
                   win32=('directsound',),
                   darwin=('openal',))
 _opts_dict['linux'] = _opts_dict['linux2']  # new name on Py3k
 _driver = _opts_dict[sys.platform] if not _use_silent else ('silent',)
+
+pyglet.options['audio'] = _driver
+
+# these must follow the above option setting, so PEP8 complains
+from pyglet.media import Player, AudioFormat, SourceGroup  # noqa
 try:
-    import pyglet
-    pyglet.options['audio'] = _driver
-    from pyglet.media import Player, StaticMemorySource, AudioFormat
-except Exception:
-    StaticMemorySource = Player = object
-    AudioFormat = None
+    from pyglet.media import StaticMemorySource
+except ImportError:
+    from pyglet.media.sources.base import StaticMemorySource  # noqa
 
 from ._utils import logger, flush_logger  # noqa
 
@@ -37,16 +41,15 @@ class SoundPlayer(Player):
         assert AudioFormat is not None
         super(SoundPlayer, self).__init__()
         _check_pyglet_audio()
-        self.queue(NdarraySource(data, fs))
-        self.eos_action = self.EOS_LOOP if loop else self.EOS_PAUSE
+        sms = _as_static(data, fs)
+        group = SourceGroup(sms.audio_format, None)
+        group.loop = bool(loop)
+        group.queue(sms)
+        self.queue(group)
 
     def stop(self):
         self.pause()
         self.seek(0.)
-
-
-def _ignore():
-    pass
 
 
 class PygletSoundController(object):
@@ -57,7 +60,7 @@ class PygletSoundController(object):
         self.fs = stim_fs
 
         # Need to generate at RMS=1 to match TDT circuit
-        noise = np.random.normal(0, 1.0, int(self.fs * 15.0))  # 15 secs
+        noise = np.random.normal(0, 1.0, int(self.fs * 15.))  # 15 secs
 
         # Low-pass if necessary
         if stim_fs < self.fs:
@@ -120,30 +123,22 @@ class PygletSoundController(object):
         self.noise.delete()
 
 
-class NdarraySource(StaticMemorySource):
-    """Play sound from numpy array
+def _as_static(data, fs):
+    """Helper to get data into the Pyglet audio format"""
+    fs = int(fs)
+    if data.ndim not in (1, 2):
+        raise ValueError('Data must have one or two dimensions')
+    n_ch = data.shape[0] if data.ndim == 2 else 1
+    audio_format = AudioFormat(channels=n_ch, sample_size=16,
+                               sample_rate=fs)
+    data = data.T.ravel('C')
+    data[data < -1] = -1
+    data[data > 1] = 1
+    data = (data * (2 ** 15)).astype('int16').tostring()
+    return StaticMemorySourceFixed(data, audio_format)
 
-    :Parameters:
-        `data` : ndarray
-            float data with shape n_channels x n_samples. If ``data`` is
-            1D, then the sound is assumed to be mono. Note that data
-            will be clipped between +/- 1.
-        `fs` : int
-            Sample rate for the data.
-    """
-    def __init__(self, data, fs):
-        assert AudioFormat is not None  # shouldn't happen if we get here
-        fs = int(fs)
-        if data.ndim not in (1, 2):
-            raise ValueError('Data must have one or two dimensions')
-        n_ch = data.shape[0] if data.ndim == 2 else 1
-        data = data.T.ravel('C')
-        data[data < -1] = -1
-        data[data > 1] = 1
-        data = (data * (2 ** 15)).astype('int16').tostring()
-        audio_format = AudioFormat(channels=n_ch, sample_size=16,
-                                   sample_rate=fs)
-        super(NdarraySource, self).__init__(data, audio_format)
 
+class StaticMemorySourceFixed(StaticMemorySource):
+    """Stupid class to fix old Pyglet bug"""
     def _get_queue_source(self):
         return self
