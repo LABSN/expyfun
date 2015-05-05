@@ -191,6 +191,54 @@ This synchronizes their local ``master`` branch with the ``master`` branch of
 the ``upstream`` remote repo, and deletes their local ``fix_branch`` (which is
 no longer needed, since its changes have been merged into the upstream master).
 
+Debugging with Git
+^^^^^^^^^ ^^^^ ^^^
+Occasionally as a developer you might run into a bug that you are uncertain when it was introduced. Instead of going through all the commits manually that have occurred since the code last worked, you can use the git bisect command::
+
+    $ git bisect
+
+What it does:
+This command is a way of quickly finding where a problem was introduced in a particular commit. It does so by performing a “binary” search between two different states of the code and via process of elimination - where the issue was first introduced. 
+
+How to use it:
+First, you will need to find a commit where the issue is not present (where it is working). After doing a search through the git log from the time you know things were working, confirm that this commit  does indeed work by switching your checkout to it instead::
+
+    $ git checkout 'abc1234'
+
+Then you will need to find a commit where things are not working. You will do this by getting the current commit hash.
+
+    $ git checkout zyx7899
+
+Now you are ready to use the git bisect command.
+
+    $ git bisect start
+    $ git bisect good abc7789		# abc7789 is last version that worked
+    $ git bisect bad b4b2232		# current version is bad
+
+This tells git bisect to begin and where the “known good” commit was and where the “known bad” commit is. It then looks at all the commits between these two and picks the one half way between the two and switches the current checkout to that instead. You will see something like this::
+
+    Bisecting: 5 revisions left to test after this
+
+So now you need to see if this middle commit has the same problem. If it does, then the bug was introduced before this middle commit; if the bug is not present then the problem was introduced after this middle commit. Run the middle commit and if it does not have the issue then let Git know with::
+
+    $ git bisect good
+
+If the middle commit does have the issue, then let Git know with:
+
+    $ git bisect bad
+
+You will continue letting Git know whether a commit does or does not have the issue until there are no more commits to bisect::
+
+    Bisecting: 0 revisions left to test after this (roughly 1 step)
+
+Then, one last time - check if this commit works. And let Git know::
+
+    $ git bisect good
+
+Now, you have your problem commit. Once you have updated the issue, you can get back to a working state by letting git bisect know that you are done::
+
+    $ git bisect reset
+
 Maintainers
 ^^^^^^^^^^^
 Maintainers start out with a similar set up as Developers_. However, they might
