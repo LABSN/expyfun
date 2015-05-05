@@ -33,7 +33,7 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
         t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
         ec.set_background_color('black')
         t2 = ec.flip()
-        diff = round(1000 * (t2 - t1), 2)
+        diff = round(100 * (t2 - t1), 2)
         ec.screen_text('IFI (ms): {}'.format(diff), wrap=False)
         screenshot = ec.screenshot() if screenshot is None else screenshot
         ec.flip()
