@@ -192,7 +192,7 @@ the ``upstream`` remote repo, and deletes their local ``fix_branch`` (which is
 no longer needed, since its changes have been merged into the upstream master).
 
 Debugging with Git
-^^^^^^^^^ ^^^^ ^^^
+
 Occasionally as a developer you might run into a bug that you are uncertain when it was introduced. Instead of going through all the commits manually that have occurred since the code last worked, you can use the git bisect command::
 
     $ git bisect
@@ -203,13 +203,13 @@ This command is a way of quickly finding where a problem was introduced in a par
 How to use it:
 First, you will need to find a commit where the issue is not present (where it is working). After doing a search through the git log from the time you know things were working, confirm that this commit  does indeed work by switching your checkout to it instead::
 
-    $ git checkout 'abc1234'
+    $ git checkout abc1234
 
-Then you will need to find a commit where things are not working. You will do this by getting the current commit hash.
+Then you will need to find a commit where things are not working. You will do this by getting the current commit hash.:
 
     $ git checkout zyx7899
 
-Now you are ready to use the git bisect command.
+Now you are ready to use the git bisect command. To start, enter the following::
 
     $ git bisect start
     $ git bisect good abc7789		# abc7789 is last version that worked
@@ -223,7 +223,7 @@ So now you need to see if this middle commit has the same problem. If it does, t
 
     $ git bisect good
 
-If the middle commit does have the issue, then let Git know with:
+If the middle commit does have the issue, then let Git know with::
 
     $ git bisect bad
 
@@ -238,6 +238,8 @@ Then, one last time - check if this commit works. And let Git know::
 Now, you have your problem commit. Once you have updated the issue, you can get back to a working state by letting git bisect know that you are done::
 
     $ git bisect reset
+
+This returns you to the original HEAD before git bisect start. And allows you to abort/stop the bisecting if need be.
 
 Maintainers
 ^^^^^^^^^^^
