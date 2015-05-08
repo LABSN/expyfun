@@ -486,7 +486,8 @@ def fetch_data_file(fname):
     fname_out = op.join(path, fname)
     if not op.isdir(op.dirname(fname_out)):
         os.makedirs(op.dirname(fname_out))
-    fname_url = 'https://lester.ilabs.uw.edu/files/{0}'.format(fname)
+    fname_url = ('https://github.com/LABSN/expyfun-data/raw/master/{0}'
+                 ''.format(fname))
     try:
         # until we get proper certificates
         context = ssl._create_unverified_context()
