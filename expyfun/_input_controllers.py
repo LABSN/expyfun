@@ -457,12 +457,18 @@ class CedrusBox(Keyboard):
         self._dev = dev
         self._keyboard_buffer = []
         super(CedrusBox, self).__init__(ec, force_quit_keys)
+        ec._time_correction_maxs['keypress'] = 1e-3  # higher tolerance
 
     def _get_timebase(self):
         """WARNING: For now this will clear the event queue!"""
         self._retrieve_events(None)
         self._dev.con.read_nonblocking(65536)
-        return self._dev.query_base_timer() / 1000.
+        t = self._dev.query_base_timer()
+        # This drift correction has been empirically determined, see:
+        #  https://github.com/cedrus-opensource/pyxid/issues/2
+        #  https://gist.github.com/Eric89GXL/c245574a1eaea65348a3
+        t *= 0.00100064206973
+        return t
 
     def _clear_events(self):
         self._retrieve_events(None)

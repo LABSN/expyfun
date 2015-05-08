@@ -158,6 +158,7 @@ class ExperimentController(object):
             # Use ZeroClock, which uses the "clock" fn but starts at zero
             self._time_corrections = dict()
             self._time_correction_fxns = dict()
+            self._time_correction_maxs = dict()  # optional, defaults to 10e-6
 
             # dictionary for experiment metadata
             self._exp_info = {'participant': participant, 'session': session,
@@ -1378,20 +1379,20 @@ class ExperimentController(object):
             self._data_file.write(ll)
 
     def _get_time_correction(self, clock_type):
-        """Clock correction (seconds) for win.flip().
+        """Clock correction (sec) for different devices (screen, bbox, etc.)
         """
-        print(self._master_clock())
-        print(self._time_correction_fxns[clock_type]())
         time_correction = (self._master_clock() -
                            self._time_correction_fxns[clock_type]())
         if clock_type not in self._time_corrections:
             self._time_corrections[clock_type] = time_correction
 
         diff = time_correction - self._time_corrections[clock_type]
-        if np.abs(diff) > 10e-6:
-            logger.warning('Expyfun: drift of > 10 microseconds ({}) '
+        max_dt = self._time_correction_maxs.get(clock_type, 10e-6)
+        if np.abs(diff) > max_dt:
+            logger.warning('Expyfun: drift of > {} microseconds ({}) '
                            'between {} clock and EC master clock.'
-                           ''.format(round(diff * 10e6), clock_type))
+                           ''.format(max_dt * 1e6, int(round(diff * 1e6)),
+                                     clock_type))
         logger.debug('Expyfun: time correction between {} clock and EC '
                      'master clock is {}. This is a change of {}.'
                      ''.format(clock_type, time_correction, time_correction -
