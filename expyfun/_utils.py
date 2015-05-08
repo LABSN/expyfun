@@ -497,7 +497,7 @@ def fetch_data_file(fname):
     if not op.isfile(fname_out):
         try:
             with open(fname_out, 'wb') as fid:
-                www = this_urlopen(fname_url, timeout=3.0)
+                www = this_urlopen(fname_url, timeout=10.0)
                 fid.write(www.read())
                 www.close()
         except Exception:
