@@ -440,3 +440,56 @@ class Mouse(object):
             return True
         else:
             return False
+
+
+class CedrusBox(Keyboard):
+    """Class for Cedrus response boxes
+
+    Note that experiments with Cedrus boxes are limited to ~4 hours due
+    to the data type of their counter (milliseconds since start as integers).
+    """
+    def __init__(self, ec, force_quit_keys):
+        import pyxid
+        pyxid.use_response_pad_timer = True
+        dev = pyxid.get_xid_devices()[0]
+        dev.reset_base_timer()
+        assert dev.is_response_device()
+        self._dev = dev
+        self._keyboard_buffer = []
+        super(CedrusBox, self).__init__(ec, force_quit_keys)
+        ec._time_correction_maxs['keypress'] = 1e-3  # higher tolerance
+
+    def _get_timebase(self):
+        """WARNING: For now this will clear the event queue!"""
+        self._retrieve_events(None)
+        self._dev.con.read_nonblocking(65536)
+        t = self._dev.query_base_timer()
+        # This drift correction has been empirically determined, see:
+        #  https://github.com/cedrus-opensource/pyxid/issues/2
+        #  https://gist.github.com/Eric89GXL/c245574a1eaea65348a3
+        t *= 0.00100064206973
+        return t
+
+    def _clear_events(self):
+        self._retrieve_events(None)
+        self._keyboard_buffer = []
+
+    def _retrieve_events(self, live_keys):
+        # add escape keys
+        if live_keys is not None:
+            live_keys = [str(x) for x in live_keys]  # accept ints
+            live_keys.extend(self.force_quit_keys)
+        # pump for events
+        self._dev.poll_for_response()
+        while self._dev.response_queue_size() > 0:
+            key = self._dev.get_next_response()
+            if key['pressed']:
+                key = [str(key['key'] + 1), key['time'] / 1000.]
+                self._keyboard_buffer.append(key)
+            self._dev.poll_for_response()
+        # check to see if we have matches
+        targets = []
+        for key in self._keyboard_buffer:
+            if live_keys is None or key[0] in live_keys:
+                targets.append(key)
+        return targets

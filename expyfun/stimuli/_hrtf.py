@@ -42,8 +42,7 @@ def _get_hrtf(angle, source, fs):
     ensure that the RMS of a white signal filtered with this signal is
     unchanged.
     """
-    fname = '{0}_{1}.hdf5'.format(source, fs)
-    fname = fetch_data_file('hrtf/{0}'.format(fname))
+    fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
     data = read_hdf5(fname)
     angles = data['angles']
     leftward = False

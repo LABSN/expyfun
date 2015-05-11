@@ -24,7 +24,7 @@ from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
-from ._input_controllers import Keyboard, Mouse
+from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .stimuli._filter import resample
 from .visual import Text, Rectangle, _convert_color
 
@@ -50,7 +50,7 @@ class ExperimentController(object):
         or 'tdt'; the dict can contain other parameters specific to the TDT
         (see documentation for expyfun.TDTController).
     response_device : str | None
-        Can only be 'keyboard' currently.  If None, the type will be read
+        Must be 'keyboard', 'cedrus', or 'tdt'.  If None, the type will be read
         from the machine configuration file.
     stim_rms : float
         The RMS amplitude that the stimuli were generated at (strongly
@@ -158,6 +158,7 @@ class ExperimentController(object):
             # Use ZeroClock, which uses the "clock" fn but starts at zero
             self._time_corrections = dict()
             self._time_correction_fxns = dict()
+            self._time_correction_maxs = dict()  # optional, defaults to 10e-6
 
             # dictionary for experiment metadata
             self._exp_info = {'participant': participant, 'session': session,
@@ -253,9 +254,9 @@ class ExperimentController(object):
             #
             if response_device is None:
                 response_device = get_config('RESPONSE_DEVICE', 'keyboard')
-            if response_device not in ['keyboard', 'tdt']:
+            if response_device not in ['keyboard', 'tdt', 'cedrus']:
                 raise ValueError('response_device must be "keyboard", "tdt", '
-                                 'or None')
+                                 '"cedrus", or None')
             self._response_device = response_device
 
             #
@@ -313,12 +314,14 @@ class ExperimentController(object):
             # Keyboard
             if response_device == 'keyboard':
                 self._response_handler = Keyboard(self, force_quit)
-            if response_device == 'tdt':
+            elif response_device == 'tdt':
                 if not isinstance(self._ac, TDTController):
                     raise ValueError('response_device can only be "tdt" if '
                                      'tdt is used for audio')
                 self._response_handler = self._ac
                 self._ac._add_keyboard_init(self, force_quit)
+            else:  # response_device == 'cedrus'
+                self._response_handler = CedrusBox(self, force_quit)
 
             #
             # set up trigger controller
@@ -1376,7 +1379,7 @@ class ExperimentController(object):
             self._data_file.write(ll)
 
     def _get_time_correction(self, clock_type):
-        """Clock correction (seconds) for win.flip().
+        """Clock correction (sec) for different devices (screen, bbox, etc.)
         """
         time_correction = (self._master_clock() -
                            self._time_correction_fxns[clock_type]())
@@ -1384,10 +1387,12 @@ class ExperimentController(object):
             self._time_corrections[clock_type] = time_correction
 
         diff = time_correction - self._time_corrections[clock_type]
-        if np.abs(diff) > 10e-6:
-            logger.warning('Expyfun: drift of > 10 microseconds ({}) '
+        max_dt = self._time_correction_maxs.get(clock_type, 10e-6)
+        if np.abs(diff) > max_dt:
+            logger.warning('Expyfun: drift of > {} microseconds ({}) '
                            'between {} clock and EC master clock.'
-                           ''.format(round(diff * 10e6), clock_type))
+                           ''.format(max_dt * 1e6, int(round(diff * 1e6)),
+                                     clock_type))
         logger.debug('Expyfun: time correction between {} clock and EC '
                      'master clock is {}. This is a change of {}.'
                      ''.format(clock_type, time_correction, time_correction -
