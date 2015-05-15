@@ -191,6 +191,55 @@ This synchronizes their local ``master`` branch with the ``master`` branch of
 the ``upstream`` remote repo, and deletes their local ``fix_branch`` (which is
 no longer needed, since its changes have been merged into the upstream master).
 
+Debugging with Git
+~~~~~~~~~~~~~~~~~~
+
+Occasionally as a developer you might run into a bug that you are uncertain when it was introduced. Instead of going through all the commits manually that have occurred since the code last worked, you can use the :bash:`git bisect` command.
+
+First, you should write a simple script that reliably reproduces the bug, so you can easily test whether it is present in older versions of the code. Next, you will need to find a commit where the bug is not present (where it is working). Search through the git log from the time you know things were working, find a commit hash that you believe to be bug-free (shown here as ``abc1234``) and confirm that this commit does indeed work by checking out that commit and running your test that reproduces bug::
+
+    $ git checkout abc1234
+    $ # now run your test
+
+If you still see the bug, keep testing older and older commits until you find one that is bug-free. Next, note down a commit hash for a point in history that you know the bug exists. You can use the most recent commit hash, or an older hash if in the previous step you happened to discover one where the bug existed. Here the “known bad” commit hash is represented as ``zyx9876``.
+
+Now you are ready to use the git bisect command. To start, enter the following::
+
+    $ git bisect start
+    $ git bisect good abc1234
+    $ git bisect bad zyx9876
+
+This tells git bisect where the “known good” commit was and where the “known bad” commit is. It then looks at all the commits between these two, picks one half way between, and checks out that commit. You will see something like this::
+
+    Bisecting: 5 revisions left to test after this
+
+Now run your test to see if this middle commit has the bug. If it does, then the bug was introduced before this middle commit; if the bug is not present then the problem was introduced after this middle commit. If the bug is gone, run::
+
+    $ git bisect good
+
+and the middle commit will become the new “known good”. If the bug is present, run::
+
+    $ git bisect bad
+
+and the middle commit will become the new “known bad”. Git will then select a new middle commit for you to test. Continue this process until there are no more commits to bisect::
+
+    Bisecting: 0 revisions left to test after this (roughly 1 step)
+
+Run your test one last time, and let Git know::
+
+    $ git bisect good  # or git bisect bad, if the bug is present in that commit
+
+At this point you know which commit introduced the bug: it is either the last commit you checked (if it failed your test) or the second-to-last commit you checked (if the final one passed your test). Make a note of the commit hash in the issue tracker. Now you can return to the most recent commit (aka, HEAD) by letting git bisect know that you are done::
+
+    $ git bisect reset
+
+You can also use :bash:`git bisect reset` to abort/stop the bisecting before you've finished, if need be.
+
+This section was done in part from the following sources `webchick
+<http://webchick.net/node/99>`_ and `help articles on git
+<https://git-scm.com/book/en/v2/Git-Tools-Debugging-with-Git>`_.
+
+
 Maintainers
 ^^^^^^^^^^^
 Maintainers start out with a similar set up as Developers_. However, they might
