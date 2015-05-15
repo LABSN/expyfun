@@ -137,11 +137,6 @@ class EyelinkController(object):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
-    Returns
-    -------
-    el_controller : instance of EyelinkController
-        The Eyelink control interface.
-
     Notes
     -----
     The data will be saved to the ExperimentController ``output_dir``.
@@ -315,7 +310,13 @@ class EyelinkController(object):
         return (self._eyelink.isRecording() == TRIAL_OK)
 
     def stop(self):
-        """Stop Eyelink recording and close current file"""
+        """Stop Eyelink recording and close current file
+
+        See Also
+        --------
+        EyelinkController.calibrate
+        EyelinkController.transfer_remote_file
+        """
         if not self.recording:
             raise RuntimeError('Cannot stop, not currently recording')
         logger.info('Eyelink: Stopping recording')
@@ -347,6 +348,11 @@ class EyelinkController(object):
         At the start of this function, the previous Eyelink file will be
         closed (if one is open), a new file will be opened, and recording
         will be started.
+
+        See Also
+        --------
+        EyelinkController.custom_calibration
+        EyelinkController.stop
         """
         # stop recording and close old file (if open), then start new one
         if self.recording:
@@ -436,6 +442,10 @@ class EyelinkController(object):
         -------
         fname : str
             The filename on the local machine following the transfer.
+
+        See Also
+        --------
+        EyelinkController.stop
         """
         fname = op.join(self._output_dir, '{0}.edf'.format(remote_name))
         logger.info('Eyelink: saving Eyelink file: {0} ...'
@@ -487,6 +497,10 @@ class EyelinkController(object):
         -------
         fix_success : bool
             Whether or not the subject successfully fixated.
+
+        See Also
+        --------
+        EyelinkController.get_eye_position
         """
         # initialize eye position to be outside of target
         fix_success = False
@@ -527,6 +541,10 @@ class EyelinkController(object):
             Vertical distance (up and down, each) to use.
         units : str
             Units to use. See ``check_units`` for options.
+
+        See Also
+        --------
+        EyelinkController.calibrate
         """
         allowed_types = ['HV5']
         if ctype not in allowed_types:
@@ -565,6 +583,10 @@ class EyelinkController(object):
         eye_pos : array
             The current eye position. Will be [np.inf, np.inf] if the
             eye is lost.
+
+        See Also
+        --------
+        EyelinkController.wait_for_fix
         """
         if not self.dummy_mode:
             sample = self._eyelink.getNewestSample()

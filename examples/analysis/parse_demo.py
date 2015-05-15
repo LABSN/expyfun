@@ -18,8 +18,7 @@ from expyfun.io import read_tab
 print(__doc__)
 
 
-fname = op.join(op.dirname(__file__), 'sample.tab')  # from simple_experiment
-data = read_tab(fname)
+data = read_tab('sample.tab')  # from simple_experiment
 print('Number of trials: %s' % len(data))
 keys = list(data[0].keys())
 print('Data keys:     %s\n' % keys)
