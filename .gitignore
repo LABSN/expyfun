@@ -1,5 +1,6 @@
 *.py[cod]
 *.mat
+*.hdf5
 *.edf
 
 # C extensions

@@ -18,8 +18,9 @@ from datetime import date
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.append(os.path.abspath('../../expyfun'))
-sys.path.append(os.path.abspath('../sphinxext'))
+curdir = op.dirname(__file__)
+sys.path.append(op.abspath(op.join(curdir, '..', '..', 'expyfun')))
+sys.path.append(op.abspath(op.join(curdir, '..', 'sphinxext')))
 
 import expyfun
 
@@ -152,7 +153,7 @@ html_last_updated_fmt = '%b %d, %Y'
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {'**': ['sourcelink.html', 'searchbox.html']}
+html_sidebars = {'**': ['searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

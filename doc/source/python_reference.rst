@@ -1,6 +1,6 @@
-=========
-Reference
-=========
+=============
+API Reference
+=============
 
 .. automodule:: expyfun
    :no-members:
@@ -10,8 +10,16 @@ This is the classes and functions reference of expyfun. Functions are
 grouped by hardware control type.
 
 
-Experiment Control
+.. toctree::
+   :maxdepth: 2
+
+   python_reference
+
+
+Experiment control
 ==================
+
+:py:mod:`expyfun`:
 
 .. currentmodule:: expyfun
 
@@ -37,8 +45,10 @@ Functions:
    get_keyboard_input
    wait_secs
 
-Experiment Design
-=================
+Stimulus design
+===============
+
+:py:mod:`expyfun.stimuli`:
 
 .. currentmodule:: expyfun.stimuli
 
@@ -56,6 +66,8 @@ Functions:
    vocode
    window_edges
 
+:py:mod:`expyfun.io`:
+
 .. currentmodule:: expyfun.io
 
 Functions:
@@ -69,6 +81,8 @@ Functions:
    read_wav
    write_hdf5
    write_wav
+
+:py:mod:`expyfun.visual`:
 
 .. currentmodule:: expyfun.visual
 
@@ -87,8 +101,10 @@ Classes:
    Rectangle
    Text
 
-Experiment Code Blocks
-======================
+Code blocks
+===========
+
+:py:mod:`expyfun.codeblocks`:
 
 .. currentmodule:: expyfun.codeblocks
 
@@ -104,6 +120,8 @@ Functions:
 Analysis
 ========
 
+:py:mod:`expyfun.analyze`:
+
 .. currentmodule:: expyfun.analyze
 
 Functions:
@@ -118,8 +136,10 @@ Functions:
    plot_screen
    restore_values
 
-Logging and Configuration
+Logging and configuration
 =========================
+
+:py:mod:`expyfun`:
 
 .. currentmodule:: expyfun
 
