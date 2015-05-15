@@ -4,8 +4,8 @@
 environment:
 
   matrix:
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Python34-conda64"
+      PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "64"
 
 install:
@@ -23,7 +23,7 @@ install:
 
   # Install the dependencies of the project.
   - "conda install --yes --quiet numpy scipy matplotlib coverage nose setuptools h5py pandas"
-  - "pip install -q http://pyglet.googlecode.com/archive/tip.zip"
+  - "pip install -q http://bitbucket.org/pyglet/pyglet/get/tip.zip"
 
   # Don't actually use the sound card (nonexistent)
   - "SET _EXPYFUN_SILENT=true"

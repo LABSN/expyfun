@@ -1630,7 +1630,7 @@ class ExperimentController(object):
 def _get_items(d, fixed, title):
     """Helper to get items for an experiment"""
     print(title)
-    for key, val in d.iteritems():
+    for key, val in d.items():
         if key in fixed:
             print('{0}: {1}'.format(key, val))
         else:
