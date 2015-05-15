@@ -32,6 +32,7 @@ Requirements:
 - pyglet (a bleeding-edge ``tip.zip`` as of the end of May 2014), see the
   "development version" here:
     http://www.pyglet.org/download.html
+- TDTPy (only needed if using Windows)
 
 Optional:
 
