@@ -10,7 +10,6 @@ This example shows some of the functionality of ``read_tab``.
 #
 # License: BSD (3-clause)
 
-from os import path as op
 import ast
 
 from expyfun.io import read_tab

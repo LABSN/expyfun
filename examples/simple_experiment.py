@@ -12,7 +12,6 @@ the ExperimentController class.
 
 from os import path as op
 import numpy as np
-from scipy import io as sio
 import matplotlib.pyplot as plt
 
 from expyfun import ExperimentController, get_keyboard_input, set_log_level

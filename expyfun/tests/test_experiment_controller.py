@@ -187,6 +187,7 @@ def test_ec(ac=None, rd=None):
         ec.set_noise_db(0)
         ec.set_stim_db(20)
         # test buffer data handling
+        ec.set_rms_checking(None)
         ec.load_buffer([0, 0, 0, 0, 0, 0])
         assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
         ec.load_buffer(np.zeros((100,)))
@@ -218,6 +219,7 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(noise)  # should go unchecked
         ec.set_rms_checking('wholefile')
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             ec.load_buffer(click)  # should pass
             assert_equal(len(w), 0)
             ec.load_buffer(noise)
