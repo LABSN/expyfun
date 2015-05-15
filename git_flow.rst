@@ -235,8 +235,7 @@ At this point you know which commit introduced the bug: it is either the last co
 
 You can also use :bash:`git bisect reset` to abort/stop the bisecting before you've finished, if need be.
 
-This section was done in part from the following sources; 'webchick <http://webchick.net/node/99>'_ and 'help articles on git 
-<https://git-scm.com/book/en/v2/Git-Tools-Debugging-with-Git>'_.
+This section was done in part from the following sources; 'webchick<http://webchick.net/node/99>'_ and 'help articles on git<https://git-scm.com/book/en/v2/Git-Tools-Debugging-with-Git>'_.
 
 
 Maintainers
