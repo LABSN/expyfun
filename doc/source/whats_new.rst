@@ -9,7 +9,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-
+   - change description by `Author`_.
 
 BUG
 ~~~
@@ -54,7 +54,7 @@ API changes summary
 Here are the code migration instructions when upgrading from expyfun
 version 2.0.0:
 
-  - The biggest difference is the required use of ``identify_trial``, ``start_stimulus``, and ``trial_ok`` (in that order) in all scripts using `ExperimentController`. See the example scripts and documentation for further guidance.
+  - The biggest difference is the required use of ``identify_trial``, ``start_stimulus``, and ``trial_ok`` (in that order) in all scripts using ``ExperimentController``. See the example scripts and documentation for further guidance.
   - Removed support for stamping via parallel port (insufficient testing).
 
 Authors
@@ -63,12 +63,12 @@ Authors
 The committer list for this release is the following (preceded by number
 of commits):
 
-    * 223 Eric Larson
-    *  88  Daniel McCloy
-    *  72  Ross Maddox
-    *   6  Lindsey Kishline
-    *   3  Dean Pospisil
-    *   3  Mark Wronkewicz
+    * 223 `Eric Larson`_
+    *  88  `Daniel McCloy`_
+    *  72  `Ross Maddox`_
+    *   6  `Lindsey Kishline`_
+    *   3  `Dean Pospisil`_
+    *   3  `Mark Wronkewicz`_
 
 .. _Eric Larson: http://faculty.washington.edu/larsoner/
 
