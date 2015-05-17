@@ -24,7 +24,7 @@ before_install:
         travis_retry sudo pip install -q coveralls;
         COVERAGE=--with-coverage;
       else
-        wget http://repo.continuum.io/miniconda/Miniconda-3.6.0-Linux-x86_64.sh -O miniconda.sh;
+        wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
         ./miniconda.sh -b -p ~/anaconda;
         export PATH=~/anaconda/bin:$PATH;
@@ -40,7 +40,7 @@ before_install:
     - if [ "${TEST}" == "extra" ]; then
         travis_retry pip install -q flake8;
       else
-        travis_retry pip install -q nose-timer http://pyglet.googlecode.com/archive/tip.zip;
+        travis_retry pip install -q nose-timer http://bitbucket.org/pyglet/pyglet/get/tip.zip;
       fi;
     # Full dependencies (pandas, mne-python, h5py, joblib)
     - SRC_DIR=${PWD}
