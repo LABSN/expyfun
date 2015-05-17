@@ -9,3 +9,4 @@ Expyfun
 
    auto_examples/index.rst
    python_reference.rst
+   whats_new.rst
