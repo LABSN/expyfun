@@ -46,17 +46,17 @@ def format_pval(pval, latex=True, scheme='default'):
     pv = np.zeros_like(pval, dtype=object)
     if latex:
         wrap = '$'
-        brac = '{{'
-        brak = '}}'
+        brk_l = '{{'
+        brk_r = '}}'
     else:
         wrap = ''
-        brac = ''
-        brak = ''
+        brk_l = ''
+        brk_r = ''
     if scheme == 'ross':  # (exact value up to 4 decimal places)
         pv[pval >= 0.0001] = [wrap + 'p = {:.4f}'.format(x) + wrap
                               for x in pval[pval > 0.0001]]
-        pv[pval < 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak +
-                             wrap for x in expon[pval < 0.0001]]
+        pv[pval < 0.0001] = [wrap + 'p < 10^' + brk_l + '{}'.format(x) +
+                             brk_r + wrap for x in expon[pval < 0.0001]]
     elif scheme == 'stars':
         star = '{*}' if latex else '*'
         pv[pval >= 0.05] = wrap + '' + wrap
@@ -68,8 +68,8 @@ def format_pval(pval, latex=True, scheme='default'):
         pv[pval < 0.05] = wrap + 'p < 0.05' + wrap
         pv[pval < 0.01] = wrap + 'p < 0.01' + wrap
         pv[pval < 0.001] = wrap + 'p < 0.001' + wrap
-        pv[pval < 0.0001] = [wrap + 'p < 10^' + brac + '{}'.format(x) + brak +
-                             wrap for x in expon[pval < 0.0001]]
+        pv[pval < 0.0001] = [wrap + 'p < 10^' + brk_l + '{}'.format(x) +
+                             brk_r + wrap for x in expon[pval < 0.0001]]
     if single_value:
         pv = pv[0]
     return(pv)
@@ -98,46 +98,47 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     Parameters
     ----------
     h : array-like
-        If ``h`` is 2-dimensional, heights will be calculated as means along
-        the axis given by ``axis``. If ``h`` is of lower dimension, it is
-        treated as raw height values. If ``h`` is a pandas ``DataFrame`` and
-        ``bar_names`` is None, ``bar_names`` will be inferred from the
-        ``DataFrame``'s ``column`` labels (if ``axis=0``) or ``index`` labels.
+        If `h` is 2-dimensional, heights will be calculated as means along
+        the axis given by `axis`. If `h` is of lower dimension, it is
+        treated as raw height values. If `h` is a pandas ``DataFrame`` and
+        `bar_names` is ``None``, `bar_names` will be inferred from the
+        ``DataFrame``'s `column` labels (if ``axis=0``) or `index` labels.
     axis : int
         The axis along which to calculate mean values to determine bar heights.
-        Ignored if ``h`` is 0- or 1-dimensional.
+        Ignored if `h` is 0- or 1-dimensional.
     ylim : tuple | None
-        y-axis limits passed to ``matplotlib.pyplot.subplot.set_ylim()``.
+        y-axis limits passed to ``matplotlib.pyplot.subplot.set_ylim``.
     err_bars : str | array-like | None
         Type of error bars to be added to the barplot. Possible values are
         ``'sd'`` for sample standard deviation, ``'se'`` for standard error of
         the mean, or ``'ci'`` for 95% confidence interval. If ``None``, no
         error bars will be plotted. Custom error bar heights are possible by
-        passing an array-like object; in such cases ``err_bars`` must have the
-        same dimensionality and shape as ``h``.
+        passing an array-like object; in such cases `err_bars` must have the
+        same dimensionality and shape as `h`.
     lines : bool
         Whether to plot within-subject data as lines overlaid on the barplot.
     groups : list | None
         List of lists containing the integers in ``range(num_bars)``, with
-        sub-lists indicating the desired grouping. For example, if ``h`` has
+        sub-lists indicating the desired grouping. For example, if `h` has
         has shape (10, 4) and ``axis = -1`` then "num_bars" is 4; if you want
         the first bar isolated and the remaining three grouped, then specify
         ``groups=[[0], [1, 2, 3]]``.
     eq_group_widths : bool
         Should all groups have the same width? If ``False``, all bars will have
-        the same width. Ignored if ``groups=None``, since the bar/group
+        the same width. Ignored if `groups` is ``None``, since the bar/group
         distinction is meaningless in that case.
     gap_size : float
-        Width of the gap between groups (if ``eq_group_width = True``) or
+        Width of the gap between groups (if `eq_group_width` is ``True``) or
         between bars, expressed as a proportion [0,1) of group or bar width.
     brackets : list of tuples | None
-        Location of significance brackets. Scheme is similar to ``grouping``;
-        if you want a bracket between the first and second bar and another
-        between the third and fourth bars, specify as [(0, 1), (2, 3)]. If you
-        want brackets between groups of bars instead of between bars, indicate
-        the groups as lists within the tuple: [([0, 1], [2, 3])].
-        For best results, pairs of adjacent bars should come earlier in the
-        list than non-adjacent pairs.
+        Location of significance brackets. Scheme is similar to the
+        specification of `groups`; a bracket between the first and second bar
+        and another between the third and fourth bars would be specified as
+        ``brackets=[(0, 1), (2, 3)]``. Brackets between groups of bars instead
+        of individual bars are specified as lists within the tuple:
+        ``brackets=[([0, 1], [2, 3])]`` draws a single bracket between group
+        ``[0, 1]`` and group ``[2, 3]``. For best results, pairs of adjacent
+        bars should come earlier in the list than non-adjacent pairs.
     bracket_text : str | list | None
         Text to display above brackets.
     bracket_inline : bool
@@ -171,12 +172,12 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         Whether to use pyplot default colors (``False``), or something more
         pleasing to the eye (``True``).
     fname : str | None
-        Path and name of output file. Type is inferred from ``fname`` and
-        should work for any of the types supported by pyplot (pdf, eps,
-        svg, png, raw).
+        Path and name of output file. File type is inferred from the file
+        extension of `fname` and should work for any of the types supported by
+        pyplot (pdf, eps, svg, png, raw).
     ax : matplotlib.pyplot.axes | None
-        A ``matplotlib.pyplot.axes`` instance.  If none, a new figure with a
-        single subplot will be created.
+        A ``matplotlib.pyplot.axes`` instance.  If ``None``, a new figure with
+        a single subplot will be created.
 
     Returns
     -------
