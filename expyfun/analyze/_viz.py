@@ -75,12 +75,24 @@ def format_pval(pval, latex=True, scheme='default'):
     return(pv)
 
 
+def _initiate(obj, typ):
+    """Returns obj if obj is not None, else returns new instance of typ
+    obj : an object
+        An object (most likely one that a user passed into a function) that,
+        if ``None``, should be initiated as an empty object of some other type.
+    typ : an object type
+        Expected values are list, dict, int, bool, etc.
+    """
+    return typ() if obj is None else obj
+
+
 def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             groups=None, eq_group_widths=False, gap_size=0.2,
-            brackets=None, bracket_text=None, bracket_group_lines=False,
-            bar_names=None, group_names=None, bar_kwargs=None,
-            err_kwargs=None, line_kwargs=None, bracket_kwargs=None,
-            figure_kwargs=None, smart_defaults=True, fname=None, ax=None):
+            brackets=None, bracket_text=None, bracket_inline=False,
+            bracket_group_lines=False, bar_names=None, group_names=None,
+            bar_kwargs=None, err_kwargs=None, line_kwargs=None,
+            bracket_kwargs=None, pval_kwargs=None, figure_kwargs=None,
+            smart_defaults=True, fname=None, ax=None):
     """Makes barplots w/ optional line overlays, grouping, & signif. brackets.
 
     Parameters
@@ -128,6 +140,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         list than non-adjacent pairs.
     bracket_text : str | list | None
         Text to display above brackets.
+    bracket_inline : bool
+        If ``True``, bracket text will be vertically centered along a broken
+        bracket line. If ``False``, text will be above the line.
     bracket_group_lines : bool
         When drawing brackets between groups rather than single bars, should a
         horizontal line be drawn at each foot of the bracket to indicate this?
@@ -143,6 +158,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     line_kwargs : dict
         Arguments passed to ``matplotlib.pyplot.plot()`` (e.g., color, marker,
         linestyle).
+    pval_kwargs : dict
+        Arguments passed to ``matplotlib.pyplot.annotate()`` when drawing
+        bracket labels.
     bracket_kwargs : dict
         arguments passed to ``matplotlib.pyplot.plot()`` (e.g., color, marker,
         linestyle).
@@ -210,17 +228,14 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         bracket_text = [bracket_text]
     if isinstance(group_names, string_types):
         group_names = [group_names]
-    # arg defaults
-    if bar_kwargs is None:
-        bar_kwargs = dict()
-    if err_kwargs is None:
-        err_kwargs = dict()
-    if line_kwargs is None:
-        line_kwargs = dict()
-    if bracket_kwargs is None:
-        bracket_kwargs = dict()
-    if figure_kwargs is None:
-        figure_kwargs = dict()
+    # arg defaults: if arg is not type, instantiate as type
+    brackets = _initiate(brackets, list)
+    bar_kwargs = _initiate(bar_kwargs, dict)
+    err_kwargs = _initiate(err_kwargs, dict)
+    line_kwargs = _initiate(line_kwargs, dict)
+    pval_kwargs = _initiate(pval_kwargs, dict)
+    figure_kwargs = _initiate(figure_kwargs, dict)
+    bracket_kwargs = _initiate(bracket_kwargs, dict)
     # user-supplied Axes
     if ax is not None:
         bar_kwargs['axes'] = ax
@@ -301,20 +316,20 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         for subj in xy:
             p.plot(subj[0], subj[1], **line_kwargs)
     # draw significance brackets
-    if brackets is not None:
+    if len(brackets):
         brackets = [tuple(x) for x in brackets]  # forgive list/tuple mix-ups
         if not len(brackets) == len(bracket_text):
             raise ValueError('Mismatch between number of brackets and bracket '
                              'labels.')
         brk_offset = np.diff(p.get_ylim()) * 0.025
         brk_height = np.diff(p.get_ylim()) * 0.05
-        # prelim: calculate text height
-        t = plt.text(0.5, 0.5, bracket_text[0])
-        t.set_bbox(dict(boxstyle='round, pad=0'))
+        # temporarily plot a textbox to get its height
+        t = plt.annotate(bracket_text[0], (0, 0), **pval_kwargs)
+        t.set_bbox(dict(boxstyle='round, pad=0.25'))
         plt.draw()
         bb = t.get_bbox_patch().get_window_extent()
         txth = np.diff(p.transData.inverted().transform(bb),
-                       axis=0).ravel()[-1]  # + brk_offset / 2.
+                       axis=0).ravel()[-1]
         t.remove()
         # find highest points
         if lines and len(h.shape) == 2:  # brackets must be above lines
@@ -333,8 +348,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             lr = []  # x
             ll = []  # y lower
             hh = []  # y upper
-            ed = 0
             for br in pair:
+                ed = 0.
                 if hasattr(br, 'append'):  # group
                     bri = groups.index(br)
                     curc = [bar_centers[x] for x in groups[bri]]
@@ -355,12 +370,11 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                         mustclear = max(mustclear, brk_top[ix // 2])
                     cury = mustclear + brk_offset
                 elif curx in allx:
-                    #count = allx.count(curx)
                     ix = len(allx) - allx[::-1].index(curx) - 1
-                    cury = brk_top[ix // 2] + brk_offset  # * count
-                for l, r in brk_lrx:
-                    if l < curx < r and cury < max(brk_top):
-                        ed += 1
+                    cury = brk_top[ix // 2] + brk_offset
+                for idx, (l, r) in enumerate(brk_lrx):
+                    while l < curx < r and cury < brk_top[idx] - ed * txth:
+                        ed += 0.5
                 # draw horiz line spanning groups if desired
                 if hasattr(br, 'append') and bracket_group_lines:
                     gbr = [bar_centers[x] for x in groups[bri]]
@@ -373,21 +387,38 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             brk_lrx.append(tuple(lr))
             brk_lry.append(tuple(ll))
             brk_top.append(np.max(hh))
-            brk_txt.append(np.mean(lr))  # text x
+            brk_txt.append(np.mean(lr))  # text x position
         # plot brackets
         for ((xl, xr), (yl, yr), yh, tx, st) in zip(brk_lrx, brk_lry, brk_top,
                                                     brk_txt, bracket_text):
+            # bracket text
+            defaults = dict(ha='center', annotation_clip=False,
+                            textcoords='offset points')
+            for k, v in defaults.items():
+                if k not in pval_kwargs.keys():
+                    pval_kwargs[k] = v
+            if 'va' not in pval_kwargs.keys():
+                pval_kwargs['va'] = 'center' if bracket_inline else 'baseline'
+            if 'xytext' not in pval_kwargs.keys():
+                pval_kwargs['xytext'] = (0, 0) if bracket_inline else (0, 2)
+            txt = p.annotate(st, (tx, yh), **pval_kwargs)
+            txt.set_bbox(dict(facecolor='w', alpha=0,
+                              boxstyle='round, pad=0.25'))
+            plt.draw()
             # bracket lines
             lline = ((xl, xl), (yl, yh))
             rline = ((xr, xr), (yr, yh))
-            hline = ((xl, xr), (yh, yh))
-            for x, y in [lline, rline, hline]:
+            if bracket_inline:
+                bb = txt.get_bbox_patch().get_window_extent()
+                txtw = np.diff(p.transData.inverted().transform(bb),
+                               axis=0).ravel()[0]
+                xm = np.mean([xl, xr]) - txtw / 2.
+                xn = np.mean([xl, xr]) + txtw / 2.
+                hline = [((xl, xm), (yh, yh)), ((xn, xr), (yh, yh))]
+            else:
+                hline = [((xl, xr), (yh, yh))]
+            for x, y in [lline, rline] + hline:
                 p.plot(x, y, **bracket_kwargs)
-            # bracket text
-            txt = p.annotate(st, (tx, yh), xytext=(0, 2),
-                             textcoords='offset points', ha='center',
-                             va='baseline', annotation_clip=False)
-            txt.set_bbox(dict(facecolor='w', alpha=0, boxstyle='round, pad=1'))
             # boost ymax if needed
             ybnd = p.get_ybound()
             if ybnd[-1] < yh + txth:
@@ -400,7 +431,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         p.xaxis.set_ticklabels(bar_names, va='baseline')
     if group_names is not None:
         ymin = ylim[0] if ylim is not None else p.get_ylim()[0]
-        yoffset = -2 * rcParams['font.size']
+        yoffset = -2.5 * rcParams['font.size']
         for gn, gp in zip(group_names, group_centers):
             p.annotate(gn, xy=(gp, ymin), xytext=(0, yoffset),
                        xycoords='data', textcoords='offset points',
