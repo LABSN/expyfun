@@ -1232,7 +1232,7 @@ class ExperimentController(object):
             Duration for which to ignore button clicks.
         live_buttons : list | None
             List of strings indicating acceptable buttons.
-            ``lNone`` accepts all mouse clicks.
+            ``None`` accepts all mouse clicks.
         timestamp : bool
             Whether the mouse click should be timestamped. If ``True``, returns
             the mouse click time relative to the value given in

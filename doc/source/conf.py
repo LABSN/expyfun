@@ -59,7 +59,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Expyfun'
-copyright = u'2013-%s, Expyfun Developers' % date.today().year
+copyright = u'2013-{0}, Expyfun Developers'.format(date.today().year)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
