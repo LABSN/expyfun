@@ -19,7 +19,6 @@ def test_visuals():
     with ExperimentController('test', **std_kwargs) as ec:
         assert_raises(TypeError, visual.Circle, ec, n_edges=3.5)
         assert_raises(ValueError, visual.Circle, ec, n_edges=3)
-        warnings.simplefilter('error')
         circ = visual.Circle(ec)
         circ.draw()
         assert_raises(ValueError, circ.set_radius, [1, 2, 3])
