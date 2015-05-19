@@ -1,5 +1,4 @@
-General examples
--------------------
+Basic examples
+--------------
 
-General-purpose and introductory examples to expyfun.
-
+Some basic examples of how to use expyfun to show audio and visual stimuli.

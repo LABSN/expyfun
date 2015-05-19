@@ -12,12 +12,15 @@
 # serve to show the default.
 
 import sys, os
+import os.path as op
+from datetime import date
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.append(os.path.abspath('../../expyfun'))
-sys.path.append(os.path.abspath('../sphinxext'))
+curdir = op.dirname(__file__)
+sys.path.append(op.abspath(op.join(curdir, '..', '..', 'expyfun')))
+sys.path.append(op.abspath(op.join(curdir, '..', 'sphinxext')))
 
 import expyfun
 
@@ -25,18 +28,11 @@ import expyfun
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
+import numpy_ext.numpydoc
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
               'sphinx.ext.pngmath',
-              'gen_rst']
-
-try:
-    import numpy_ext.numpydoc
-    extensions.append('numpy_ext.numpydoc')
-    # With older versions of sphinx, this causes a crash
-    autosummary_generate = True
-except:
-    # Older version of sphinx
-    extensions.append('numpy_ext_old.numpydoc')
+              'gen_rst', 'numpy_ext.numpydoc']
+autosummary_generate = True
 
 autodoc_default_flags=['inherited-members']
 
@@ -58,15 +54,12 @@ source_suffix = '.rst'
 # The encoding of source files.
 #source_encoding = 'utf-8'
 
-# Generate the plots for the gallery
-plot_gallery = True
-
 # The master toctree document.
 master_doc = 'index'
 
 # General information about the project.
 project = u'Expyfun'
-copyright = u'2013, Expyfun Developers'
+copyright = u'2013-{0}, Expyfun Developers'.format(date.today().year)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -130,14 +123,12 @@ html_style = 'navy.css'
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = ['themes']
 
-html_add_permalinks = 'link'
-
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = None
+# html_title = None
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = None
+# html_short_title = None
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -162,7 +153,7 @@ html_last_updated_fmt = '%b %d, %Y'
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {'**': ['searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

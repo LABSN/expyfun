@@ -12,11 +12,10 @@ the ExperimentController class.
 
 from os import path as op
 import numpy as np
-from scipy import io as sio
 import matplotlib.pyplot as plt
 
-from expyfun import ExperimentController, get_keyboard_input
-from expyfun import set_log_level
+from expyfun import ExperimentController, get_keyboard_input, set_log_level
+from expyfun.io import read_hdf5
 import expyfun.analyze as ea
 
 print(__doc__)
@@ -34,27 +33,21 @@ feedback_dur = 0.5
 isi = 0.2
 running_total = 0
 
-# if the stimuli have not been made, let's make them in examples dir
-stimulus_file = 'equally_spaced_sinewaves.mat'
-if not op.isfile(stimulus_file):
-    from generate_stimuli import generate_stimuli
-    generate_stimuli(output_dir='.', fs=fs)
-
-# load stimuli (from a call to generate_stimuli() from generate_stimuli.py)
-stims = sio.loadmat('equally_spaced_sinewaves.mat')
-orig_rms = stims['rms'][0]
-freqs = stims['freqs'][0]
-fs = stims['fs'][0][0]
-trial_order = stims['trial_order'][0]
+# you should run stimuli/generate_stimuli first to make the stimuli
+# load the result here
+stims = read_hdf5(op.join('stimuli', 'equally_spaced_sinewaves.hdf5'))
+orig_rms = stims['rms']
+freqs = stims['freqs']
+fs = stims['fs']
+trial_order = stims['trial_order']
 num_trials = len(trial_order)
 num_freqs = len(freqs)
 
 if num_freqs > 8:
     raise RuntimeError('Too many frequencies, not enough buttons.')
 
-# keep only sinusoids, make stereo, order low-high, convert to list of arrays
-wavs = {k: np.r_[stims[k], stims[k]].T for k in stims if 'stim_' in k}
-wavs = [np.ascontiguousarray(v) for _, v in sorted(wavs.items())]
+# keep only sinusoids, order low-high, convert to list of arrays
+wavs = [stims[k] for k in sorted(stims.keys()) if k.startswith('stim_')]
 
 # instructions
 instructions = ('You will hear tones at {0} different frequencies. Your job is'
@@ -108,12 +101,14 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
     ec.wait_one_press(max_wait=feedback_dur, live_keys=None)
     ec.wait_secs(isi)
 
-    single_trial_order = trial_order[range(len(trial_order) / 2)]
-    mass_trial_order = trial_order[len(trial_order) / 2:]
+    single_trial_order = trial_order[range(len(trial_order) // 2)]
+    mass_trial_order = trial_order[len(trial_order) // 2:]
     # run the single-tone trials
     for stim_num in single_trial_order:
         ec.clear_buffer()
         ec.load_buffer(wavs[stim_num])
+        print(wavs[stim_num].shape[0] / float(fs))
+        print(fs)
         ec.identify_trial(ec_id=stim_num, ttl_id=[0, 0])
         ec.write_data_line('one-tone trial', stim_num + 1)
         ec.start_stimulus()
@@ -136,7 +131,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
         ec.wait_secs(isi)
 
     # create 100 ms pause to play between stims and concatenate
-    pause = np.zeros((int(ec.fs / 10), 2))
+    pause = np.zeros(int(ec.fs / 10))
     concat_wavs = wavs[mass_trial_order[0]]
     for num in mass_trial_order[1:len(mass_trial_order)]:
         concat_wavs = np.r_[concat_wavs, pause, wavs[num]]

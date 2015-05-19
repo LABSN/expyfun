@@ -79,7 +79,7 @@ class ExperimentController(object):
     force_quit : list
         Keyboard key(s) to utilize as an experiment force-quit button. Can be
         a zero-element list for no force quit support. If None, defaults to
-        ``['lctrl', 'rctrl']``.  Using ['escape'] is not recommended due to
+        ``['lctrl', 'rctrl']``.  Using ``['escape']`` is not recommended due to
         default handling of 'escape' in pyglet.
     participant : str | None
         If ``None``, a GUI will be used to acquire this information.
@@ -96,7 +96,7 @@ class ExperimentController(object):
     check_rms : str | None
         Method to use in checking stimulus RMS to ensure appropriate levels.
         Possible values are ``None``, ``wholefile``, and ``windowed`` (the
-        default); see ``set_rms_checking`` for details.
+        default); see `set_rms_checking` for details.
     suppress_resamp : bool
         If ``True``, will suppress resampling of stimuli to the sampling
         frequency of the sound output device.
@@ -406,8 +406,8 @@ class ExperimentController(object):
             for multi-line text. Inappropriate for text requiring
             precise positioning or centering.
         units : str
-            Units for ``pos``. See ``check_units`` for options. Applies to
-            ``pos`` but not ``font_size``.
+            Units for `pos`. See `check_units` for options. Applies to
+            `pos` but not `font_size`.
         attr : bool
             Should the text be interpreted with pyglet's ``decode_attributed``
             method? This allows inline formatting for text color, e.g.,
@@ -416,6 +416,10 @@ class ExperimentController(object):
         Returns
         -------
         Instance of visual.Text
+
+        See Also
+        --------
+        ExperimentController.screen_prompt
         """
         check_units(units)
         scr_txt = Text(self, text, pos, color, font_name, font_size,
@@ -461,8 +465,8 @@ class ExperimentController(object):
             for multi-line text. Inappropriate for text requiring
             precise positioning or centering.
         units : str
-            Units for ``pos``. See ``check_units`` for options. Applies to
-            ``pos`` but not ``font_size``.
+            Units for `pos`. See `check_units` for options. Applies to
+            `pos` but not `font_size`.
         attr : bool
             Should the text be interpreted with pyglet's ``decode_attributed``
             method? This allows inline formatting for text color, e.g.,
@@ -476,6 +480,10 @@ class ExperimentController(object):
             acceptable key was pressed between ``min_wait`` and ``max_wait``).
             If ``timestamp==False``, returns a string indicating the first key
             pressed (or ``None`` if no acceptable key was pressed).
+
+        See Also
+        --------
+        ExperimentController.screen_text
         """
         if not isinstance(text, list):
             text = [text]
@@ -527,8 +535,8 @@ class ExperimentController(object):
             Time to start stimulus. If None, start immediately.
             Note that due to flip timing limitations, this is only a
             guaranteed *minimum* (not absolute) wait time before the
-            flip completes (if ``flip`` is ``True``). As a result, in some
-            cases ``when`` should be set to a value smaller than your true
+            flip completes (if `flip` is ``True``). As a result, in some
+            cases `when` should be set to a value smaller than your true
             intended flip time.
 
         Returns
@@ -536,11 +544,19 @@ class ExperimentController(object):
         flip_time : float
             The timestamp of the screen flip.
 
+        See Also
+        --------
+        ExperimentController.identify_trial
+        ExperimentController.flip
+        ExperimentController.play
+        ExperimentController.stop
+        ExperimentController.trial_ok
+
         Notes
         -----
         Order of operations is: screen flip (optional), audio start, then
         (only if ``flip=True``) additional functions added with
-        ``on_next_flip`` and ``on_every_flip``.
+        `call_on_next_flip` and `call_on_every_flip`.
         """
         if start_of_trial:
             if self._trial_progress != 'identified':
@@ -565,19 +581,6 @@ class ExperimentController(object):
                 fun()
         return stimulus_time
 
-    def play(self):
-        """Start audio playback
-
-        Returns
-        -------
-        play_time : float
-            The timestamp of the audio playback.
-        """
-        logger.exp('Expyfun: Playing audio')
-        # ensure self._play comes first in list:
-        self._play()
-        return self.get_time()
-
     def call_on_next_flip(self, function, *args, **kwargs):
         """Add a function to be executed on next flip only.
 
@@ -589,9 +592,13 @@ class ExperimentController(object):
         *args, **kwargs : arguments and keyword arguments
             Arguments to pass to the function when calling it.
 
+        See Also
+        --------
+        ExperimentController.call_on_every_flip
+
         Notes
         -----
-        See ``flip_and_play`` for order of operations. Can be called multiple
+        See `flip_and_play` for order of operations. Can be called multiple
         times to add multiple functions to the queue.
         """
         if function is not None:
@@ -611,9 +618,13 @@ class ExperimentController(object):
         *args, **kwargs : arguments and keyword arguments
             Arguments to pass to the function when calling it.
 
+        See Also
+        --------
+        ExperimentController.call_on_next_flip
+
         Notes
         -----
-        See ``flip_and_play`` for order of operations. Can be called multiple
+        See `flip_and_play` for order of operations. Can be called multiple
         times to add multiple functions to the queue.
         """
         if function is not None:
@@ -785,7 +796,7 @@ class ExperimentController(object):
             Time to flip. If None, flip immediately. Note that due to flip
             timing limitations, this is only a guaranteed *minimum* (not
             absolute) wait time before the flip completes. As a result, in
-            some cases ``when`` should be set to a value smaller than your
+            some cases `when` should be set to a value smaller than your
             true intended flip time.
 
         Returns
@@ -793,10 +804,19 @@ class ExperimentController(object):
         flip_time : float
             The timestamp of the screen flip.
 
+        See Also
+        --------
+        ExperimentController.identify_trial
+        ExperimentController.play
+        ExperimentController.start_stimulus
+        ExperimentController.stop
+        ExperimentController.trial_ok
+
         Notes
         -----
         Order of operations is: screen flip, functions added with
-        ``on_next_flip``, followed by functions added with ``on_every_flip``.
+        `call_on_next_flip`, followed by functions added with
+        `call_on_every_flip`.
         """
         if when is not None:
             self.wait_until(when)
@@ -848,7 +868,7 @@ class ExperimentController(object):
         visible : bool
             The visibility.
         flip : bool
-            If ``visible=True``, call ``flip()`` after setting visible.
+            If `visible` is ``True``, call `flip` after setting visible.
             This fixes an issue with the window background color not
             being set properly for the first draw after setting visible;
             by default (at least on Linux) the background is black when
@@ -863,6 +883,12 @@ class ExperimentController(object):
 # ############################## KEYPRESS METHODS #############################
     def listen_presses(self):
         """Start listening for keypresses.
+
+        See Also
+        --------
+        ExperimentController.get_presses
+        ExperimentController.wait_one_press
+        ExperimentController.wait_for_presses
         """
         self._response_handler.listen_presses()
 
@@ -874,14 +900,27 @@ class ExperimentController(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are cast as strings, so a list of ints will also work.
-            ``live_keys=None`` accepts all keypresses.
+            ``None`` accepts all keypresses.
         timestamp : bool
             Whether the keypress should be timestamped. If True, returns the
-            button press time relative to the value given in ``relative_to``.
+            button press time relative to the value given in `relative_to`.
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
             timestamp==False.  If ``None``, timestamps are relative to the time
-            ``listen_presses`` was last called.
+            `listen_presses` was last called.
+
+        Returns
+        -------
+        presses : list
+            If timestamp==False, returns a list of strings indicating which
+            keys were pressed. Otherwise, returns a list of tuples
+            (str, float) of keys and their timestamps.
+
+        See Also
+        --------
+        ExperimentController.listen_presses
+        ExperimentController.wait_one_press
+        ExperimentController.wait_for_presses
         """
         return self._response_handler.get_presses(live_keys, timestamp,
                                                   relative_to)
@@ -900,24 +939,30 @@ class ExperimentController(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are cast as strings, so a list of ints will also work.
-            ``live_keys=None`` accepts all keypresses.
+            ``None`` accepts all keypresses.
         timestamp : bool
             Whether the keypress should be timestamped. If ``True``, returns
             the button press time relative to the value given in
-            ``relative_to``.
+            `relative_to`.
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
             ``timestamp==False``.  If ``None``, timestamps are relative to the
-            time ``wait_one_press`` was called.
+            time `wait_one_press` was called.
 
         Returns
         -------
         pressed : tuple | str | None
             If ``timestamp==True``, returns a tuple (str, float) indicating the
             first key pressed and its timestamp (or ``(None, None)`` if no
-            acceptable key was pressed between ``min_wait`` and ``max_wait``).
+            acceptable key was pressed between `min_wait` and `max_wait`).
             If ``timestamp==False``, returns a string indicating the first key
             pressed (or ``None`` if no acceptable key was pressed).
+
+        See Also
+        --------
+        ExperimentController.listen_presses
+        ExperimentController.get_presses
+        ExperimentController.wait_for_presses
         """
         return self._response_handler.wait_one_press(max_wait, min_wait,
                                                      live_keys, timestamp,
@@ -937,23 +982,28 @@ class ExperimentController(object):
         live_keys : list | None
             List of strings indicating acceptable keys or buttons. Other data
             types are cast as strings, so a list of ints will also work.
-            ``live_keys=None`` accepts all keypresses.
+            ``None`` accepts all keypresses.
         timestamp : bool
             Whether the keypresses should be timestamped. If ``True``, returns
             the button press time relative to the value given in
-            ``relative_to``.
+            `relative_to`.
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
-            ``timestamp`` is ``False``.  If ``None``, timestamps are relative
-            to the time ``wait_for_presses`` was called.
+            `timestamp` is ``False``.  If ``None``, timestamps are relative
+            to the time `wait_for_presses` was called.
 
         Returns
         -------
         presses : list
             If timestamp==False, returns a list of strings indicating which
             keys were pressed. Otherwise, returns a list of tuples
-            (str, float) of keys and their timestamps. If no keys are pressed,
-            returns [].
+            (str, float) of keys and their timestamps.
+
+        See Also
+        --------
+        ExperimentController.listen_presses
+        ExperimentController.get_presses
+        ExperimentController.wait_one_press
         """
         return self._response_handler.wait_for_presses(max_wait, min_wait,
                                                        live_keys, timestamp,
@@ -975,6 +1025,12 @@ class ExperimentController(object):
 # ############################## MOUSE METHODS ################################
     def listen_clicks(self):
         """Start listening for mouse clicks.
+
+        See Also
+        --------
+        ExperimentController.get_clicks
+        ExperimentController.get_mouse_position
+        ExperimentController.toggle_cursor
         """
         self._mouse_handler.listen_clicks()
 
@@ -985,14 +1041,31 @@ class ExperimentController(object):
         ----------
         live_buttons : list | None
             List of strings indicating acceptable buttons.
-            ``live_buttons=None`` accepts all mouse clicks.
+            ``None`` accepts all mouse clicks.
         timestamp : bool
             Whether the mouse click should be timestamped. If True, returns the
-            button click time relative to the value given in ``relative_to``.
+            button click time relative to the value given in `relative_to`.
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
             timestamp==False.  If ``None``, timestamps are relative to the time
-            ``listen_clicks`` was last called.
+            `listen_clicks` was last called.
+
+        Returns
+        -------
+        clicks : list of tuple
+            Returns a list of the clicks between min_wait and max_wait.
+            If ``timestamp==True``, each entry is a tuple (str, int, int,
+            float) indicating the button clicked and its timestamp.
+            If ``timestamp==False``, each entry is a tuple (str, int, int)
+            indicating the button clicked.
+
+        See Also
+        --------
+        ExperimentController.get_mouse_position
+        ExperimentController.listen_clicks
+        ExperimentController.toggle_cursor
+        ExperimentController.wait_one_click
+        ExperimentController.wait_for_clicks
         """
         return self._mouse_handler.get_clicks(live_buttons, timestamp,
                                               relative_to)
@@ -1003,12 +1076,20 @@ class ExperimentController(object):
         Parameters
         ----------
         units : str
-            Units to return. See ``check_units`` for options.
+            Units to return. See `check_units` for options.
 
         Returns
         -------
         position : ndarray
             The mouse position.
+
+        See Also
+        --------
+        ExperimentController.get_clicks
+        ExperimentController.listen_clicks
+        ExperimentController.toggle_cursor
+        ExperimentController.wait_one_click
+        ExperimentController.wait_for_clicks
         """
         check_units(units)
         pos = np.array(self._mouse_handler.pos)
@@ -1022,6 +1103,14 @@ class ExperimentController(object):
         ----------
         visibility : bool
             If True, show; if False, hide.
+
+        See Also
+        --------
+        ExperimentController.get_clicks
+        ExperimentController.get_mouse_position
+        ExperimentController.listen_clicks
+        ExperimentController.wait_one_click
+        ExperimentController.wait_for_clicks
         """
         try:
             self._mouse_handler.set_visible(visibility)
@@ -1043,7 +1132,7 @@ class ExperimentController(object):
             Duration for which to ignore button clicks.
         live_buttons : list | None
             List of strings indicating acceptable buttons.
-            ``live_buttons=None`` accepts all mouse clicks.
+            ``None`` accepts all mouse clicks.
         timestamp : bool
             Whether the mouse click should be timestamped. If ``True``, returns
             the mouse click time relative to the value given in
@@ -1051,7 +1140,7 @@ class ExperimentController(object):
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
             ``timestamp==False``.  If ``None``, timestamps are relative to the
-            time ``wait_one_click`` was called.
+            time `wait_one_click` was called.
         visible : None | bool
             Whether to show the cursor while in the function. ``None`` has no
             effect and is the default. A boolean will show it (or not) while
@@ -1064,9 +1153,17 @@ class ExperimentController(object):
             If ``timestamp==True``, returns a tuple (str, int, int, float)
             indicating the first button clicked and its timestamp (or
             ``(None, None, None, None)`` if no acceptable button was clicked
-            between ``min_wait`` and ``max_wait``). If ``timestamp==False``,
+            between `min_wait` and `max_wait`). If ``timestamp==False``,
             returns a tuple (str, int, int) indicating the first button clicked
             (or ``(None, None, None)`` if no acceptable key was clicked).
+
+        See Also
+        --------
+        ExperimentController.get_clicks
+        ExperimentController.get_mouse_position
+        ExperimentController.listen_clicks
+        ExperimentController.toggle_cursor
+        ExperimentController.wait_for_clicks
         """
         return self._mouse_handler.wait_one_click(max_wait, min_wait,
                                                   live_buttons, timestamp,
@@ -1084,7 +1181,7 @@ class ExperimentController(object):
             Duration for which to ignore button clicks.
         live_buttons : list | None
             List of strings indicating acceptable buttons.
-            ``live_buttons=None`` accepts all mouse clicks.
+            ``None`` accepts all mouse clicks.
         timestamp : bool
             Whether the mouse click should be timestamped. If ``True``, returns
             the mouse click time relative to the value given in
@@ -1107,6 +1204,14 @@ class ExperimentController(object):
             float) indicating the button clicked and its timestamp.
             If ``timestamp==False``, each entry is a tuple (str, int, int)
             indicating the button clicked.
+
+        See Also
+        --------
+        ExperimentController.get_clicks
+        ExperimentController.get_mouse_position
+        ExperimentController.listen_clicks
+        ExperimentController.toggle_cursor
+        ExperimentController.wait_one_click
         """
         return self._mouse_handler.wait_for_clicks(max_wait, min_wait,
                                                    live_buttons, timestamp,
@@ -1127,15 +1232,15 @@ class ExperimentController(object):
             Duration for which to ignore button clicks.
         live_buttons : list | None
             List of strings indicating acceptable buttons.
-            ``live_buttons=None`` accepts all mouse clicks.
+            ``None`` accepts all mouse clicks.
         timestamp : bool
             Whether the mouse click should be timestamped. If ``True``, returns
             the mouse click time relative to the value given in
-            ``relative_to``.
+            `relative_to`.
         relative_to : None | float
             A time relative to which timestamping is done. Ignored if
             ``timestamp==False``.  If ``None``, timestamps are relative to the
-            time ``wait_one_click`` was called.
+            time `wait_one_click` was called.
 
         Returns
         -------
@@ -1143,13 +1248,13 @@ class ExperimentController(object):
             If ``timestamp==True``, returns a tuple (str, int, int, float)
             indicating the first valid button clicked and its timestamp (or
             ``(None, None, None, None)`` if no acceptable button was clicked
-            between ``min_wait`` and ``max_wait``). If ``timestamp==False``,
+            between `min_wait` and `max_wait`). If ``timestamp==False``,
             returns a tuple (str, int, int) indicating the first button clicked
             (or ``(None, None, None)`` if no acceptable key was clicked).
         index : the index of the object in the list of objects that was clicked
             on. Returns None if time ran out before a valid click. If objects
             were overlapping, it returns the index of the object that comes
-            first in the ```objects``` argument.
+            first in the `objects` argument.
         """
         legal_types = self._mouse_handler._legal_types
         if isinstance(objects, legal_types):
@@ -1184,32 +1289,79 @@ class ExperimentController(object):
         self._beep.play()
 
     def start_noise(self):
-        """Start the background masker noise."""
+        """Start the background masker noise
+
+        See Also
+        --------
+        ExperimentController.set_noise_db
+        ExperimentController.stop_noise
+        """
         self._ac.start_noise()
 
     def stop_noise(self):
-        """Stop the background masker noise."""
+        """Stop the background masker noise
+
+        See Also
+        --------
+        ExperimentControlller.set_noise_db
+        ExperimentController.start_noise
+        """
         if self._ac is not None:  # check b/c used by __exit__
             self._ac.stop_noise()
 
     def clear_buffer(self):
-        """Clear audio data from the audio buffer."""
+        """Clear audio data from the audio buffer
+
+        See Also
+        --------
+        ExperimentController.load_buffer
+        ExperimentController.set_stim_db
+        """
         self._ac.clear_buffer()
         logger.exp('Expyfun: Buffer cleared')
 
     def load_buffer(self, samples):
-        """Load audio data into the audio buffer.
+        """Load audio data into the audio buffer
 
         Parameters
         ----------
         samples : np.array
             Audio data as floats scaled to (-1,+1), formatted as numpy array
             with shape (1, N), (2, N), or (N,) dtype float32.
+
+        See Also
+        --------
+        ExperimentController.clear_buffer
+        ExperimentController.play
+        ExperimentController.set_stim_db
+        ExperimentController.start_stimulus
+        ExperimentController.stop
         """
         samples = self._validate_audio(samples) * self._stim_scaler
         logger.exp('Expyfun: Loading {} samples to buffer'
                    ''.format(samples.size))
         self._ac.load_buffer(samples)
+
+    def play(self):
+        """Start audio playback
+
+        Returns
+        -------
+        play_time : float
+            The timestamp of the audio playback.
+
+        See Also
+        --------
+        ExperimentController.clear_buffer
+        ExperimentController.load_buffer
+        ExperimentController.set_stim_db
+        ExperimentController.start_stimulus
+        ExperimentController.stop
+        """
+        logger.exp('Expyfun: Playing audio')
+        # ensure self._play comes first in list:
+        self._play()
+        return self.get_time()
 
     def _play(self):
         """Play the audio buffer.
@@ -1222,7 +1374,15 @@ class ExperimentController(object):
         self.write_data_line('play')
 
     def stop(self):
-        """Stop audio buffer playback and reset cursor to beginning of buffer.
+        """Stop audio buffer playback and reset cursor to beginning of buffer
+
+        See Also
+        --------
+        ExperimentController.clear_buffer
+        ExperimentController.load_buffer
+        ExperimentController.play
+        ExperimentController.set_stim_db
+        ExperimentController.start_stimulus
         """
         if self._ac is not None:  # need to check b/c used in __exit__
             self._ac.stop()
@@ -1231,14 +1391,27 @@ class ExperimentController(object):
         logger.exp('Expyfun: Audio stopped and reset.')
 
     def set_noise_db(self, new_db):
-        """Set the level of the background noise.
+        """Set the level of the background noise
+
+        See Also
+        --------
+        ExperimentController.start_noise
+        ExperimentController.stop_noise
         """
         # Noise is always generated at an RMS of 1
         self._ac.set_noise_level(self._update_sound_scaler(new_db, 1.0))
         self._noise_db = new_db
 
     def set_stim_db(self, new_db):
-        """Set the level of the stimuli.
+        """Set the level of the stimuli
+
+        See Also
+        --------
+        ExperimentController.clear_buffer
+        ExperimentController.load_buffer
+        ExperimentController.play
+        ExperimentController.start_stimulus
+        ExperimentController.stop
         """
         self._stim_db = new_db
         self._stim_scaler = self._update_sound_scaler(new_db, self._stim_rms)
@@ -1407,9 +1580,10 @@ class ExperimentController(object):
         secs : float
             Number of seconds to wait.
 
-        Notes
-        -----
-        See the wait_secs() function.
+        See Also
+        --------
+        ExperimentController.wait_until
+        wait_secs
         """
         wait_secs(secs, ec=self)
 
@@ -1425,15 +1599,20 @@ class ExperimentController(object):
         Returns
         -------
         remaining_time : float
-            The difference between ``timestamp`` and the time ``wait_until``
+            The difference between ``timestamp`` and the time `wait_until`
             was called.
+
+        See Also
+        --------
+        ExperimentController.wait_secs
+        wait_secs
 
         Notes
         -----
-        Unlike ``wait_secs``, there is no guarantee of precise timing with this
+        Unlike `wait_secs`, there is no guarantee of precise timing with this
         function. It is the responsibility of the user to do choose a
         reasonable timestamp (or equivalently, do a reasonably small amount of
-        processing prior to calling ``wait_until``).
+        processing prior to calling `wait_until`).
         """
         time_left = timestamp - self._master_clock()
         if time_left < 0:
@@ -1450,10 +1629,18 @@ class ExperimentController(object):
         Parameters
         ----------
         **ids : keyword arguments
-            Ids to stamp, e.g. ``ec_id='TL90,MR45'. Use ``ec.id_types``
+            Ids to stamp, e.g. ``ec_id='TL90,MR45'. Use `id_types`
             to see valid options. Typical choices are ``ec_id``, ``el_id``,
             and ``ttl_id`` for experiment controller, eyelink, and TDT
             (or parallel port) respectively.
+
+        See Also
+        --------
+        ExperimentController.id_types
+        ExperimentController.stamp_triggers
+        ExperimentController.start_stimulus
+        ExperimentController.stop
+        ExperimentController.trial_ok
         """
         if self._trial_progress != 'stopped':
             raise RuntimeError('Cannot identify a trial twice')
@@ -1474,6 +1661,12 @@ class ExperimentController(object):
 
         For example, logs and data files can be flushed at the end of each
         trial.
+
+        See Also
+        --------
+        ExperimentController.identify_trial
+        ExperimentController.start_stimulus
+        ExperimentController.stop
         """
         if self._trial_progress != 'started':
             raise RuntimeError('trial cannot be okay unless it was started, '
@@ -1524,6 +1717,10 @@ class ExperimentController(object):
         If absolute minimal latency is required, consider using the
         private function _stamp_ttl_triggers (for advanced use only,
         subject to change!).
+
+        See Also
+        --------
+        ExperimentController.identify_trial
         """
         if check not in ('int4', 'binary'):
             raise ValueError('Check must be either "int4" or "binary"')
@@ -1587,7 +1784,8 @@ class ExperimentController(object):
 # ############################## READ-ONLY PROPERTIES #########################
     @property
     def id_types(self):
-        """Trial ID types needed for each trial"""
+        """Trial ID types needed for each trial.
+        """
         return list(self._id_call_dict.keys())
 
     @property
@@ -1656,7 +1854,7 @@ def get_keyboard_input(prompt, default=None, out_type=str, valid=None):
 
     Returns
     -------
-    response : of type ``out_type``
+    response : of type `out_type`
         The user response.
     """
     # TODO: Let valid be an iterable OR a function handle, such that you could

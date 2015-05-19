@@ -39,7 +39,7 @@ with ExperimentController('LevelTest', full_screen=True, noise_db=-np.inf,
     screenshot = None
     while pressed != '8':  # enable a clean quit if required
         square.draw()
-        ec.screen_text('Width: {} cm'.format(round(2 * cm, 1)), wrap=False)
+        ec.screen_text('Width: {} cm'.format(np.round(2 * cm, 1)), wrap=False)
         screenshot = ec.screenshot() if screenshot is None else screenshot
         t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
         pressed = ec.wait_one_press(10)[0]
