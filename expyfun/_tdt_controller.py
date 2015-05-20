@@ -20,6 +20,8 @@ if 'Windows' in platform.platform():
         from tdt.util import connect_rpcox, connect_zbus
     except ImportError:
         connect_rpcox, connect_zbus = None, None  # analysis:ignore
+        from warnings import warn
+        warn('TDTPy seems not to be installed -- using dummy interface.')
 else:
     connect_rpcox, connect_zbus = None, None
 
