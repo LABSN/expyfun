@@ -31,6 +31,7 @@ Requirements:
 
 - numpy/scipy/matplotlib
 - pyglet 1.2.0 or later
+- TDTpy (if using TDT on Windows)
 
 Optional:
 

@@ -11,6 +11,7 @@ import numpy as np
 import platform
 from os import path as op
 from functools import partial
+from copy import deepcopy
 
 from ._utils import get_config, wait_secs, logger, ZeroClock
 from ._input_controllers import Keyboard
@@ -73,6 +74,7 @@ class TDTController(Keyboard):
                       'TDT_DELAY', 'TDT_TRIG_DELAY']
         if tdt_params is None:
             tdt_params = {'TYPE': 'tdt'}
+        tdt_params = deepcopy(tdt_params)
         if not isinstance(tdt_params, dict):
             raise TypeError('tdt_params must be a dictionary.')
         for k in legal_keys:
@@ -86,7 +88,7 @@ class TDTController(Keyboard):
             tdt_params['TDT_TRIG_DELAY'] = '0'
         tdt_params['TDT_DELAY'] = int(tdt_params['TDT_DELAY'])
         tdt_params['TDT_TRIG_DELAY'] = int(tdt_params['TDT_TRIG_DELAY'])
-        if tdt_params['TDT_MODEL'] is None:
+        if tdt_params['TDT_MODEL'] is None or connect_rpcox is None:
             tdt_params['TDT_MODEL'] = 'dummy'
 
         # Check keys
@@ -119,7 +121,7 @@ class TDTController(Keyboard):
         self.connection = self.rpcox.ConnectRM1(IntName=interface, DevNum=1)
         """
         # MID-LEVEL APPROACH
-        if connect_rpcox is not None:
+        if tdt_params['TDT_MODEL'] != 'dummy':
             try:
                 self.rpcox = connect_rpcox(name=self.model,
                                            interface=self.interface,
@@ -128,6 +130,9 @@ class TDTController(Keyboard):
                 raise OSError('Could not connect to {}, is it turned on? '
                               '(TDT message: "{}")'.format(self._model, exp))
         else:
+            logger.warning('TDT is in dummy mode. No sound or triggers will'
+                           'be produced. Check TDT configuration and TDTpy'
+                           'installation.')
             self.rpcox = DummyRPcoX(self._model, self._interface)
 
         if self.rpcox is not None:
