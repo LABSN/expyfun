@@ -29,9 +29,7 @@ Requirements:
 
 - numpy/scipy
 - matplotlib
-- pyglet (a bleeding-edge ``tip.zip`` as of the end of May 2014), see the
-  "development version" here:
-    http://www.pyglet.org/download.html
+- pyglet 1.2.0 or later
 
 Optional:
 
