@@ -161,10 +161,12 @@ def test_ec(ac=None, rd=None):
         this_rd = rd
         this_tc = ac
         this_fs = get_tdt_rates()['25k']
+    warnings.simplefilter('ignore')  # ignore dummy TDT warning
     with ExperimentController(*std_args, audio_controller=this_ac,
                               response_device=this_rd,
                               trigger_controller=this_tc,
                               stim_fs=this_fs, **std_kwargs) as ec:
+        warnings.simplefilter('always')
         assert_true(ec.participant == std_kwargs['participant'])
         assert_true(ec.session == std_kwargs['session'])
         assert_true(ec.exp_name == std_args[0])
