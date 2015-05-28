@@ -12,6 +12,7 @@ import platform
 from os import path as op
 from functools import partial
 from copy import deepcopy
+import warnings
 
 from ._utils import get_config, wait_secs, logger, ZeroClock
 from ._input_controllers import Keyboard
@@ -130,9 +131,11 @@ class TDTController(Keyboard):
                 raise OSError('Could not connect to {}, is it turned on? '
                               '(TDT message: "{}")'.format(self._model, exp))
         else:
-            logger.warning('TDT is in dummy mode. No sound or triggers will'
-                           'be produced. Check TDT configuration and TDTpy'
-                           'installation.')
+            msg = ('TDT is in dummy mode. No sound or triggers will '
+                   'be produced. Check TDT configuration and TDTpy '
+                   'installation.')
+            logger.warning(msg)  # log it
+            warnings.warn(msg)  # make it red
             self.rpcox = DummyRPcoX(self._model, self._interface)
 
         if self.rpcox is not None:
