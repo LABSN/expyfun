@@ -21,14 +21,15 @@ Therefore, while we welcome bug reports and suggestions from others,
 NO SUPPORT IS GUARANTEED. Moreover, we can and will change the API as
 necessary to suit the needs of the lab. Thus, use at your own risk.
 
-Note that lab calibration logs can be stored here:
+Note that lab calibration logs can be stored `here
+<https://github.com/LABSN/expyfun/wiki/Calibration-log>`_.
 
-https://github.com/LABSN/expyfun/wiki/Calibration-log
+`The API documentation and examples can be found here
+<https://labsn.github.io/expyfun>`_.
 
 Requirements:
 
-- numpy/scipy
-- matplotlib
+- numpy/scipy/matplotlib
 - pyglet 1.2.0 or later
 
 Optional:
