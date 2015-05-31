@@ -15,7 +15,7 @@ virtualenv:
 
 before_install:
     # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
-    # Only use Pulseaudio on 2.7 because on Travis 3.3 causes some strange error...
+    # Only use Pulseaudio on 2.7 because on Travis 3.4 causes some strange error...
     # Only do coverage on 2.7 b/c it's slow on Py3k
     - travis_retry sudo apt-get update -qq
     - if [ "${PYTHON}" == "2.7" ]; then
@@ -24,7 +24,7 @@ before_install:
         travis_retry sudo pip install -q coveralls;
         COVERAGE=--with-coverage;
       else
-        wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+        wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
         ./miniconda.sh -b -p ~/anaconda;
         export PATH=~/anaconda/bin:$PATH;
@@ -40,7 +40,12 @@ before_install:
     - if [ "${TEST}" == "extra" ]; then
         travis_retry pip install -q flake8;
       else
-        travis_retry pip install -q nose-timer http://bitbucket.org/pyglet/pyglet/get/tip.zip;
+        travis_retry pip install -q nose-timer;
+        if [ "${PYTHON}" == "3.4" ]; then
+          travis_retry pip install -q pyglet;
+        else
+          travis_retry pip install -q http://bitbucket.org/pyglet/pyglet/get/tip.zip;
+        fi;
       fi;
     # Full dependencies (pandas, mne-python, h5py, joblib)
     - SRC_DIR=${PWD}
@@ -76,5 +81,5 @@ script:
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
     - if [ "${PYTHON}" == "2.7" ]; then
-        coveralls
+        coveralls;
       fi;
