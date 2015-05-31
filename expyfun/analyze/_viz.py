@@ -223,6 +223,13 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                 err_bars not in ['sd', 'se', 'ci']:
             raise ValueError('err_bars must be "sd", "se", or "ci" (or an '
                              'array of error bar magnitudes).')
+    if brackets is not None:
+        if any([len(x) != 2 for x in brackets]):
+            raise ValueError('Each top-level element of brackets must have '
+                             'length 2.')
+        if not len(brackets) == len(bracket_text):
+            raise ValueError('Mismatch between number of brackets and bracket '
+                             'labels.')
     # handle single-element args
     if isinstance(bracket_text, string_types):
         bracket_text = [bracket_text]
@@ -263,13 +270,14 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     non_gap = 1 - gap_size
     offset = gap_size / 2.
     if eq_group_widths:
-        group_sizes = np.array([float(len(_grp)) for _grp in groups])
+        group_sizes = np.array([float(len(_grp)) for _grp in groups], int)
         group_widths = [non_gap for _ in groups]
         group_edges = [offset + _ix for _ix in range(len(groups))]
-        bar_widths = (np.array(group_widths) / group_sizes).tolist()
-        bar_edges = [[_edge + _width * _ix / _size for _ix in range(len(_grp))]
-                     for _edge, _width, _size
-                     in zip(group_edges, group_widths, group_sizes)]
+        group_ixs = list(chain.from_iterable([range(x) for x in group_sizes]))
+        bar_widths = np.repeat(np.array(group_widths) / group_sizes,
+                               group_sizes).tolist()
+        bar_edges = (np.repeat(group_edges, group_sizes) +
+                     bar_widths * np.array(group_ixs)).tolist()
     else:
         bar_widths = [[non_gap for _ in _grp] for _grp in groups]
         # next line: offset + cumul. gap widths + cumul. bar widths
@@ -277,8 +285,8 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                       for _bar in _grp] for _ix, _grp in enumerate(groups)]
         group_widths = [np.sum(_width) for _width in bar_widths]
         group_edges = [_edge[0] for _edge in bar_edges]
-    bar_edges = list(chain.from_iterable(bar_edges))
-    bar_widths = list(chain.from_iterable(bar_widths))
+        bar_edges = list(chain.from_iterable(bar_edges))
+        bar_widths = list(chain.from_iterable(bar_widths))
     bar_centers = np.array(bar_edges) + np.array(bar_widths) / 2.
     group_centers = np.array(group_edges) + np.array(group_widths) / 2.
     # calculate error bars
@@ -317,9 +325,6 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     # draw significance brackets
     if len(brackets):
         brackets = [tuple(x) for x in brackets]  # forgive list/tuple mix-ups
-        if not len(brackets) == len(bracket_text):
-            raise ValueError('Mismatch between number of brackets and bracket '
-                             'labels.')
         brk_offset = np.diff(p.get_ylim()) * 0.025
         brk_min_h = np.diff(p.get_ylim()) * 0.05
         # temporarily plot a textbox to get its height
@@ -329,67 +334,71 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         bb = t.get_bbox_patch().get_window_extent()
         txth = np.diff(p.transData.inverted().transform(bb),
                        axis=0).ravel()[-1]
+        if bracket_inline:
+            txth = txth / 2.
         t.remove()
         # find highest points
         if lines and h.ndim == 2:  # brackets must be above lines & error bars
             apex = np.amax(np.r_[np.atleast_2d(heights + err),
-                                 np.atleast_2d(np.max(h, axis))], axis=0)
+                                 np.atleast_2d(np.amax(h, axis))], axis=0)
         else:
             apex = np.atleast_1d(heights + err)
         apex = np.maximum(apex, 0)  # for negative-going bars
-        gr_apex = np.array([np.amax(apex[x]) for x in groups])
-        # calculate bracket coords
-        brk_lrx = []
-        brk_lry = []
-        brk_top = []
-        brk_txt = []
-        for pair in brackets:
-            lr = []  # x
-            ll = []  # y lower
-            hh = []  # y upper
-            for br in pair:
-                ed = 0.
-                if hasattr(br, 'append'):  # group
-                    bri = groups.index(br)
-                    curc = [bar_centers[x] for x in groups[bri]]
-                    curx = group_centers[bri]
-                    cury = float(gr_apex[bri] + brk_offset)
-                else:  # single bar
-                    curc = []
-                    curx = bar_centers[br]
-                    cury = float(apex[br] + brk_offset)
-                # adjust as necessary to avoid overlap
-                allx = np.array(brk_lrx).ravel().tolist()
-                if curx in brk_txt:
-                    count = brk_txt.count(curx)
-                    mustclear = brk_top[brk_txt.index(curx)] + \
-                        count * (txth + brk_offset) - brk_offset
-                    for x in curc:
-                        ix = len(allx) - allx[::-1].index(x) - 1
-                        mustclear = max(mustclear, brk_top[ix // 2])
-                    cury = mustclear + brk_offset
-                elif curx in allx:
-                    ix = len(allx) - allx[::-1].index(curx) - 1
-                    cury = brk_top[ix // 2] + brk_offset
-                for idx, (l, r) in enumerate(brk_lrx):
-                    while l < curx < r and cury < brk_top[idx] - ed * txth:
-                        ed += 0.5
-                # draw horiz line spanning groups if desired
-                if hasattr(br, 'append') and bracket_group_lines:
-                    gbr = [bar_centers[x] for x in groups[bri]]
-                    gbr = (min(gbr), max(gbr))
-                    p.plot(gbr, (cury, cury), **bracket_kwargs)
-                # store adjusted values
-                lr.append(curx)
-                ll.append(cury)
-                hh.append(cury + brk_min_h + ed * txth)
-            brk_lrx.append(tuple(lr))
-            brk_lry.append(tuple(ll))
-            brk_top.append(np.max(hh))
-            brk_txt.append(np.mean(lr))  # text x position
-        # plot brackets
-        for ((xl, xr), (yl, yr), yh, tx, st) in zip(brk_lrx, brk_lry, brk_top,
-                                                    brk_txt, bracket_text):
+        apex = apex + brk_offset
+        gr_apex = np.array([np.amax(apex[_g]) for _g in groups])
+        # boolean for whether each half of a bracket is a group
+        is_group = [[hasattr(_b, 'append') for _b in _br] for _br in brackets]
+        # bracket left & right coords
+        brk_lr = [[group_centers[groups.index(_ix)] if _g
+                   else bar_centers[_ix] for _ix, _g in zip(_brk, _isg)]
+                  for _brk, _isg in zip(brackets, is_group)]
+        # bracket L/R midpoints (label position)
+        brk_c = [np.mean(_lr) for _lr in brk_lr]
+        # bracket bottom coords (first pass)
+        brk_b = [[gr_apex[groups.index(_ix)] if _g else apex[_ix]
+                  for _ix, _g in zip(_brk, _isg)]
+                 for _brk, _isg in zip(brackets, is_group)]
+        # main bracket positioning loop
+        brk_t = []
+        for _ix, (_brk, _isg) in enumerate(zip(brackets, is_group)):
+            # which bars does this bracket span?
+            spanned_bars = list(chain.from_iterable(
+                [_b if hasattr(_b, 'append') else [_b] for _b in _brk]))
+            spanned_bars = range(min(spanned_bars), max(spanned_bars) + 1)
+            # raise apex a bit extra if prev bracket label centered on bar
+            prev_label_pos = brk_c[_ix - 1] if _ix else -1
+            label_bar_ix = np.where(np.isclose(bar_centers, prev_label_pos))[0]
+            if label_bar_ix in _brk:
+                apex[label_bar_ix] += txth
+            elif any(_isg):
+                label_bar_less = np.where(bar_centers < prev_label_pos)[0]
+                label_bar_more = np.where(bar_centers > prev_label_pos)[0]
+                if len(label_bar_less) and len(label_bar_more):
+                    apex[label_bar_less] += txth
+                    apex[label_bar_more] += txth
+            gr_apex = np.array([np.amax(apex[_g]) for _g in groups])
+            # recalc lower tips of bracket: apex / gr_apex may have changed
+            brk_b[_ix] = [gr_apex[groups.index(_b)] if _g else apex[_b]
+                          for _b, _g in zip(_brk, _isg)]
+            # calculate top span position
+            _min_t = max(apex[spanned_bars]) + brk_min_h
+            brk_t.append(_min_t)
+            # raise apex on spanned bars to account for bracket
+            apex[spanned_bars] = np.maximum(apex[spanned_bars],
+                                            _min_t) + brk_offset
+            gr_apex = np.array([np.amax(apex[_g]) for _g in groups])
+        # draw horz line spanning groups if desired
+        if bracket_group_lines:
+            for _brk, _isg, _blr in zip(brackets, is_group, brk_b):
+                for _bk, _g, _b in zip(_brk, _isg, _blr):
+                    if _g:
+                        _lr = [bar_centers[_ix]
+                               for _ix in groups[groups.index(_bk)]]
+                        _lr = (min(_lr), max(_lr))
+                        p.plot(_lr, (_b, _b), **bracket_kwargs)
+        # draw (left, right, bottom-left, bottom-right, top, center, string)
+        for ((_l, _r), (_bl, _br), _t, _c, _s) in zip(brk_lr, brk_b, brk_t,
+                                                      brk_c, bracket_text):
             # bracket text
             defaults = dict(ha='center', annotation_clip=False,
                             textcoords='offset points')
@@ -400,28 +409,29 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                 pval_kwargs['va'] = 'center' if bracket_inline else 'baseline'
             if 'xytext' not in pval_kwargs.keys():
                 pval_kwargs['xytext'] = (0, 0) if bracket_inline else (0, 2)
-            txt = p.annotate(st, (tx, yh), **pval_kwargs)
+            txt = p.annotate(_s, (_c, _t), **pval_kwargs)
             txt.set_bbox(dict(facecolor='w', alpha=0,
-                              boxstyle='round, pad=0.25'))
+                              boxstyle='round, pad=0.2'))
             plt.draw()
             # bracket lines
-            lline = ((xl, xl), (yl, yh))
-            rline = ((xr, xr), (yr, yh))
+            lline = ((_l, _l), (_bl, _t))
+            rline = ((_r, _r), (_br, _t))
+            tline = ((_l, _r), (_t, _t))
             if bracket_inline:
                 bb = txt.get_bbox_patch().get_window_extent()
                 txtw = np.diff(p.transData.inverted().transform(bb),
                                axis=0).ravel()[0]
-                xm = np.mean([xl, xr]) - txtw / 2.
-                xn = np.mean([xl, xr]) + txtw / 2.
-                hline = [((xl, xm), (yh, yh)), ((xn, xr), (yh, yh))]
+                _m = _c - txtw / 2.
+                _n = _c + txtw / 2.
+                tline = [((_l, _m), (_t, _t)), ((_n, _r), (_t, _t))]
             else:
-                hline = [((xl, xr), (yh, yh))]
-            for x, y in [lline, rline] + hline:
+                tline = [((_l, _r), (_t, _t))]
+            for x, y in [lline, rline] + tline:
                 p.plot(x, y, **bracket_kwargs)
             # boost ymax if needed
             ybnd = p.get_ybound()
-            if ybnd[-1] < yh + txth:
-                p.set_ybound(ybnd[0], yh + txth)
+            if ybnd[-1] < _t + txth:
+                p.set_ybound(ybnd[0], _t + txth)
     # annotation
     box_off(p)
     p.tick_params(axis='x', length=0, pad=12)
