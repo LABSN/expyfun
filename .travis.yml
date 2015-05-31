@@ -7,7 +7,6 @@ env:
     - PYTHON=2.7 DEPS=full TEST=standard
     - PYTHON=2.7 DEPS=minimal TEST=standard
     - PYTHON=3.4 DEPS=full TEST=standard _EXPYFUN_SILENT=true
-    - PYTHON=3.4 DEPS=minimal TEST=extra
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
 
 virtualenv:
@@ -16,13 +15,12 @@ virtualenv:
 before_install:
     # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
     # Only use Pulseaudio on 2.7 because on Travis 3.4 causes some strange error...
-    # Only do coverage on 2.7 b/c it's slow on Py3k
+    - SRC_DIR=${PWD}
     - travis_retry sudo apt-get update -qq
     - if [ "${PYTHON}" == "2.7" ]; then
         travis_retry sudo apt-get install -qq -y pulseaudio python-nose python-coverage python-scipy python-matplotlib python-setuptools;
         dbus-launch pulseaudio --start;
         travis_retry sudo pip install -q coveralls;
-        COVERAGE=--with-coverage;
       else
         wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
@@ -33,23 +31,15 @@ before_install:
         source activate testenv;
         conda install --yes scipy matplotlib nose coverage setuptools;
         travis_retry pip install -q coveralls;
-        COVERAGE=;
       fi;
-    - python --version
     # Only install these deps if necessary (slow on Py3k)
-    - if [ "${TEST}" == "extra" ]; then
-        travis_retry pip install -q flake8;
+    - travis_retry pip install -q nose-timer flake8;
+    - if [ "${PYTHON}" == "3.4" ]; then
+        travis_retry pip install -q pyglet;
       else
-        travis_retry pip install -q nose-timer;
-        if [ "${PYTHON}" == "3.4" ]; then
-          travis_retry pip install -q pyglet;
-        else
-          travis_retry pip install -q http://bitbucket.org/pyglet/pyglet/get/tip.zip;
-        fi;
+        travis_retry pip install -q http://bitbucket.org/pyglet/pyglet/get/tip.zip;
       fi;
     # Full dependencies (pandas, mne-python, h5py, joblib)
-    - SRC_DIR=${PWD}
-    - cd ~
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
           sudo apt-get install -qq -y python-pandas python-h5py python-joblib;
@@ -66,20 +56,15 @@ before_install:
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
 
 install:
-    - cd ${SRC_DIR}
-    - if [ "${TEST}" != "extra" ]; then
-        python setup.py install;
-      fi;
+    - python setup.py develop
 
 script:
-    - if [ "${TEST}" == "extra" ]; then
-        make flake;
-      else
-        nosetests --with-timer --timer-top-n=5 $COVERAGE --verbosity=2;
-      fi;
+    - nosetests --with-timer --timer-top-n=5 --verbosity=2 --with-coverage expyfun
+    - make flake
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
-    - if [ "${PYTHON}" == "2.7" ]; then
-        coveralls;
-      fi;
+    - cd ${SRC_DIR}
+    - which coveralls
+    - ls -al
+    - coveralls

@@ -11,7 +11,7 @@ def test_ascii():
         src = op.abspath(op.join(src, '..', 'doc'))
     assert op.isdir(src)
     matches = []
-    types = ('*.py', '*.rst', '*.txt', '*.cfg', '*.html')
+    types = ('*.py', '*.rst', '*.txt', '*.cfg')
     for root, dirnames, filenames in os.walk(src):
         for ty in types:
             for filename in fnmatch.filter(filenames, ty):
