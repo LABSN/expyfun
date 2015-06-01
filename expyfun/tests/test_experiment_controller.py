@@ -132,6 +132,23 @@ def test_ec(ac=None, rd=None):
         assert_raises(ValueError, ExperimentController, *std_args,
                       audio_controller=dict(TYPE='foo'), stim_fs=44100,
                       **std_kwargs)
+        # monitor, etc.
+        assert_raises(TypeError, ExperimentController, *std_args,
+                      monitor='foo', **std_kwargs)
+        assert_raises(KeyError, ExperimentController, *std_args,
+                      monitor=dict(), **std_kwargs)
+        assert_raises(ValueError, ExperimentController, *std_args,
+                      response_device='foo', **std_kwargs)
+        std_kwargs.update(window_size=10.)
+        assert_raises(ValueError, ExperimentController, *std_args,
+                      **std_kwargs)
+        std_kwargs.update(window_size=(1, 1))
+        assert_raises(ValueError, ExperimentController, *std_args,
+                      audio_controller='pyglet', response_device='tdt',
+                      **std_kwargs)
+        assert_raises(ValueError, ExperimentController, *std_args,
+                      audio_controller='pyglet', response_device='keyboard',
+                      trigger_controller='tdt', **std_kwargs)
 
         # test type checking for 'session'
         std_kwargs['session'] = 1
@@ -161,6 +178,14 @@ def test_ec(ac=None, rd=None):
         this_rd = rd
         this_tc = ac
         this_fs = get_tdt_rates()['25k']
+    with warnings.catch_warnings(record=True) as w:
+        for suppress in (True, False):
+            with ExperimentController(*std_args, audio_controller=this_ac,
+                                      response_device=this_rd,
+                                      trigger_controller=this_tc,
+                                      stim_fs=100., suppress_resamp=suppress,
+                                      **std_kwargs) as ec:
+                pass
     warnings.simplefilter('ignore')  # ignore dummy TDT warning
     with ExperimentController(*std_args, audio_controller=this_ac,
                               response_device=this_rd,
@@ -233,6 +258,8 @@ def test_ec(ac=None, rd=None):
             assert_equal(len(w), 3)
 
         ec.stop()
+        ec.set_visible()
+        ec.set_visible(False)
         ec.call_on_every_flip(dummy_print, 'called start stimuli')
 
         #
@@ -267,7 +294,7 @@ def test_ec(ac=None, rd=None):
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
         ec.stop()
 
-        ec.flip()
+        ec.flip(-np.inf)
         ec.estimate_screen_fs()
         ec.play()
         ec.call_on_every_flip(None)
@@ -304,10 +331,13 @@ def test_ec(ac=None, rd=None):
 def test_button_presses_and_window_size():
     """Test EC window_size=None and button press capture
     """
+    warnings.simplefilter('ignore')  # esc as quit key
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
-                              participant='foo', session='01') as ec:
+                              participant='foo', session='01',
+                              force_quit='escape') as ec:
+        warnings.simplefilter('always')
         fake_button_press(ec, '1', 0.3)
         assert_equal(ec.screen_prompt('press 1', live_keys=['1'],
                                       max_wait=1.5), '1')
@@ -332,6 +362,7 @@ def test_mouse_clicks():
         fake_mouse_click(ec, [1, 2], delay=0.3)
         assert_equal(ec.wait_for_click_on(rect, 1.5, timestamp=False)[0],
                      ('left', 1, 2))
+        assert_raises(TypeError, ec.wait_for_click_on, (rect, rect), 1.5)
         fake_mouse_click(ec, [2, 1], 'middle', delay=0.3)
         out = ec.wait_one_click(1.5, 0., ['middle'], timestamp=True)
         assert_true(out[3] < 1.5)
