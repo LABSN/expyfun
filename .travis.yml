@@ -59,7 +59,7 @@ install:
     - python setup.py develop
 
 script:
-    - nosetests --with-timer --timer-top-n=5 --verbosity=2 --with-coverage expyfun
+    - nosetests --with-timer --timer-top-n=5 --verbosity=2 --with-coverage
     - make flake
 
 after_success:
