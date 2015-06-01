@@ -31,12 +31,32 @@ def test_barplot():
     """
     import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
-    ea.barplot(2, err_bars=0.2)  # 0-dim
-    tmp = np.ones(4) + rng.rand(4)  # 1-dim
+    # TESTS THAT SHOULD FAIL
+    tmp = np.ones(4) + rng.rand(4)
     err = 0.1 + tmp / 5.
+    # too many data dimensions:
+    assert_raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
+    # gap_size > 1:
+    assert_raises(ValueError, ea.barplot, tmp, gap_size=1.1)
+    # shape mismatch between data & error bars:
+    assert_raises(ValueError, ea.barplot, tmp, err_bars=np.arange(3))
+    # bad err_bar string:
+    assert_raises(ValueError, ea.barplot, tmp, err_bars='foo')
+    # cannot calculate 'sd' error bars with only 1 value per bar:
+    assert_raises(ValueError, ea.barplot, tmp, err_bars='sd')
+    # mismatched lengths of brackets & bracket_text:
+    assert_raises(ValueError, ea.barplot, tmp, brackets=[(0, 1)],
+                  bracket_text=['foo', 'bar'])
+    # bad bracket spec:
+    assert_raises(ValueError, ea.barplot, tmp, brackets=[(1,)],
+                  bracket_text=['foo'])
+
+    # TEST WITH SINGLE DATA POINT & SINGLE ERROR BAR SPEC.
+    ea.barplot(2, err_bars=0.2)
+    # TESTS WITH ONE DATA POINT PER BAR & USER-SPECIFIED ERROR BAR RANGES
     _, axs = plt.subplots(1, 5, sharey=False)
     ea.barplot(tmp, err_bars=err, brackets=([2, 3], [0, 1]), ax=axs[0],
-               bracket_text=['foo', 'bar'])
+               bracket_text=['foo', 'bar'], bracket_inline=True)
     ea.barplot(tmp, err_bars=err, brackets=((0, 2), (1, 3)), ax=axs[1],
                bracket_text=['foo', 'bar'])
     ea.barplot(tmp, err_bars=err, brackets=[[2, 1], [0, 3]], ax=axs[2],
@@ -49,12 +69,7 @@ def test_barplot():
                brackets=[(0, 1), (1, 2), ([0, 1, 2], 3)],
                bracket_text=['foo', 'bar', 'baz'],
                bracket_group_lines=True)
-    assert_raises(ValueError, ea.barplot, tmp, err_bars=np.arange(3))
-    assert_raises(ValueError, ea.barplot, tmp, err_bars='sd')
-    assert_raises(ValueError, ea.barplot, tmp, brackets=[(0, 1)],
-                  bracket_text=['foo', 'bar'])
-    assert_raises(ValueError, ea.barplot, tmp, brackets=[(1,)],
-                  bracket_text=['foo'])
+    # TESTS WITH MULTIPLE DATA POINTS PER BAR & CALCULATED ERROR BAR RANGES
     tmp = (rng.randn(20) + np.arange(20)).reshape((5, 4))  # 2-dim
     _, axs = plt.subplots(1, 4, sharey=False)
     ea.barplot(tmp, lines=True, err_bars='sd', ax=axs[0], smart_defaults=False)
@@ -70,10 +85,8 @@ def test_barplot():
         with warnings.catch_warnings(record=True) as w:
             ea.barplot(tmp, groups=[[0, 1, 2], [3]], err_bars='sd', axis=0,
                        fname=fname)
+            plt.close()
         _check_warnings(w)
-    assert_raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
-    assert_raises(ValueError, ea.barplot, tmp, err_bars='foo')
-    assert_raises(ValueError, ea.barplot, tmp, gap_size=1.1)
 
 
 def test_plot_screen():
@@ -91,8 +104,8 @@ def test_format_pval():
     foo = ea.format_pval(1e-10, latex=False)
     bar = ea.format_pval(1e-10, scheme='ross')
     baz = ea.format_pval([0.2, 0.02])
-    fuu = ea.format_pval(0.002, scheme='stars')
+    qux = ea.format_pval(0.002, scheme='stars')
     assert_equal(foo, 'p < 10^-9')
     assert_equal(bar, '$p < 10^{{-9}}$')
     assert_equal(baz[0], '$n.s.$')
-    assert_equal(fuu, '${*}{*}$')
+    assert_equal(qux, '${*}{*}$')
