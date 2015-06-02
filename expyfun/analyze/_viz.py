@@ -368,7 +368,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             # raise apex a bit extra if prev bracket label centered on bar
             prev_label_pos = brk_c[_ix - 1] if _ix else -1
             label_bar_ix = np.where(np.isclose(bar_centers, prev_label_pos))[0]
-            if label_bar_ix in _brk:
+            if any(np.array_equal(label_bar_ix, x) for x in _brk):
                 apex[label_bar_ix] += txth
             elif any(_isg):
                 label_bar_less = np.where(bar_centers < prev_label_pos)[0]

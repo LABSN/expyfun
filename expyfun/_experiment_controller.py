@@ -1260,8 +1260,8 @@ class ExperimentController(object):
         if isinstance(objects, legal_types):
             objects = [objects]
         elif not isinstance(objects, list):
-            assert TypeError('objects must be a list or one of: %s' %
-                             str(legal_types))
+            raise TypeError('objects must be a list or one of: %s' %
+                            (legal_types,))
         return self._mouse_handler.wait_for_click_on(
             objects, max_wait, min_wait, live_buttons, timestamp, relative_to)
 
@@ -1881,19 +1881,17 @@ def get_keyboard_input(prompt, default=None, out_type=str, valid=None):
 def _get_dev_db(audio_controller):
     """Selects device-specific amplitude to ensure equivalence across devices.
     """
-    if audio_controller == 'RM1':
-        return 108  # this is approx w/ knob @ 12 o'clock (knob not detented)
-    elif audio_controller == 'RP2':
-        return 108
-    elif audio_controller == 'RZ6':
-        return 114
-    elif audio_controller == 'pyglet':
-        return 100  # TODO: this value not yet calibrated, may vary by system
-    elif audio_controller == 'dummy':  # only used for testing
-        return 90
-    else:
+    level = dict(
+        RM1=108.,  # this is approx w/ knob @ 12 o'clock (knob not detented)
+        RP2=108.,
+        RZ6=114.,
+        pyglet=100.,  # TODO: this value not yet calibrated, may vary by system
+        dummy=90.,  # only used for testing
+    ).get(audio_controller, None)
+    if level is None:
         logger.warning('Expyfun: Unknown audio controller: stim scaler may '
                        'not work correctly. You may want to remove your '
                        'headphones if this is the first run of your '
                        'experiment.')
-        return 90  # for untested TDT models
+        level = 90  # for untested TDT models
+    return level
