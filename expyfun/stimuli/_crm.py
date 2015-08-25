@@ -9,14 +9,14 @@ import scipy.signal as sig
 import expyfun.visual as vis
 
 fs_binary = 40e3
-sexes = {
+_sexes = {
     'male': 0,
     'female': 1,
     'm': 0,
     'f': 1,
     0: 0,
     1: 1}
-talker_nums = {
+_talker_nums = {
     '0': 0,
     '1': 1,
     '2': 2,
@@ -25,7 +25,7 @@ talker_nums = {
     1: 1,
     2: 2,
     3: 3}
-callsigns = {
+_callsigns = {
     'charlie': 0,
     'ringo': 1,
     'laker': 2,
@@ -50,7 +50,7 @@ callsigns = {
     5: 5,
     6: 6,
     7: 7}
-colors = {
+_colors = {
     'blue': 0,
     'red': 1,
     'white': 2,
@@ -63,7 +63,7 @@ colors = {
     1: 1,
     2: 2,
     3: 3}
-numbers = {
+_numbers = {
     'one': 0,
     'two': 1,
     'three': 2,
@@ -100,11 +100,11 @@ n_numbers = 8
 # Read a raw binary CRM file
 def read_binary(path, sex, talker_num, callsign, color, number,
                 ramp_dur=0.01):
-    talker = 4 * sexes[sex] + talker_nums[talker_num]
+    talker = 4 * _sexes[sex] + _talker_nums[talker_num]
     fn = join(path, 'Talker %i' % talker,
-              '%02i%02i%02i.BIN' % (callsigns[callsign],
-                                    colors[color],
-                                    numbers[number]))
+              '%02i%02i%02i.BIN' % (_callsigns[callsign],
+                                    _colors[color],
+                                    _numbers[number]))
     x = np.fromfile(fn, dtype='<i2') / 16384.
     if ramp_dur:
         return stim.window_edges(x, fs_binary, dur=ramp_dur)
@@ -157,8 +157,8 @@ def pad_zeros(stims, axis=-1, alignment='start', return_array=True):
 
 
 # Read in a binary CRM file and write out a scaled resampled wav
-def prepare_stim(path, sex, tal, cal, col, num, fs_out, fs_binary,
-                 rms_binary, ref_rms=0.01):
+def _prepare_stim(path, sex, tal, cal, col, num, fs_out, fs_binary,
+                  rms_binary, ref_rms=0.01):
     x = read_binary(path, sex, tal, cal, col, num, 0)
     fn = '%i%i%i%i%i.wav' % (sex, tal, cal, col, num)
     x = sig.resample(x, int((len(x) * fs_out) / fs_binary))
@@ -168,7 +168,7 @@ def prepare_stim(path, sex, tal, cal, col, num, fs_out, fs_binary,
 
 
 # Prepare the CRM corpus for a given sampling rate and convert to wav files
-def prepare_corpus(path_binary, path_out, fs, overwrite=False, verbose=True):
+def _prepare_corpus(path_binary, path_out, fs, overwrite=False, verbose=True):
     path_out_fs = join(path_out, str(int(fs)))
     rms_binary = get_rms_binary(path_binary)
     from joblib import Parallel, delayed, cpu_count
@@ -194,7 +194,7 @@ def prepare_corpus(path_binary, path_out, fs, overwrite=False, verbose=True):
             for cal in range(n_callsigns):
                 if verbose:
                     print(cal),
-                Parallel(n_jobs=n_jobs)(delayed(prepare_stim)
+                Parallel(n_jobs=n_jobs)(delayed(_prepare_stim)
                                         (path_out_fs, sex, tal, cal,
                                          col, num, fs, fs_binary, rms_binary)
                                         for col, num in cn)
@@ -210,9 +210,9 @@ def crm_sentence(path, fs, sex, talker_num, callsign, color, number,
     if not os.path.isdir(path):
         raise(RuntimeError('prepare_corpus() has not yet been run '
                            'for sampling rate of %i' % fs))
-    fn = join(path, '%i%i%i%i%i.wav' % (sexes[sex], talker_nums[talker_num],
-                                        callsigns[callsign],
-                                        colors[color], numbers[number]))
+    fn = join(path, '%i%i%i%i%i.wav' % (_sexes[sex], _talker_nums[talker_num],
+                                        _callsigns[callsign],
+                                        _colors[color], _numbers[number]))
     x = stim.read_wav(fn, verbose=False)[0][0]
     if ramp_dur:
         x = stim.window_edges(x, fs_binary, dur=ramp_dur)
@@ -221,7 +221,6 @@ def crm_sentence(path, fs, sex, talker_num, callsign, color, number,
     return x
 
 
-# Return lists of the relevant stimulus options
 def crm_info():
     '''
     Returns lists of options for: sex, talker number, callsign, color, number.
@@ -236,9 +235,9 @@ def crm_info():
     return sex, tal, cal, col, num
 
 
-def response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
-                  colors=['blue', 'red', 'white', 'green'],
-                  min_wait=0.0, max_wait=np.inf):
+def crm_response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
+                      colors=['blue', 'red', 'white', 'green'],
+                      min_wait=0.0, max_wait=np.inf):
     # Set it all up
     mouse_cursor = ec.window._mouse_cursor
     cursor = ec.window.get_system_mouse_cursor(ec.window.CURSOR_HAND)
