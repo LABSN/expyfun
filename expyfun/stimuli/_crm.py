@@ -5,10 +5,12 @@
 import os
 from os.path import join
 import numpy as np
-import scipy.signal as sig
+from ._filter import _resample
 import expyfun.visual as vis
+from ._stimuli import window_edges, rms
+from ..io import read_wav, write_wav
 
-fs_binary = 40e3
+_fs_binary = 40e3
 _sexes = {
     'male': 0,
     'female': 1,
@@ -89,12 +91,11 @@ _numbers = {
     6: 6,
     7: 7}
 
-import expyfun.stimuli as stim
-n_sex = 2
-n_talkers = 4
-n_callsigns = 8
-n_colors = 4
-n_numbers = 8
+_n_sex = 2
+_n_talkers = 4
+_n_callsigns = 8
+_n_colors = 4
+_n_numbers = 8
 
 
 # Read a raw binary CRM file
@@ -107,25 +108,27 @@ def read_binary(path, sex, talker_num, callsign, color, number,
                                     _numbers[number]))
     x = np.fromfile(fn, dtype='<i2') / 16384.
     if ramp_dur:
-        return stim.window_edges(x, fs_binary, dur=ramp_dur)
+        return window_edges(x, _fs_binary, dur=ramp_dur)
     else:
         return x
 
 
-# Get the averagr RMS of the CRM corpus (in raw binary)
-def get_rms_binary(path):
-    return np.mean([stim.rms(x) for x in
+def _get_rms_binary(path):
+    """Get the average RMS of the CRM corpus (in raw binary)
+    """
+    return np.mean([rms(x) for x in
                     [read_binary(path, sex, tal, cal,
                                  col, num, ramp_dur=0)
-                     for sex in range(n_sex)
-                     for tal in range(n_talkers)
-                     for cal in range(n_callsigns)
-                     for col in range(n_colors)
-                     for num in range(n_numbers)]])
+                     for sex in range(_n_sex)
+                     for tal in range(_n_talkers)
+                     for cal in range(_n_callsigns)
+                     for col in range(_n_colors)
+                     for num in range(_n_numbers)]])
 
 
-# Add zeros to make a list of arrays the same length along a given axis
-def pad_zeros(stims, axis=-1, alignment='start', return_array=True):
+def _pad_zeros(stims, axis=-1, alignment='start', return_array=True):
+    """Add zeros to make a list of arrays the same length along a given axis
+    """
     if not np.all(np.array([s.ndim for s in stims]) == stims[0].ndim):
         raise(ValueError('All arrays must have the same number of dimensions'))
     lens = np.array([s.shape[axis] for s in stims])
@@ -156,21 +159,22 @@ def pad_zeros(stims, axis=-1, alignment='start', return_array=True):
         return stims
 
 
-# Read in a binary CRM file and write out a scaled resampled wav
 def _prepare_stim(path, sex, tal, cal, col, num, fs_out, fs_binary,
                   rms_binary, ref_rms=0.01):
+    """Read in a binary CRM file and write out a scaled resampled wav
+    """
     x = read_binary(path, sex, tal, cal, col, num, 0)
     fn = '%i%i%i%i%i.wav' % (sex, tal, cal, col, num)
-    x = sig.resample(x, int((len(x) * fs_out) / fs_binary))
+    x = _resample(x, int((len(x) * fs_out) / fs_binary))
     x *= ref_rms / rms_binary
-    stim.write_wav(join(path, fn), x, fs_out,
-                   overwrite=True, verbose=False)
+    write_wav(join(path, fn), x, fs_out, overwrite=True, verbose=False)
 
 
-# Prepare the CRM corpus for a given sampling rate and convert to wav files
 def _prepare_corpus(path_binary, path_out, fs, overwrite=False, verbose=True):
+    """Prepare the CRM corpus for a given sampling rate and convert to wav
+    """
     path_out_fs = join(path_out, str(int(fs)))
-    rms_binary = get_rms_binary(path_binary)
+    rms_binary = _get_rms_binary(path_binary)
     from joblib import Parallel, delayed, cpu_count
     n_jobs = cpu_count() - 1
 
@@ -180,27 +184,28 @@ def _prepare_corpus(path_binary, path_out, fs, overwrite=False, verbose=True):
         os.makedirs(path_out_fs)
     elif not overwrite:
         raise(RuntimeError('Directory already exists and overwrite=False'))
-    cn = [[c, n] for c in range(n_colors) for n in range(n_numbers)]
+    cn = [[c, n] for c in range(_n_colors) for n in range(_n_numbers)]
 
     from time import time
     start_time = time()
-    for sex in range(n_sex):
+    for sex in range(_n_sex):
         if verbose:
             print('Preparing sex %i.' % sex)
-        for tal in range(n_talkers):
+        for tal in range(_n_talkers):
             if verbose:
                 print('    Preparing talker %i.' % tal)
                 print('        Preparing callsign'),
-            for cal in range(n_callsigns):
+            for cal in range(_n_callsigns):
                 if verbose:
                     print(cal),
                 Parallel(n_jobs=n_jobs)(delayed(_prepare_stim)
                                         (path_out_fs, sex, tal, cal,
-                                         col, num, fs, fs_binary, rms_binary)
+                                         col, num, fs, _fs_binary, rms_binary)
                                         for col, num in cn)
             if verbose:
                 print('')
-    print('Finished in %i minutes' % ((time() - start_time) / 60.))
+    if verbose:
+        print('Finished in %i minutes' % ((time() - start_time) / 60.))
 
 
 # Read a CRM wav file that has been prepared for use with expyfun
@@ -213,9 +218,9 @@ def crm_sentence(path, fs, sex, talker_num, callsign, color, number,
     fn = join(path, '%i%i%i%i%i.wav' % (_sexes[sex], _talker_nums[talker_num],
                                         _callsigns[callsign],
                                         _colors[color], _numbers[number]))
-    x = stim.read_wav(fn, verbose=False)[0][0]
+    x = read_wav(fn, verbose=False)[0][0]
     if ramp_dur:
-        x = stim.window_edges(x, fs_binary, dur=ramp_dur)
+        x = window_edges(x, _fs_binary, dur=ramp_dur)
     if stereo:
         x = np.tile(x[np.newaxis, :], (2, 1))
     return x
