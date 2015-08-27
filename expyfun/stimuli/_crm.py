@@ -5,10 +5,17 @@
 import os
 from os.path import join
 import numpy as np
-from ._filter import _resample
+from ._filter import _resample as resample
 import expyfun.visual as vis
-from ._stimuli import window_edges, rms
+from ._stimuli import window_edges
 from ..io import read_wav, write_wav
+from fractions import Fraction
+from .._utils import fetch_data_file
+from zipfile import ZipFile
+from joblib import Parallel, delayed, cpu_count
+import struct
+
+#from scipy.signal import resample
 
 _fs_binary = 40e3
 _sexes = {
@@ -98,32 +105,26 @@ _n_colors = 4
 _n_numbers = 8
 
 
+def _read_talker_zip_file(sex, talker_num):
+    talker_num_raw = _n_talkers * _sexes[sex] + _talker_nums[talker_num]
+    fn = fetch_data_file('crm/Talker %i.zip' % talker_num_raw)
+    return ZipFile(fn)
+
+
 # Read a raw binary CRM file
-def read_binary(path, sex, talker_num, callsign, color, number,
-                ramp_dur=0.01):
-    talker = 4 * _sexes[sex] + _talker_nums[talker_num]
-    fn = join(path, 'Talker %i' % talker,
-              '%02i%02i%02i.BIN' % (_callsigns[callsign],
-                                    _colors[color],
-                                    _numbers[number]))
-    x = np.fromfile(fn, dtype='<i2') / 16384.
+def _read_binary(zip_file, callsign, color, number,
+                 ramp_dur=0.01):
+    talk_path = zip_file.filelist[0].orig_filename[:8]
+    raw = zip_file.read(join(talk_path, '%02i%02i%02i.BIN' % (
+        _callsigns[callsign], _colors[color], _numbers[number])))
+    x = np.zeros(len(raw) / 2)
+    for bi in np.arange(0, len(raw), 2, dtype=int):
+        x[bi / 2] = struct.unpack('<h', raw[bi:bi + 2])[0]
+    x /= 16384.
     if ramp_dur:
         return window_edges(x, _fs_binary, dur=ramp_dur)
     else:
         return x
-
-
-def _get_rms_binary(path):
-    """Get the average RMS of the CRM corpus (in raw binary)
-    """
-    return np.mean([rms(x) for x in
-                    [read_binary(path, sex, tal, cal,
-                                 col, num, ramp_dur=0)
-                     for sex in range(_n_sex)
-                     for tal in range(_n_talkers)
-                     for cal in range(_n_callsigns)
-                     for col in range(_n_colors)
-                     for num in range(_n_numbers)]])
 
 
 def _pad_zeros(stims, axis=-1, alignment='start', return_array=True):
@@ -159,25 +160,56 @@ def _pad_zeros(stims, axis=-1, alignment='start', return_array=True):
         return stims
 
 
-def _prepare_stim(path, sex, tal, cal, col, num, fs_out, fs_binary,
-                  rms_binary, ref_rms=0.01):
+def _prepare_stim(zip_file, path_out, sex, tal, cal, col, num, fs_out,
+                  fs_binary, rms_binary, ref_rms, n_jobs):
     """Read in a binary CRM file and write out a scaled resampled wav
     """
-    x = read_binary(path, sex, tal, cal, col, num, 0)
+    x = _read_binary(zip_file, cal, col, num, 0)
     fn = '%i%i%i%i%i.wav' % (sex, tal, cal, col, num)
-    x = _resample(x, int((len(x) * fs_out) / fs_binary))
+    #x = resample(x, int((len(x) * fs_out) / fs_binary))  # scipy
+    rat = Fraction(np.round(fs_out).astype(int),
+                   np.round(fs_binary).astype(int)).limit_denominator(500)
+    x = resample(x, rat.numerator, rat.denominator, n_jobs=n_jobs)
     x *= ref_rms / rms_binary
-    write_wav(join(path, fn), x, fs_out, overwrite=True, verbose=False)
+    write_wav(join(path_out, fn), x, fs_out, overwrite=True, verbose=False)
 
 
-def _prepare_corpus(path_binary, path_out, fs, overwrite=False, verbose=True):
+def crm_prepare_corpus(path_out, fs, ref_rms=0.01, talker_list=None,
+                       overwrite=False, n_jobs=None, verbose=True):
     """Prepare the CRM corpus for a given sampling rate and convert to wav
+
+    Parameters
+    ----------
+    path_out : str
+        The path to write the prepared CRM corpus.
+    fs : int
+        The sampling rate of the prepared corpus.
+    ref_rms : float
+        The baseline RMS value to normalize the stimuli. Default is 0.01.
+    talker_list : list of dicts | `None`
+        A list of dict objects specifying which talkers to prepare. The
+        elements of the dict must be `sex` and `talker_num`, with allowable
+        options for sex being `'male'`, `'female'`, `'m'`, `'f'`, or 0 or 1,
+        corresponding to male and female, respectively. Valid options for
+        `talker_num` are the integers 0 through 3 inclusive. If `None`, all
+        talkers of both sexes will be prepared.
+    overwrite : bool
+        Whether or not to overwrite the files that may already exist in
+        `path_out`.
+    n_jobs : int | `None`
+        Number of samples to remove after resampling. If `None` it will use
+        all available cores except for one.
+    verbose : bool
+        Whether or not to ouput status as stimuli are prepared.
     """
     path_out_fs = join(path_out, str(int(fs)))
-    rms_binary = _get_rms_binary(path_binary)
-    from joblib import Parallel, delayed, cpu_count
-    n_jobs = cpu_count() - 1
-
+    rms_binary = 0.099977227591239365  # this doesn't need to be recalculated
+    if n_jobs is None:
+        n_jobs = cpu_count() - 1
+    n_jobs = min([n_jobs, cpu_count()])
+    if talker_list is None:
+        talker_list = [dict(sex=s, talker_num=t) for s in range(_n_sex) for
+                       t in range(_n_talkers)]
     if not os.path.isdir(path_out):
         os.makedirs(path_out)
     if not os.path.isdir(path_out_fs):
@@ -192,20 +224,24 @@ def _prepare_corpus(path_binary, path_out, fs, overwrite=False, verbose=True):
         if verbose:
             print('Preparing sex %i.' % sex)
         for tal in range(_n_talkers):
-            if verbose:
-                print('    Preparing talker %i.' % tal)
-                print('        Preparing callsign'),
-            for cal in range(_n_callsigns):
+            if (dict(sex=_sexes[sex], talker_num=_talker_nums[tal]) in
+                    talker_list):
+                zf = _read_talker_zip_file(sex, tal)
                 if verbose:
-                    print(cal),
-                Parallel(n_jobs=n_jobs)(delayed(_prepare_stim)
-                                        (path_out_fs, sex, tal, cal,
-                                         col, num, fs, _fs_binary, rms_binary)
-                                        for col, num in cn)
-            if verbose:
-                print('')
+                    print('    Preparing talker %i.' % tal),
+                if n_jobs != 'cuda':
+                    Parallel(n_jobs=n_jobs)(delayed(_prepare_stim)(
+                        zf, path_out_fs, sex, tal, cal, col, num, fs,
+                        _fs_binary, rms_binary, ref_rms, n_jobs=1) for
+                        col, num in cn for cal in range(_n_callsigns))
+                else:
+                    for cal in range(_n_callsigns):
+                        for col, num in cn:
+                            pass
+                if verbose:
+                    print('')
     if verbose:
-        print('Finished in %i minutes' % ((time() - start_time) / 60.))
+        print('Finished in %i minutes.' % ((time() - start_time) / 60.))
 
 
 # Read a CRM wav file that has been prepared for use with expyfun

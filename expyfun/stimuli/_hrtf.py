@@ -77,7 +77,7 @@ def convolve_hrtf(data, fs, angle, source='barb'):
         The azimuthal angle of the HRTF.
     source : str
         Source to use for HRTFs. Currently `'barb'` and `'cipic'` are
-        supported. The former is default for legacy purpose. The latter is
+        supported. The former is default for legacy purpose. `'cipic'` is
         recommended for new experiments.
 
     Returns
@@ -96,7 +96,7 @@ def convolve_hrtf(data, fs, angle, source='barb'):
         http://earlab.bu.edu/databases/collections/cipic/documentation/hrir_data_documentation.pdf  # noqa
 
     The data were modified to suit our experimental needs. Below is the
-    liceneing information for the CIPIC data:
+    licensing information for the CIPIC data:
 
     **Copyright**
 
