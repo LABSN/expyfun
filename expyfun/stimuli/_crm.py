@@ -105,6 +105,26 @@ _n_colors = 4
 _n_numbers = 8
 
 
+def _check_parameter_value(param_dict, value, name):
+    if isinstance(value, str):
+        value = value.lower()
+    if value in param_dict.keys():
+        return param_dict[value]
+    else:
+        raise ValueError('{} is not a valid {}. Legal values are: {}'
+                         .format(value, name, sorted(param_dict.keys())))
+
+
+_check_sex = lambda value: _check_parameter_value(_sexes, value, 'sex')
+_check_talker_num = lambda value: _check_parameter_value(_talker_nums, value,
+                                                         'talker_num')
+_check_callsign = lambda value: _check_parameter_value(_callsigns, value,
+                                                       'callsign')
+_check_number = lambda value: _check_parameter_value(_numbers, value,
+                                                     'numbers')
+_check_color = lambda value: _check_parameter_value(_colors, value, 'color')
+
+
 def _read_talker_zip_file(sex, talker_num):
     talker_num_raw = _n_talkers * _sexes[sex] + _talker_nums[talker_num]
     fn = fetch_data_file('crm/Talker %i.zip' % talker_num_raw)
