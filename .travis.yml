@@ -35,7 +35,8 @@ before_install:
     # Only install these deps if necessary (slow on Py3k)
     - travis_retry pip install -q nose-timer flake8;
     - travis_retry pip install -q pyglet;
-    # Full dependencies (pandas, mne-python, h5py, joblib)
+    - travis_retry pip install -q mne;  # mne is a dependency now that resample is taken from it
+    # Full dependencies (pandas, mne-python, h5py, joblib, mne-python)
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
           sudo apt-get install -qq -y python-pandas python-h5py python-joblib;
@@ -43,7 +44,6 @@ before_install:
           conda install --yes --quiet pandas h5py;
           travis_retry pip install -q joblib;
         fi;
-        travis_retry pip install -q mne;
       fi;
     - sudo ldconfig;
     # We need to create a (fake) display on Travis, let's use a funny resolution
