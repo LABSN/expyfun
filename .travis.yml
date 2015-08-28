@@ -34,11 +34,7 @@ before_install:
       fi;
     # Only install these deps if necessary (slow on Py3k)
     - travis_retry pip install -q nose-timer flake8;
-    - if [ "${PYTHON}" == "3.4" ]; then
-        travis_retry pip install -q pyglet;
-      else
-        travis_retry pip install -q http://bitbucket.org/pyglet/pyglet/get/tip.zip;
-      fi;
+    - travis_retry pip install -q pyglet;
     # Full dependencies (pandas, mne-python, h5py, joblib)
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
