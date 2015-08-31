@@ -35,7 +35,7 @@ before_install:
     # Only install these deps if necessary (slow on Py3k)
     - travis_retry pip install -q nose-timer flake8;
     - travis_retry pip install -q pyglet mne;  # mne is a dependency now that resample is taken from it
-    # Full dependencies (pandas, mne-python, h5py, joblib, mne-python)
+    # Full dependencies (pandas, mne-python, h5py, joblib)
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
           sudo apt-get install -qq -y python-pandas python-h5py python-joblib;
