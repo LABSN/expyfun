@@ -3,13 +3,8 @@
 """
 
 import numpy as np
-from scipy.fftpack import ifft, fft, ifftshift, fftfreq
-from scipy.signal import get_window
-import warnings
 from distutils.version import LooseVersion
 from mne.filter import resample as _resample
-
-from .._parallel import parallel_func, _check_n_jobs
 
 
 def _smart_pad(x, n_pad):
