@@ -32,12 +32,12 @@ Requirements:
 - numpy/scipy/matplotlib
 - pyglet 1.2.0 or later
 - TDTpy (if using TDT on Windows)
+- mne-python (filtering/resampling -- with CUDA if mne dependencies installed)
 
 Optional:
 
 - pandas (some plotting functions)
 - joblib (parallel processing)
-- mne-python (CUDA filtering/resampling)
 - h5py (HDF5 write/read)
 
 System-level:
