@@ -34,8 +34,7 @@ before_install:
       fi;
     # Only install these deps if necessary (slow on Py3k)
     - travis_retry pip install -q nose-timer flake8;
-    - travis_retry pip install -q pyglet;
-    - travis_retry pip install -q mne;  # mne is a dependency now that resample is taken from it
+    - travis_retry pip install -q pyglet mne;  # mne is a dependency now that resample is taken from it
     # Full dependencies (pandas, mne-python, h5py, joblib, mne-python)
     - if [ "${DEPS}" == "full" ]; then
         if [ "${PYTHON}" == "2.7" ]; then
