@@ -47,6 +47,7 @@ Changelog
    - Improved ``barplot`` function, including better bracket collision avoidance and support for various p-value formatting schemes.
    - New codeblocks for finding pupil dilation impulse response.
    - Integration of HRTFs from CIPIC and BU databases for simulated spatial origins.
+   - ``read_hdf5`` and ``write_hdf5`` are now part of external module ``h5io``.
 
 API changes summary
 ~~~~~~~~~~~~~~~~~~~

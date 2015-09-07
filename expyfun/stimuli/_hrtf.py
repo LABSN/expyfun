@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from ..io import read_hdf5
+from .._externals.h5io import read_hdf5
 from ._filter import resample
 from .._utils import fetch_data_file, _fix_audio_dims
 
@@ -43,7 +43,7 @@ def _get_hrtf(angle, source, fs):
     unchanged.
     """
     fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
-    data = read_hdf5(fname)
+    data = read_hdf5(fname, 'expyfun')
     angles = data['angles']
     leftward = False
     read_angle = angle

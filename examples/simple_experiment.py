@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from expyfun import ExperimentController, get_keyboard_input, set_log_level
-from expyfun.io import read_hdf5
+from expyfun._externals.h5io import read_hdf5
 import expyfun.analyze as ea
 
 print(__doc__)

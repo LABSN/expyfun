@@ -16,7 +16,7 @@ from ._trigger_controllers import decimals_to_binary, binary_to_decimals
 from . import analyze
 from . import codeblocks
 from . import io
-from . import h5io
+from ._externals import h5io
 from . import stimuli
 
 # INIT LOGGING

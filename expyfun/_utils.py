@@ -281,13 +281,6 @@ def check_units(units):
                          ''.format(good_units, units))
 
 
-def _check_h5py():
-    """Helper to error if h5py is not found"""
-    if not has_h5py:
-        raise ImportError('h5py could not be imported')
-    return h5py
-
-
 ###############################################################################
 # DECORATORS
 
