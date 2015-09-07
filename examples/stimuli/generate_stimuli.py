@@ -11,8 +11,7 @@ from os import path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
-from expyfun.io import write_wav
-from expyfun._externals.h5io import write_hdf5
+from expyfun.io import write_wav, write_hdf5
 from expyfun.stimuli import play_sound
 
 print(__doc__)
@@ -92,7 +91,7 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
         wav_dict.update({'trial_order': trial_order, 'freqs': freqs, 'fs': fs,
                          'rms': rms})
         write_hdf5(op.join(output_dir, 'equally_spaced_sinewaves.hdf5'),
-                   wav_dict, overwrite=True, title='expyfun')
+                   wav_dict, overwrite=True)
     elif save_as == 'wav':
         for n in names:
             write_wav(op.join(output_dir, n + '.wav'), wav_dict[n], int(fs))

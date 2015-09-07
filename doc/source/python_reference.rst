@@ -78,19 +78,8 @@ Functions:
 
    read_tab
    read_wav
-   write_wav
-
-:py:mod:`expyfun._externals.h5io`
-
-.. currentmodule:: expyfun._externals.h5io
-
-Functions
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    read_hdf5
+   write_wav
    write_hdf5
 
 :py:mod:`expyfun.visual`:
