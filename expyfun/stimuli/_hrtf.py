@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from .._externals.h5io import read_hdf5
+from ..io import read_hdf5
 from ._filter import resample
 from .._utils import fetch_data_file, _fix_audio_dims
 
