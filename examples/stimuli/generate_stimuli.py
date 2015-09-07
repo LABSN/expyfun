@@ -11,7 +11,7 @@ from os import path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
-from expyfun.io import write_wav, write_hdf5
+from expyfun.io import write_hdf5, write_wav
 from expyfun.stimuli import play_sound
 
 print(__doc__)

@@ -76,11 +76,11 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   read_hdf5
    read_tab
    read_wav
-   read_hdf5
-   write_wav
    write_hdf5
+   write_wav
 
 :py:mod:`expyfun.visual`:
 
