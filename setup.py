@@ -88,7 +88,7 @@ def setup_package(script_args=None):
         packages=['expyfun', 'expyfun.tests',
                   'expyfun.analyze', 'expyfun.analyze.tests',
                   'expyfun.codeblocks',
-                  'expyfun._externals', 'expufun._externals.h5io'
+                  'expyfun._externals', 'expyfun._externals.h5io',
                   'expyfun.io', 'expyfun.io.tests',
                   'expyfun.stimuli', 'expyfun.stimuli.tests',
                   'expyfun.visual', 'expyfun.visual.tests'],
