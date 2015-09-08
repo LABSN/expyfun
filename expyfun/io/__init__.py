@@ -6,10 +6,35 @@ from ._parse import read_tab
 
 
 def read_hdf5(fname):
-    """..."""
+    """Read python object from HDF5 format using h5io/h5py
+
+    Parameters
+    ----------
+    fname : str
+        File to load.
+
+    Returns
+    -------
+    data : object
+        The loaded data. Can be of any type supported by ``write_hdf5``.
+    """
     return _read_hdf5(fname, title='expyfun')
 
 
 def write_hdf5(fname, data, overwrite=False, compression=4):
-    """..."""
+    """Write python object to HDF5 format using h5io/h5py
+
+    Parameters
+    ----------
+    fname : str
+        Filename to use.
+    data : object
+        Object to write. Can be of any of these types:
+            {ndarray, dict, list, tuple, int, float, str}
+        Note that dict objects must only have ``str`` keys.
+    overwrite : bool
+        If True, overwrite file (if it exists).
+    compression : int
+        Compression level to use (0-9) to compress data using gzip.
+    """
     return _write_hdf5(fname, data, overwrite, compression, title='expyfun')
