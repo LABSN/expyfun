@@ -43,7 +43,7 @@ def _get_hrtf(angle, source, fs):
     unchanged.
     """
     fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
-    data = read_hdf5(fname, 'expyfun')
+    data = read_hdf5(fname)
     angles = data['angles']
     leftward = False
     read_angle = angle
