@@ -176,15 +176,15 @@ class _Triangular(object):
         self._program = gl.glCreateProgram()
 
         vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
-        ptr = cast(pointer(pointer(create_string_buffer(tri_vert))),
-                   POINTER(POINTER(c_char)))
+        buf = create_string_buffer(tri_vert.encode('ASCII'))
+        ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
         gl.glShaderSource(vertex, 1, ptr, None)
         gl.glCompileShader(vertex)
         _check_log(vertex, gl.glGetShaderInfoLog)
 
         fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
-        ptr = cast(pointer(pointer(create_string_buffer(tri_frag))),
-                   POINTER(POINTER(c_char)))
+        buf = create_string_buffer(tri_frag.encode('ASCII'))
+        ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
         gl.glShaderSource(fragment, 1, ptr, None)
         gl.glCompileShader(fragment)
         _check_log(fragment, gl.glGetShaderInfoLog)
@@ -199,7 +199,7 @@ class _Triangular(object):
         gl.glUseProgram(self._program)
 
         # Prepare buffers and bind attributes
-        loc = gl.glGetUniformLocation(self._program, 'u_view')
+        loc = gl.glGetUniformLocation(self._program, b'u_view')
         view = ec.window_size_pix
         view = np.diag([2. / view[0], 2. / view[1], 1., 1.])
         view[-1, :2] = -1
@@ -318,11 +318,11 @@ class _Triangular(object):
                                   self._counts[kind], gl.GL_UNSIGNED_INT, 0)
                 gl.glBindBuffer(gl.GL_ARRAY_BUFFER,
                                 self._buffers[kind]['array'])
-                loc = gl.glGetAttribLocation(self._program, "a_position")
+                loc = gl.glGetAttribLocation(self._program, b'a_position')
                 gl.glEnableVertexAttribArray(loc)
                 gl.glVertexAttribPointer(loc, 2, gl.GL_FLOAT, gl.GL_FALSE,
                                          0, 0)
-                loc = gl.glGetUniformLocation(self._program, 'u_color')
+                loc = gl.glGetUniformLocation(self._program, b'u_color')
                 gl.glUniform4f(loc, *self._colors[kind])
                 cmd()
         gl.glUseProgram(0)
