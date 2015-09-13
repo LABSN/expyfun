@@ -421,9 +421,9 @@ class Mouse(object):
     def _point_in_tris(self, pos, obj):
         """Check to see if a point is in any of the triangles
         """
-        these_tris = obj._tris.reshape(-1, 3)
+        these_tris = obj._tris['fill'].reshape(-1, 3)
         for tri in these_tris:
-            if self._point_in_tri(pos, obj._points[tri]):
+            if self._point_in_tri(pos, obj._points['fill'][tri]):
                 return True
         return False
 

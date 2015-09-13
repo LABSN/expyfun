@@ -209,6 +209,8 @@ class _Triangular(object):
         self._counts = dict()
         self._colors = dict()
         self._buffers = dict()
+        self._points = dict()
+        self._tris = dict()
         for kind in ('line', 'fill'):
             self._counts[kind] = 0
             self._colors[kind] = (0., 0., 0., 0.)
@@ -235,24 +237,26 @@ class _Triangular(object):
             tris = np.asarray(tris, dtype=np.uint32, order='C')
             assert tris.ndim == 1 and tris.size % 3 == 0
             tris.shape = (-1, 3)
-            self._tris = tris
             assert (tris < len(points)).all()
-        self._points = points
-        del points, tris
+            self._tris[kind] = tris
+            del tris
+        self._points[kind] = points
+        del points
 
         gl.glUseProgram(self._program)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers[kind]['array'])
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, self._points.size * 4,
-                        self._points.tostring(),
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, self._points[kind].size * 4,
+                        self._points[kind].tostring(),
                         gl.GL_STATIC_DRAW)
         if kind == 'line':
             self._counts[kind] = array_count
         if kind == 'fill':
-            self._counts[kind] = self._tris.size
+            self._counts[kind] = self._tris[kind].size
             gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER,
                             self._buffers[kind]['index'])
             gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER,
-                            self._tris.size * 4, self._tris.tostring(),
+                            self._tris[kind].size * 4,
+                            self._tris[kind].tostring(),
                             gl.GL_STATIC_DRAW)
         gl.glUseProgram(0)
 
