@@ -7,6 +7,10 @@
 
 # make RawImage work
 
+from ctypes import (cast, pointer, POINTER, create_string_buffer, c_char,
+                    c_int, c_float)
+from functools import partial
+
 import numpy as np
 from matplotlib.colors import colorConverter
 
@@ -131,14 +135,132 @@ class Text(object):
 ##############################################################################
 # Triangulations
 
+tri_vert = """
+attribute vec2 a_position;
+uniform mat4 u_view;
+
+void main()
+{
+    gl_Position = u_view * vec4(a_position, 0.0, 1.0);
+}
+"""
+
+tri_frag = """
+uniform vec4 u_color;
+
+void main()
+{
+    gl_FragColor = u_color;
+}
+"""
+
+
+def _check_log(obj, func):
+    log = create_string_buffer(4096)
+    ptr = cast(pointer(log), POINTER(c_char))
+    func(obj, 4096, pointer(c_int()), ptr)
+    message = log.value
+    if message:
+        raise RuntimeError(message)
+
+
 class _Triangular(object):
     """Super class for objects that use trianglulations and/or lines"""
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
         self._ec = ec
-        self.set_fill_color(fill_color)
-        self.set_line_color(line_color)
         self._line_width = line_width
         self._line_loop = line_loop  # whether or not lines drawn are looped
+
+        # initialize program and shaders
+        from pyglet import gl
+        self._program = gl.glCreateProgram()
+
+        vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
+        ptr = cast(pointer(pointer(create_string_buffer(tri_vert))),
+                   POINTER(POINTER(c_char)))
+        gl.glShaderSource(vertex, 1, ptr, None)
+        gl.glCompileShader(vertex)
+        _check_log(vertex, gl.glGetShaderInfoLog)
+
+        fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
+        ptr = cast(pointer(pointer(create_string_buffer(tri_frag))),
+                   POINTER(POINTER(c_char)))
+        gl.glShaderSource(fragment, 1, ptr, None)
+        gl.glCompileShader(fragment)
+        _check_log(fragment, gl.glGetShaderInfoLog)
+
+        gl.glAttachShader(self._program, vertex)
+        gl.glAttachShader(self._program, fragment)
+        gl.glLinkProgram(self._program)
+        _check_log(self._program, gl.glGetProgramInfoLog)
+
+        gl.glDetachShader(self._program, vertex)
+        gl.glDetachShader(self._program, fragment)
+        gl.glUseProgram(self._program)
+
+        # Prepare buffers and bind attributes
+        loc = gl.glGetUniformLocation(self._program, 'u_view')
+        view = ec.window_size_pix
+        view = np.diag([2. / view[0], 2. / view[1], 1., 1.])
+        view[-1, :2] = -1
+        view = view.astype(np.float32).ravel()
+        gl.glUniformMatrix4fv(loc, 1, False, (c_float * 16)(*view))
+
+        self._counts = dict()
+        self._colors = dict()
+        self._buffers = dict()
+        for kind in ('line', 'fill'):
+            self._counts[kind] = 0
+            self._colors[kind] = (0., 0., 0., 0.)
+            self._buffers[kind] = dict(array=gl.GLuint())
+            gl.glGenBuffers(1, pointer(self._buffers[kind]['array']))
+        self._buffers['fill']['index'] = gl.GLuint()
+        gl.glGenBuffers(1, pointer(self._buffers['fill']['index']))
+        gl.glUseProgram(0)
+
+        self.set_fill_color(fill_color)
+        self.set_line_color(line_color)
+
+    def _set_points(self, points, kind, tris):
+        """Helper to set fill and line points"""
+        from pyglet import gl
+
+        if points is None:
+            self._counts[kind] = 0
+        points = np.asarray(points, dtype=np.float32, order='C')
+        assert points.ndim == 2 and points.shape[1] == 2
+        array_count = points.size // 2 if kind == 'line' else points.size
+        if kind == 'fill':
+            assert tris is not None
+            tris = np.asarray(tris, dtype=np.uint32, order='C')
+            assert tris.ndim == 1 and tris.size % 3 == 0
+            tris.shape = (-1, 3)
+            self._tris = tris
+            assert (tris < len(points)).all()
+        self._points = points
+        del points, tris
+
+        gl.glUseProgram(self._program)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers[kind]['array'])
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, self._points.size * 4,
+                        self._points.tostring(),
+                        gl.GL_STATIC_DRAW)
+        if kind == 'line':
+            self._counts[kind] = array_count
+        if kind == 'fill':
+            self._counts[kind] = self._tris.size
+            gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER,
+                            self._buffers[kind]['index'])
+            gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER,
+                            self._tris.size * 4, self._tris.tostring(),
+                            gl.GL_STATIC_DRAW)
+        gl.glUseProgram(0)
+
+    def _set_fill_points(self, points, tris):
+        self._set_points(points, 'fill', tris)
+
+    def _set_line_points(self, points):
+        self._set_points(points, 'line', None)
 
     def set_fill_color(self, fill_color):
         """Set the object color
@@ -148,7 +270,7 @@ class _Triangular(object):
         fill_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
-        self._fill_color = _convert_color(fill_color)
+        self._colors['fill'] = _convert_color(fill_color)
 
     def set_line_color(self, line_color):
         """Set the object color
@@ -158,7 +280,7 @@ class _Triangular(object):
         fill_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
-        self._line_color = _convert_color(line_color)
+        self._colors['line'] = _convert_color(line_color)
 
     def set_line_width(self, line_width):
         """Set the line width in pixels
@@ -176,27 +298,34 @@ class _Triangular(object):
 
     def draw(self):
         """Draw the object to the display buffer"""
-        import pyglet
         from pyglet import gl
-        if self._points is not None and self._fill_color is not None:
-            color = _replicate_color(self._fill_color, self._points)
-            pyglet.graphics.draw_indexed(len(self._points) // 2,
-                                         gl.GL_TRIANGLES,
-                                         self._tris,
-                                         ('v2f', self._points),
-                                         ('c4B', color))
-        if (self._line_points is not None and self._line_width > 0.0 and
-                self._line_color is not None):
-            color = _replicate_color(self._line_color, self._line_points)
-            gl.glLineWidth(self._line_width)
-            if self._line_loop:
-                gl_cmd = gl.GL_LINE_LOOP
-            else:
-                gl_cmd = gl.GL_LINE_STRIP
-            pyglet.graphics.draw(len(self._line_points) // 2,
-                                 gl_cmd,
-                                 ('v2f', self._line_points),
-                                 ('c4B', color))
+        gl.glUseProgram(self._program)
+        for kind in ('fill', 'line'):
+            if self._counts[kind] > 0:
+                if kind == 'line':
+                    if self._line_width <= 0.0:
+                        continue
+                    gl.glLineWidth(self._line_width)
+                    if self._line_loop:
+                        mode = gl.GL_LINE_LOOP
+                    else:
+                        mode = gl.GL_LINE_STRIP
+                    cmd = partial(gl.glDrawArrays, mode, 0, self._counts[kind])
+                else:
+                    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER,
+                                    self._buffers[kind]['index'])
+                    cmd = partial(gl.glDrawElements, gl.GL_TRIANGLES,
+                                  self._counts[kind], gl.GL_UNSIGNED_INT, 0)
+                gl.glBindBuffer(gl.GL_ARRAY_BUFFER,
+                                self._buffers[kind]['array'])
+                loc = gl.glGetAttribLocation(self._program, "a_position")
+                gl.glEnableVertexAttribArray(loc)
+                gl.glVertexAttribPointer(loc, 2, gl.GL_FLOAT, gl.GL_FALSE,
+                                         0, 0)
+                loc = gl.glGetUniformLocation(self._program, 'u_color')
+                gl.glUniform4f(loc, *self._colors[kind])
+                cmd()
+        gl.glUseProgram(0)
 
 
 class Line(_Triangular):
@@ -227,8 +356,6 @@ class Line(_Triangular):
                  line_width=1.0, line_loop=False):
         _Triangular.__init__(self, ec, fill_color=None, line_color=line_color,
                              line_width=line_width, line_loop=line_loop)
-        self._points = None
-        self._tris = None
         self.set_coords(coords, units)
         self.set_line_color(line_color)
 
@@ -248,8 +375,7 @@ class Line(_Triangular):
             raise ValueError('coords must be a vector of length 2, or an '
                              'array with 2 dimensions (with first dimension '
                              'having length 2')
-        coords = self._ec._convert_units(coords, units, 'pix')
-        self._line_points = coords.T.flatten()
+        self._set_line_points(self._ec._convert_units(coords, units, 'pix').T)
 
 
 class Triangle(_Triangular):
@@ -296,10 +422,10 @@ class Triangle(_Triangular):
         coords = np.array(coords, dtype=float)
         if coords.shape != (2, 3):
             raise ValueError('coords must be an array of size 2 x 3')
-        coords = self._ec._convert_units(coords, units, 'pix')
-        self._points = coords.T.flatten()
-        self._tris = np.array([0, 1, 2])
-        self._line_points = self._points
+        points = self._ec._convert_units(coords, units, 'pix')
+        points = points.T
+        self._set_fill_points(points, [0, 1, 2])
+        self._set_line_points(points)
 
 
 class Rectangle(_Triangular):
@@ -357,9 +483,9 @@ class Rectangle(_Triangular):
                            [w / 2., -h / 2.]]).T
         points += np.array(self._pos[:2])[:, np.newaxis]
         points = self._ec._convert_units(points, units, 'pix')
-        self._points = points.T.flatten()
-        self._tris = np.array([0, 1, 2, 0, 2, 3])
-        self._line_points = self._points  # all 4 points used for line drawing
+        points = points.T
+        self._set_fill_points(points, [0, 1, 2, 0, 2, 3])
+        self._set_line_points(points)  # all 4 points used for line drawing
 
 
 class Diamond(_Triangular):
@@ -417,9 +543,9 @@ class Diamond(_Triangular):
                            [0., -h / 2.]]).T
         points += np.array(self._pos[:2])[:, np.newaxis]
         points = self._ec._convert_units(points, units, 'pix')
-        self._points = points.T.flatten()
-        self._tris = np.array([0, 1, 2, 0, 2, 3])
-        self._line_points = self._points  # all 4 points used for line drawing
+        points = points.T
+        self._set_fill_points(points, [0, 1, 2, 0, 2, 3])
+        self._set_line_points(points)
 
 
 class Circle(_Triangular):
@@ -463,16 +589,16 @@ class Circle(_Triangular):
             raise ValueError('n_edges must be >= 4 for a reasonable circle')
         self._n_edges = n_edges
 
-        # need to set a dummy value here so recalculation doesn't fail
-        self._radius = np.array([1., 1.])
-        self.set_pos(pos, units)
-        self.set_radius(radius, units)
-
         # construct triangulation (never changes so long as n_edges is fixed)
         tris = [[0, ii + 1, ii + 2] for ii in range(n_edges)]
         tris = np.concatenate(tris)
         tris[-1] = 1  # fix wrap for last triangle
-        self._tris = tris
+        self._orig_tris = tris
+
+        # need to set a dummy value here so recalculation doesn't fail
+        self._radius = np.array([1., 1.])
+        self.set_pos(pos, units)
+        self.set_radius(radius, units)
 
     def set_radius(self, radius, units='norm'):
         """Set the position and radius of the circle
@@ -527,8 +653,9 @@ class Circle(_Triangular):
                            self._radius[1] * np.sin(arg)])
         points = np.c_[np.zeros((2, 1)), points]  # prepend the center
         points += np.array(self._pos[:2], dtype=float)[:, np.newaxis]
-        self._points = points.T.ravel()
-        self._line_points = self._points[2:]  # omit center point for lines
+        points = points.T
+        self._set_fill_points(points, self._orig_tris)
+        self._set_line_points(points[1:])  # omit center point for lines
 
 
 class ConcentricCircles(object):
