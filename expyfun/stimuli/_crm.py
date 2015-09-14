@@ -5,7 +5,7 @@
 import os
 from os.path import join
 import numpy as np
-from ._filter import _resample as resample
+from ..stimuli import resample
 import expyfun.visual as vis
 from ._stimuli import window_edges
 from ..io import read_wav, write_wav
@@ -189,7 +189,7 @@ def _prepare_stim(zip_file, path_out, sex, tal, cal, col, num, fs_out,
     #x = resample(x, int((len(x) * fs_out) / fs_binary))  # scipy
     rat = Fraction(np.round(fs_out).astype(int),
                    np.round(fs_binary).astype(int)).limit_denominator(500)
-    x = resample(x, rat.numerator, rat.denominator, n_jobs=n_jobs)
+    x = resample(x, rat.numerator, rat.denominator, n_jobs=n_jobs, verbose=0)
     x *= ref_rms / rms_binary
     write_wav(join(path_out, fn), x, fs_out, overwrite=True, verbose=False)
 
@@ -216,9 +216,9 @@ def crm_prepare_corpus(path_out, fs, ref_rms=0.01, talker_list=None,
     overwrite : bool
         Whether or not to overwrite the files that may already exist in
         `path_out`.
-    n_jobs : int | `None`
-        Number of samples to remove after resampling. If `None` it will use
-        all available cores except for one.
+    n_jobs : int | `'cuda'` | `None`
+        Number of cores to use. The fastest option, if enabled, is `'cuda'`.
+        If `None` it will use all available cores except for one.
     verbose : bool
         Whether or not to ouput status as stimuli are prepared.
     """
@@ -226,7 +226,8 @@ def crm_prepare_corpus(path_out, fs, ref_rms=0.01, talker_list=None,
     rms_binary = 0.099977227591239365  # this doesn't need to be recalculated
     if n_jobs is None:
         n_jobs = cpu_count() - 1
-    n_jobs = min([n_jobs, cpu_count()])
+    if n_jobs != 'cuda':
+        n_jobs = min([n_jobs, cpu_count()])
     if talker_list is None:
         talker_list = [dict(sex=s, talker_num=t) for s in range(_n_sex) for
                        t in range(_n_talkers)]
@@ -257,7 +258,9 @@ def crm_prepare_corpus(path_out, fs, ref_rms=0.01, talker_list=None,
                 else:
                     for cal in range(_n_callsigns):
                         for col, num in cn:
-                            pass
+                            _prepare_stim(zf, path_out_fs, sex, tal, cal, col,
+                                          num, fs, _fs_binary, rms_binary,
+                                          ref_rms, n_jobs='cuda')
                 if verbose:
                     print('')
     if verbose:
