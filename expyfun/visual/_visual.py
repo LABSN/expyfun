@@ -136,6 +136,8 @@ class Text(object):
 # Triangulations
 
 tri_vert = """
+#version 120
+
 attribute vec2 a_position;
 uniform mat4 u_view;
 
@@ -146,6 +148,8 @@ void main()
 """
 
 tri_frag = """
+#version 120
+
 uniform vec4 u_color;
 
 void main()
@@ -322,13 +326,18 @@ class _Triangular(object):
                                   self._counts[kind], gl.GL_UNSIGNED_INT, 0)
                 gl.glBindBuffer(gl.GL_ARRAY_BUFFER,
                                 self._buffers[kind]['array'])
-                loc = gl.glGetAttribLocation(self._program, b'a_position')
-                gl.glEnableVertexAttribArray(loc)
-                gl.glVertexAttribPointer(loc, 2, gl.GL_FLOAT, gl.GL_FALSE,
+                loc_pos = gl.glGetAttribLocation(self._program, b'a_position')
+                gl.glEnableVertexAttribArray(loc_pos)
+                gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE,
                                          0, 0)
-                loc = gl.glGetUniformLocation(self._program, b'u_color')
-                gl.glUniform4f(loc, *self._colors[kind])
+                loc_col = gl.glGetUniformLocation(self._program, b'u_color')
+                gl.glUniform4f(loc_col, *self._colors[kind])
                 cmd()
+                # The following line is probably only necessary because
+                # Pyglet makes some ossumptions about the GL state that
+                # it perhaps shouldn't. Without it, Text might not
+                # render properly (see #252)
+                gl.glDisableVertexAttribArray(loc_pos)
         gl.glUseProgram(0)
 
 

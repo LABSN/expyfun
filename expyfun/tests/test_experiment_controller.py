@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
 from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
-                            fake_mouse_click)
+                            fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
 
 warnings.simplefilter('always')
@@ -353,6 +353,7 @@ def test_button_presses_and_window_size():
 
 
 @_hide_window
+@requires_opengl21
 def test_mouse_clicks():
     """Test EC mouse click support
     """

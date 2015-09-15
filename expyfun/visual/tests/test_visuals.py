@@ -3,7 +3,7 @@ import numpy as np
 from nose.tools import assert_raises, assert_equal
 
 from expyfun import ExperimentController, visual
-from expyfun._utils import _hide_window
+from expyfun._utils import _hide_window, requires_opengl21
 
 warnings.simplefilter('always')
 
@@ -13,6 +13,7 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
 
 
 @_hide_window
+@requires_opengl21
 def test_visuals():
     """Test EC visual methods
     """
