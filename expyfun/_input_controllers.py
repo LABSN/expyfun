@@ -421,15 +421,11 @@ class Mouse(object):
     def _point_in_tris(self, pos, obj):
         """Check to see if a point is in any of the triangles
         """
-        found = False
-        index = 0
-        while index < len(obj._tris) and not found:
-            points = obj._tris[index:index + 3]
-            tri = np.array([[obj._points[2 * p], obj._points[2 * p + 1]] for
-                            p in points])
-            found = self._point_in_tri(pos, tri)
-            index += 3
-        return found
+        these_tris = obj._tris['fill'].reshape(-1, 3)
+        for tri in these_tris:
+            if self._point_in_tri(pos, obj._points['fill'][tri]):
+                return True
+        return False
 
     def _point_in_tri(self, pos, tri):
         """Check to see if a point is in a single triangle
