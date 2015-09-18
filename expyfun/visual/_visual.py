@@ -334,7 +334,7 @@ class _Triangular(object):
                 gl.glUniform4f(loc_col, *self._colors[kind])
                 cmd()
                 # The following line is probably only necessary because
-                # Pyglet makes some ossumptions about the GL state that
+                # Pyglet makes some assumptions about the GL state that
                 # it perhaps shouldn't. Without it, Text might not
                 # render properly (see #252)
                 gl.glDisableVertexAttribArray(loc_pos)
