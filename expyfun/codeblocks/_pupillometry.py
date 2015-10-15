@@ -202,9 +202,9 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     steady = np.sin(2 * np.pi * f0 * t)
     wobble = np.sin(np.cumsum(f0 + 100 * np.sin(2 * np.pi * (1 / stim_dur) * t)
                               ) / fs * 2 * np.pi)
-    tone_stim, targ_stim = (steady, wobble) if targ_is_fm else (wobble, steady)
-    tone_stim = window_edges(tone_stim * ec._stim_rms * np.sqrt(2), fs)
-    targ_stim = window_edges(targ_stim * ec._stim_rms * np.sqrt(2), fs)
+    std_stim, dev_stim = (steady, wobble) if targ_is_fm else (wobble, steady)
+    std_stim = window_edges(std_stim * ec._stim_rms * np.sqrt(2), fs)
+    dev_stim = window_edges(dev_stim * ec._stim_rms * np.sqrt(2), fs)
 
     #
     # Subject "Training"
@@ -223,7 +223,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
                   'of a "{0}".\n\nPress a button to hear the "{0}".'
                   ''.format(tonestr, targstr)),
                  ('Now press a button to hear the "{}".'.format(targstr))]
-        for text, stim in zip(notes, (tone_stim, targ_stim)):
+        for text, stim in zip(notes, (std_stim, dev_stim)):
             ec.screen_prompt(text)
             ec.load_buffer(stim)
             ec.wait_secs(0.5)
@@ -251,7 +251,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
             ec.flip()
             ec.wait_secs(10.0)  # let the pupil settle
         fix.draw()
-        ec.load_buffer(targ_stim if targ else tone_stim)
+        ec.load_buffer(dev_stim if targ else std_stim)
         ec.identify_trial(ec_id='TONE_{0}'.format(int(targ)),
                           el_id=[int(targ)], ttl_id=[int(targ)])
         flip_times.append(ec.start_stimulus())
