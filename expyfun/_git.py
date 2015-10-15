@@ -36,7 +36,7 @@ def _active_version(wd):
     return run_subprocess(['git', 'rev-parse', 'HEAD'], cwd=wd)[0][:7]
 
 
-def download_version(version='current', dest_dir=None):
+def download_version(version='current', dest_dir=None, fork='LABSN'):
     """Download specific expyfun version
 
     Parameters
@@ -48,6 +48,8 @@ def download_version(version='current', dest_dir=None):
     dest_dir : str | None
         Destination directory. If None, the current working
         directory is used.
+    fork : str
+        GitHub username of the expyfun fork to download from.
 
     Notes
     -----
@@ -67,7 +69,7 @@ def download_version(version='current', dest_dir=None):
     # fetch locally and get the proper version
     tempdir = _TempDir()
     expyfun_dir = op.join(tempdir, 'expyfun')  # git will auto-create this dir
-    repo_url = 'git://github.com/LABSN/expyfun.git'
+    repo_url = 'git://github.com/{}/expyfun.git'.format(fork)
     run_subprocess(['git', 'clone', repo_url, expyfun_dir])
     version = _active_version(expyfun_dir) if version == 'current' else version
     try:
@@ -92,8 +94,9 @@ def download_version(version='current', dest_dir=None):
         sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))
         os.chdir(orig_dir)
-    print('Successfully checked out expyfun version:\n\n%s\n\ninto '
-          'destination directory:\n\n%s\n' % (version, op.join(dest_dir)))
+    print('\n'.join(['Successfully checked out expyfun version:', version,
+                     'from the "{}" fork of expyfun'.format(fork),
+                     'into destination directory:', op.join(dest_dir)]))
 
 
 def assert_version(version):
