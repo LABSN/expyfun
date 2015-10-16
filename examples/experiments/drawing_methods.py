@@ -20,7 +20,7 @@ print(__doc__)
 
 with ExperimentController('test', session='1', participant='2',
                           full_screen=False, window_size=[600, 600],
-                          output_dir=None) as ec:
+                          output_dir=None, version='dev') as ec:
     ec.screen_text('hello')
 
     # make an image with  alpha the x-dimension (columns), RGB upward
