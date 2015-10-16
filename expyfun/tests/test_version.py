@@ -52,8 +52,8 @@ def test_integrated_version_checking():
     args = ['test']  # experiment name
     kwargs = dict(output_dir=tempdir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
-                  verbose=True)  # the very first commit
+                  verbose=True)
     assert_raises(RuntimeError, ExperimentController, *args, version=None,
                   **kwargs)
     assert_raises(AssertionError, ExperimentController, *args,
-                  version='59f3f5b', **kwargs)
+                  version='59f3f5b', **kwargs)  # the very first commit
