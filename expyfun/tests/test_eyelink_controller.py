@@ -9,7 +9,7 @@ warnings.simplefilter('always')
 std_args = ['test']
 temp_dir = _TempDir()
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
-                  participant='foo', session='01', noise_db=0)
+                  participant='foo', session='01', noise_db=0, version='dev')
 
 
 @_hide_window

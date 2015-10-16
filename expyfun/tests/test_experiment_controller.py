@@ -15,7 +15,7 @@ temp_dir = _TempDir()
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
-                  verbose=True)
+                  verbose=True, version='dev')
 
 
 def dummy_print(string):
@@ -85,17 +85,18 @@ def test_data_line():
     with open(fname) as fid:
         lines = fid.readlines()
     # check the header
-    assert_equal(len(lines), len(entries) + 3)
+    assert_equal(len(lines), len(entries) + 4)  # header, colnames, flip, stop
     assert_equal(lines[0][0], '#')  # first line is a comment
     for x in ['timestamp', 'event', 'value']:  # second line is col header
         assert_true(x in lines[1])
+    assert_true('flip' in lines[2])  # ec.__init__ ends with a flip
     assert_true('stop' in lines[-1])  # last line is stop (from __exit__)
     outs = lines[1].strip().split('\t')
     assert_true(all(l1 == l2 for l1, l2 in zip(outs, ['timestamp',
                                                       'event', 'value'])))
     # check the entries
     ts = []
-    for line, ent, gv in zip(lines[2:], entries, goal_vals):
+    for line, ent, gv in zip(lines[3:], entries, goal_vals):
         outs = line.strip().split('\t')
         assert_equal(len(outs), 3)
         # check timestamping
@@ -336,7 +337,7 @@ def test_button_presses_and_window_size():
                               response_device='keyboard', window_size=None,
                               output_dir=temp_dir, full_screen=False,
                               participant='foo', session='01',
-                              force_quit='escape') as ec:
+                              force_quit='escape', version='dev') as ec:
         warnings.simplefilter('always')
         fake_button_press(ec, '1', 0.3)
         assert_equal(ec.screen_prompt('press 1', live_keys=['1'],
@@ -358,7 +359,7 @@ def test_mouse_clicks():
     """Test EC mouse click support
     """
     with ExperimentController(*std_args, participant='foo', session='01',
-                              output_dir=temp_dir) as ec:
+                              output_dir=temp_dir, version='dev') as ec:
         rect = visual.Rectangle(ec, [0, 0, 2, 2])
         fake_mouse_click(ec, [1, 2], delay=0.3)
         assert_equal(ec.wait_for_click_on(rect, 1.5, timestamp=False)[0],

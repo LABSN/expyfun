@@ -11,7 +11,7 @@ temp_dir = _TempDir()
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
-                  verbose=True)
+                  verbose=True, version='dev')
 
 
 @_hide_window
