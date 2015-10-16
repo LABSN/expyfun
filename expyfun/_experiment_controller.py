@@ -27,6 +27,7 @@ from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .stimuli._filter import resample
 from .visual import Text, Rectangle, _convert_color
+from ._git import assert_version
 
 
 # Note: ec._trial_progress has three values:
@@ -100,6 +101,11 @@ class ExperimentController(object):
     suppress_resamp : bool
         If ``True``, will suppress resampling of stimuli to the sampling
         frequency of the sound output device.
+    version : str | None
+        A length-7 string passed to ``expyfun.assert_version()`` to ensure that
+        the expected version of the expyfun codebase is being used when running
+        experiments. To override version checking (e.g., during development)
+        use ``version='dev'``.
 
     Returns
     -------
@@ -118,7 +124,8 @@ class ExperimentController(object):
                  output_dir='data', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
-                 verbose=None, check_rms='windowed', suppress_resamp=False):
+                 verbose=None, check_rms='windowed', suppress_resamp=False,
+                 version=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -153,7 +160,13 @@ class ExperimentController(object):
                 logger.warning('Expyfun: using "escape" as a force-quit key '
                                'is not recommended because it has special '
                                'status in pyglet.')
-
+            # check expyfun version
+            if version is None:
+                raise RuntimeError('You must specify an expyfun version string'
+                                   ' to use ExperimentController, or specify '
+                                   'version=\'dev\' to override.')
+            elif version.lower() != 'dev':
+                assert_version(version)
             # set up timing
             # Use ZeroClock, which uses the "clock" fn but starts at zero
             self._time_corrections = dict()
@@ -372,6 +385,8 @@ class ExperimentController(object):
         except Exception:
             self.close()
             raise
+        # hack to prevent extra flips on first screen_prompt / screen_text
+        self.flip()
 
     def __repr__(self):
         """Return a useful string representation of the experiment

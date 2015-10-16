@@ -3,7 +3,8 @@ import os
 from os import path as op
 from nose.tools import assert_raises, assert_true, assert_equal
 
-from expyfun import assert_version, download_version, __version__
+from expyfun import (ExperimentController, assert_version, download_version,
+                     __version__)
 from expyfun._utils import _TempDir
 from expyfun._git import _has_git
 
@@ -43,3 +44,16 @@ def test_version():
             os.chdir(orig_dir)
         # make sure we can get latest version
         download_version(dest_dir=tempdir_2)
+
+
+def test_integrated_version_checking():
+    """Test EC version checking during init
+    """
+    args = ['test']  # experiment name
+    kwargs = dict(output_dir=tempdir, full_screen=False, window_size=(1, 1),
+                  participant='foo', session='01', stim_db=0.0, noise_db=0.0,
+                  verbose=True)
+    assert_raises(RuntimeError, ExperimentController, *args, version=None,
+                  **kwargs)
+    assert_raises(AssertionError, ExperimentController, *args,
+                  version='59f3f5b', **kwargs)  # the very first commit
