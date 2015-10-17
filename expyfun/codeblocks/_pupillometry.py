@@ -129,7 +129,7 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
 
 
 def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
-                                     verbose=None):
+                                     verbose=None, targ_is_fm=True):
     """Find pupil impulse response using responses to tones
 
     Parameters
@@ -146,6 +146,10 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
         If True, a standard prompt message will be displayed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
+    targ_is_fm : bool
+        If ``True`` then use frequency modulated tones as the target and
+        constant frequency tones as the non-target stimuli. Otherwise use
+        constant frequency tones are targets and fm tones as non-targets.
 
     Returns
     -------
@@ -194,13 +198,13 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     #
     fs = ec.stim_fs
     n_samp = int(fs * stim_dur)
-    freqs = np.ones(n_samp) * f0
     t = np.arange(n_samp).astype(float) / fs
-    tone_stim = np.sin(2 * np.pi * freqs * t)
-    freqs = 100 * np.sin(2 * np.pi * (1 / stim_dur) * t) + f0
-    sweep_stim = np.sin(2 * np.pi * np.cumsum(freqs) / fs)
-    tone_stim = window_edges(tone_stim * ec._stim_rms * np.sqrt(2), fs)
-    sweep_stim = window_edges(sweep_stim * ec._stim_rms * np.sqrt(2), fs)
+    steady = np.sin(2 * np.pi * f0 * t)
+    wobble = np.sin(np.cumsum(f0 + 100 * np.sin(2 * np.pi * (1 / stim_dur) * t)
+                              ) / fs * 2 * np.pi)
+    std_stim, dev_stim = (steady, wobble) if targ_is_fm else (wobble, steady)
+    std_stim = window_edges(std_stim * ec._stim_rms * np.sqrt(2), fs)
+    dev_stim = window_edges(dev_stim * ec._stim_rms * np.sqrt(2), fs)
 
     #
     # Subject "Training"
@@ -208,16 +212,18 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     ec.stop()
     ec.clear_buffer()
     ec.set_background_color(bgcolor)
+    targstr, tonestr = ('wobble', 'beep') if targ_is_fm else ('beep', 'wobble')
     instr = ('Remember to press the button as quickly as possible following '
-             'each "wobble" sound.\n\nPress the response button to '
-             'continue.')
+             'each "{}" sound.\n\nPress the response button to '
+             'continue.'.format(targstr))
     if prompt:
         notes = [('We will now determine the response of your pupil to sound '
                   'changes.\n\nYour job is to press the repsonse button '
-                  'as quickly as possible when you hear a "wobble" instead '
-                  'of a "beep".\n\nPress a button to hear the "beep".'),
-                 ('Now press a button to hear the "wobble".')]
-        for text, stim in zip(notes, (tone_stim, sweep_stim)):
+                  'as quickly as possible when you hear a "{1}" instead '
+                  'of a "{0}".\n\nPress a button to hear the "{0}".'
+                  ''.format(tonestr, targstr)),
+                 ('Now press a button to hear the "{}".'.format(targstr))]
+        for text, stim in zip(notes, (std_stim, dev_stim)):
             ec.screen_prompt(text)
             ec.load_buffer(stim)
             ec.wait_secs(0.5)
@@ -245,7 +251,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
             ec.flip()
             ec.wait_secs(10.0)  # let the pupil settle
         fix.draw()
-        ec.load_buffer(sweep_stim if targ else tone_stim)
+        ec.load_buffer(dev_stim if targ else std_stim)
         ec.identify_trial(ec_id='TONE_{0}'.format(int(targ)),
                           el_id=[int(targ)], ttl_id=[int(targ)])
         flip_times.append(ec.start_stimulus())
