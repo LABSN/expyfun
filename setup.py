@@ -44,16 +44,34 @@ def git_version():
             GIT_REVISION = out.decode('utf-8').strip()
         except OSError:
             GIT_REVISION = "Unknown"
+        try:
+            cmd = ['git', 'config', '--get', 'remote.origin.url']
+            out = _minimal_ext_cmd(cmd)
+            start_idx = 0
+            for prefix in ['git@github.com:', 'git://github.com/',
+                           'http://github.com/', 'https://github.com/',
+                           'ssh://git@github.com/']:
+                if out.startswith(prefix):
+                    start_idx = len(prefix)
+            if start_idx:
+                fork = out[start_idx:]
+                FORK = fork[:fork.index('/')]
+        except OSError:
+            FORK = 'Unknown'
     else:
         GIT_REVISION = "Unknown"
-    return GIT_REVISION[:7]
+        FORK = 'Unknown'
+    return (GIT_REVISION[:7], FORK)
 
-FULL_VERSION = VERSION + '+' + git_version()
+FULL_VERSION = VERSION + '+' + git_version()[0]
+FORK = git_version()[1]
 
 
-def write_version(version):
+def write_version(version, fork=None):
     with open(version_file, 'w') as fid:
         fid.write('__version__ = \'{0}\'\n'.format(version))
+        if fork is not None:
+            fid.write('__fork__ = \'{0}\'\n'.format(fork))
 
 
 def setup_package(script_args=None):
@@ -97,7 +115,7 @@ def setup_package(script_args=None):
     if script_args is not None:
         kwargs['script_args'] = script_args
     try:
-        write_version(FULL_VERSION)
+        write_version(FULL_VERSION, FORK)
         setup(**kwargs)
     finally:
         write_version(VERSION)
