@@ -86,7 +86,7 @@ def download_version(version='current', dest_dir=None, fork='LABSN'):
     orig_stdout = sys.stdout
     try:
         from setup import git_version, setup_package
-        assert git_version().lower() == version[:7].lower()
+        assert git_version()[0].lower() == version[:7].lower()
         sys.stdout = StringIO()
         with warnings.catch_warnings(record=True):  # PEP440
             setup_package(script_args=['build', '--build-purelib', dest_dir])
