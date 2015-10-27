@@ -54,24 +54,22 @@ def git_version():
                 if out.startswith(prefix):
                     start_idx = len(prefix)
             if start_idx:
-                fork = out[start_idx:]
-                FORK = fork[:fork.index('/')]
+                FORK = out[start_idx:out.rindex('/')]
         except OSError:
             FORK = 'Unknown'
     else:
         GIT_REVISION = "Unknown"
         FORK = 'Unknown'
-    return (GIT_REVISION[:7], FORK)
+    return [GIT_REVISION[:7], FORK]
 
 FULL_VERSION = VERSION + '+' + git_version()[0]
 FORK = git_version()[1]
 
 
-def write_version(version, fork=None):
+def write_version(version, fork='Unknown'):
     with open(version_file, 'w') as fid:
         fid.write('__version__ = \'{0}\'\n'.format(version))
-        if fork is not None:
-            fid.write('__fork__ = \'{0}\'\n'.format(fork))
+        fid.write('__fork__ = \'{0}\'\n'.format(fork))
 
 
 def setup_package(script_args=None):
@@ -118,7 +116,7 @@ def setup_package(script_args=None):
         write_version(FULL_VERSION, FORK)
         setup(**kwargs)
     finally:
-        write_version(VERSION)
+        write_version(VERSION, FORK)
 
 
 if __name__ == "__main__":
