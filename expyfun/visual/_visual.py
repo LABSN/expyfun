@@ -17,11 +17,13 @@ from matplotlib.colors import colorConverter
 from .._utils import check_units, string_types
 
 
-def _convert_color(color):
+def _convert_color(color, byte=True):
     """Convert 3- or 4-element color into OpenGL usable color"""
     color = (0., 0., 0., 0.) if color is None else color
     color = 255 * np.array(colorConverter.to_rgba(color))
     color = color.astype(np.uint8)
+    if not byte:
+        color = (color / 255.).astype(np.float32)
     return tuple(color)
 
 
@@ -278,7 +280,7 @@ class _Triangular(object):
         fill_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
-        self._colors['fill'] = _convert_color(fill_color)
+        self._colors['fill'] = _convert_color(fill_color, byte=False)
 
     def set_line_color(self, line_color):
         """Set the object color
@@ -288,7 +290,7 @@ class _Triangular(object):
         fill_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
-        self._colors['line'] = _convert_color(line_color)
+        self._colors['line'] = _convert_color(line_color, byte=False)
 
     def set_line_width(self, line_width):
         """Set the line width in pixels

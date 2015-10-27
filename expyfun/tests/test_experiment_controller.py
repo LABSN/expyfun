@@ -11,9 +11,8 @@ from expyfun.stimuli import get_tdt_rates
 
 warnings.simplefilter('always')
 
-temp_dir = _TempDir()
 std_args = ['test']  # experiment name
-std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
+std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
                   verbose=True, version='dev')
 
@@ -51,22 +50,6 @@ def test_unit_conversions():
 
 
 @_hide_window
-def test_no_output():
-    """Test EC with no output
-    """
-    old_val = std_kwargs['output_dir']
-    std_kwargs['output_dir'] = None
-    try:
-        with ExperimentController(*std_args, stim_fs=44100,
-                                  **std_kwargs) as ec:
-            ec.write_data_line('hello')
-    except:
-        raise
-    finally:
-        std_kwargs['output_dir'] = old_val
-
-
-@_hide_window
 def test_data_line():
     """Test writing of data lines
     """
@@ -77,8 +60,10 @@ def test_data_line():
     # this is what should be written to the file for each one
     goal_vals = ['None', 'bar\\tbar', 'bar\\\\tbar', 'None']
     assert_equal(len(entries), len(goal_vals))
-
-    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+    temp_dir = _TempDir()
+    these_kwargs = deepcopy(std_kwargs)
+    these_kwargs['output_dir'] = temp_dir
+    with ExperimentController(*std_args, stim_fs=44100, **these_kwargs) as ec:
         for ent in entries:
             ec.write_data_line(*ent)
         fname = ec._data_file.name
@@ -335,7 +320,7 @@ def test_button_presses_and_window_size():
     warnings.simplefilter('ignore')  # esc as quit key
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
-                              output_dir=temp_dir, full_screen=False,
+                              output_dir=None, full_screen=False,
                               participant='foo', session='01',
                               force_quit='escape', version='dev') as ec:
         warnings.simplefilter('always')
@@ -359,7 +344,7 @@ def test_mouse_clicks():
     """Test EC mouse click support
     """
     with ExperimentController(*std_args, participant='foo', session='01',
-                              output_dir=temp_dir, version='dev') as ec:
+                              output_dir=None, version='dev') as ec:
         rect = visual.Rectangle(ec, [0, 0, 2, 2])
         fake_mouse_click(ec, [1, 2], delay=0.3)
         assert_equal(ec.wait_for_click_on(rect, 1.5, timestamp=False)[0],
@@ -377,3 +362,29 @@ def test_mouse_clicks():
         assert_true(any(o == ('right', 4, 5) for o in out))
         out = ec.wait_for_clicks(0.1)
         assert_equal(len(out), 0)
+
+
+@_hide_window
+@requires_opengl21
+def test_background_color():
+    """Test setting background color"""
+    with ExperimentController(*std_args, participant='foo', session='01',
+                              output_dir=None, version='dev') as ec:
+        ec.set_background_color('red')
+        ec.screen_text('red', color='white')
+        ss = ec.screenshot()[:, :, :3]
+        white_mask = (ss == [255] * 3)
+        assert_true(white_mask.any())
+        red_mask = (ss == [255, 0, 0])
+        assert_true(red_mask.any())
+        assert_true(np.logical_or(white_mask, red_mask).all())
+        ec.flip()
+
+        ec.set_background_color('0.5')
+        visual.Rectangle(ec, [0, 0, 1, 1], fill_color='black').draw()
+        ss = ec.screenshot()[:, :, :3]
+        gray_mask = (ss == [127] * 3) | (ss == [128] * 3)
+        assert_true(gray_mask.any())
+        black_mask = (ss == [0] * 3)
+        assert_true(black_mask.any())
+        assert_true(np.logical_or(gray_mask, black_mask).all())
