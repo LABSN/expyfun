@@ -46,7 +46,7 @@ def git_version():
             GIT_REVISION = "Unknown"
         try:
             cmd = ['git', 'config', '--get', 'remote.origin.url']
-            out = _minimal_ext_cmd(cmd)
+            out = _minimal_ext_cmd(cmd).decode('utf-8').strip()
             start_idx = 0
             for prefix in ['git@github.com:', 'git://github.com/',
                            'http://github.com/', 'https://github.com/',
