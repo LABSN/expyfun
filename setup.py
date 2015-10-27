@@ -48,9 +48,9 @@ def git_version():
             cmd = ['git', 'config', '--get', 'remote.origin.url']
             out = _minimal_ext_cmd(cmd).decode('utf-8').strip()
             start_idx = 0
-            for prefix in ['git@github.com:', 'git://github.com/',
-                           'http://github.com/', 'https://github.com/',
-                           'ssh://git@github.com/']:
+            for prefix in [b'git@github.com:', b'git://github.com/',
+                           b'http://github.com/', b'https://github.com/',
+                           b'ssh://git@github.com/']:
                 if out.startswith(prefix):
                     start_idx = len(prefix)
             if start_idx:
