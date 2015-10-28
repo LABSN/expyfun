@@ -51,7 +51,6 @@ def git_version():
             for prefix in ['git@github.com:', 'git://github.com/',
                            'http://github.com/', 'https://github.com/',
                            'ssh://git@github.com/']:
-                print((type(out), type(prefix), GIT_REVISION))
                 if out.startswith(prefix):
                     start_idx = len(prefix)
             if start_idx:

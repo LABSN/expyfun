@@ -9,6 +9,11 @@ from ._version import __version__
 
 this_version = __version__[-7:]
 
+try:
+    from ._version import __fork__
+    this_fork = __fork__
+except ImportError:
+    this_fork = None
 
 try:
     run_subprocess(['git', '--help'])
@@ -108,6 +113,11 @@ def assert_version(version):
         Version to check (7 characters).
     """
     _check_version_format(version)
+    if this_fork is not None and this_fork.lower() != 'labsn':
+        raise RuntimeWarning('You are running a forked version of the expyfun '
+                             'codebase (fork "{}"). Do not do this if you are '
+                             'running an actual experiment; only do this '
+                             'during development.'.format(this_fork))
     if this_version.lower() != version.lower():
         raise AssertionError('Requested version {0} does not match current '
                              'version {1}'.format(version, this_version))
