@@ -20,7 +20,7 @@ def test_version():
     assert_raises(AssertionError, assert_version, 'x' * 7)
     assert_version(__version__[-7:])
 
-    v = '7807b1b'
+    v = 'b798e65'
     f = 'drammock'
     if not _has_git:
         assert_raises(ImportError, download_version, v, tempdir, f)
