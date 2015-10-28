@@ -114,10 +114,10 @@ def assert_version(version):
     """
     _check_version_format(version)
     if this_fork is not None and this_fork.lower() != 'labsn':
-        raise RuntimeWarning('You are running a forked version of the expyfun '
-                             'codebase (fork "{}"). Do not do this if you are '
-                             'running an actual experiment; only do this '
-                             'during development.'.format(this_fork))
+        warnings.warn('You are running a forked version of the expyfun '
+                      'codebase (fork "{}"). Do not do this if you are '
+                      'running an actual experiment; only do this during '
+                      'development.'.format(this_fork), RuntimeWarning)
     if this_version.lower() != version.lower():
         raise AssertionError('Requested version {0} does not match current '
                              'version {1}'.format(version, this_version))
