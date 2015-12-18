@@ -79,7 +79,7 @@ def test_barplot():
                groups=[[0, 1, 2], [3, 4]], bracket_group_lines=True,
                brackets=[(0, 1), (1, 2), (3, 4), ([0, 1, 2], [3, 4])],
                bracket_text=['foo', 'bar', 'baz', 'snafu'])
-    extns = ['eps', 'pdf', 'png', 'raw', 'svg']  # jpg, tif not supported
+    extns = ['pdf']  # jpg, tif not supported; 'png', 'raw', 'svg' not tested
     for ext in extns:
         fname = op.join(temp_dir, 'temp.' + ext)
         with warnings.catch_warnings(record=True) as w:
