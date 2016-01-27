@@ -26,7 +26,7 @@ one = ('This text can only have a single color, font, and size for the whole '
 two = ('Additional calls to ec.screen_text() can have different formatting,'
        'but have to be manually positioned.')
 thr = ('This text can have {{color {0}}}different {{color {1}}}colors '
-       'speci{{color {2}}}fied inline, because it\'s {{color {0}}}attr '
+       'speci{{color {2}}}fied inline, because its {{color {0}}}attr '
        '{{color {2}}}argument is {{color {1}}}True. {{color {2}}}'
        'Specifying different typefaces or sizes inline is buggy and '
        'not recommended.').format(blue, pink, white)
@@ -34,7 +34,7 @@ fou = 'Press any key to change all the text to pink using .set_color().'
 fiv = 'Press any key to quit.'
 
 with ExperimentController('textDemo', participant='foo', session='001',
-                          output_dir=None) as ec:
+                          output_dir=None, version='dev') as ec:
     ec.wait_secs(0.1)  # without this, first flip doesn't show on some systems
     txt_one = ec.screen_text(one, pos=[0, 0.5], attr=False)
     txt_two = ec.screen_text(two, pos=[0, 0.2], font_name='Times New Roman',

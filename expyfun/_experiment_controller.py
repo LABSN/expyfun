@@ -1896,13 +1896,16 @@ def get_keyboard_input(prompt, default=None, out_type=str, valid=None):
 def _get_dev_db(audio_controller):
     """Selects device-specific amplitude to ensure equivalence across devices.
     """
-    level = dict(
-        RM1=108.,  # this is approx w/ knob @ 12 o'clock (knob not detented)
-        RP2=108.,
-        RZ6=114.,
-        pyglet=100.,  # TODO: this value not yet calibrated, may vary by system
-        dummy=90.,  # only used for testing
-    ).get(audio_controller, None)
+    # First try to get the level from the expyfun.json file.
+    level = float(get_config('DB_OF_SINE_AT_1KHZ_1RMS'))
+    if level is None:
+        level = dict(
+            RM1=108.,  # approx w/ knob @ 12 o'clock (knob not detented)
+            RP2=108.,
+            RZ6=114.,
+            pyglet=100.,  # TODO: this value not calibrated, system-dependent
+            dummy=90.,  # only used for testing
+        ).get(audio_controller, None)
     if level is None:
         logger.warning('Expyfun: Unknown audio controller: stim scaler may '
                        'not work correctly. You may want to remove your '

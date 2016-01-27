@@ -3,7 +3,7 @@
 Sound level test and visual size calibration
 ============================================
 
-This example tests the audio level and video size. For audio, it produces a 65
+This example tests the audio level and video size. For audio, it produces an 80
 db SPL 1000 Hz tone (note that at 1000 Hz, the frequency weighting for SPL
 measurement shouldn't matter). For video, it produces a square that should be
 10 degrees visual angle and tells you what the physical width should be in cm.
@@ -24,10 +24,11 @@ import expyfun.analyze as ea
 print(__doc__)
 
 
+stim_db = 80
 with ExperimentController('LevelTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None,
-                          stim_db=65) as ec:
+                          stim_db=stim_db, version='dev') as ec:
     tone = (0.01 * np.sqrt(2.) *
             np.sin(2 * np.pi * 1000. * np.arange(0, 10, 1. / ec.fs)))
     assert np.allclose(np.sqrt(np.mean(tone * tone)), 0.01)
@@ -40,6 +41,7 @@ with ExperimentController('LevelTest', full_screen=True, noise_db=-np.inf,
     while pressed != '8':  # enable a clean quit if required
         square.draw()
         ec.screen_text('Width: {} cm'.format(np.round(2 * cm, 1)), wrap=False)
+        ec.screen_text('Output level: {} dB'.format(stim_db), wrap=True)
         screenshot = ec.screenshot() if screenshot is None else screenshot
         t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
         pressed = ec.wait_one_press(10)[0]
