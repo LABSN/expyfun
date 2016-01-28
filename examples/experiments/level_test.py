@@ -24,11 +24,10 @@ import expyfun.analyze as ea
 print(__doc__)
 
 
-stim_db = 80
 with ExperimentController('LevelTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None,
-                          stim_db=stim_db, version='dev') as ec:
+                          stim_db=80, version='dev') as ec:
     tone = (0.01 * np.sqrt(2.) *
             np.sin(2 * np.pi * 1000. * np.arange(0, 10, 1. / ec.fs)))
     assert np.allclose(np.sqrt(np.mean(tone * tone)), 0.01)
@@ -41,7 +40,7 @@ with ExperimentController('LevelTest', full_screen=True, noise_db=-np.inf,
     while pressed != '8':  # enable a clean quit if required
         square.draw()
         ec.screen_text('Width: {} cm'.format(np.round(2 * cm, 1)), wrap=False)
-        ec.screen_text('Output level: {} dB'.format(stim_db), wrap=True)
+        ec.screen_text('Output level: {} dB'.format(ec.stim_db), wrap=True)
         screenshot = ec.screenshot() if screenshot is None else screenshot
         t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
         pressed = ec.wait_one_press(10)[0]

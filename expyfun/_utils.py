@@ -604,7 +604,7 @@ def set_config(key, value):
     """
 
     if key is None:
-        return known_config_types
+        return sorted(known_config_types)
     if not isinstance(key, string_types):
         raise ValueError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
