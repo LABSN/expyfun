@@ -29,6 +29,8 @@ def test_config():
     if old_val is not None:
         os.environ[key] = old_val
     assert_raises(ValueError, get_config, 1)
+    get_config(None)
+    set_config(None, '0')
 
 
 @deprecated('message')

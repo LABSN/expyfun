@@ -26,7 +26,8 @@ msg_dur = 1.5
 with ExperimentController('MouseDemo', screen_num=0,
                           window_size=[640, 480], full_screen=False,
                           stim_db=0, noise_db=0, output_dir=None,
-                          participant='foo', session='001') as ec:
+                          participant='foo', session='001',
+                          version='dev') as ec:
     ###############
     # toggle_cursor
     ec.toggle_cursor(True)

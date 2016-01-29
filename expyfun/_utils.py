@@ -517,8 +517,9 @@ def get_config_path():
 
 
 # List the known configuration values
-known_config_types = ['RESPONSE_DEVICE',
+known_config_types = ('RESPONSE_DEVICE',
                       'AUDIO_CONTROLLER',
+                      'DB_OF_SINE_AT_1KHZ_1RMS',
                       'EXPYFUN_EYELINK',
                       'TDT_MODEL',
                       'TDT_INTERFACE',
@@ -530,10 +531,10 @@ known_config_types = ['RESPONSE_DEVICE',
                       'SCREEN_DISTANCE',
                       'SCREEN_SIZE_PIX',
                       'EXPYFUN_LOGGING_LEVEL',
-                      ]
+                      )
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed
-known_config_wildcards = []
+known_config_wildcards = ()
 
 
 def get_config(key, default=None, raise_error=False):
@@ -556,11 +557,11 @@ def get_config(key, default=None, raise_error=False):
         The preference key value.
     """
 
-    if not isinstance(key, string_types):
+    if key is not None and not isinstance(key, string_types):
         raise ValueError('key must be a string')
 
     # first, check to see if key is in env
-    if key in os.environ:
+    if key is not None and key in os.environ:
         return os.environ[key]
 
     # second, look for it in expyfun config file
@@ -571,6 +572,8 @@ def get_config(key, default=None, raise_error=False):
     else:
         with open(config_path, 'r') as fid:
             config = json.load(fid)
+        if key is None:
+            return config
         key_found = True if key in config else False
         val = config.get(key, default)
 
@@ -592,13 +595,16 @@ def set_config(key, value):
 
     Parameters
     ----------
-    key : str
-        The preference key to set.
+    key : str | None
+        The preference key to set. If None, a tuple of the valid
+        keys is returned, and ``value`` is ignored.
     value : str |  None
         The value to assign to the preference key. If None, the key is
         deleted.
     """
 
+    if key is None:
+        return sorted(known_config_types)
     if not isinstance(key, string_types):
         raise ValueError('key must be a string')
     # While JSON allow non-string types, we allow users to override config

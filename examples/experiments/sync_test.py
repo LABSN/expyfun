@@ -23,7 +23,8 @@ print(__doc__)
 # Fullscreen MUST be used to guarantee flip accuracy!
 with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
-                          suppress_resamp=True, check_rms=None) as ec:
+                          suppress_resamp=True, check_rms=None,
+                          version='dev') as ec:
     ec.load_buffer(np.r_[0.1, np.zeros(99)])  # RMS == 0.01
     pressed = None
     screenshot = None

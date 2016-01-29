@@ -20,7 +20,7 @@ print(__doc__)
 
 
 with ExperimentController('testExp', full_screen=True, participant='foo',
-                          session='001', output_dir=None) as ec:
+                          session='001', output_dir=None, version='dev') as ec:
     el = EyelinkController(ec)
     ec.screen_prompt('Welcome to the experiment!\n\nFirst, we will '
                      'perform a screen calibration.\n\nPress a button '
