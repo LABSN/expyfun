@@ -260,7 +260,7 @@ class ExperimentController(object):
                                      ' \'pyglet\' or \'TYPE\': \'tdt\').')
             elif not isinstance(audio_controller, dict):
                 raise TypeError('audio_controller must be a str or dict.')
-            self._audio_type = audio_controller['TYPE'].lower()
+            self.audio_type = audio_controller['TYPE'].lower()
 
             #
             # parse response device
@@ -277,11 +277,11 @@ class ExperimentController(object):
             #
 
             # Audio (and for TDT, potentially keyboard)
-            if self._audio_type == 'tdt':
+            if self.audio_type == 'tdt':
                 logger.info('Expyfun: Setting up TDT')
                 self._ac = TDTController(audio_controller)
-                self._audio_type = self._ac.model
-            elif self._audio_type == 'pyglet':
+                self.audio_type = self._ac.model
+            elif self.audio_type == 'pyglet':
                 self._ac = PygletSoundController(self, self.stim_fs)
             else:
                 raise ValueError('audio_controller[\'TYPE\'] must be '
@@ -395,7 +395,7 @@ class ExperimentController(object):
                   ''.format(self._exp_info['exp_name'],
                             self._exp_info['participant'],
                             self._exp_info['session'],
-                            self._audio_type))
+                            self.audio_type))
         return string
 
 # ############################### SCREEN METHODS ##############################
@@ -1435,7 +1435,7 @@ class ExperimentController(object):
     def _update_sound_scaler(self, desired_db, orig_rms):
         """Calcs coefficient ensuring stim ampl equivalence across devices.
         """
-        exponent = (-(_get_dev_db(self._audio_type) - desired_db) / 20.0)
+        exponent = (-(_get_dev_db(self.audio_type) - desired_db) / 20.0)
         return (10 ** exponent) / float(orig_rms)
 
     def _validate_audio(self, samples):
@@ -1635,7 +1635,7 @@ class ExperimentController(object):
                            '({}) that had already passed {} seconds prior.'
                            ''.format(timestamp, -time_left))
         else:
-            wait_secs(time_left)
+            wait_secs(time_left, self)
         return time_left
 
     def identify_trial(self, **ids):
