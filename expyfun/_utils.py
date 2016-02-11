@@ -683,6 +683,7 @@ def wait_secs(secs, ec=None):
     ----------
     secs : float
         Number of seconds to wait.
+    ec : None | expyfun.ExperimentController instance
 
     Notes
     -----
