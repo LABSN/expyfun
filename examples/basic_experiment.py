@@ -29,7 +29,6 @@ with ExperimentController('testExp', participant='foo', session='001',
     ec.screen_prompt('Press a button when you hear the tone', max_wait=1)
 
     dot = FixationDot(ec)
-    ec.clear_buffer()
     ec.load_buffer(tone)
     dot.draw()
     screenshot = ec.screenshot()  # only because we want to show it in the docs

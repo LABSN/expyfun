@@ -90,10 +90,6 @@ class PygletSoundController(object):
             self.noise.stop()
             self._noise_playing = False
 
-    def clear_buffer(self):
-        self.audio.delete()
-        self.audio = SoundPlayer(np.zeros((2, 1)), self.fs)
-
     def load_buffer(self, samples):
         self.audio.delete()
         self.audio = SoundPlayer(samples.T, self.fs)

@@ -170,7 +170,6 @@ class TDTController(Keyboard):
             raise SystemError('Expyfun: Problem starting TDT circuit.')
         time.sleep(0.25)
         self._set_noise_corr()
-        self.clear_buffer()
         self._set_delay(tdt_params['TDT_DELAY'],
                         tdt_params['TDT_TRIG_DELAY'])
 
@@ -196,12 +195,7 @@ class TDTController(Keyboard):
         """
         self.rpcox.WriteTagV('datainleft', 0, data[:, 0])
         self.rpcox.WriteTagV('datainright', 0, data[:, 1])
-
-    def clear_buffer(self):
-        """Clear the TDT ring buffers.
-        """
-        self.rpcox.ZeroTag('datainleft')
-        self.rpcox.ZeroTag('datainright')
+        self.rpcox.SetTagVal('nsamples', max(data.shape[0] - 1, 1))
 
     def play(self):
         """Send the soft trigger to start the ring buffer playback.

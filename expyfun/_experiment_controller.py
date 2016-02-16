@@ -1359,17 +1359,6 @@ class ExperimentController(object):
         if self._ac is not None:  # check b/c used by __exit__
             self._ac.stop_noise()
 
-    def clear_buffer(self):
-        """Clear audio data from the audio buffer
-
-        See Also
-        --------
-        ExperimentController.load_buffer
-        ExperimentController.set_stim_db
-        """
-        self._ac.clear_buffer()
-        logger.exp('Expyfun: Buffer cleared')
-
     def load_buffer(self, samples):
         """Load audio data into the audio buffer
 
@@ -1381,7 +1370,6 @@ class ExperimentController(object):
 
         See Also
         --------
-        ExperimentController.clear_buffer
         ExperimentController.play
         ExperimentController.set_stim_db
         ExperimentController.start_stimulus
@@ -1402,7 +1390,6 @@ class ExperimentController(object):
 
         See Also
         --------
-        ExperimentController.clear_buffer
         ExperimentController.load_buffer
         ExperimentController.set_stim_db
         ExperimentController.start_stimulus
@@ -1428,7 +1415,6 @@ class ExperimentController(object):
 
         See Also
         --------
-        ExperimentController.clear_buffer
         ExperimentController.load_buffer
         ExperimentController.play
         ExperimentController.set_stim_db
@@ -1457,7 +1443,6 @@ class ExperimentController(object):
 
         See Also
         --------
-        ExperimentController.clear_buffer
         ExperimentController.load_buffer
         ExperimentController.play
         ExperimentController.start_stimulus
@@ -1487,10 +1472,7 @@ class ExperimentController(object):
             The correctly formatted audio samples.
         """
         # check data type
-        if isinstance(samples, list):
-            samples = np.asarray(samples, dtype='float32')
-        elif samples.dtype != 'float32':
-            samples = np.float32(samples)
+        samples = np.asarray(samples, dtype=np.float32)
 
         # check values
         if np.max(np.abs(samples)) > 1:
