@@ -219,6 +219,13 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(np.zeros((100, 2)))
         ec.load_buffer(np.zeros((1, 100)))
         ec.load_buffer(np.zeros((2, 100)))
+        data = np.empty(int(5e6), np.float32)  # too long for TDT
+        if this_fs == get_tdt_rates()['25k']:
+            assert_raises(RuntimeError, ec.load_buffer, data)
+        else:
+            ec.load_buffer(data)
+        ec.load_buffer(np.zeros(2))
+        del data
         assert_raises(ValueError, ec.stamp_triggers, 'foo')
         assert_raises(ValueError, ec.stamp_triggers, 0)
         assert_raises(ValueError, ec.stamp_triggers, 3)

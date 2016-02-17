@@ -1484,6 +1484,14 @@ class ExperimentController(object):
         # check shape and dimensions, make stereo
         samples = _fix_audio_dims(samples, 2).T
 
+        # This limit is currently set by the TDT SerialBuf objects
+        # (per channel), it sets the limit on our stimulus durations...
+        if np.isclose(self.stim_fs, 24414, atol=1):
+            max_samples = 4000000 - 1
+            if samples.shape[0] > max_samples:
+                raise RuntimeError('Sample too long {0} > {1}'
+                                   ''.format(samples.shape[0], max_samples))
+
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
