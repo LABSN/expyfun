@@ -172,6 +172,9 @@ class TDTController(Keyboard):
         self._set_noise_corr()
         self._set_delay(tdt_params['TDT_DELAY'],
                         tdt_params['TDT_TRIG_DELAY'])
+        # Set output values to zero (esp. first few)
+        for tag in ('datainleft', 'datainright'):
+            self.rpcox.ZeroTag(tag)
 
     def _add_keyboard_init(self, ec, force_quit_keys):
         """Helper to init as keyboard"""
@@ -193,9 +196,11 @@ class TDTController(Keyboard):
             Audio data as floats scaled to (-1,+1), formatted as an Nx2 numpy
             array with dtype 'float32'.
         """
-        self.rpcox.WriteTagV('datainleft', 0, data[:, 0])
-        self.rpcox.WriteTagV('datainright', 0, data[:, 1])
-        self.rpcox.SetTagVal('nsamples', max(data.shape[0] - 1, 1))
+        assert data.dtype==np.float32
+        # Leave the first sample zero so on reset the output goes to zero
+        self.rpcox.WriteTagVEX('datainleft', 1, 'F32', data[:, 0])
+        self.rpcox.WriteTagVEX('datainright', 1, 'F32', data[:, 1])
+        self.rpcox.SetTagVal('nsamples', max(data.shape[0] + 1, 1))
 
     def play(self):
         """Send the soft trigger to start the ring buffer playback.

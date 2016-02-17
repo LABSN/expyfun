@@ -1375,7 +1375,8 @@ class ExperimentController(object):
         ExperimentController.start_stimulus
         ExperimentController.stop
         """
-        samples = self._validate_audio(samples) * self._stim_scaler
+        samples = self._validate_audio(samples)
+        samples *= self._stim_scaler
         logger.exp('Expyfun: Loading {} samples to buffer'
                    ''.format(samples.size))
         self._ac.load_buffer(samples)
@@ -1469,7 +1470,8 @@ class ExperimentController(object):
         Returns
         -------
         samples : numpy.array(dtype='float32')
-            The correctly formatted audio samples.
+            The correctly formatted audio samples. Will be a copy of
+            the original samples.
         """
         # check data type
         samples = np.asarray(samples, dtype=np.float32)
@@ -1510,9 +1512,9 @@ class ExperimentController(object):
                                ''.format(max_rms, self._stim_rms))
                 logger.warning(warn_string)
 
-        # always prepend a zero to deal with TDT reset of buffer position
-        samples = np.r_[np.atleast_2d([0.0, 0.0]), samples]
-        return np.ascontiguousarray(samples)
+        # this will create a copy, so we can modify inplace later!
+        samples = np.array(samples, np.float32)
+        return samples
 
     def set_rms_checking(self, check_rms):
         """Set the RMS checking flag.
