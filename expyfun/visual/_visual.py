@@ -2,6 +2,7 @@
 
 # Authors: Dan McCloy <drmccloy@uw.edu>
 #          Eric Larson <larsoner@uw.edu>
+#          Ross Maddox <rkmaddox@uw.edu>
 #
 # License: BSD (3-clause)
 
@@ -948,40 +949,36 @@ class Movie(object):
     None
     """
     def __init__(self, ec, file_name, pos=(0, 0), scale=1., units='norm',
-                 autostart=True):
+                 autostart=True, fullscreen=True):
         import pyglet
         self._ec = ec
         self.file = file_name
         self.source = pyglet.media.load(self.file)  # streaming=True?
         self.player = pyglet.media.Player()
-        self.duration = self.source.duration
+        self.player.queue(self.source)
         self.player.volume = 0
-        self.show = True
+        self.duration = self.source.duration
         self.width = self.source.video_format.width
         self.height = self.source.video_format.height
-        self.player.queue(self.source)
+        self.visible = True
         if autostart:
             self.play()
-        #self.set_pos(pos, units)
-        #self.set_scale(scale)
+        # self.set_pos(pos, units)
+        # self.set_scale(scale)
 
-    def loop(self, dt=None):
-        self.player.eos_action = 'loop'
-        self.player.queue(self.source)
-        self.player.play()
-        self.player.volume = self.player.volume
-        tex = self.player.get_texture()
-        tex.anchor_x = int(tex.width / 2)
-        tex.anchor_y = int(tex.height / 2)
-        self.label_str = 'Level: %i'
-        self.label = None
-        self.update_label()
+    def loop(self, loop):
+        action = 'loop' if loop else 'stop'
+        self.player.eos_action = action
 
     def play(self):
         self.player.play()
+
+    def pause(self):
+        self.player.pause()
 
     def stop(self):
         self.player.next()
         self.player.pause()
 
-
+    def delete(self):
+        self.player.delete()

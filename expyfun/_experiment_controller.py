@@ -26,7 +26,7 @@ from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .stimuli._filter import resample
-from .visual import Text, Rectangle, _convert_color
+from .visual import Text, Rectangle, Movie, _convert_color
 from ._git import assert_version
 
 
@@ -133,6 +133,7 @@ class ExperimentController(object):
         self._noise_db = noise_db
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
+        self.movie = None
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
         self._on_next_flip = []
@@ -748,6 +749,17 @@ class ExperimentController(object):
     @property
     def monitor_size_pix(self):
         return np.array(self._monitor['SCREEN_SIZE_PIX'])
+
+# ############################### MOVIE METHODS ###############################
+    def load_movie(self, file_name, pos=(0, 0), scale=1., units='norm',
+                   autostart=True, fullscreen=True):
+        self.movie = Movie(self, file_name, pos, scale, units, autostart,
+                           fullscreen)
+
+    def unload_movie(self):
+        self.movie.stop()
+        self.movie.delete()
+        self.movie = None
 
 # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
