@@ -26,7 +26,7 @@ from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .stimuli._filter import resample
-from .visual import Text, Rectangle, Movie, _convert_color
+from .visual import Text, Rectangle, Movie, RawImage, _convert_color
 from ._git import assert_version
 
 
@@ -125,7 +125,7 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  verbose=None, check_rms='windowed', suppress_resamp=False,
-                 version=None):
+                 version=None, enable_video=False):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -133,6 +133,7 @@ class ExperimentController(object):
         self._noise_db = noise_db
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
+        self._enable_video = enable_video
         self.movie = None
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
@@ -752,9 +753,8 @@ class ExperimentController(object):
 
 # ############################### MOVIE METHODS ###############################
     def load_movie(self, file_name, pos=(0, 0), scale=1., units='norm',
-                   autostart=True, fullscreen=True):
-        self.movie = Movie(self, file_name, pos, scale, units, autostart,
-                           fullscreen)
+                   fullscreen=True):
+        self.movie = Movie(self, file_name, pos, scale, units, fullscreen)
 
     def unload_movie(self):
         self.movie.stop()
@@ -775,9 +775,10 @@ class ExperimentController(object):
                           config=pyglet.gl.Config(**config_kwargs))
 
         max_try = 5  # sometimes it fails for unknown reasons
+        WinClass = VideoWindow if self._enable_video else pyglet.window.Window
         for ii in range(max_try):
             try:
-                win = pyglet.window.Window(**win_kwargs)
+                win = WinClass(**win_kwargs)
             except pyglet.gl.ContextException:
                 if ii == max_try - 1:
                     raise
@@ -785,6 +786,8 @@ class ExperimentController(object):
                     pass
             else:
                 break
+        if self._enable_video:
+            win._ec = self
         if not full_screen:
             x = int(win.screen.width / 2. - win.width / 2.)
             y = int(win.screen.height / 2. - win.height / 2.)
@@ -1927,3 +1930,19 @@ def _get_dev_db(audio_controller):
                        'experiment.')
         level = 90  # for untested TDT models
     return level
+
+
+class VideoWindow(pyglet.window.Window):
+    def on_draw(self):
+        if self._ec.movie is not None:
+            #self.clear()  # hides screen_text, etc
+            # self._ec.movie._player.get_texture().blit(0, 0)  # doesn't work
+            tex = self._ec.movie._player.get_texture()
+            img = tex.get_image_data()
+            img_buffer = np.fromstring(img.data, dtype=np.uint8)
+            img_buffer = img_buffer.reshape(img.height, img.width, -1) / 255.
+            print img_buffer
+            # img_buffer = np.random.rand(480, 720, 3)  # this works
+            raw = RawImage(self._ec, img_buffer, pos=(0, 0), scale=1.,
+                           units='norm')
+            raw.draw()

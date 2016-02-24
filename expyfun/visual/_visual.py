@@ -949,35 +949,26 @@ class Movie(object):
     None
     """
     def __init__(self, ec, file_name, pos=(0, 0), scale=1., units='norm',
-                 autostart=False, fullscreen=True, loop=False):
-        import pyglet
-        self._ec = ec
+                 fullscreen=True, loop=False):
+        from pyglet import media as pygme
+        if ec is not None:
+            self._ec = ec
+            self._window = self._ec._win
+        if file_name is not None:
+            self._file_name = file_name
+            self._source = pygme.load(self._file_name)
+            self._player = pygme.Player()
+            self._player.queue(self._source)
+            self._player.volume = 0
+            self._duration = self._source.duration
+            self._dt = 1. / self.frame_rate
         self._visible = True
         self._looping = False
         self._playing = False
-        self._file_name = file_name
-        self._source = pyglet.media.load(self._file_name)  # streaming=True?
-        #self._window = pyglet.window.Window()
-        self._player = pyglet.media.Player()
-        self._player.queue(self._source)
-        self._player.volume = 0
-        self._duration = self._source.duration
-
-        '''
-        @self._ec._win.event
-        def on_draw():
-            #self._window.clear()
-            if self._player.source and self._player.source.video_format:
-                self._player.get_texture().blit(0, 0)
-                self._ec.flip()
-        '''
-
-        if loop:
-            self.loop(loop)
-        if autostart:
-            self.play()
         # self.set_pos(pos, units)
         # self.set_scale(scale)
+        if loop:
+            self.loop(loop)
 
     def loop(self, loop):
         """Set looping behavior of current movie.
@@ -991,28 +982,24 @@ class Movie(object):
         self._looping = loop
 
     def play(self):
-        #dt = 1. / self.frame_rate
-        #t_start = self._ec.get_time()
-        #t_end = t_start + self.duration
         self._player.play()
-        while self.time < 5:  # self.duration:
-            tex = self._player.get_texture()
-            img = tex.get_image_data()
-            img_buffer = np.fromstring(img.data, dtype=np.uint8)
-            img_buffer = img_buffer.reshape(img.width, img.height, -1) / 255.
-            # img_buffer = np.random.rand(720, 480, 3)  # this works
-            raw = RawImage(self._ec, img_buffer, pos=(0, 0), scale=1.,
-                           units='norm')
-            raw.draw()
-            self._ec.flip()
+        self._ec.call_on_every_flip(self._blit)
         self._playing = True
+        while self._playing:
+            self._ec._win.flip()
+            t_zero = self._ec.flip()
+            self._ec.wait_until(t_zero + self._dt)
+
+    def _blit(self):
+        self._ec.screen_text(str(np.round(self._ec.get_time(), 3)))
+        self._ec._win.dispatch_event('on_draw')
 
     def pause(self):
         self._player.pause()
         self._playing = False
 
     def stop(self):
-        self._player.next()
+        self._player.next_source()
         self.pause()
 
     def delete(self):
@@ -1055,4 +1042,3 @@ class Movie(object):
     @property
     def source_height(self):
         return self._source.video_format.height
-
