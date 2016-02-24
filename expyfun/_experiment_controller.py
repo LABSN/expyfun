@@ -775,10 +775,9 @@ class ExperimentController(object):
                           config=pyglet.gl.Config(**config_kwargs))
 
         max_try = 5  # sometimes it fails for unknown reasons
-        WinClass = VideoWindow if self._enable_video else pyglet.window.Window
         for ii in range(max_try):
             try:
-                win = WinClass(**win_kwargs)
+                win = pyglet.window.Window(**win_kwargs)
             except pyglet.gl.ContextException:
                 if ii == max_try - 1:
                     raise
@@ -786,8 +785,6 @@ class ExperimentController(object):
                     pass
             else:
                 break
-        if self._enable_video:
-            win._ec = self
         if not full_screen:
             x = int(win.screen.width / 2. - win.width / 2.)
             y = int(win.screen.height / 2. - win.height / 2.)
@@ -855,13 +852,14 @@ class ExperimentController(object):
         self._win.switch_to()
         gl.glFinish()
         self._win.flip()
-        # this waits until everything is called, including last draw
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        gl.glBegin(gl.GL_POINTS)
-        gl.glColor4f(0, 0, 0, 0)
-        gl.glVertex2i(10, 10)
-        gl.glEnd()
-        gl.glFinish()
+        if not self._enable_video:
+            # this waits until everything is called, including last draw
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+            gl.glBegin(gl.GL_POINTS)
+            gl.glColor4f(0, 0, 0, 0)
+            gl.glVertex2i(10, 10)
+            gl.glEnd()
+            gl.glFinish()
         flip_time = self.get_time()
         for function in call_list:
             function()
@@ -1930,19 +1928,3 @@ def _get_dev_db(audio_controller):
                        'experiment.')
         level = 90  # for untested TDT models
     return level
-
-
-class VideoWindow(pyglet.window.Window):
-    def on_draw(self):
-        if self._ec.movie is not None:
-            #self.clear()  # hides screen_text, etc
-            # self._ec.movie._player.get_texture().blit(0, 0)  # doesn't work
-            tex = self._ec.movie._player.get_texture()
-            img = tex.get_image_data()
-            img_buffer = np.fromstring(img.data, dtype=np.uint8)
-            img_buffer = img_buffer.reshape(img.height, img.width, -1) / 255.
-            print img_buffer
-            # img_buffer = np.random.rand(480, 720, 3)  # this works
-            raw = RawImage(self._ec, img_buffer, pos=(0, 0), scale=1.,
-                           units='norm')
-            raw.draw()
