@@ -26,7 +26,7 @@ from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .stimuli._filter import resample
-from .visual import Text, Rectangle, Movie, RawImage, _convert_color
+from .visual import Text, Rectangle, Movie, _convert_color
 from ._git import assert_version
 
 
