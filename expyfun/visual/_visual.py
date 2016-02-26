@@ -938,7 +938,7 @@ class RawImage(object):
         self._sprite.draw()
 
 
-class Movie(object):
+class Video(object):
     """blah
 
     Parameters
@@ -950,32 +950,31 @@ class Movie(object):
     """
     def __init__(self, ec, file_name, pos=(0, 0), scale=1., units='norm',
                  fullscreen=True, loop=False):
-        from pyglet import media as pygme
-        if ec is not None:
-            self._ec = ec
-            self._window = self._ec._win
-        if file_name is not None:
-            self._file_name = file_name
-            self._source = pygme.load(self._file_name)
-            self._player = pygme.Player()
-            self._player.queue(self._source)
-            self._player.volume = 0
-            self._duration = self._source.duration
-            self._dt = 1. / self.frame_rate
+        from pyglet.media import load, Player
+        self._ec = ec
+        self._file_name = file_name
+        self._source = load(self._file_name)
+        self._player = Player()
+        self._player.queue(self._source)
+        #self._player.volume = 0
+        self._player._audio_player = None
+        self._duration = self._source.duration
+        self._dt = 1. / self.frame_rate
         self._visible = True
-        self._looping = False
-        self._playing = False
+        self._last_frame_time = None
+        self._on_flip = partial(self._ec.window.dispatch_event, 'on_draw')
+        # TODO: implement scaling
         # self.set_pos(pos, units)
         # self.set_scale(scale)
-        if loop:
-            self.loop(loop)
+        self.set_loop(loop)
 
         @ec.window.event
         def on_draw():
-            ec.window.clear()
-            ec.movie._player.get_texture().blit(0, 0)
+            self._player.update_texture()
+            self._player.get_texture().blit(0, 0)
+            self._last_frame_time = self._ec.get_time()
 
-    def loop(self, loop):
+    def set_loop(self, loop):
         """Set looping behavior of current movie.
 
         Parameters
@@ -983,27 +982,46 @@ class Movie(object):
         loop : bool
         """
         action = 'loop' if loop else 'stop'
-        self._player.SourceGroup.loop = action
-        self._looping = loop
+        self._player._groups[0].loop = action
 
     def play(self):
-        self._player.play()
-
-    def _blit(self):
-        self._ec.screen_text(str(np.round(self._ec.get_time(), 3)))
-        self._ec._win.dispatch_event('on_draw')
+        """Play video from current position.
+        """
+        if self.playing:
+            raise RuntimeWarning('ExperimentController.video.play() called '
+                                 'when already playing.')
+        else:
+            self._player.play()
+            self._last_frame_time = self._ec.get_time()
+            self._ec.call_on_every_flip(self._on_flip)
 
     def pause(self):
+        """Pause video playback.
+        """
+        idx = self._ec.on_every_flip_functions.index(self._on_flip)
+        self._ec.on_every_flip_functions.pop(idx)
         self._player.pause()
-        self._playing = False
 
     def stop(self):
-        self._player.next_source()
+        """Pause video playback and reset position.
+        """
         self.pause()
+        self.seek(0.)
 
     def delete(self):
+        """Stop video playback and delete.
+        """
         self.pause()
         self._player.delete()
+
+    def seek(self, time):
+        if time < 0:
+            raise ValueError('Seek time must be a positive number of seconds.')
+        elif time >= self.duration:
+            raise ValueError('Seek time ({:0.3}) must be less than total '
+                             'video duration ({:0.3}).'.format(time,
+                                                               self.duration))
+        self._player.seek(time)
 
     # PROPERTIES
     @property
@@ -1012,11 +1030,11 @@ class Movie(object):
 
     @property
     def looping(self):
-        return self._looping
+        return self._player._groups[0].loop
 
     @property
     def playing(self):
-        return self._playing
+        return self._player.playing
 
     @property
     def visible(self):
@@ -1031,8 +1049,22 @@ class Movie(object):
         return self._player.source.video_format.frame_rate
 
     @property
+    def dt(self):
+        return self._dt
+
+    @property
     def time(self):
         return self._player.time
+
+    @property
+    def width(self):
+        # TODO: update when scaling is implemented
+        return self.source_width
+
+    @property
+    def height(self):
+        # TODO: update when scaling is implemented
+        return self.source_height
 
     @property
     def source_width(self):
@@ -1041,3 +1073,7 @@ class Movie(object):
     @property
     def source_height(self):
         return self._source.video_format.height
+
+    @property
+    def last_frame(self):
+        return self._last_frame_time
