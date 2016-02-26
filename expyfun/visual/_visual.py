@@ -970,6 +970,11 @@ class Movie(object):
         if loop:
             self.loop(loop)
 
+        @ec.window.event
+        def on_draw():
+            ec.window.clear()
+            ec.movie._player.get_texture().blit(0, 0)
+
     def loop(self, loop):
         """Set looping behavior of current movie.
 
@@ -983,12 +988,6 @@ class Movie(object):
 
     def play(self):
         self._player.play()
-        self._ec.call_on_every_flip(self._blit)
-        self._playing = True
-        while self._playing:
-            self._ec._win.flip()
-            t_zero = self._ec.flip()
-            self._ec.wait_until(t_zero + self._dt)
 
     def _blit(self):
         self._ec.screen_text(str(np.round(self._ec.get_time(), 3)))
