@@ -39,6 +39,7 @@ Optional:
 - pandas (some plotting functions)
 - joblib (parallel processing)
 - h5py (HDF5 write/read)
+- AVbin (required for playing compressed videos)
 
 System-level:
 - git (for automated version downloading)
