@@ -2,6 +2,7 @@
 
 # Authors: Dan McCloy <drmccloy@uw.edu>
 #          Eric Larson <larsoner@uw.edu>
+#          Ross Maddox <rkmaddox@uw.edu>
 #
 # License: BSD (3-clause)
 
@@ -935,3 +936,183 @@ class RawImage(object):
         pos = self._pos - [self._sprite.width / 2., self._sprite.height / 2.]
         self._sprite.set_position(pos[0], pos[1])
         self._sprite.draw()
+
+
+class Video(object):
+    """blah
+
+    Parameters
+    ----------
+    ec : instance of expyfun.ExperimentController
+    file_name : str
+        the video file path
+    pos : array-like
+        2-element array-like with X, Y elements.
+    units : str
+        Units to use for the position. See ``check_units`` for options.
+    center : bool
+        If ``False``, the elements of ``pos`` specify the position of the lower
+        left corner of the video frame; otherwise they position the center of
+        the frame.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    This is a somewhat pared-down implementation of video playback. Looping and
+    resizing are not available, and the audio stream from the video file is
+    discarded.
+    """
+    def __init__(self, ec, file_name, pos=(0, 0), units='norm', center=True):
+        from pyglet.media import load, Player
+        self._ec = ec
+        self._playing = False
+        self._file_name = file_name
+        self._source = load(self._file_name)
+        self._player = Player()
+        self._player.queue(self._source)
+        self._player._audio_player = None  # TODO: allow audio?
+        self._dt = 1. / self.frame_rate
+        self._last_timestamp = None
+        self._visible = True
+        self._pos = None
+        self.set_pos(pos, units, center)
+        self._draw = partial(self._ec.window.dispatch_event, 'on_draw')
+
+        @ec.window.event
+        def on_draw():
+            self._last_timestamp = self._player.time
+            if self._last_timestamp < self.duration:
+                self._player.update_texture(time=self._last_timestamp)
+                self._player.get_texture().blit(*self._pos)
+            else:
+                self._ec.window.clear()
+                self.pause()
+
+    def play(self):
+        """Play video from current position.
+        """
+        if not self._playing:
+            self._ec.call_on_every_flip(self._draw)
+            self._player.play()
+            self._last_timestamp = self._player.time
+            self._playing = True
+        else:
+            raise RuntimeWarning('ExperimentController.video.play() called '
+                                 'when already playing.')
+
+    def pause(self):
+        """Halt video playback.
+        """
+        if self._playing:
+            for idx, func in enumerate(self._ec._on_every_flip):
+                if hasattr(func, 'func'):
+                    if func.func is self._draw:
+                        self._ec._on_every_flip.pop(idx)
+            self._player.pause()
+            self._playing = False
+        else:
+            raise RuntimeWarning('ExperimentController.video.pause() called '
+                                 'when already paused.')
+
+    def delete(self):
+        """Halt video playback and delete.
+        """
+        if self._playing:
+            self.pause()
+        self._player.delete()
+
+    def seek(self, time):
+        """Move to a specific time in the video.
+        """
+        raise NotImplementedError('pyglet bug prevents video seeking.')
+        '''
+        if time < 0:
+            raise ValueError('Seek time must be a positive number of seconds.')
+        elif time >= self.duration:
+            raise ValueError('Seek time ({:0.3}) must be less than total '
+                             'video duration ({:0.3}).'.format(time,
+                                                               self.duration))
+        self._player.seek(time)
+        self._last_timestamp = time
+        '''
+
+    def set_pos(self, pos, units='norm', center=True):
+        """Set video position.
+
+        Parameters
+        ----------
+        pos : array-like
+            2-element array-like with X, Y elements.
+        units : str
+            Units to use for the position. See ``check_units`` for options.
+        center : bool
+            If ``False``, the elements of ``pos`` specify the position of the
+            lower left corner of the video frame; otherwise they position the
+            center of the frame.
+        """
+        pos = np.array(pos, float)
+        if pos.ndim != 1 or pos.size != 2:
+            raise ValueError('pos must be a 2-element array')
+        pos = np.reshape(pos, (2, 1))
+        pix = self._ec._convert_units(pos, units, 'pix').ravel()
+        offset = np.array((self.width, self.height)) // 2 if center else 0
+        self._pos = pix - offset
+
+    # PROPERTIES
+    @property
+    def file_name(self):
+        return self._file_name
+
+    @property
+    def playing(self):
+        return self._playing
+
+    @property
+    def visible(self):
+        return self._visible
+
+    @property
+    def duration(self):
+        return self._source.duration - 3 * self._dt
+
+    @property
+    def frame_rate(self):
+        fr = self._source.video_format.frame_rate
+        return 30 if fr is None else fr
+
+    @property
+    def dt(self):
+        return self._dt
+
+    @property
+    def time(self):
+        return self._player.time
+
+    @property
+    def width(self):
+        # TODO: update when scaling is implemented
+        return self.source_width
+
+    @property
+    def height(self):
+        # TODO: update when scaling is implemented
+        return self.source_height
+
+    @property
+    def source_width(self):
+        return self._source.video_format.width
+
+    @property
+    def source_height(self):
+        return self._source.video_format.height
+
+    @property
+    def last_timestamp(self):
+        return self._last_timestamp
+
+    @property
+    def time_offset(self):
+        return self._ec.get_time() - self._player.time
