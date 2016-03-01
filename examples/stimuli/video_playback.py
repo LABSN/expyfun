@@ -39,10 +39,12 @@ with ExperimentController(**ec_args) as ec:
             all_presses.extend(presses)
             if ec.video.playing:
                 ec.screen_text('pause!')
+                ec.flip()
                 ec.video.pause()
             else:
                 ec.screen_text('play!')
                 ec.video.play()
     preamble = 'press times:' if len(all_presses) else 'no presses'
     msg = '\n'.join(['{0:.3f}'.format(x[1]) for x in all_presses])
+    ec.flip()
     ec.screen_prompt('\n'.join([preamble, msg]), max_wait=1.)
