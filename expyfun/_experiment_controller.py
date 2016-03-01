@@ -752,12 +752,10 @@ class ExperimentController(object):
         return np.array(self._monitor['SCREEN_SIZE_PIX'])
 
 # ############################### VIDEO METHODS ###############################
-    def load_video(self, file_name, pos=(0, 0), scale=1., units='norm',
-                   fullscreen=True):
-        self.video = Video(self, file_name, pos, scale, units, fullscreen)
+    def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
+        self.video = Video(self, file_name, pos, units)
 
     def unload_video(self):
-        self.video.stop()
         self.video.delete()
         self.video = None
 
@@ -852,14 +850,14 @@ class ExperimentController(object):
         self._win.switch_to()
         gl.glFinish()
         self._win.flip()
+        # this waits until everything is called, including last draw
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+        gl.glBegin(gl.GL_POINTS)
         if not self._enable_video:
-            # this waits until everything is called, including last draw
-            gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-            gl.glBegin(gl.GL_POINTS)
             gl.glColor4f(0, 0, 0, 0)
-            gl.glVertex2i(10, 10)
-            gl.glEnd()
-            gl.glFinish()
+        gl.glVertex2i(10, 10)
+        gl.glEnd()
+        gl.glFinish()
         flip_time = self.get_time()
         for function in call_list:
             function()

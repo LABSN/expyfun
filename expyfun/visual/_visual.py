@@ -943,75 +943,87 @@ class Video(object):
 
     Parameters
     ----------
+    ec : instance of expyfun.ExperimentController
+    file_name : str
+        the video file path
+    pos : array-like
+        2-element array-like with X, Y elements.
+    units : str
+        Units to use for the position. See ``check_units`` for options.
+    center : bool
+        If ``False``, the elements of ``pos`` specify the position of the lower
+        left corner of the video frame; otherwise they position the center of
+        the frame.
 
     Returns
     -------
     None
+
+    Notes
+    -----
+    This is a somewhat pared-down implementation of video playback. Looping and
+    resizing are not available, and the audio stream from the video file is
+    discarded.
     """
-    def __init__(self, ec, file_name, pos=(0, 0), scale=1., units='norm',
-                 fullscreen=True, loop=False):
+    def __init__(self, ec, file_name, pos=(0, 0), units='norm', center=True):
         from pyglet.media import load, Player
         self._ec = ec
+        self._playing = False
         self._file_name = file_name
         self._source = load(self._file_name)
         self._player = Player()
         self._player.queue(self._source)
-        #self._player.volume = 0
-        self._player._audio_player = None
-        self._duration = self._source.duration
+        self._player._audio_player = None  # TODO: allow audio?
         self._dt = 1. / self.frame_rate
-        self._visible = True
+        self._tmax = self.duration - 3 * self._dt  # pyglet bug
         self._last_frame_time = None
-        self._on_flip = partial(self._ec.window.dispatch_event, 'on_draw')
-        # TODO: implement scaling
-        # self.set_pos(pos, units)
-        # self.set_scale(scale)
-        self.set_loop(loop)
+        self._visible = True
+        self._pos = None
+        self.set_pos(pos, units, center)
+        self._draw = partial(self._ec.window.dispatch_event, 'on_draw')
 
         @ec.window.event
         def on_draw():
-            self._player.update_texture()
-            self._player.get_texture().blit(0, 0)
-            self._last_frame_time = self._ec.get_time()
-
-    def set_loop(self, loop):
-        """Set looping behavior of current movie.
-
-        Parameters
-        ----------
-        loop : bool
-        """
-        action = 'loop' if loop else 'stop'
-        self._player._groups[0].loop = action
+            t = self.time
+            if t < self._tmax:
+                self._player.update_texture(time=t)
+                self._player.get_texture().blit(*self._pos)
+                self._last_frame_time = self._ec.get_time()
+            else:
+                self._ec.window.clear()
+                self.pause()
 
     def play(self):
         """Play video from current position.
         """
-        if self.playing:
-            raise RuntimeWarning('ExperimentController.video.play() called '
-                                 'when already playing.')
-        else:
+        if not self._playing:
+            self._ec.call_on_every_flip(self._draw)
             self._player.play()
             self._last_frame_time = self._ec.get_time()
-            self._ec.call_on_every_flip(self._on_flip)
+            self._playing = True
+        else:
+            raise RuntimeWarning('ExperimentController.video.play() called '
+                                 'when already playing.')
 
     def pause(self):
-        """Pause video playback.
+        """Halt video playback.
         """
-        idx = self._ec.on_every_flip_functions.index(self._on_flip)
-        self._ec.on_every_flip_functions.pop(idx)
-        self._player.pause()
-
-    def stop(self):
-        """Pause video playback and reset position.
-        """
-        self.pause()
-        self.seek(0.)
+        if self._playing:
+            for idx, func in enumerate(self._ec._on_every_flip):
+                if hasattr(func, 'func'):
+                    if func.func is self._draw:
+                        self._ec._on_every_flip.pop(idx)
+            self._player.pause()
+            self._playing = False
+        else:
+            raise RuntimeWarning('ExperimentController.video.pause() called '
+                                 'when already paused.')
 
     def delete(self):
-        """Stop video playback and delete.
+        """Halt video playback and delete.
         """
-        self.pause()
+        if self._playing:
+            self.pause()
         self._player.delete()
 
     def seek(self, time):
@@ -1023,18 +1035,37 @@ class Video(object):
                                                                self.duration))
         self._player.seek(time)
 
+    def set_pos(self, pos, units='norm', center=True):
+        """Set video position.
+
+        Parameters
+        ----------
+        pos : array-like
+            2-element array-like with X, Y elements.
+        units : str
+            Units to use for the position. See ``check_units`` for options.
+        center : bool
+            If ``False``, the elements of ``pos`` specify the position of the
+            lower left corner of the video frame; otherwise they position the
+            center of the frame.
+        """
+        pos = np.array(pos, float)
+        if pos.ndim != 1 or pos.size != 2:
+            raise ValueError('pos must be a 2-element array')
+        pos = np.reshape(pos, (2, 1))
+        pix = self._ec._convert_units(pos, units, 'pix').ravel()
+        offset = np.array((self.width, self.height)) // 2 if center else 0
+        self._pos = pix - offset
+
     # PROPERTIES
     @property
     def file_name(self):
         return self._file_name
 
     @property
-    def looping(self):
-        return self._player._groups[0].loop
-
-    @property
     def playing(self):
-        return self._player.playing
+        return self._playing
+        #return self._player.playing
 
     @property
     def visible(self):
@@ -1042,11 +1073,11 @@ class Video(object):
 
     @property
     def duration(self):
-        return self._duration
+        return self._source.duration
 
     @property
     def frame_rate(self):
-        return self._player.source.video_format.frame_rate
+        return self._source.video_format.frame_rate
 
     @property
     def dt(self):

@@ -1,28 +1,31 @@
 # -*- coding: utf-8 -*-
 """
-===============================================================================
-Script ''
-===============================================================================
+======================
+Play sample video file
+======================
 
-This script does XXX.
+This shows how to play a video file in expyfun.
+
+@author: drmccloy
 """
-# @author: drmccloy
-# Created on Tue Feb 23 13:57:53 2016
-# License: BSD (3-clause)
 
-from __future__ import print_function
-from expyfun import ExperimentController as EC
+from expyfun import ExperimentController, fetch_data_file
 
-movie_path = '/home/drmccloy/Videos/trimmed/shaun-the-sheep-01.m4v'
+print(__doc__)
+
+
+movie_path = fetch_data_file('video/example-video.mp4')
 
 ec_args = dict(exp_name='movietest', window_size=(720, 480),
                full_screen=False, participant='foo', session='foo',
                version='dev', enable_video=True)
-ec = EC(**ec_args)
-ec.load_video(movie_path)
-ec.video.play()
-#ec.video.seek(15.)
 
-while ec.video.playing:
-    next_frame = ec.video.last_frame + ec.video.dt
-    _ = ec.flip(when=next_frame)
+with ExperimentController(**ec_args) as ec:
+    ec.load_video(movie_path)
+    ec.video.play()
+    #ec.video.seek(1.)
+
+    while ec.video.playing:
+        next_frame = ec.video.last_frame + ec.video.dt
+        ec.flip(when=next_frame)
+    ec.screen_prompt('video over!', max_wait=1.)
