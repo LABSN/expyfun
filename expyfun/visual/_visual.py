@@ -975,8 +975,7 @@ class Video(object):
         self._player.queue(self._source)
         self._player._audio_player = None  # TODO: allow audio?
         self._dt = 1. / self.frame_rate
-        self._tmax = self.duration - 3 * self._dt  # pyglet bug
-        self._last_frame_time = None
+        self._last_timestamp = None
         self._visible = True
         self._pos = None
         self.set_pos(pos, units, center)
@@ -984,11 +983,10 @@ class Video(object):
 
         @ec.window.event
         def on_draw():
-            t = self.time
-            if t < self._tmax:
-                self._player.update_texture(time=t)
+            self._last_timestamp = self._player.time
+            if self._last_timestamp < self.duration:
+                self._player.update_texture(time=self._last_timestamp)
                 self._player.get_texture().blit(*self._pos)
-                self._last_frame_time = self._ec.get_time()
             else:
                 self._ec.window.clear()
                 self.pause()
@@ -999,7 +997,7 @@ class Video(object):
         if not self._playing:
             self._ec.call_on_every_flip(self._draw)
             self._player.play()
-            self._last_frame_time = self._ec.get_time()
+            self._last_timestamp = self._player.time
             self._playing = True
         else:
             raise RuntimeWarning('ExperimentController.video.play() called '
@@ -1027,6 +1025,10 @@ class Video(object):
         self._player.delete()
 
     def seek(self, time):
+        """Move to a specific time in the video.
+        """
+        raise NotImplementedError('pyglet bug prevents video seeking.')
+        '''
         if time < 0:
             raise ValueError('Seek time must be a positive number of seconds.')
         elif time >= self.duration:
@@ -1034,6 +1036,8 @@ class Video(object):
                              'video duration ({:0.3}).'.format(time,
                                                                self.duration))
         self._player.seek(time)
+        self._last_timestamp = time
+        '''
 
     def set_pos(self, pos, units='norm', center=True):
         """Set video position.
@@ -1065,7 +1069,6 @@ class Video(object):
     @property
     def playing(self):
         return self._playing
-        #return self._player.playing
 
     @property
     def visible(self):
@@ -1073,7 +1076,7 @@ class Video(object):
 
     @property
     def duration(self):
-        return self._source.duration
+        return self._source.duration - 3 * self._dt
 
     @property
     def frame_rate(self):
@@ -1107,5 +1110,9 @@ class Video(object):
         return self._source.video_format.height
 
     @property
-    def last_frame(self):
-        return self._last_frame_time
+    def last_timestamp(self):
+        return self._last_timestamp
+
+    @property
+    def time_offset(self):
+        return self._ec.get_time() - self._player.time
