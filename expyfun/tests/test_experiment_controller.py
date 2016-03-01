@@ -8,6 +8,7 @@ from expyfun import ExperimentController, wait_secs, visual
 from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
+from functools import partial
 
 warnings.simplefilter('always')
 
@@ -246,7 +247,7 @@ def test_ec(ac=None, rd=None):
         ec.stop()
         ec.set_visible()
         ec.set_visible(False)
-        ec.call_on_every_flip(dummy_print, 'called start stimuli')
+        ec.call_on_every_flip(partial(dummy_print, 'called start stimuli'))
 
         #
         # First: identify_trial

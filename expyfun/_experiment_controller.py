@@ -440,7 +440,8 @@ class ExperimentController(object):
         scr_txt = Text(self, text, pos, color, font_name, font_size,
                        wrap=wrap, units=units, attr=attr)
         scr_txt.draw()
-        self.call_on_next_flip(self.write_data_line, 'screen_text', text)
+        self.call_on_next_flip(partial(self.write_data_line, 'screen_text',
+                                       text))
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
@@ -596,7 +597,7 @@ class ExperimentController(object):
                 fun()
         return stimulus_time
 
-    def call_on_next_flip(self, function, *args, **kwargs):
+    def call_on_next_flip(self, function):
         """Add a function to be executed on next flip only.
 
         Parameters
@@ -604,8 +605,6 @@ class ExperimentController(object):
         function : function | None
             The function to call. If ``None``, all the "on every flip"
             functions will be cleared.
-        *args, **kwargs : arguments and keyword arguments
-            Arguments to pass to the function when calling it.
 
         See Also
         --------
@@ -614,15 +613,16 @@ class ExperimentController(object):
         Notes
         -----
         See `flip_and_play` for order of operations. Can be called multiple
-        times to add multiple functions to the queue.
+        times to add multiple functions to the queue. If the function must be
+        called with arguments, use `functools.partial` before passing to
+        `call_on_next_flip`.
         """
         if function is not None:
-            function = partial(function, *args, **kwargs)
             self._on_next_flip.append(function)
         else:
             self._on_next_flip = []
 
-    def call_on_every_flip(self, function, *args, **kwargs):
+    def call_on_every_flip(self, function):
         """Add a function to be executed on every flip.
 
         Parameters
@@ -630,8 +630,6 @@ class ExperimentController(object):
         function : function | None
             The function to call. If ``None``, all the "on every flip"
             functions will be cleared.
-        *args, **kwargs : arguments and keyword arguments
-            Arguments to pass to the function when calling it.
 
         See Also
         --------
@@ -640,10 +638,11 @@ class ExperimentController(object):
         Notes
         -----
         See `flip_and_play` for order of operations. Can be called multiple
-        times to add multiple functions to the queue.
+        times to add multiple functions to the queue. If the function must be
+        called with arguments, use `functools.partial` before passing to
+        `call_on_every_flip`.
         """
         if function is not None:
-            function = partial(function, *args, **kwargs)
             self._on_every_flip.append(function)
         else:
             self._on_every_flip = []
