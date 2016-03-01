@@ -1077,7 +1077,8 @@ class Video(object):
 
     @property
     def frame_rate(self):
-        return self._source.video_format.frame_rate
+        fr = self._source.video_format.frame_rate
+        return 30 if fr is None else fr
 
     @property
     def dt(self):
