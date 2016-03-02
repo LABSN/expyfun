@@ -983,7 +983,8 @@ class Video(object):
 
         @ec.window.event
         def on_draw():
-            self._last_timestamp = self._player.time
+            if self._playing:
+                self._last_timestamp = self._player.time
             if self._last_timestamp < self.duration:
                 self._player.update_texture(time=self._last_timestamp)
                 self._player.get_texture().blit(*self._pos)
@@ -1112,6 +1113,10 @@ class Video(object):
     @property
     def last_timestamp(self):
         return self._last_timestamp
+
+    @property
+    def next_timestamp(self):
+        return self._last_timestamp + self._dt
 
     @property
     def time_offset(self):

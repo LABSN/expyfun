@@ -30,11 +30,13 @@ with ExperimentController(**ec_args) as ec:
     while ec.video.time < ec.video.duration:
         ec.listen_presses()
         if ec.video.playing:
-            next_frame_time = (ec.video.last_timestamp + ec.video.dt +
-                               ec.video.time_offset)
-            ec.flip(when=next_frame_time)
-        ec.wait_secs(ec.video.dt / 5)
+            t = ec.get_time()
+            fliptime = (ec.video.next_timestamp if ec.video.next_timestamp > t
+                        else None)
+            ec.flip(when=fliptime)
+        ec.wait_secs(0.0005)  # enough time for a press to register
         presses = ec.get_presses(live_keys=[1], relative_to=t_zero)
+        # presses won't be caught during this part of the while loop!
         if len(presses):
             all_presses.extend(presses)
             if ec.video.playing:
@@ -44,7 +46,8 @@ with ExperimentController(**ec_args) as ec:
             else:
                 ec.screen_text('play!')
                 ec.video.play()
+    ec.unload_video()
     preamble = 'press times:' if len(all_presses) else 'no presses'
-    msg = '\n'.join(['{0:.3f}'.format(x[1]) for x in all_presses])
+    msg = ', '.join(['{0:.3f}'.format(x[1]) for x in all_presses])
     ec.flip()
     ec.screen_prompt('\n'.join([preamble, msg]), max_wait=1.)
