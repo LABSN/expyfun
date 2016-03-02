@@ -33,7 +33,7 @@ before_install:
         travis_retry pip install -q coveralls;
       fi;
     # install AVbin
-    - wget https://github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10 -O avbin.sh
+    - wget http://github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10 -O avbin.sh
     - chmod +x avbin.sh
     - ./avbin.sh
     # Only install these deps if necessary (slow on Py3k)
