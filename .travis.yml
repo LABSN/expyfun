@@ -37,7 +37,7 @@ before_install:
     # install AVbin
     - wget https://github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10 -O avbin.sh
     - chmod +x avbin.sh
-    - sudo ./avbin.sh
+    - yes | sudo ./avbin.sh
     # Only install these deps if necessary (slow on Py3k)
     - travis_retry pip install -q nose-timer flake8;
     - travis_retry pip install -q pyglet mne six;  # mne is a dependency now that resample is taken from it
