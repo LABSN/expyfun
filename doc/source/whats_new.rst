@@ -48,6 +48,7 @@ Changelog
    - New codeblocks for finding pupil dilation impulse response.
    - Integration of HRTFs from CIPIC and BU databases for simulated spatial origins.
    - ``read_hdf5`` and ``write_hdf5`` are now part of external module ``h5io``.
+   - Support for video playback via ``pyglet`` and ``avbin``.
 
 API changes summary
 ~~~~~~~~~~~~~~~~~~~

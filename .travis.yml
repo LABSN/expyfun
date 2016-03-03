@@ -1,3 +1,5 @@
+sudo: required
+dist: trusty
 language: python
 
 python:
@@ -6,7 +8,7 @@ python:
 env:
     - PYTHON=2.7 DEPS=full TEST=standard
     - PYTHON=2.7 DEPS=minimal TEST=standard
-    - PYTHON=3.4 DEPS=full TEST=standard _EXPYFUN_SILENT=true
+    - PYTHON=3.5 DEPS=full TEST=standard _EXPYFUN_SILENT=true
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
 
 virtualenv:
@@ -32,6 +34,10 @@ before_install:
         conda install --yes scipy matplotlib nose coverage setuptools;
         travis_retry pip install -q coveralls;
       fi;
+    # install AVbin
+    - wget https://github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10 -O avbin.sh
+    - chmod +x avbin.sh
+    - yes | sudo ./avbin.sh
     # Only install these deps if necessary (slow on Py3k)
     - travis_retry pip install -q nose-timer flake8;
     - travis_retry pip install -q pyglet mne six;  # mne is a dependency now that resample is taken from it
@@ -60,3 +66,4 @@ script:
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
     - coveralls
+
