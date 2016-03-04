@@ -32,8 +32,15 @@ before_install:
         conda install --yes scipy matplotlib nose coverage setuptools;
         travis_retry pip install -q coveralls;
       fi;
+    # install a newer version of wget (avoid SSL errors)
+    - mkdir wget
+    - wget http://ftp.gnu.org/gnu/wget/wget-1.17.tar.xz -O wget.xz
+    - tar xf wget.xz -C ./wget --strip-components=1
+    - cd wget && ./configure && make
+    - sudo make install
+    - cd
     # install AVbin
-    - wget --no-check-certificate https://github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10 -O avbin.sh
+    - wget https://github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10 -O avbin.sh
     - chmod +x avbin.sh
     - yes | sudo ./avbin.sh
     # Only install these deps if necessary (slow on Py3k)
