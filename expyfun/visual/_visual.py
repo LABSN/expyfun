@@ -1084,6 +1084,7 @@ class Video(object):
         else:
             self._finished = True
             self.pause()
+        self._ec.check_force_quit()
 
     # PROPERTIES
     @property
