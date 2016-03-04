@@ -19,7 +19,7 @@ before_install:
     # Only use Pulseaudio on 2.7 because on Travis 3.4 causes some strange error...
     - SRC_DIR=${PWD}
     - travis_retry sudo apt-get update -qq
-    - if [ "${PYTHON}" == "2.7" ]; then
+    - if [ "${PYTHON}" == "2.7.10" ]; then
         travis_retry sudo apt-get install -qq -y pulseaudio python-nose python-coverage python-scipy python-matplotlib python-setuptools;
         dbus-launch pulseaudio --start;
         travis_retry sudo pip install -q coveralls;
@@ -43,7 +43,7 @@ before_install:
     - travis_retry pip install -q pyglet mne six;  # mne is a dependency now that resample is taken from it
     # Full dependencies (pandas, mne-python, h5py, joblib)
     - if [ "${DEPS}" == "full" ]; then
-        if [ "${PYTHON}" == "2.7" ]; then
+        if [ "${PYTHON}" == "2.7.10" ]; then
           sudo apt-get install -qq -y python-pandas python-h5py python-joblib;
         else
           conda install --yes --quiet pandas h5py;
