@@ -2,6 +2,7 @@
 
 # Authors: Dan McCloy <drmccloy@uw.edu>
 #          Eric Larson <larsoner@uw.edu>
+#          Ross Maddox <rkmaddox@uw.edu>
 #
 # License: BSD (3-clause)
 
@@ -887,8 +888,6 @@ class RawImage(object):
 
         Parameters
         ----------
-        ec : instance of ExperimentController
-            Parent EC.
         pos : array-like
             2-element array-like with X, Y (center) arguments.
         units : str
@@ -918,12 +917,9 @@ class RawImage(object):
 
         Parameters
         ----------
-        ec : instance of ExperimentController
-            Parent EC.
-        pos : array-like
-            2-element array-like with X, Y (center) arguments.
-        units : str
-            Units to use. See ``check_units`` for options.
+        scale : float
+            The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
+            large, etc.
         """
         scale = float(scale)
         self._scale = scale
@@ -935,3 +931,207 @@ class RawImage(object):
         pos = self._pos - [self._sprite.width / 2., self._sprite.height / 2.]
         self._sprite.set_position(pos[0], pos[1])
         self._sprite.draw()
+
+
+class Video(object):
+    """Read video file and draw it to the screen
+
+    Parameters
+    ----------
+    ec : instance of expyfun.ExperimentController
+    file_name : str
+        the video file path
+    pos : array-like
+        2-element array-like with X, Y elements.
+    units : str
+        Units to use for the position. See ``check_units`` for options.
+    scale : float
+        The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
+        large, etc. Ignored if ``fill_window`` is ``True``. (Not implemented).
+    center : bool
+        If ``False``, the elements of ``pos`` specify the position of the lower
+        left corner of the video frame; otherwise they position the center of
+        the frame.
+    fill_window : bool
+        If ``True``, scales the video to the size of the
+        ``ExperimentController`` window. (Not implemented).
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    This is a somewhat pared-down implementation of video playback. Looping and
+    scaling are not available, and the audio stream from the video file is
+    discarded. Timing of individual frames is relegated to the pyglet media
+    player's internal clock. Recommended for use only in paradigms where the
+    relative timing of audio and video are unimportant (e.g., if the video is
+    merely entertainment for the participant during a passive auditory task).
+    """
+    def __init__(self, ec, file_name, pos=(0, 0), units='norm', scale=1.,
+                 center=True, fill_window=False):
+        from pyglet.media import load, Player
+        self._ec = ec
+        self._source = load(file_name)
+        self._player = Player()
+        self._player.queue(self._source)
+        self._player._audio_player = None
+        self._dt = 1. / self.frame_rate
+        self._texture = None
+        self._playing = False
+        self._finished = False
+        self._pos = pos
+        self._units = units
+        self._center = center
+        self._scale = scale
+        self.set_scale(scale)  # also calls set_pos
+
+    def play(self):
+        """Play video from current position.
+
+        Returns
+        -------
+        time : float
+            The timestamp (on the parent ``ExperimentController`` timeline) at
+            which ``play()`` was called.
+        """
+        if not self._playing:
+            self._ec.call_on_every_flip(self.draw)
+            self._player.play()
+            self._playing = True
+        else:
+            raise RuntimeWarning('ExperimentController.video.play() called '
+                                 'when already playing.')
+        return self._ec.get_time()
+
+    def pause(self):
+        """Halt video playback."""
+        if self._playing:
+            idx = self._ec.on_every_flip_functions.index(self.draw)
+            self._ec.on_every_flip_functions.pop(idx)
+            self._player.pause()
+            self._playing = False
+        else:
+            raise RuntimeWarning('ExperimentController.video.pause() called '
+                                 'when already paused.')
+
+    def _delete(self):
+        """Halt video playback and remove player."""
+        if self._playing:
+            self.pause()
+        self._player.delete()
+
+    def _scale_texture(self):
+        if self._texture is not None:
+            self._texture.width = self.source_width * self._scale
+            self._texture.height = self.source_height * self._scale
+
+    def set_scale(self, scale):
+        """Set video scale.
+
+        Parameters
+        ----------
+        scale : float
+            The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
+            large, etc.
+        """
+        self._scale = float(scale)
+        self._scale_texture()
+        self.set_pos(self._pos, self._units, self._center)
+
+    def set_pos(self, pos, units='norm', center=True):
+        """Set video position.
+
+        Parameters
+        ----------
+        pos : array-like
+            2-element array-like with X, Y elements.
+        units : str
+            Units to use for the position. See ``check_units`` for options.
+        center : bool
+            If ``False``, the elements of ``pos`` specify the position of the
+            lower left corner of the video frame; otherwise they position the
+            center of the frame.
+        """
+        pos = np.array(pos, float)
+        if pos.size != 2:
+            raise ValueError('pos must be a 2-element array')
+        pos = np.reshape(pos, (2, 1))
+        pix = self._ec._convert_units(pos, units, 'pix').ravel()
+        offset = np.array((self.width, self.height)) // 2 if center else 0
+        self._pos = pos
+        self._actual_pos = pix - offset
+        self._pos_unit = units
+        self._pos_centered = center
+
+    def draw(self):
+        """Draw the video texture to the screen buffer."""
+        self._player.update_texture()
+        # detect end-of-stream to prevent pyglet from hanging:
+        if not self._eos:
+            self._texture = self._player.get_texture()
+            self._scale_texture()
+            self._texture.blit(*self._actual_pos)
+        else:
+            self._finished = True
+            self.pause()
+
+    # PROPERTIES
+    @property
+    def _eos(self):
+        return (self._player._last_video_timestamp is not None and
+                self._player._last_video_timestamp ==
+                self._source.get_next_video_timestamp())
+
+    @property
+    def playing(self):
+        return self._playing
+
+    @property
+    def finished(self):
+        return self._finished
+
+    @property
+    def position(self):
+        return np.squeeze(self._pos)
+
+    @property
+    def scale(self):
+        return self._scale
+
+    @property
+    def duration(self):
+        return self._source.duration
+
+    @property
+    def frame_rate(self):
+        return self._source.video_format.frame_rate
+
+    @property
+    def dt(self):
+        return self._dt
+
+    @property
+    def time(self):
+        return self._player.time
+
+    @property
+    def width(self):
+        return self.source_width * self._scale
+
+    @property
+    def height(self):
+        return self.source_height * self._scale
+
+    @property
+    def source_width(self):
+        return self._source.video_format.width
+
+    @property
+    def source_height(self):
+        return self._source.video_format.height
+
+    @property
+    def time_offset(self):
+        return self._ec.get_time() - self._player.time

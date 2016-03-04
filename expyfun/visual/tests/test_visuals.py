@@ -2,7 +2,7 @@ import warnings
 import numpy as np
 from nose.tools import assert_raises, assert_equal
 
-from expyfun import ExperimentController, visual
+from expyfun import ExperimentController, visual, fetch_data_file
 from expyfun._utils import _hide_window, requires_opengl21
 
 warnings.simplefilter('always')
@@ -76,3 +76,14 @@ def test_visuals():
         text.draw()
         text.set_color('red')
         text.draw()
+
+    # test video
+    std_kwargs.update(dict(enable_video=True, window_size=(640, 480)))
+    video_path = fetch_data_file('video/example-video.mp4')
+    with ExperimentController('test', **std_kwargs) as ec:
+        ec.load_video(video_path)
+        ec.video.play()
+        ec.wait_secs(0.5)
+        ec.video.pause()
+        ec.video.delete()
+        ec.unload_video()

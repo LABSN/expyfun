@@ -26,7 +26,7 @@ from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .stimuli._filter import resample
-from .visual import Text, Rectangle, _convert_color
+from .visual import Text, Rectangle, Video, _convert_color
 from ._git import assert_version
 
 
@@ -125,7 +125,7 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  verbose=None, check_rms='windowed', suppress_resamp=False,
-                 version=None):
+                 version=None, enable_video=False):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -133,6 +133,8 @@ class ExperimentController(object):
         self._noise_db = noise_db
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
+        self._enable_video = enable_video
+        self.video = None
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
         self._on_next_flip = []
@@ -748,6 +750,14 @@ class ExperimentController(object):
     def monitor_size_pix(self):
         return np.array(self._monitor['SCREEN_SIZE_PIX'])
 
+# ############################### VIDEO METHODS ###############################
+    def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
+        self.video = Video(self, file_name, pos, units)
+
+    def delete_video(self):
+        self.video._delete()
+        self.video = None
+
 # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         # Use 16x sampling here
@@ -842,7 +852,8 @@ class ExperimentController(object):
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         gl.glBegin(gl.GL_POINTS)
-        gl.glColor4f(0, 0, 0, 0)
+        if not self._enable_video:
+            gl.glColor4f(0, 0, 0, 0)
         gl.glVertex2i(10, 10)
         gl.glEnd()
         gl.glFinish()
