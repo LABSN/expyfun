@@ -83,7 +83,8 @@ def test_visuals():
     with ExperimentController('test', **std_kwargs) as ec:
         ec.load_video(video_path)
         ec.video.play()
-        ec.wait_secs(0.5)
+        ec.video.set_scale(full=True)
+        ec.video.set_pos(pos=(0.1, 0), units='norm')
+        ec.wait_secs(0.2)
         ec.video.pause()
-        ec.video.delete()
-        ec.unload_video()
+        ec.delete_video()
