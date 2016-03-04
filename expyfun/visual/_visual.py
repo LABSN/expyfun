@@ -947,14 +947,14 @@ class Video(object):
         Units to use for the position. See ``check_units`` for options.
     scale : float
         The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
-        large, etc. Ignored if ``fill_window`` is ``True``. (Not implemented).
+        large, etc. Ignored if ``fill_window`` is ``True``.
     center : bool
         If ``False``, the elements of ``pos`` specify the position of the lower
         left corner of the video frame; otherwise they position the center of
         the frame.
     fill_window : bool
         If ``True``, scales the video to the size of the
-        ``ExperimentController`` window. (Not implemented).
+        ``ExperimentController`` window.
 
     Returns
     -------
@@ -962,12 +962,12 @@ class Video(object):
 
     Notes
     -----
-    This is a somewhat pared-down implementation of video playback. Looping and
-    scaling are not available, and the audio stream from the video file is
-    discarded. Timing of individual frames is relegated to the pyglet media
-    player's internal clock. Recommended for use only in paradigms where the
-    relative timing of audio and video are unimportant (e.g., if the video is
-    merely entertainment for the participant during a passive auditory task).
+    This is a somewhat pared-down implementation of video playback. Looping is
+    not available, and the audio stream from the video file is discarded.
+    Timing of individual frames is relegated to the pyglet media player's
+    internal clock. Recommended for use only in paradigms where the relative
+    timing of audio and video are unimportant (e.g., if the video is merely
+    entertainment for the participant during a passive auditory task).
     """
     def __init__(self, ec, file_name, pos=(0, 0), units='norm', scale=1.,
                  center=True, fill_window=False):
@@ -985,7 +985,7 @@ class Video(object):
         self._units = units
         self._center = center
         self._scale = scale
-        self.set_scale(scale)  # also calls set_pos
+        self.set_scale(scale, fill_window)  # also calls set_pos
 
     def play(self):
         """Play video from current position.
@@ -1027,7 +1027,7 @@ class Video(object):
             self._texture.width = self.source_width * self._scale
             self._texture.height = self.source_height * self._scale
 
-    def set_scale(self, scale):
+    def set_scale(self, scale=1., fill=False):
         """Set video scale.
 
         Parameters
@@ -1035,7 +1035,15 @@ class Video(object):
         scale : float
             The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
             large, etc.
+        fill : bool
+            If ``True``, ignores `scale` and scales the video to the size of
+            the parent ``ExperimentController`` window.
         """
+        if fill:
+            scale = self._ec.window_size_pix / np.array((self.source_width,
+                                                         self.source_height),
+                                                        dtype=float)
+            scale = scale.min()
         self._scale = float(scale)
         self._scale_texture()
         self.set_pos(self._pos, self._units, self._center)

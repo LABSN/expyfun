@@ -25,6 +25,7 @@ with ExperimentController(**ec_args) as ec:
     screen_period = 1. / ec.estimate_screen_fs()
     all_presses = list()
     ec.load_video(movie_path)
+    ec.video.set_scale(fill=True)
     ec.screen_prompt('press 1 during video to toggle pause.', max_wait=1.)
     ec.listen_presses()
     t_zero = ec.video.play()
