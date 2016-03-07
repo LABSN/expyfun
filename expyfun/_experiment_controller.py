@@ -1657,7 +1657,8 @@ class ExperimentController(object):
             Ids to stamp, e.g. ``ec_id='TL90,MR45'. Use `id_types`
             to see valid options. Typical choices are ``ec_id``, ``el_id``,
             and ``ttl_id`` for experiment controller, eyelink, and TDT
-            (or parallel port) respectively.
+            (or parallel port) respectively. If the value passed is a ``dict``,
+            its entries will be passed as keywords to the underlying function.
 
         See Also
         --------
@@ -1678,7 +1679,10 @@ class ExperimentController(object):
         for key, id_ in ids.items():
             logger.exp('Expyfun: Stamp trial ID to {0} : {1}'
                        ''.format(key.ljust(ll), str(id_)))
-            self._id_call_dict[key](id_)
+            if isinstance(id_, dict):
+                self._id_call_dict[key](**id_)
+            else:
+                self._id_call_dict[key](id_)
         self._trial_progress = 'identified'
 
     def trial_ok(self):
@@ -1704,12 +1708,12 @@ class ExperimentController(object):
         """Stamp id -- currently anything allowed"""
         self.write_data_line('trial_id', id_)
 
-    def _stamp_binary_id(self, id_, wait_for_last=True):
+    def _stamp_binary_id(self, id_, delay=0.03, wait_for_last=True):
         """Helper for ec to stamp a set of IDs using binary controller
 
         This makes TDT and parallel port give the same output. Eventually
         we may want to customize it so that parallel could work differently,
-        but for now it's unified.
+        but for now it's unified. ``delay`` is the inter-trigger delay.
         """
         if not isinstance(id_, (list, tuple, np.ndarray)):
             raise TypeError('id must be array-like')
@@ -1718,7 +1722,7 @@ class ExperimentController(object):
             raise ValueError('All values of id must be 0 or 1')
         id_ = 2 ** (id_.astype(int) + 2)  # 4's and 8's
         # Note: we no longer put 8, 8 on ends
-        self._stamp_ttl_triggers(id_, wait_for_last=wait_for_last)
+        self._stamp_ttl_triggers(id_, delay=delay, wait_for_last=wait_for_last)
 
     def stamp_triggers(self, ids, check='binary', wait_for_last=True):
         """Stamp binary values
