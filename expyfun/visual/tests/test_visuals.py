@@ -83,7 +83,11 @@ def test_visuals():
     with ExperimentController('test', **std_kwargs) as ec:
         ec.load_video(video_path)
         ec.video.play()
-        ec.video.set_scale(fill=True)
+        assert_raises(ValueError, ec.video.set_scale, 'foo')
+        assert_raises(ValueError, ec.video.set_scale, -1)
+        ec.video.set_scale('fill')
+        ec.video.set_scale('fit')
+        ec.video.set_scale(0.5)
         ec.video.set_pos(pos=(0.1, 0), units='norm')
         ec.wait_secs(0.2)
         ec.video.pause()

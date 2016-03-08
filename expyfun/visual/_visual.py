@@ -12,6 +12,7 @@ from ctypes import (cast, pointer, POINTER, create_string_buffer, c_char,
                     c_int, c_float)
 from functools import partial
 
+import warnings
 import numpy as np
 from matplotlib.colors import colorConverter
 
@@ -970,7 +971,7 @@ class Video(object):
     entertainment for the participant during a passive auditory task).
     """
     def __init__(self, ec, file_name, pos=(0, 0), units='norm', scale=1.,
-                 center=True, fill_window=False):
+                 center=True):
         from pyglet.media import load, Player
         self._ec = ec
         self._source = load(file_name)
@@ -985,7 +986,7 @@ class Video(object):
         self._units = units
         self._center = center
         self._scale = scale
-        self.set_scale(scale, fill_window)  # also calls set_pos
+        self.set_scale(self._scale)  # also calls set_pos
 
     def play(self):
         """Play video from current position.
@@ -1001,8 +1002,8 @@ class Video(object):
             self._player.play()
             self._playing = True
         else:
-            raise RuntimeWarning('ExperimentController.video.play() called '
-                                 'when already playing.')
+            warnings.warn('ExperimentController.video.play() called when '
+                          'already playing.')
         return self._ec.get_time()
 
     def pause(self):
@@ -1013,8 +1014,8 @@ class Video(object):
             self._player.pause()
             self._playing = False
         else:
-            raise RuntimeWarning('ExperimentController.video.pause() called '
-                                 'when already paused.')
+            warnings.warn('ExperimentController.video.pause() called when '
+                          'already paused.')
 
     def _delete(self):
         """Halt video playback and remove player."""
@@ -1027,24 +1028,31 @@ class Video(object):
             self._texture.width = self.source_width * self._scale
             self._texture.height = self.source_height * self._scale
 
-    def set_scale(self, scale=1., fill=False):
+    def set_scale(self, scale=1.):
         """Set video scale.
 
         Parameters
         ----------
-        scale : float
+        scale : float | str
             The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
-            large, etc.
-        fill : bool
-            If ``True``, ignores `scale` and scales the video to the size of
-            the parent ``ExperimentController`` window.
+            large, etc. If `scale` is a string, it must be either ``'fill'``
+            (which ensures the entire ``ExperimentController`` window is
+            covered by the video, at the expense of some parts of the video
+            potentially being offscreen), or ``'fit'`` (which scales maximally
+            while ensuring none of the video is offscreen, which may result in
+            letterboxing).
         """
-        if fill:
-            scale = self._ec.window_size_pix / np.array((self.source_width,
-                                                         self.source_height),
-                                                        dtype=float)
-            scale = scale.min()
-        self._scale = float(scale)
+        if isinstance(scale, string_types):
+            _scale = self._ec.window_size_pix / np.array((self.source_width,
+                                                          self.source_height),
+                                                         dtype=float)
+            if scale == 'fit':
+                scale = _scale.min()
+            elif scale == 'fill':
+                scale = _scale.max()
+        self._scale = float(scale)  # allows [1, 1., '1']; others: ValueError
+        if self._scale <= 0:
+            raise ValueError('Video scale factor must be strictly positive.')
         self._scale_texture()
         self.set_pos(self._pos, self._units, self._center)
 
