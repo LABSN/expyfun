@@ -26,7 +26,7 @@ from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .stimuli._filter import resample
-from .visual import Text, Rectangle, _convert_color
+from .visual import Text, Rectangle, Video, _convert_color
 from ._git import assert_version
 
 
@@ -125,7 +125,7 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  verbose=None, check_rms='windowed', suppress_resamp=False,
-                 version=None):
+                 version=None, enable_video=False):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -133,6 +133,8 @@ class ExperimentController(object):
         self._noise_db = noise_db
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
+        self._enable_video = enable_video
+        self.video = None
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
         self._on_next_flip = []
@@ -440,7 +442,8 @@ class ExperimentController(object):
         scr_txt = Text(self, text, pos, color, font_name, font_size,
                        wrap=wrap, units=units, attr=attr)
         scr_txt.draw()
-        self.call_on_next_flip(self.write_data_line, 'screen_text', text)
+        self.call_on_next_flip(partial(self.write_data_line, 'screen_text',
+                                       text))
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
@@ -596,7 +599,7 @@ class ExperimentController(object):
                 fun()
         return stimulus_time
 
-    def call_on_next_flip(self, function, *args, **kwargs):
+    def call_on_next_flip(self, function):
         """Add a function to be executed on next flip only.
 
         Parameters
@@ -604,8 +607,6 @@ class ExperimentController(object):
         function : function | None
             The function to call. If ``None``, all the "on every flip"
             functions will be cleared.
-        *args, **kwargs : arguments and keyword arguments
-            Arguments to pass to the function when calling it.
 
         See Also
         --------
@@ -614,15 +615,16 @@ class ExperimentController(object):
         Notes
         -----
         See `flip_and_play` for order of operations. Can be called multiple
-        times to add multiple functions to the queue.
+        times to add multiple functions to the queue. If the function must be
+        called with arguments, use `functools.partial` before passing to
+        `call_on_next_flip`.
         """
         if function is not None:
-            function = partial(function, *args, **kwargs)
             self._on_next_flip.append(function)
         else:
             self._on_next_flip = []
 
-    def call_on_every_flip(self, function, *args, **kwargs):
+    def call_on_every_flip(self, function):
         """Add a function to be executed on every flip.
 
         Parameters
@@ -630,8 +632,6 @@ class ExperimentController(object):
         function : function | None
             The function to call. If ``None``, all the "on every flip"
             functions will be cleared.
-        *args, **kwargs : arguments and keyword arguments
-            Arguments to pass to the function when calling it.
 
         See Also
         --------
@@ -640,10 +640,11 @@ class ExperimentController(object):
         Notes
         -----
         See `flip_and_play` for order of operations. Can be called multiple
-        times to add multiple functions to the queue.
+        times to add multiple functions to the queue. If the function must be
+        called with arguments, use `functools.partial` before passing to
+        `call_on_every_flip`.
         """
         if function is not None:
-            function = partial(function, *args, **kwargs)
             self._on_every_flip.append(function)
         else:
             self._on_every_flip = []
@@ -749,6 +750,14 @@ class ExperimentController(object):
     def monitor_size_pix(self):
         return np.array(self._monitor['SCREEN_SIZE_PIX'])
 
+# ############################### VIDEO METHODS ###############################
+    def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
+        self.video = Video(self, file_name, pos, units)
+
+    def delete_video(self):
+        self.video._delete()
+        self.video = None
+
 # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         # Use 16x sampling here
@@ -843,7 +852,8 @@ class ExperimentController(object):
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         gl.glBegin(gl.GL_POINTS)
-        gl.glColor4f(0, 0, 0, 0)
+        if not self._enable_video:
+            gl.glColor4f(0, 0, 0, 0)
         gl.glVertex2i(10, 10)
         gl.glEnd()
         gl.glFinish()
@@ -1647,7 +1657,8 @@ class ExperimentController(object):
             Ids to stamp, e.g. ``ec_id='TL90,MR45'. Use `id_types`
             to see valid options. Typical choices are ``ec_id``, ``el_id``,
             and ``ttl_id`` for experiment controller, eyelink, and TDT
-            (or parallel port) respectively.
+            (or parallel port) respectively. If the value passed is a ``dict``,
+            its entries will be passed as keywords to the underlying function.
 
         See Also
         --------
@@ -1668,7 +1679,10 @@ class ExperimentController(object):
         for key, id_ in ids.items():
             logger.exp('Expyfun: Stamp trial ID to {0} : {1}'
                        ''.format(key.ljust(ll), str(id_)))
-            self._id_call_dict[key](id_)
+            if isinstance(id_, dict):
+                self._id_call_dict[key](**id_)
+            else:
+                self._id_call_dict[key](id_)
         self._trial_progress = 'identified'
 
     def trial_ok(self):
@@ -1694,12 +1708,12 @@ class ExperimentController(object):
         """Stamp id -- currently anything allowed"""
         self.write_data_line('trial_id', id_)
 
-    def _stamp_binary_id(self, id_, wait_for_last=True):
+    def _stamp_binary_id(self, id_, delay=0.03, wait_for_last=True):
         """Helper for ec to stamp a set of IDs using binary controller
 
         This makes TDT and parallel port give the same output. Eventually
         we may want to customize it so that parallel could work differently,
-        but for now it's unified.
+        but for now it's unified. ``delay`` is the inter-trigger delay.
         """
         if not isinstance(id_, (list, tuple, np.ndarray)):
             raise TypeError('id must be array-like')
@@ -1708,7 +1722,7 @@ class ExperimentController(object):
             raise ValueError('All values of id must be 0 or 1')
         id_ = 2 ** (id_.astype(int) + 2)  # 4's and 8's
         # Note: we no longer put 8, 8 on ends
-        self._stamp_ttl_triggers(id_, wait_for_last=wait_for_last)
+        self._stamp_ttl_triggers(id_, delay=delay, wait_for_last=wait_for_last)
 
     def stamp_triggers(self, ids, check='binary', wait_for_last=True):
         """Stamp binary values

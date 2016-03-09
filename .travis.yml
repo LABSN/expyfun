@@ -32,6 +32,10 @@ before_install:
         conda install --yes scipy matplotlib nose coverage setuptools;
         travis_retry pip install -q coveralls;
       fi;
+    # install AVbin
+    - curl https://cloud.github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10 -o avbin.sh
+    - chmod +x avbin.sh
+    - sudo bash -c "yes | ./avbin.sh"
     # Only install these deps if necessary (slow on Py3k)
     - travis_retry pip install -q nose-timer flake8;
     - travis_retry pip install -q pyglet mne six;  # mne is a dependency now that resample is taken from it
@@ -60,3 +64,4 @@ script:
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
     - coveralls
+
