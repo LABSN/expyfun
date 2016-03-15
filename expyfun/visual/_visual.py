@@ -1002,8 +1002,14 @@ class Video(object):
         self._background = ImageData(*self._ec.window_size_pix, format='RGBA',
                                      data=(GLubyte * len(_px))(*_px))
 
-    def play(self):
+    def play(self, autoshow=True):
         """Play video from current position.
+
+        Parameters
+        ----------
+        autoshow : bool
+            If ``True`` (and video is currently hidden), will make video
+            visible before playing.
 
         Returns
         -------
@@ -1012,7 +1018,8 @@ class Video(object):
             which ``play()`` was called.
         """
         if not self._playing:
-            self._visible = True
+            if autoshow:
+                self.set_visible(True)
             self._ec.call_on_every_flip(self.draw)
             self._player.play()
             self._playing = True
@@ -1021,9 +1028,17 @@ class Video(object):
                           'already playing.')
         return self._ec.get_time()
 
-    def pause(self):
-        """Halt video playback."""
+    def pause(self, autohide=False):
+        """Halt video playback.
+
+        Parameters
+        ----------
+        autohide : bool
+            If ``True``, hides the video upon pausing.
+        """
         if self._playing:
+            if autohide:
+                self.set_visible(False)
             idx = self._ec.on_every_flip_functions.index(self.draw)
             self._ec.on_every_flip_functions.pop(idx)
             self._player.pause()
