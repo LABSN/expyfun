@@ -17,9 +17,10 @@ print(__doc__)
 
 movie_path = fetch_data_file('video/example-video.mp4')
 
-ec_args = dict(exp_name='movietest', window_size=(720, 480),
+ec_args = dict(exp_name='advanced video example', window_size=(720, 480),
                full_screen=False, participant='foo', session='foo',
-               version='dev', enable_video=True)
+               version='dev', enable_video=True, output_dir=None)
+colors = [x for x in 'rgbcmyk']
 
 with ExperimentController(**ec_args) as ec:
     screen_period = 1. / ec.estimate_screen_fs()
@@ -27,8 +28,9 @@ with ExperimentController(**ec_args) as ec:
     ec.load_video(movie_path)
     ec.video.set_scale('fill')
     ec.screen_prompt('press 1 during video to toggle pause.', max_wait=1.)
-    ec.listen_presses()
+    ec.listen_presses()  # to catch presses on first pass of while loop
     t_zero = ec.video.play()
+    this_sec = 0
     while not ec.video.finished:
         if ec.video.playing:
             fliptime = ec.flip()
@@ -36,19 +38,28 @@ with ExperimentController(**ec_args) as ec:
             ec.wait_secs(screen_period / 5)
         presses = ec.get_presses(live_keys=[1], relative_to=t_zero)
         ec.listen_presses()
-        if ec.video.playing and 2 < ec.video.time < 4.5:
-            ec.video.set_scale(ec.video.scale * 0.99)
-        if ec.video.playing and ec.video.time > 4.5:
-            ec.video.set_pos(ec.video.position + np.array((0.01, 0)))
+        # change the background color every 1 second
+        if this_sec != int(ec.video.time):
+            this_sec = int(ec.video.time)
+            ec.set_background_color(colors[this_sec])
+        # shrink the video, then move it rightward
+        if ec.video.playing:
+            if 1 < ec.video.time < 3:
+                ec.video.set_scale(ec.video.scale * 0.99)
+            if 4 < ec.video.time < 5:
+                ec.video.set_pos(ec.video.position + np.array((0.01, 0)))
         if len(presses):
             all_presses.extend(presses)
-            if ec.video.playing:
-                ec.video.pause()
-                ec.screen_text('pause!', color='red', font_size=32, wrap=False)
-                ec.flip()
-            else:
-                ec.video.play()
-                ec.screen_text('play!', color='red', font_size=64, wrap=False)
+            if len(presses) % 2:  # if even number of presses, do nothing
+                if ec.video.playing:
+                    ec.video.pause()
+                    ec.screen_text('pause!', color='red', font_size=32,
+                                   wrap=False)
+                    ec.flip()
+                else:
+                    ec.video.play()
+                    ec.screen_text('play!', color='red', font_size=64,
+                                   wrap=False)
     ec.delete_video()
     preamble = 'press times:' if len(all_presses) else 'no presses'
     msg = ', '.join(['{0:.3f}'.format(x[1]) for x in all_presses])

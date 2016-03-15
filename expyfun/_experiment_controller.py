@@ -135,6 +135,7 @@ class ExperimentController(object):
         self._suppress_resamp = suppress_resamp
         self._enable_video = enable_video
         self.video = None
+        self._bgcolor = _convert_color('k')
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
         self._on_next_flip = []
@@ -534,9 +535,11 @@ class ExperimentController(object):
         ``glClearColor`` will be set so the buffer starts out with the
         appropriate backgound color.
         """
-        # we go a little over here to be safe from round-off errors
-        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
-        gl.glClearColor(*[c / 255. for c in _convert_color(color)])
+        if not self._enable_video:
+            # we go a little over here to be safe from round-off errors
+            Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
+        self._bgcolor = _convert_color(color)
+        gl.glClearColor(*[c / 255. for c in self._bgcolor])
 
     def start_stimulus(self, start_of_trial=True, flip=True, when=None):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
