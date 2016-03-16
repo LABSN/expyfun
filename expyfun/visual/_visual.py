@@ -946,7 +946,7 @@ class Video(object):
         2-element array-like with X, Y elements.
     units : str
         Units to use for the position. See ``check_units`` for options.
-    scale : float
+    scale : float | str
         The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
         large, etc. If `scale` is a string, it must be either ``'fill'``
         (which ensures the entire ``ExperimentController`` window is

@@ -42,6 +42,7 @@ Optional:
 
 System-level:
 - git (for automated version downloading)
+- AVbin (if playing compressed videos)
 
 
 Licensing
