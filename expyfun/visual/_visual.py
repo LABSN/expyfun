@@ -952,8 +952,8 @@ class Video(object):
         (which ensures the entire ``ExperimentController`` window is
         covered by the video, at the expense of some parts of the video
         potentially being offscreen), or ``'fit'`` (which scales maximally
-        while ensuring none of the video is offscreen, which may result in
-        letterboxing).
+        while ensuring none of the video is offscreen, and may result in
+        letterboxing or pillarboxing).
     center : bool
         If ``False``, the elements of ``pos`` specify the position of the lower
         left corner of the video frame; otherwise they position the center of
@@ -991,25 +991,10 @@ class Video(object):
         self._units = units
         self._center = center
         self.set_scale(scale)  # also calls set_pos
-        self.set_visible(visible)
-        self._update_background()
+        self._visible = visible
 
-    def _update_background(self):
-        from pyglet.image import ImageData
-        from pyglet.gl import GLubyte
-        _px = np.tile(self._ec._bgcolor,
-                      self._ec.window_size_pix.prod()).astype(int).tolist()
-        self._background = ImageData(*self._ec.window_size_pix, format='RGBA',
-                                     data=(GLubyte * len(_px))(*_px))
-
-    def play(self, autoshow=True):
+    def play(self):
         """Play video from current position.
-
-        Parameters
-        ----------
-        autoshow : bool
-            If ``True`` (and video is currently hidden), will make video
-            visible before playing.
 
         Returns
         -------
@@ -1018,8 +1003,6 @@ class Video(object):
             which ``play()`` was called.
         """
         if not self._playing:
-            if autoshow:
-                self.set_visible(True)
             self._ec.call_on_every_flip(self.draw)
             self._player.play()
             self._playing = True
@@ -1028,17 +1011,16 @@ class Video(object):
                           'already playing.')
         return self._ec.get_time()
 
-    def pause(self, autohide=False):
+    def pause(self):
         """Halt video playback.
 
-        Parameters
-        ----------
-        autohide : bool
-            If ``True``, hides the video upon pausing.
+        Returns
+        -------
+        time : float
+            The timestamp (on the parent ``ExperimentController`` timeline) at
+            which ``pause()`` was called.
         """
         if self._playing:
-            if autohide:
-                self.set_visible(False)
             idx = self._ec.on_every_flip_functions.index(self.draw)
             self._ec.on_every_flip_functions.pop(idx)
             self._player.pause()
@@ -1046,6 +1028,7 @@ class Video(object):
         else:
             warnings.warn('ExperimentController.video.pause() called when '
                           'already paused.')
+        return self._ec.get_time()
 
     def _delete(self):
         """Halt video playback and remove player."""
@@ -1054,7 +1037,7 @@ class Video(object):
         self._player.delete()
 
     def _scale_texture(self):
-        if self._texture is not None:
+        if self._texture:
             self._texture.width = self.source_width * self._scale
             self._texture.height = self.source_height * self._scale
 
@@ -1111,27 +1094,31 @@ class Video(object):
         self._pos_unit = units
         self._pos_centered = center
 
+    def _draw(self):
+        self._texture = self._player.get_texture()
+        self._scale_texture()
+        self._texture.blit(*self._actual_pos)
+
     def draw(self):
         """Draw the video texture to the screen buffer."""
         self._player.update_texture()
         # detect end-of-stream to prevent pyglet from hanging:
         if not self._eos:
             if self._visible:
-                self._texture = self._player.get_texture()
-                self._scale_texture()
-                self._texture.blit(*self._actual_pos)
+                self._draw()
         else:
             self._finished = True
             self.pause()
         self._ec.check_force_quit()
 
     def set_visible(self, show, flip=False):
-        """Show/hide the video frame"""
+        """Show/hide the video frame."""
         if show:
             self._visible = True
+            self._draw()
         else:
-            self._texture.blit_into(self._background, 0, 0, 0)
             self._visible = False
+            self._ec.flip()
         if flip:
             self._ec.flip()
 

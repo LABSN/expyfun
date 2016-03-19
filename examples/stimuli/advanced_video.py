@@ -4,7 +4,7 @@
 Play sample video file
 ======================
 
-This shows how to play a video file in expyfun.
+This shows how to control various properties of a video file in expyfun.
 
 @author: drmccloy
 """
@@ -48,18 +48,19 @@ with ExperimentController(**ec_args) as ec:
                 ec.video.set_scale(ec.video.scale * 0.99)
             if 4 < ec.video.time < 5:
                 ec.video.set_pos(ec.video.position + np.array((0.01, 0)))
+        # parse button presses
         if len(presses):
             all_presses.extend(presses)
             if len(presses) % 2:  # if even number of presses, do nothing
                 if ec.video.playing:
+                    ec.video.set_visible(False)
                     ec.video.pause()
-                    ec.screen_text('pause!', color='red', font_size=32,
+                    ec.screen_text('pause!', color='k', font_size=32,
                                    wrap=False)
                     ec.flip()
                 else:
+                    ec.video.set_visible(True)
                     ec.video.play()
-                    ec.screen_text('play!', color='red', font_size=64,
-                                   wrap=False)
     ec.delete_video()
     preamble = 'press times:' if len(all_presses) else 'no presses'
     msg = ', '.join(['{0:.3f}'.format(x[1]) for x in all_presses])
