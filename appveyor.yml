@@ -27,7 +27,7 @@ install:
   - "conda install --yes --quiet numpy scipy matplotlib coverage nose setuptools h5py pandas"
   - "pip install -q pyglet mne"
   - "$webclient = New-Object System.Net.WebClient;
-      $url = https://cloud.github.com/downloads/AVbin/AVbin/AVbin10-win64.exe;
+      $url = 'https://cloud.github.com/downloads/AVbin/AVbin/AVbin10-win64.exe';
       $webclient.DownloadFile($url, avbin.exe);"
   - "Start-Process -FilePath avbin.exe -Wait -Passthru"
   - "Copy-Item C:\\Windows\\system32\\avbin.dll -Destination C:\\Windows\\SysWOW64\\avbin.dll"
