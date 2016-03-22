@@ -492,6 +492,7 @@ class CedrusBox(Keyboard):
         assert dev.is_response_device()
         self._dev = dev
         self._keyboard_buffer = []
+        self._keyboard_buffer_releases = []
         super(CedrusBox, self).__init__(ec, force_quit_keys)
         ec._time_correction_maxs['keypress'] = 1e-3  # higher tolerance
 
@@ -508,7 +509,9 @@ class CedrusBox(Keyboard):
 
     def _clear_events(self):
         self._retrieve_events(None)
+        self._retrieve_keyboard_releases(None)
         self._keyboard_buffer = []
+        self._keyboard_buffer_releases = []
 
     def _retrieve_events(self, live_keys):
         # add escape keys
@@ -530,6 +533,22 @@ class CedrusBox(Keyboard):
                 targets.append(key)
         return targets
 
-    def get_releases(self, live_keys, timestamp, relative_to):
-        msg = 'Key releases not implemented for CedrusBox.'
-        raise NotImplementedError(msg)
+    def _retrieve_keyboard_releases(self, live_keys):
+        # add escape keys
+        if live_keys is not None:
+            live_keys = [str(x) for x in live_keys]  # accept ints
+            live_keys.extend(self.force_quit_keys)
+        # pump for events
+        self._dev.poll_for_response()
+        while self._dev.response_queue_size() > 0:
+            key = self._dev.get_next_response()
+            if not key['pressed']:
+                key = [str(key['key'] + 1), key['time'] / 1000.]
+                self._keyboard_buffer_releases.append(key)
+            self._dev.poll_for_response()
+        # check to see if we have matches
+        targets = []
+        for key in self._keyboard_buffer_releases:
+            if live_keys is None or key[0] in live_keys:
+                targets.append(key)
+        return targets
