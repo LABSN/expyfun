@@ -950,6 +950,38 @@ class ExperimentController(object):
         return self._response_handler.get_presses(live_keys, timestamp,
                                                   relative_to)
 
+    def get_releases(self, live_keys=None, timestamp=True, relative_to=None):
+        """Get the entire keyboard / button box buffer for key-releases.
+
+        Parameters
+        ----------
+        live_keys : list | None
+            List of strings indicating acceptable keys or buttons. Other data
+            types are cast as strings, so a list of ints will also work.
+            ``None`` accepts all keypresses.
+        timestamp : bool
+            Whether the keyrelease should be timestamped. If True, returns the
+            button release time relative to the value given in `relative_to`.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            timestamp==False.  If ``None``, timestamps are relative to the time
+            `listen_presses` was last called.
+
+        Returns
+        -------
+        presses : list
+            If timestamp==False, returns a list of strings indicating which
+            keys were released. Otherwise, returns a list of tuples
+            (str, float) of keys and their timestamps.
+
+        See Also
+        --------
+        ExperimentController.listen_presses
+        ExperimentController.get_presses
+        """
+        return self._response_handler.get_releases(live_keys, timestamp,
+                                                  relative_to)
+
     def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
                        timestamp=True, relative_to=None):
         """Returns only the first button pressed after min_wait.
