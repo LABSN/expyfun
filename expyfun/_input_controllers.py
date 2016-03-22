@@ -3,6 +3,7 @@
 # Authors: Dan McCloy <drmccloy@uw.edu>
 #          Eric Larson <larsoner@uw.edu>
 #          Ross Maddox <rkmaddox@uw.edu>
+#          Jasper van den Bosch <jasperb@uw.edu>
 #
 # License: BSD (3-clause)
 
