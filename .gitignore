@@ -51,3 +51,6 @@ doc/modules/generated/
 doc/source/generated/
 doc/source/auto_examples/
 
+# virtualenv
+env/
+
