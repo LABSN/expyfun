@@ -755,7 +755,7 @@ class ExperimentController(object):
 
 # ############################### VIDEO METHODS ###############################
     def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
-        from pyglet.media.sources.riff import WAVEFormatException
+        from pyglet.media.riff import WAVEFormatException
         try:
             self.video = Video(self, file_name, pos, units)
         except WAVEFormatException:
