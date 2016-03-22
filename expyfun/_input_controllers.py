@@ -42,7 +42,9 @@ class Keyboard(object):
         self.win = ec._win
         # always init pyglet response handler for error (and non-error) keys
         self.win.on_key_press = self._on_pyglet_keypress
+        self.win.on_key_release = self._on_pyglet_keyrelease
         self._keyboard_buffer = []
+        self._keyboard_buffer_releases = []
 
     ###########################################################################
     # Methods to be overridden by subclasses
@@ -60,6 +62,7 @@ class Keyboard(object):
     def _clear_keyboard_events(self):
         self.win.dispatch_events()
         self._keyboard_buffer = []
+        self._keyboard_buffer_releases = []
 
     def _retrieve_keyboard_events(self, live_keys):
         # add escape keys
@@ -69,6 +72,18 @@ class Keyboard(object):
         self.win.dispatch_events()  # pump events on pyglet windows
         targets = []
         for key in self._keyboard_buffer:
+            if live_keys is None or key[0] in live_keys:
+                targets.append(key)
+        return targets
+
+    def _retrieve_keyboard_releases(self, live_keys):
+        # add escape keys
+        if live_keys is not None:
+            live_keys = [str(x) for x in live_keys]  # accept ints
+            live_keys.extend(self.force_quit_keys)
+        self.win.dispatch_events()  # pump events on pyglet windows
+        targets = []
+        for key in self._keyboard_buffer_releases:
             if live_keys is None or key[0] in live_keys:
                 targets.append(key)
         return targets
@@ -83,6 +98,17 @@ class Keyboard(object):
             this_key = key.symbol_string(symbol).lower()
             this_key = this_key.lstrip('_').lstrip('NUM_')
         self._keyboard_buffer.append((this_key, key_time))
+
+    def _on_pyglet_keyrelease(self, symbol, modifiers, emulated=False):
+        """Handler for on_key_release pyglet events"""
+        key_time = clock()
+        if emulated:
+            this_key = str(symbol)
+        else:
+            from pyglet.window import key
+            this_key = key.symbol_string(symbol).lower()
+            this_key = this_key.lstrip('_').lstrip('NUM_')
+        self._keyboard_buffer_releases.append((this_key, key_time))
 
     def listen_presses(self):
         """Start listening for keypresses.
@@ -102,6 +128,19 @@ class Keyboard(object):
             else:
                 relative_to = self.listen_start
         pressed = self._retrieve_events(live_keys)
+        return self._correct_presses(pressed, timestamp, relative_to)
+
+    def get_releases(self, live_keys, timestamp, relative_to):
+        """As get_presses, but for button releases.
+        """
+        pressed = []
+        if timestamp and relative_to is None:
+            if self.listen_start is None:
+                raise ValueError('I cannot timestamp: relative_to is None and '
+                                 'you have not yet called listen_presses.')
+            else:
+                relative_to = self.listen_start
+        pressed = self._retrieve_keyboard_releases(live_keys)
         return self._correct_presses(pressed, timestamp, relative_to)
 
     def wait_one_press(self, max_wait, min_wait, live_keys,
@@ -489,3 +528,6 @@ class CedrusBox(Keyboard):
             if live_keys is None or key[0] in live_keys:
                 targets.append(key)
         return targets
+
+    def get_releases(self, live_keys, timestamp, relative_to):
+        raise NotImplementedError('Key releases not implemented for CedrusBox.')
