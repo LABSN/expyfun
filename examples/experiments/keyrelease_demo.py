@@ -6,7 +6,7 @@ Keyrelease demo
 This example demonstrates the keyrelease-gathering technique available
 in the ExperimentController class.
 """
-# Author: Dan McCloy <drmccloy@uw.edu>
+# Author: Jasper van den Bosch <jasperb@uw.edu>
 #
 # License: BSD (3-clause)
 
