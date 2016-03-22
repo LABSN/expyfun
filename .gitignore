@@ -54,3 +54,6 @@ doc/source/auto_examples/
 # virtualenv
 env/
 
+# Gedit autosave files
+*~
+
