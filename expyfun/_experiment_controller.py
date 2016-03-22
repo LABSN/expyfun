@@ -755,7 +755,16 @@ class ExperimentController(object):
 
 # ############################### VIDEO METHODS ###############################
     def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
-        self.video = Video(self, file_name, pos, units)
+        from pyglet.media.sources.riff import WAVEFormatException
+        try:
+            self.video = Video(self, file_name, pos, units)
+        except WAVEFormatException:
+            err = ('Something is wrong; probably you tried to load a '
+                   'compressed video file but you do not have AVbin installed.'
+                   ' Download and install it; if you are on Windows, you may '
+                   'also need to manually copy the AVbin .dll file(s) from '
+                   'C:\Windows\system32 to C:\Windows\SysWOW64.')
+            raise RuntimeError(err)
 
     def delete_video(self):
         self.video._delete()

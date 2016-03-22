@@ -4,7 +4,8 @@
 Play sample video file
 ======================
 
-This shows how to play a video file in expyfun.
+This shows how to play a video file in expyfun. It requires that AVbin has
+already been installed.
 
 @author: drmccloy
 """
@@ -12,7 +13,6 @@ This shows how to play a video file in expyfun.
 from expyfun import ExperimentController, fetch_data_file
 
 print(__doc__)
-
 
 movie_path = fetch_data_file('video/example-video.mp4')
 

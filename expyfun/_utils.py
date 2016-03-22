@@ -37,14 +37,6 @@ except Exception:
     pass
 
 try:
-    from pyglet.media import avbin
-    del avbin
-except ImportError:
-    has_avbin = False
-else:
-    has_avbin = True
-
-try:
     import pandas  # noqa, analysis:ignore
 except ImportError:
     has_pandas = False
@@ -426,12 +418,21 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
+def _has_avbin():
+    try:
+        from pyglet.media.avbin import AVbinSource
+        del AVbinSource
+        return True
+    except ImportError:
+        return False
+
+
 _is_appveyor = (os.getenv('APPVEYOR', 'False').lower() == 'true')
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
 requires_h5py = skipif(has_h5py is False, 'Requires h5py')
 requires_joblib = skipif(has_joblib is False, 'Requires joblib')
 requires_opengl21 = skipif(_is_appveyor, 'Appveyor OpenGL too old')
-requires_avbin = skipif(has_avbin is False, 'Requires AVbin')
+requires_avbin = skipif(_has_avbin() is False, 'Requires AVbin')
 
 
 def _has_scipy_version(version):
