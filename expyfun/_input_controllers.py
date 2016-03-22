@@ -530,4 +530,5 @@ class CedrusBox(Keyboard):
         return targets
 
     def get_releases(self, live_keys, timestamp, relative_to):
-        raise NotImplementedError('Key releases not implemented for CedrusBox.')
+        msg = 'Key releases not implemented for CedrusBox.'
+        raise NotImplementedError(msg)

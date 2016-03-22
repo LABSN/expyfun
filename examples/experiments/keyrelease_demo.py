@@ -3,20 +3,16 @@
 Keyrelease demo
 =============
 
-This example demonstrates the different keyrelease-gathering techniques available
+This example demonstrates the keyrelease-gathering technique available
 in the ExperimentController class.
 """
 # Author: Dan McCloy <drmccloy@uw.edu>
 #
 # License: BSD (3-clause)
 
-import matplotlib.pyplot as plt
-
 from expyfun import ExperimentController
-import expyfun.analyze as ea
 
 print(__doc__)
-
 
 isi = 0.5
 wait_dur = 3.0
@@ -28,7 +24,6 @@ with ExperimentController('KeyreleaseDemo', screen_num=0,
                           participant='foo', session='001',
                           version='dev') as ec:
     ec.wait_secs(isi)
-
 
     ###########################################
     # listen_releases / while loop / get_releases
@@ -56,6 +51,3 @@ with ExperimentController('KeyreleaseDemo', screen_num=0,
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
-
-
-

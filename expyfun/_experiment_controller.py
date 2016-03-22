@@ -980,7 +980,7 @@ class ExperimentController(object):
         ExperimentController.get_presses
         """
         return self._response_handler.get_releases(live_keys, timestamp,
-                                                  relative_to)
+                                                   relative_to)
 
     def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
                        timestamp=True, relative_to=None):
