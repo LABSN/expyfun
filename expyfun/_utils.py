@@ -418,6 +418,16 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
+def requires_avbin():
+    try:
+        from pyglet.media.avbin import AVbinSource
+        del AVbinSource
+        _has_avbin = True
+    except ImportError:
+        _has_avbin = False
+    return skipif(not _has_avbin, 'Requires AVbin')
+
+
 _is_appveyor = (os.getenv('APPVEYOR', 'False').lower() == 'true')
 requires_pandas = skipif(has_pandas is False, 'Requires pandas')
 requires_h5py = skipif(has_h5py is False, 'Requires h5py')

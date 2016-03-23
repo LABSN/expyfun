@@ -946,16 +946,21 @@ class Video(object):
         2-element array-like with X, Y elements.
     units : str
         Units to use for the position. See ``check_units`` for options.
-    scale : float
+    scale : float | str
         The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
-        large, etc. Ignored if ``fill_window`` is ``True``.
+        large, etc. If `scale` is a string, it must be either ``'fill'``
+        (which ensures the entire ``ExperimentController`` window is
+        covered by the video, at the expense of some parts of the video
+        potentially being offscreen), or ``'fit'`` (which scales maximally
+        while ensuring none of the video is offscreen, and may result in
+        letterboxing or pillarboxing).
     center : bool
         If ``False``, the elements of ``pos`` specify the position of the lower
         left corner of the video frame; otherwise they position the center of
         the frame.
-    fill_window : bool
-        If ``True``, scales the video to the size of the
-        ``ExperimentController`` window.
+    visible : bool
+        Whether to show the video when initialized. Can be toggled later using
+        ``set_visible`` method.
 
     Returns
     -------
@@ -971,7 +976,7 @@ class Video(object):
     entertainment for the participant during a passive auditory task).
     """
     def __init__(self, ec, file_name, pos=(0, 0), units='norm', scale=1.,
-                 center=True):
+                 center=True, visible=True):
         from pyglet.media import load, Player
         self._ec = ec
         self._source = load(file_name)
@@ -985,8 +990,8 @@ class Video(object):
         self._pos = pos
         self._units = units
         self._center = center
-        self._scale = scale
-        self.set_scale(self._scale)  # also calls set_pos
+        self.set_scale(scale)  # also calls set_pos
+        self._visible = visible
 
     def play(self):
         """Play video from current position.
@@ -1007,7 +1012,14 @@ class Video(object):
         return self._ec.get_time()
 
     def pause(self):
-        """Halt video playback."""
+        """Halt video playback.
+
+        Returns
+        -------
+        time : float
+            The timestamp (on the parent ``ExperimentController`` timeline) at
+            which ``pause()`` was called.
+        """
         if self._playing:
             idx = self._ec.on_every_flip_functions.index(self.draw)
             self._ec.on_every_flip_functions.pop(idx)
@@ -1016,6 +1028,7 @@ class Video(object):
         else:
             warnings.warn('ExperimentController.video.pause() called when '
                           'already paused.')
+        return self._ec.get_time()
 
     def _delete(self):
         """Halt video playback and remove player."""
@@ -1024,7 +1037,7 @@ class Video(object):
         self._player.delete()
 
     def _scale_texture(self):
-        if self._texture is not None:
+        if self._texture:
             self._texture.width = self.source_width * self._scale
             self._texture.height = self.source_height * self._scale
 
@@ -1081,18 +1094,33 @@ class Video(object):
         self._pos_unit = units
         self._pos_centered = center
 
+    def _draw(self):
+        self._texture = self._player.get_texture()
+        self._scale_texture()
+        self._texture.blit(*self._actual_pos)
+
     def draw(self):
         """Draw the video texture to the screen buffer."""
         self._player.update_texture()
         # detect end-of-stream to prevent pyglet from hanging:
         if not self._eos:
-            self._texture = self._player.get_texture()
-            self._scale_texture()
-            self._texture.blit(*self._actual_pos)
+            if self._visible:
+                self._draw()
         else:
             self._finished = True
             self.pause()
         self._ec.check_force_quit()
+
+    def set_visible(self, show, flip=False):
+        """Show/hide the video frame."""
+        if show:
+            self._visible = True
+            self._draw()
+        else:
+            self._visible = False
+            self._ec.flip()
+        if flip:
+            self._ec.flip()
 
     # PROPERTIES
     @property

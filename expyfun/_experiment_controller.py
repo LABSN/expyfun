@@ -135,6 +135,7 @@ class ExperimentController(object):
         self._suppress_resamp = suppress_resamp
         self._enable_video = enable_video
         self.video = None
+        self._bgcolor = _convert_color('k')
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
         self._on_next_flip = []
@@ -534,9 +535,11 @@ class ExperimentController(object):
         ``glClearColor`` will be set so the buffer starts out with the
         appropriate backgound color.
         """
-        # we go a little over here to be safe from round-off errors
-        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
-        gl.glClearColor(*[c / 255. for c in _convert_color(color)])
+        if not self._enable_video:
+            # we go a little over here to be safe from round-off errors
+            Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
+        self._bgcolor = _convert_color(color)
+        gl.glClearColor(*[c / 255. for c in self._bgcolor])
 
     def start_stimulus(self, start_of_trial=True, flip=True, when=None):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
@@ -752,7 +755,16 @@ class ExperimentController(object):
 
 # ############################### VIDEO METHODS ###############################
     def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
-        self.video = Video(self, file_name, pos, units)
+        from pyglet.media.riff import WAVEFormatException
+        try:
+            self.video = Video(self, file_name, pos, units)
+        except WAVEFormatException:
+            err = ('Something is wrong; probably you tried to load a '
+                   'compressed video file but you do not have AVbin installed.'
+                   ' Download and install it; if you are on Windows, you may '
+                   'also need to manually copy the AVbin .dll file(s) from '
+                   'C:\Windows\system32 to C:\Windows\SysWOW64.')
+            raise RuntimeError(err)
 
     def delete_video(self):
         self.video._delete()

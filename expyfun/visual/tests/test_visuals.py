@@ -3,7 +3,7 @@ import numpy as np
 from nose.tools import assert_raises, assert_equal
 
 from expyfun import ExperimentController, visual, fetch_data_file
-from expyfun._utils import _hide_window, requires_opengl21
+from expyfun._utils import _hide_window, requires_opengl21, requires_avbin
 
 warnings.simplefilter('always')
 
@@ -77,18 +77,28 @@ def test_visuals():
         text.set_color('red')
         text.draw()
 
-    # test video
+
+@_hide_window
+@requires_avbin()
+def test_video():
+    """Test EC video methods
+    """
     std_kwargs.update(dict(enable_video=True, window_size=(640, 480)))
     video_path = fetch_data_file('video/example-video.mp4')
     with ExperimentController('test', **std_kwargs) as ec:
         ec.load_video(video_path)
         ec.video.play()
+        assert_raises(ValueError, ec.video.set_pos, [1, 2, 3])
         assert_raises(ValueError, ec.video.set_scale, 'foo')
         assert_raises(ValueError, ec.video.set_scale, -1)
+        ec.wait_secs(0.1)
+        ec.video.set_visible(False)
+        ec.wait_secs(0.1)
+        ec.video.set_visible(True)
         ec.video.set_scale('fill')
         ec.video.set_scale('fit')
-        ec.video.set_scale(0.5)
+        ec.video.set_scale('0.5')
         ec.video.set_pos(pos=(0.1, 0), units='norm')
-        ec.wait_secs(0.2)
         ec.video.pause()
+        ec.video.draw()
         ec.delete_video()
