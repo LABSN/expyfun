@@ -79,7 +79,7 @@ def test_visuals():
 
 
 @_hide_window
-@requires_avbin
+@requires_avbin()
 def test_video():
     """Test EC video methods
     """
