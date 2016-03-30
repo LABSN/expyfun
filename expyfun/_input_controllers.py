@@ -72,12 +72,12 @@ class Keyboard(object):
         targets = []
         for key in self._keyboard_buffer:
             if key[2] == 'release' and not releases:
-                continue #filter out releases
+                continue  # filter out releases
             if live_keys is None or key[0] in live_keys:
                 targets.append(key)
         return targets
 
-    def _on_pyglet_keypress(self, symbol, modifiers, emulated=False, 
+    def _on_pyglet_keypress(self, symbol, modifiers, emulated=False,
                             isPress=True):
         """Handler for on_key_press pyglet events"""
         key_time = clock()
@@ -87,11 +87,11 @@ class Keyboard(object):
             from pyglet.window import key
             this_key = key.symbol_string(symbol).lower()
             this_key = this_key.lstrip('_').lstrip('NUM_')
-        pressOrRelease = {True:'press', False: 'release'}[isPress]
+        pressOrRelease = {True: 'press', False: 'release'}[isPress]
         self._keyboard_buffer.append((this_key, key_time, pressOrRelease))
 
     def _on_pyglet_keyrelease(self, symbol, modifiers, emulated=False):
-        self._on_pyglet_keypress(symbol, modifiers, emulated=emulated, 
+        self._on_pyglet_keypress(symbol, modifiers, emulated=emulated,
                                  isPress=False)
 
     def listen_presses(self):
@@ -167,7 +167,8 @@ class Keyboard(object):
         if len(keys):
             raise RuntimeError('Quit key pressed')
 
-    def _correct_presses(self, pressed, timestamp, relative_to, releases=False):
+    def _correct_presses(self, pressed, timestamp, relative_to,
+                         releases=False):
         """Correct timing of presses and check for quit press"""
         correctedEvents = []
         if len(pressed):
@@ -182,7 +183,7 @@ class Keyboard(object):
                 if releases:
                     correctedEvent.append(event[2])
                 elif event[2] == 'release':
-                    continue # removes releases.
+                    continue  # removes releases.
                 if len(correctedEvent) > 1:
                     correctedEvent = tuple(correctedEvent)
                 else:
@@ -499,7 +500,7 @@ class CedrusBox(Keyboard):
         self._dev.poll_for_response()
         while self._dev.response_queue_size() > 0:
             key = self._dev.get_next_response()
-            pressOrRelease = {True:'press', False: 'release'}[key['pressed']]
+            pressOrRelease = {True: 'press', False: 'release'}[key['pressed']]
             key = [str(key['key'] + 1), key['time'] / 1000., pressOrRelease]
             self._keyboard_buffer.append(key)
             self._dev.poll_for_response()
@@ -507,8 +508,7 @@ class CedrusBox(Keyboard):
         targets = []
         for key in self._keyboard_buffer:
             if key[2] == 'release' and not releases:
-                continue #filter out releases
+                continue  # filter out releases
             if live_keys is None or key[0] in live_keys:
                 targets.append(key)
         return targets
-
