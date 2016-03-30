@@ -21,7 +21,12 @@ _driver = _opts_dict[sys.platform] if not _use_silent else ('silent',)
 pyglet.options['audio'] = _driver
 
 # these must follow the above option setting, so PEP8 complains
+#try:
 from pyglet.media import Player, AudioFormat, SourceGroup  # noqa
+#except ImportError:
+#    from pyglet.media import Player, AudioFormat
+#    from mock import Mock
+#    SourceGroup = Mock()  # noqa
 try:
     from pyglet.media import StaticMemorySource
 except ImportError:

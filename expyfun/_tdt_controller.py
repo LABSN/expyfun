@@ -298,7 +298,7 @@ class TDTController(Keyboard):
         self._trigger(7)
         self._clear_keyboard_events()
 
-    def _retrieve_events(self, live_keys):
+    def _retrieve_events(self, live_keys, releases=False):
         """Values and timestamps currently in keyboard buffer.
         """
         # get values from the tdt
