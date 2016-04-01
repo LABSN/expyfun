@@ -935,8 +935,9 @@ class ExperimentController(object):
             A time relative to which timestamping is done. Ignored if
             timestamp==False.  If ``None``, timestamps are relative to the time
             `listen_presses` was last called.
-        releases : False | bool
-            Whether key-release events should be returned as well.
+        type : string
+            Which key events to return. One of ``presses``, ``releases`` or
+            ``both``. (default ``presses``)
 
         Returns
         -------
