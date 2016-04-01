@@ -1,10 +1,10 @@
 """
 =============
-Keyrelease demo
+KeyPressAndRelease demo
 =============
 
-This example demonstrates the keyrelease-gathering technique available
-in the ExperimentController class.
+This example demonstrates gathering key-releases as well as presses with
+the ExperimentController class.
 """
 # Author: Jasper van den Bosch <jasperb@uw.edu>
 #
@@ -18,7 +18,7 @@ isi = 0.5
 wait_dur = 3.0
 msg_dur = 3.0
 
-with ExperimentController('KeyreleaseDemo', screen_num=0,
+with ExperimentController('KeyPressAndReleaseDemo', screen_num=0,
                           window_size=[1280, 960], full_screen=False,
                           stim_db=0, noise_db=0, output_dir=None,
                           participant='foo', session='001',
@@ -26,28 +26,28 @@ with ExperimentController('KeyreleaseDemo', screen_num=0,
     ec.wait_secs(isi)
 
     ###########################################
-    # listen_releases / while loop / get_releases
+    # listen_presses / while loop / get_presses(type='both')
+    instruction = ("Press and release some keys\n\nlisten_presses()"
+                   "\nwhile loop {}\nget_presses(type='both')")
     disp_time = wait_dur
     countdown = ec.current_time + disp_time
     ec.call_on_next_flip(ec.listen_presses)
-    ec.screen_text('release some keys\n\nlisten_presses()'
-                   '\nwhile loop {}\nget_presses()'.format(disp_time))
+    ec.screen_text(instruction.format(disp_time))
     ec.flip()
     while ec.current_time < countdown:
         cur_time = round(countdown - ec.current_time, 1)
         if cur_time != disp_time:
             disp_time = cur_time
             # redraw text with updated disp_time
-            ec.screen_text('release some keys\n\nlisten_presses() '
-                           '\nwhile loop {}\nget_presses()'.format(disp_time))
+            ec.screen_text(instruction.format(disp_time))
             ec.flip()
-    released = ec.get_presses(releases=True)
-    ec.write_data_line('listen / while / get_presses', released)
-    if not len(released):
-        message = 'no keys released'
+    events = ec.get_presses(type='both')
+    ec.write_data_line('listen / while / get_presses', events)
+    if not len(events):
+        message = 'no keys pressed'
     else:
         message = ['{} {} after {} secs\n'
-                   ''.format(k, r, round(t, 4)) for k, t, r in released]
+                   ''.format(k, r, round(t, 4)) for k, t, r in events]
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
