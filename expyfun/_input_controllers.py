@@ -31,8 +31,8 @@ class Keyboard(object):
         _clear_events
         _retrieve_events
     """
-    keyEventTypes = {'presses':['press'], 'releases':['release'],
-                          'both':['press','release']}
+    keyEventTypes = {'presses': ['press'], 'releases': ['release'],
+                     'both': ['press', 'release']}
 
     def __init__(self, ec, force_quit_keys):
         self.master_clock = ec._master_clock
