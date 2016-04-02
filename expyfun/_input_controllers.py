@@ -31,6 +31,8 @@ class Keyboard(object):
         _clear_events
         _retrieve_events
     """
+    keyEventTypes = {'presses':['press'], 'releases':['release'],
+                          'both':['press','release']}
 
     def __init__(self, ec, force_quit_keys):
         self.master_clock = ec._master_clock
@@ -51,8 +53,8 @@ class Keyboard(object):
     def _clear_events(self):
         self._clear_keyboard_events()
 
-    def _retrieve_events(self, live_keys, releases=False):
-        return self._retrieve_keyboard_events(live_keys, releases)
+    def _retrieve_events(self, live_keys, type='presses'):
+        return self._retrieve_keyboard_events(live_keys, type)
 
     def _get_timebase(self):
         """Get keyboard time reference (in seconds)
@@ -63,18 +65,18 @@ class Keyboard(object):
         self.win.dispatch_events()
         self._keyboard_buffer = []
 
-    def _retrieve_keyboard_events(self, live_keys, releases=False):
+    def _retrieve_keyboard_events(self, live_keys, type='presses'):
         # add escape keys
         if live_keys is not None:
             live_keys = [str(x) for x in live_keys]  # accept ints
             live_keys.extend(self.force_quit_keys)
         self.win.dispatch_events()  # pump events on pyglet windows
         targets = []
+
         for key in self._keyboard_buffer:
-            if key[2] == 'release' and not releases:
-                continue  # filter out releases
-            if live_keys is None or key[0] in live_keys:
-                targets.append(key)
+            if key[2] in self.keyEventTypes[type]:
+                if live_keys is None or key[0] in live_keys:
+                    targets.append(key)
         return targets
 
     def _on_pyglet_keypress(self, symbol, modifiers, emulated=False,
@@ -101,18 +103,18 @@ class Keyboard(object):
         self.listen_start = self.master_clock()
         self._clear_events()
 
-    def get_presses(self, live_keys, timestamp, relative_to, releases=False):
+    def get_presses(self, live_keys, timestamp, relative_to, type='presses'):
         """Get the current entire keyboard / button box buffer.
         """
-        pressed = []
+        events = []
         if timestamp and relative_to is None:
             if self.listen_start is None:
                 raise ValueError('I cannot timestamp: relative_to is None and '
                                  'you have not yet called listen_presses.')
             else:
                 relative_to = self.listen_start
-        pressed = self._retrieve_events(live_keys, releases)
-        return self._correct_presses(pressed, timestamp, relative_to, releases)
+        events = self._retrieve_events(live_keys, type)
+        return self._correct_presses(events, timestamp, relative_to, type)
 
     def wait_one_press(self, max_wait, min_wait, live_keys,
                        timestamp, relative_to):
@@ -167,29 +169,20 @@ class Keyboard(object):
         if len(keys):
             raise RuntimeError('Quit key pressed')
 
-    def _correct_presses(self, pressed, timestamp, relative_to,
-                         releases=False):
+    def _correct_presses(self, events, timestamp, relative_to,
+                         type='presses'):
         """Correct timing of presses and check for quit press"""
-        correctedEvents = []
-        if len(pressed):
-            pressed = [(k, s + self.time_correction, r) for k, s, r in pressed]
-            self.log_presses(pressed)
-            keys = [k[0] for k in pressed]
+        if len(events):
+            events = [(k, s + self.time_correction, r) for k, s, r in events]
+            self.log_presses(events)
+            keys = [k[0] for k in events]
             self.check_force_quit(keys)
-            for event in pressed:
-                correctedEvent = [event[0]]
-                if timestamp:
-                    correctedEvent.append(event[1] - relative_to)
-                if releases:
-                    correctedEvent.append(event[2])
-                elif event[2] == 'release':
-                    continue  # removes releases.
-                if len(correctedEvent) > 1:
-                    correctedEvent = tuple(correctedEvent)
-                else:
-                    correctedEvent = correctedEvent[0]
-                correctedEvents.append(correctedEvent)
-        return correctedEvents
+            events = [e for e in events if e[2] in self.keyEventTypes[type]]
+            if timestamp:
+                events = [(k, s - relative_to, t) for (k, s, t) in events]
+            else:
+                events = [(k, t) for (k, s, t) in events]
+        return events
 
     def _init_wait_press(self, max_wait, min_wait, live_keys, timestamp,
                          relative_to):
@@ -491,7 +484,7 @@ class CedrusBox(Keyboard):
         self._retrieve_events(None)
         self._keyboard_buffer = []
 
-    def _retrieve_events(self, live_keys, releases=False):
+    def _retrieve_events(self, live_keys, type='presses'):
         # add escape keys
         if live_keys is not None:
             live_keys = [str(x) for x in live_keys]  # accept ints
@@ -507,8 +500,7 @@ class CedrusBox(Keyboard):
         # check to see if we have matches
         targets = []
         for key in self._keyboard_buffer:
-            if key[2] == 'release' and not releases:
-                continue  # filter out releases
-            if live_keys is None or key[0] in live_keys:
-                targets.append(key)
+            if key[2] in self.keyEventTypes[type]:
+                if live_keys is None or key[0] in live_keys:
+                    targets.append(key)
         return targets

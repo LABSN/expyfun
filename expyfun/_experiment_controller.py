@@ -919,8 +919,9 @@ class ExperimentController(object):
         self._response_handler.listen_presses()
 
     def get_presses(self, live_keys=None, timestamp=True, relative_to=None,
-                    releases=False):
-        """Get the entire keyboard / button box buffer.
+                    type='presses'):
+        """Get the entire keyboard / button box buffer. This will also clear
+        events that are not requested per ``type``.
 
         Parameters
         ----------
@@ -955,7 +956,7 @@ class ExperimentController(object):
         ExperimentController.wait_for_presses
         """
         return self._response_handler.get_presses(live_keys, timestamp,
-                                                  relative_to, releases)
+                                                  relative_to, type)
 
     def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
                        timestamp=True, relative_to=None):
