@@ -944,8 +944,8 @@ class ExperimentController(object):
         -------
         presses : list
             Returns a list of tuples with key events. Each tuple's first value
-            will be the key pressed. If timestamp==True, the second value is
-            the time for the event. The last value is a string indicating if
+            will be the key pressed. If ``timestamp==True``, the second value
+            is the time for the event. The last value is a string indicating if
             this was a key press or release event.
 
         See Also
