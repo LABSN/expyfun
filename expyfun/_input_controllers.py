@@ -32,7 +32,7 @@ class Keyboard(object):
         _retrieve_events
     """
     key_event_types = {'presses': ['press'], 'releases': ['release'],
-                     'both': ['press', 'release']}
+                       'both': ['press', 'release']}
 
     def __init__(self, ec, force_quit_keys):
         self.master_clock = ec._master_clock
@@ -496,7 +496,8 @@ class CedrusBox(Keyboard):
         self._dev.poll_for_response()
         while self._dev.response_queue_size() > 0:
             key = self._dev.get_next_response()
-            press_or_release = {True: 'press', False: 'release'}[key['pressed']]
+            press_or_release = {True: 'press',
+                                False: 'release'}[key['pressed']]
             key = [str(key['key'] + 1), key['time'] / 1000., press_or_release]
             self._keyboard_buffer.append(key)
             self._dev.poll_for_response()
