@@ -197,6 +197,16 @@ def test_ec(ac=None, rd=None):
         assert_raises(ValueError, ec.get_presses)
         ec.listen_presses()
         assert_equal(ec.get_presses(), [])
+        assert_equal(ec.get_presses(kind='presses'), [])
+        assert_raises(ValueError, ec.get_presses, kind='foo')
+        if this_rd == 'tdt':
+            # TDT does not have key release events, so should raise an
+            # exception if asked for them:
+            assert_raises(RuntimeError, ec.get_presses, kind='releases')
+            assert_raises(RuntimeError, ec.get_presses, kind='both')
+        else:
+            assert_equal(ec.get_presses(kind='both'), [])
+            assert_equal(ec.get_presses(kind='releases'), [])
         ec.clear_buffer()
         ec.set_noise_db(0)
         ec.set_stim_db(20)
@@ -327,7 +337,7 @@ def test_button_presses_and_window_size():
         warnings.simplefilter('always')
         fake_button_press(ec, '1', 0.3)
         assert_equal(ec.screen_prompt('press 1', live_keys=['1'],
-                                      max_wait=1.5), '1')
+                                      max_wait=1.5), ('1', 'press'))
         ec.screen_text('press 1 again')
         ec.flip()
         fake_button_press(ec, '1', 0.3)
@@ -336,7 +346,7 @@ def test_button_presses_and_window_size():
         ec.flip()
         fake_button_press(ec, '1', 0.3)
         out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
-        assert_equal(out[0], '1')
+        assert_equal(out[0], ('1', 'press'))
 
 
 @_hide_window

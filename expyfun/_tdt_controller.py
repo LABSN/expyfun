@@ -298,9 +298,11 @@ class TDTController(Keyboard):
         self._trigger(7)
         self._clear_keyboard_events()
 
-    def _retrieve_events(self, live_keys):
+    def _retrieve_events(self, live_keys, type='presses'):
         """Values and timestamps currently in keyboard buffer.
         """
+        if type != 'presses':
+            raise RuntimeError("TDT Cannot get key release events")
         # get values from the tdt
         press_count = int(round(self.rpcox.GetTagVal('npressabs')))
         if press_count > 0:

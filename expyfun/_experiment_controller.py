@@ -2,6 +2,7 @@
 
 # Authors: Dan McCloy <drmccloy@uw.edu>
 #          Eric Larson <larsoner@uw.edu>
+#          Jasper van den Bosch <jasperb@uw.edu>
 #
 # License: BSD (3-clause)
 
@@ -929,8 +930,16 @@ class ExperimentController(object):
         """
         self._response_handler.listen_presses()
 
-    def get_presses(self, live_keys=None, timestamp=True, relative_to=None):
-        """Get the entire keyboard / button box buffer.
+    def get_presses(self, live_keys=None, timestamp=True, relative_to=None,
+                    kind='presses'):
+        """Get the entire keyboard / button box buffer. This will also clear
+        events that are not requested per ``type``.
+
+        .. warning:
+
+            It is currently not possible to get key-release events for Cedrus
+            boxes or TDT. Therefore, using get_presses(type='releases') or
+            get_presses(type='both') will throw an exception.
 
         Parameters
         ----------
@@ -945,13 +954,17 @@ class ExperimentController(object):
             A time relative to which timestamping is done. Ignored if
             timestamp==False.  If ``None``, timestamps are relative to the time
             `listen_presses` was last called.
+        kind : string
+            Which key events to return. One of ``presses``, ``releases`` or
+            ``both``. (default ``presses``)
 
         Returns
         -------
         presses : list
-            If timestamp==False, returns a list of strings indicating which
-            keys were pressed. Otherwise, returns a list of tuples
-            (str, float) of keys and their timestamps.
+            Returns a list of tuples with key events. Each tuple's first value
+            will be the key pressed. If ``timestamp==True``, the second value
+            is the time for the event. The last value is a string indicating if
+            this was a key press or release event.
 
         See Also
         --------
@@ -960,7 +973,7 @@ class ExperimentController(object):
         ExperimentController.wait_for_presses
         """
         return self._response_handler.get_presses(live_keys, timestamp,
-                                                  relative_to)
+                                                  relative_to, kind)
 
     def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
                        timestamp=True, relative_to=None):
@@ -1051,8 +1064,8 @@ class ExperimentController(object):
         """
         # This function will typically be called by self._response_handler
         # after it retrieves some button presses
-        for key, stamp in pressed:
-            self.write_data_line('keypress', key, stamp)
+        for key, stamp, eventType in pressed:
+            self.write_data_line('key'+eventType, key, stamp)
 
     def check_force_quit(self):
         """Check to see if any force quit keys were pressed
