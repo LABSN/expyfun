@@ -923,6 +923,12 @@ class ExperimentController(object):
         """Get the entire keyboard / button box buffer. This will also clear
         events that are not requested per ``type``.
 
+        .. warning:
+
+            It is currently not possible to get key-release events for Cedrus
+            boxes or TDT. Therefore, using get_presses(type='releases') or
+            get_presses(type='both') will throw an exception.
+
         Parameters
         ----------
         live_keys : list | None

@@ -1,10 +1,20 @@
 """
-=============
+=======================
 KeyPressAndRelease demo
-=============
+=======================
 
 This example demonstrates gathering key-releases as well as presses with
 the ExperimentController class.
+
+Please note that this currently only works for the keyboard, which has
+inprecise timing.
+
+.. warning:
+
+    It is currently not possible to get key-release events for Cedrus boxes or
+    TDT. Therefore, using get_presses(type='releases') or
+    get_presses(type='both') will throw an exception.
+
 """
 # Author: Jasper van den Bosch <jasperb@uw.edu>
 #
