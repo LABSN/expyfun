@@ -53,8 +53,8 @@ class Keyboard(object):
     def _clear_events(self):
         self._clear_keyboard_events()
 
-    def _retrieve_events(self, live_keys, type='presses'):
-        return self._retrieve_keyboard_events(live_keys, type)
+    def _retrieve_events(self, live_keys, kind='presses'):
+        return self._retrieve_keyboard_events(live_keys, kind)
 
     def _get_timebase(self):
         """Get keyboard time reference (in seconds)
@@ -65,7 +65,7 @@ class Keyboard(object):
         self.win.dispatch_events()
         self._keyboard_buffer = []
 
-    def _retrieve_keyboard_events(self, live_keys, type='presses'):
+    def _retrieve_keyboard_events(self, live_keys, kind='presses'):
         # add escape keys
         if live_keys is not None:
             live_keys = [str(x) for x in live_keys]  # accept ints
@@ -74,7 +74,7 @@ class Keyboard(object):
         targets = []
 
         for key in self._keyboard_buffer:
-            if key[2] in self.keyEventTypes[type]:
+            if key[2] in self.keyEventTypes[kind]:
                 if live_keys is None or key[0] in live_keys:
                     targets.append(key)
         return targets
@@ -103,9 +103,12 @@ class Keyboard(object):
         self.listen_start = self.master_clock()
         self._clear_events()
 
-    def get_presses(self, live_keys, timestamp, relative_to, type='presses'):
+    def get_presses(self, live_keys, timestamp, relative_to, kind='presses'):
         """Get the current entire keyboard / button box buffer.
         """
+        if kind not in self.keyEventTypes.keys():
+            raise ValueError('Kind argument must be one of: '+', '.join(
+                             self.keyEventTypes.keys()))
         events = []
         if timestamp and relative_to is None:
             if self.listen_start is None:
@@ -113,8 +116,8 @@ class Keyboard(object):
                                  'you have not yet called listen_presses.')
             else:
                 relative_to = self.listen_start
-        events = self._retrieve_events(live_keys, type)
-        return self._correct_presses(events, timestamp, relative_to, type)
+        events = self._retrieve_events(live_keys, kind)
+        return self._correct_presses(events, timestamp, relative_to, kind)
 
     def wait_one_press(self, max_wait, min_wait, live_keys,
                        timestamp, relative_to):
@@ -170,14 +173,14 @@ class Keyboard(object):
             raise RuntimeError('Quit key pressed')
 
     def _correct_presses(self, events, timestamp, relative_to,
-                         type='presses'):
+                         kind='presses'):
         """Correct timing of presses and check for quit press"""
         if len(events):
             events = [(k, s + self.time_correction, r) for k, s, r in events]
             self.log_presses(events)
             keys = [k[0] for k in events]
             self.check_force_quit(keys)
-            events = [e for e in events if e[2] in self.keyEventTypes[type]]
+            events = [e for e in events if e[2] in self.keyEventTypes[kind]]
             if timestamp:
                 events = [(k, s - relative_to, t) for (k, s, t) in events]
             else:
@@ -484,7 +487,7 @@ class CedrusBox(Keyboard):
         self._retrieve_events(None)
         self._keyboard_buffer = []
 
-    def _retrieve_events(self, live_keys, type='presses'):
+    def _retrieve_events(self, live_keys, kind='presses'):
         # add escape keys
         if live_keys is not None:
             live_keys = [str(x) for x in live_keys]  # accept ints
@@ -500,7 +503,7 @@ class CedrusBox(Keyboard):
         # check to see if we have matches
         targets = []
         for key in self._keyboard_buffer:
-            if key[2] in self.keyEventTypes[type]:
+            if key[2] in self.keyEventTypes[kind]:
                 if live_keys is None or key[0] in live_keys:
                     targets.append(key)
         return targets

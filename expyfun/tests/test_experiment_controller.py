@@ -197,15 +197,16 @@ def test_ec(ac=None, rd=None):
         assert_raises(ValueError, ec.get_presses)
         ec.listen_presses()
         assert_equal(ec.get_presses(), [])
-        assert_equal(ec.get_presses(type='presses'), [])
+        assert_equal(ec.get_presses(kind='presses'), [])
+        assert_raises(ValueError, ec.get_presses, kind='foo')
         if this_rd == 'tdt':
             # TDT does not have key release events, so should raise an
             # exception if asked for them:
-            assert_raises(RuntimeError, ec.get_presses, type='releases')
-            assert_raises(RuntimeError, ec.get_presses, type='both')
+            assert_raises(RuntimeError, ec.get_presses, kind='releases')
+            assert_raises(RuntimeError, ec.get_presses, kind='both')
         else:
-            assert_equal(ec.get_presses(type='both'), [])
-            assert_equal(ec.get_presses(type='releases'), [])
+            assert_equal(ec.get_presses(kind='both'), [])
+            assert_equal(ec.get_presses(kind='releases'), [])
         ec.clear_buffer()
         ec.set_noise_db(0)
         ec.set_stim_db(20)

@@ -919,7 +919,7 @@ class ExperimentController(object):
         self._response_handler.listen_presses()
 
     def get_presses(self, live_keys=None, timestamp=True, relative_to=None,
-                    type='presses'):
+                    kind='presses'):
         """Get the entire keyboard / button box buffer. This will also clear
         events that are not requested per ``type``.
 
@@ -942,7 +942,7 @@ class ExperimentController(object):
             A time relative to which timestamping is done. Ignored if
             timestamp==False.  If ``None``, timestamps are relative to the time
             `listen_presses` was last called.
-        type : string
+        kind : string
             Which key events to return. One of ``presses``, ``releases`` or
             ``both``. (default ``presses``)
 
@@ -961,7 +961,7 @@ class ExperimentController(object):
         ExperimentController.wait_for_presses
         """
         return self._response_handler.get_presses(live_keys, timestamp,
-                                                  relative_to, type)
+                                                  relative_to, kind)
 
     def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
                        timestamp=True, relative_to=None):

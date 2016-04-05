@@ -12,8 +12,8 @@ inprecise timing.
 .. warning:
 
     It is currently not possible to get key-release events for Cedrus boxes or
-    TDT. Therefore, using get_presses(type='releases') or
-    get_presses(type='both') will throw an exception.
+    TDT. Therefore, using get_presses(kind='releases') or
+    get_presses(kind='both') will throw an exception.
 
 """
 # Author: Jasper van den Bosch <jasperb@uw.edu>
@@ -36,9 +36,9 @@ with ExperimentController('KeyPressAndReleaseDemo', screen_num=0,
     ec.wait_secs(isi)
 
     ###########################################
-    # listen_presses / while loop / get_presses(type='both')
+    # listen_presses / while loop / get_presses(kind='both')
     instruction = ("Press and release some keys\n\nlisten_presses()"
-                   "\nwhile loop {}\nget_presses(type='both')")
+                   "\nwhile loop {}\nget_presses(kind='both')")
     disp_time = wait_dur
     countdown = ec.current_time + disp_time
     ec.call_on_next_flip(ec.listen_presses)
@@ -51,7 +51,7 @@ with ExperimentController('KeyPressAndReleaseDemo', screen_num=0,
             # redraw text with updated disp_time
             ec.screen_text(instruction.format(disp_time))
             ec.flip()
-    events = ec.get_presses(type='both')
+    events = ec.get_presses(kind='both')
     ec.write_data_line('listen / while / get_presses', events)
     if not len(events):
         message = 'no keys pressed'
