@@ -207,7 +207,6 @@ def test_ec(ac=None, rd=None):
         else:
             assert_equal(ec.get_presses(kind='both'), [])
             assert_equal(ec.get_presses(kind='releases'), [])
-        ec.clear_buffer()
         ec.set_noise_db(0)
         ec.set_stim_db(20)
         # test buffer data handling

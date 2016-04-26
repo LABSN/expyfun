@@ -37,9 +37,11 @@ class DummyRPcoX(object):
         self.model = model
         self.interface = interface
         names = ['LoadCOF', 'ClearCOF', 'Run', 'ZeroTag', 'SetTagVal',
-                 'GetSFreq', 'GetTagV', 'WriteTagV', 'Halt', 'SoftTrg']
+                 'GetSFreq', 'GetTagV', 'WriteTagV', 'Halt', 'SoftTrg',
+                 'WriteTagVEX']
         returns = [True, True, True, True, True,
-                   24414.0125, 0.0, True, True, True]
+                   24414.0125, 0.0, True, True, True,
+                   True]
         for name, ret in zip(names, returns):
             setattr(self, name, partial(_dummy_fun, self, name, ret))
         self._clock = ZeroClock()
@@ -196,7 +198,7 @@ class TDTController(Keyboard):
             Audio data as floats scaled to (-1,+1), formatted as an Nx2 numpy
             array with dtype 'float32'.
         """
-        assert data.dtype==np.float32
+        assert data.dtype == np.float32
         # Leave the first sample zero so on reset the output goes to zero
         self.rpcox.WriteTagVEX('datainleft', 1, 'F32', data[:, 0])
         self.rpcox.WriteTagVEX('datainright', 1, 'F32', data[:, 1])
