@@ -111,7 +111,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
         ec.write_data_line('one-tone trial', stim_num + 1)
         ec.start_stimulus()
         pressed, timestamp, _ = ec.wait_one_press(max_resp_time, min_resp_time,
-                                               live_keys)
+                                                  live_keys)
         ec.stop()  # will stop stim playback as soon as response logged
         ec.trial_ok()
 
