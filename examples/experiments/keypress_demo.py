@@ -55,7 +55,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = 'no keys pressed'
     else:
         message = ['{} pressed after {} secs\n'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
+                   ''.format(key, round(time, 4)) for key, time, _ in pressed]
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
@@ -71,7 +71,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = 'no keys pressed'
     else:
         message = ['{} pressed at {} secs\n'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
+                   ''.format(key, round(time, 4)) for key, time, _ in pressed]
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
@@ -89,7 +89,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = 'no keys pressed'
     else:
         message = ['{} pressed after {} secs\n'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
+                   ''.format(key, round(time, 4)) for key, time, _ in pressed]
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
@@ -108,7 +108,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = 'no keys pressed'
     else:
         message = ['{} pressed at {} secs\n'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
+                   ''.format(key, round(time, 4)) for key, time, _ in pressed]
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
@@ -135,7 +135,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = 'no keys pressed'
     else:
         message = ['{} pressed after {} secs\n'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
+                   ''.format(key, round(time, 4)) for key, time, _ in pressed]
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
@@ -163,7 +163,7 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = 'no keys pressed'
     else:
         message = ['{} pressed at {} secs\n'
-                   ''.format(key, round(time, 4)) for key, time in pressed]
+                   ''.format(key, round(time, 4)) for key, time, _ in pressed]
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
 

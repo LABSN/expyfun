@@ -321,6 +321,20 @@ class TDTController(Keyboard):
         presses.extend(self._retrieve_keyboard_events([]))
         return presses
 
+    def _correct_presses(self, events, timestamp, relative_to, kind='press'):
+        """Correct timing of presses and check for quit press"""
+        if len(events):
+            events = [(k, s + self.time_correction, kind)
+                      for k, s in events]
+            self.log_presses(events)
+            keys = [k[0] for k in events]
+            self.check_force_quit(keys)
+            if timestamp:
+                events = [(k, s - relative_to, t) for (k, s, t) in events]
+            else:
+                events = [(k, t) for (k, s, t) in events]
+        return events
+
     def halt(self):
         """Wrapper for tdt.util.RPcoX.Halt()."""
         self.rpcox.Halt()
