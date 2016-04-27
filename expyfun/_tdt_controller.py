@@ -215,7 +215,7 @@ class TDTController(Keyboard):
         """Send the soft trigger to stop and reset the ring buffer playback.
         """
         self._trigger(2)
-        logger.debug('Stopping TDT audio')
+        logger.debug('Expyfun: Stopping TDT audio')
 
     def start_noise(self):
         """Send the soft trigger to start the noise generator.
