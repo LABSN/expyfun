@@ -212,12 +212,7 @@ class TDTController(Keyboard):
         logger.debug('Expyfun: Starting TDT ring buffer')
 
     def stop(self):
-        """Stop playback and reset the buffer position"""
-        self.pause()
-        self.reset()
-
-    def pause(self):
-        """Send the soft trigger to stop the ring buffer playback.
+        """Send the soft trigger to stop and reset the ring buffer playback.
         """
         self._trigger(2)
         logger.debug('Stopping TDT audio')
@@ -238,12 +233,6 @@ class TDTController(Keyboard):
         """Set the amplitude of stationary background noise.
         """
         self.rpcox.SetTagVal('noiselev', new_level)
-
-    def reset(self):
-        """Send the soft trigger to reset the ring buffer to start position.
-        """
-        self._trigger(5)
-        logger.debug('Expyfun: Resetting TDT ring buffer')
 
     def _set_delay(self, delay, delay_trig):
         """Set the delay (in ms) of the system
