@@ -146,7 +146,6 @@ class ExperimentController(object):
         self._id_call_dict = dict(ec_id=self._stamp_ec_id)
         self._ac = None
         self._data_file = None
-        self._playing = False  # whether or not play() was called w/o a 'stop'
         self._clock = ZeroClock()
         self._master_clock = self._clock.get_time
 
@@ -1375,6 +1374,9 @@ class ExperimentController(object):
         ExperimentController.start_stimulus
         ExperimentController.stop
         """
+        if self._playing:
+            raise RuntimeError('Previous audio must be stopped before loading '
+                               'the buffer')
         samples = self._validate_audio(samples)
         samples *= self._stim_scaler
         logger.exp('Expyfun: Loading {} samples to buffer'
@@ -1408,8 +1410,12 @@ class ExperimentController(object):
             raise RuntimeError('Previous audio must be stopped before playing')
         self._ac.play()
         logger.debug('Expyfun: started audio')
-        self._playing = True
         self.write_data_line('play')
+
+    @property
+    def _playing(self):
+        """Whether or not a stimulus is currently playing"""
+        return self._ac.playing
 
     def stop(self):
         """Stop audio buffer playback and reset cursor to beginning of buffer
@@ -1424,7 +1430,6 @@ class ExperimentController(object):
         if self._ac is not None:  # need to check b/c used in __exit__
             self._ac.stop()
         self.write_data_line('stop')
-        self._playing = False
         logger.exp('Expyfun: Audio stopped and reset.')
 
     def set_noise_db(self, new_db):
@@ -1717,8 +1722,12 @@ class ExperimentController(object):
         if self._trial_progress != 'started':
             raise RuntimeError('trial cannot be okay unless it was started, '
                                'did you call ec.start_stimulus?')
+        if self._playing:
+            msg = 'ec.trial_ok called before stimulus had stopped'
+            logger.warn(msg)
         for func in self._on_trial_ok:
             func()
+        logger.exp('Expyfun: Trial OK')
         self._trial_progress = 'stopped'
 
     def _stamp_ec_id(self, id_):

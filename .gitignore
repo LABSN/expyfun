@@ -1,3 +1,4 @@
+*.orig
 *.py[cod]
 *.mat
 *.hdf5

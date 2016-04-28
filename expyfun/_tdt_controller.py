@@ -51,6 +51,8 @@ class DummyRPcoX(object):
             return self._clock.get_time()
         elif name == 'npressabs':
             return 0
+        elif name == 'playing':
+            return False  # for testing only
         else:
             raise ValueError('unknown tag "{0}"'.format(name))
 
@@ -210,6 +212,11 @@ class TDTController(Keyboard):
         self.rpcox.SetTagVal('trgname', 1)
         self._trigger(1)
         logger.debug('Expyfun: Starting TDT ring buffer')
+
+    @property
+    def playing(self):
+        """Is a sound currently playing"""
+        return bool(int(self.rpcox.GetTagVal('playing')))
 
     def stop(self):
         """Send the soft trigger to stop and reset the ring buffer playback.

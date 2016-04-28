@@ -46,10 +46,18 @@ class SoundPlayer(Player):
         group.loop = bool(loop)
         group.queue(sms)
         self.queue(group)
+        self._ec_duration = sms._duration
 
     def stop(self):
         self.pause()
         self.seek(0.)
+
+    @property
+    def playing(self):
+        """Pyglet has this property, but it doesn't notice when it's finished
+        on its own..."""
+        return (super(SoundPlayer, self).playing and not
+                np.isclose(self.time, self._ec_duration))
 
 
 class PygletSoundController(object):
@@ -93,6 +101,10 @@ class PygletSoundController(object):
     def load_buffer(self, samples):
         self.audio.delete()
         self.audio = SoundPlayer(samples.T, self.fs)
+
+    @property
+    def playing(self):
+        return self.audio.playing
 
     def play(self):
         self.audio.play()

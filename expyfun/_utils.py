@@ -125,7 +125,7 @@ def set_log_level(verbose=None, return_old_level=False):
 
 
 def set_log_file(fname=None,
-                 output_format='%(asctime)s - %(levelname)-5s - %(message)s',
+                 output_format='%(asctime)s - %(levelname)-7s - %(message)s',
                  overwrite=None):
     """Convenience function for setting the log to print to a file
 

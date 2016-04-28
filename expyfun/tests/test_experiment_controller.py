@@ -283,7 +283,10 @@ def test_ec(ac=None, rd=None):
         assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
         ec.start_stimulus(flip=False, when=-1)
-        assert_raises(RuntimeError, ec.play)  # already played, must stop
+        if ac != 'tdt':
+            # dummy TDT version won't do this check properly, as
+            # ec._ac._playing -> GetTagVal('playing') always gives False
+            assert_raises(RuntimeError, ec.play)  # already played, must stop
         ec.stop()
         #
         # Third: trial_ok
