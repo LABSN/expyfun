@@ -430,17 +430,20 @@ def test_background_color():
 @_hide_window
 def test_tdt_delay():
     """test the tdt_delay parameter"""
-    with ExperimentController(*std_args, tdt_delay=0, **std_kwargs) as ec:
+    with ExperimentController(*std_args, tdt_delay=0, audio_controller='tdt',
+                              **std_kwargs) as ec:
         ec.wait_secs(0)  # so pyflakes doesn't whine about not using ec
-    with ExperimentController(*std_args, tdt_delay=1, **std_kwargs) as ec:
+    with ExperimentController(*std_args, tdt_delay=1, audio_controller='tdt',
+                              **std_kwargs) as ec:
         ec.wait_secs(0)
-    with ExperimentController(*std_args, tdt_delay=None, **std_kwargs) as ec:
+    with ExperimentController(*std_args, tdt_delay=None,
+                              audio_controller='tdt', **std_kwargs) as ec:
         ec.wait_secs(0)
     assert_raises(TypeError, ExperimentController, *std_args, tdt_delay='foo',
-                  **std_kwargs)
-    assert_raises(TypeError, ExperimentController, *std_args, tdt_delay=np.inf,
-                  **std_kwargs)
+                  audio_controller='tdt', **std_kwargs)
+    assert_raises(ValueError, ExperimentController, *std_args, tdt_delay=np.inf,
+                  audio_controller='tdt', **std_kwargs)
     assert_raises(TypeError, ExperimentController, *std_args,
-                  tdt_delay=np.ones(2), **std_kwargs)
+                  tdt_delay=np.ones(2), audio_controller='tdt', **std_kwargs)
     assert_raises(ValueError, ExperimentController, *std_args, tdt_delay=-1,
-                  **std_kwargs)
+                  audio_controller='tdt', **std_kwargs)
