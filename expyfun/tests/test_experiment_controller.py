@@ -399,3 +399,22 @@ def test_background_color():
         black_mask = (ss == [0] * 3)
         assert_true(black_mask.any())
         assert_true(np.logical_or(gray_mask, black_mask).all())
+
+
+@_hide_window
+def test_tdt_delay():
+    """test the tdt_delay parameter"""
+    with ExperimentController(*std_args, tdt_delay=0, **std_kwargs) as ec:
+        ec.wait_secs(0)  # so pyflakes doesn't whine about not using ec
+    with ExperimentController(*std_args, tdt_delay=1, **std_kwargs) as ec:
+        ec.wait_secs(0)
+    with ExperimentController(*std_args, tdt_delay=None, **std_kwargs) as ec:
+        ec.wait_secs(0)
+    assert_raises(TypeError, ExperimentController, *std_args, tdt_delay='foo',
+                  **std_kwargs)
+    assert_raises(TypeError, ExperimentController, *std_args, tdt_delay=np.inf,
+                  **std_kwargs)
+    assert_raises(TypeError, ExperimentController, *std_args,
+                  tdt_delay=np.ones(2), **std_kwargs)
+    assert_raises(ValueError, ExperimentController, *std_args, tdt_delay=-1,
+                  **std_kwargs)

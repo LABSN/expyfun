@@ -244,15 +244,18 @@ class TDTController(Keyboard):
         self._trigger(5)
         logger.debug('Expyfun: Resetting TDT ring buffer')
 
-    def _set_delay(self, delay, delay_trig):
+    def _set_delay(self, delay=None, delay_trig=None):
         """Set the delay (in ms) of the system
         """
         assert isinstance(delay, int)  # this should never happen
         assert isinstance(delay_trig, int)
-        self.rpcox.SetTagVal('onsetdel', delay)
-        logger.info('Expyfun: Setting TDT delay to %s' % delay)
-        self.rpcox.SetTagVal('trigdel', delay_trig)
-        logger.info('Expyfun: Setting TDT trigger delay to %s' % delay_trig)
+        if delay is not None:
+            self.rpcox.SetTagVal('onsetdel', delay)
+            logger.info('Expyfun: Setting TDT delay to %s' % delay)
+        if delay_trig is not None:
+            self.rpcox.SetTagVal('trigdel', delay_trig)
+            logger.info('Expyfun: Setting TDT trigger delay to %s'
+                        % delay_trig)
 
 # ############################### TRIGGER METHODS #############################
     def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
