@@ -286,18 +286,22 @@ class ExperimentController(object):
             #
             # Initialize devices
             #
+
             # Handle the tdt_delay parameter
             if self._tdt_delay is not None:
                 if self.audio_type == 'tdt':
                     try:
                         np.isfinite(self._tdt_delay)  # bombs if not numeric
                     except:
-                        raise TypeError('tdt_delay must be a non-negative'
+                        raise TypeError('tdt_delay must be a non-negative '
+                                        'integer')
+                    if not np.isscalar(self._tdt_delay):
+                        raise TypeError('tdt_delay must be a non-negative '
                                         'integer')
                     if self._tdt_delay < 0 or not np.isfinite(self._tdt_delay):
-                        raise ValueError('tdt_delay must be a non-negative'
+                        raise ValueError('tdt_delay must be a non-negative '
                                          'integer')
-                    if not issubclass(type(self._tdt_delay)):
+                    if not issubclass(type(self._tdt_delay), Integral):
                         self._tdt_delay = int(np.round(self._tdt_delay))
                         logger.warning('Expyfun: tdt_delay must be int.'
                                        'Rounding and casting.')
@@ -313,8 +317,6 @@ class ExperimentController(object):
                     audio_controller['TDT_DELAY'] = str(self._tdt_delay)
                 self._ac = TDTController(audio_controller)
                 self.audio_type = self._ac.model
-                if self._tdt_delay is not None:
-                    self._ac._set_delay(delay=self._tdt_delay)
             elif self.audio_type == 'pyglet':
                 self._ac = PygletSoundController(self, self.stim_fs)
             else:
