@@ -89,8 +89,11 @@ class TDTController(Keyboard):
             tdt_params['TDT_TRIG_DELAY'] = '0'
         tdt_params['TDT_DELAY'] = int(tdt_params['TDT_DELAY'])
         tdt_params['TDT_TRIG_DELAY'] = int(tdt_params['TDT_TRIG_DELAY'])
-        if tdt_params['TDT_MODEL'] is None or connect_rpcox is None:
+        if tdt_params['TDT_MODEL'] is None:
             tdt_params['TDT_MODEL'] = 'dummy'
+        elif connect_rpcox is None:
+            # Force it to throw an error here
+            from tdt.util import connect_rpcox, connect_zbus  # noqa
 
         # Check keys
         for k in tdt_params.keys():
