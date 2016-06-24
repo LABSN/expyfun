@@ -18,7 +18,7 @@ except ImportError:
 try:
     run_subprocess(['git', '--help'])
 except Exception as exp:
-    _has_git, why_not, git = False, str(exp), None
+    _has_git, why_not = False, str(exp)
 else:
     _has_git, why_not = True, None
 
@@ -26,7 +26,7 @@ else:
 def _check_git():
     """Helper to check the expyfun version"""
     if not _has_git:
-        raise RuntimeError('git not found: {0}'.format(str(exp)))
+        raise RuntimeError('git not found: {0}'.format(why_not))
 
 
 def _check_version_format(version):
