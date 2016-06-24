@@ -78,7 +78,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
         ec.screen_text(instructions)
         ec.flip()
         while len(not_yet_pressed) > 0:
-            pressed, timestamp = ec.wait_one_press(live_keys=live_keys)
+            pressed, timestamp, _ = ec.wait_one_press(live_keys=live_keys)
             for p in pressed:
                 p = int(p)
                 ec.load_buffer(wavs[p - 1])
@@ -87,7 +87,6 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
                 ec.stop()
                 if p in not_yet_pressed:
                     not_yet_pressed.pop(not_yet_pressed.index(p))
-        ec.clear_buffer()
         ec.flip()  # clears the screen
         ec.wait_secs(isi)
 
@@ -105,15 +104,14 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
     mass_trial_order = trial_order[len(trial_order) // 2:]
     # run the single-tone trials
     for stim_num in single_trial_order:
-        ec.clear_buffer()
         ec.load_buffer(wavs[stim_num])
         print(wavs[stim_num].shape[0] / float(fs))
         print(fs)
         ec.identify_trial(ec_id=stim_num, ttl_id=[0, 0])
         ec.write_data_line('one-tone trial', stim_num + 1)
         ec.start_stimulus()
-        pressed, timestamp = ec.wait_one_press(max_resp_time, min_resp_time,
-                                               live_keys)
+        pressed, timestamp, _ = ec.wait_one_press(max_resp_time, min_resp_time,
+                                                  live_keys)
         ec.stop()  # will stop stim playback as soon as response logged
         ec.trial_ok()
 
@@ -143,7 +141,6 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
                      'played in. Press one of the buttons to begin.'
                      ''.format(len(mass_trial_order), max_resp_time),
                      live_keys=live_keys)
-    ec.clear_buffer()
     ec.load_buffer(concat_wavs)
     ec.identify_trial(ec_id='multi-tone', ttl_id=[0, 1])
     ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])

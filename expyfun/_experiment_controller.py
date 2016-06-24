@@ -146,7 +146,6 @@ class ExperimentController(object):
         self._id_call_dict = dict(ec_id=self._stamp_ec_id)
         self._ac = None
         self._data_file = None
-        self._playing = False  # whether or not play() was called w/o a 'stop'
         self._clock = ZeroClock()
         self._master_clock = self._clock.get_time
 
@@ -1359,17 +1358,6 @@ class ExperimentController(object):
         if self._ac is not None:  # check b/c used by __exit__
             self._ac.stop_noise()
 
-    def clear_buffer(self):
-        """Clear audio data from the audio buffer
-
-        See Also
-        --------
-        ExperimentController.load_buffer
-        ExperimentController.set_stim_db
-        """
-        self._ac.clear_buffer()
-        logger.exp('Expyfun: Buffer cleared')
-
     def load_buffer(self, samples):
         """Load audio data into the audio buffer
 
@@ -1381,13 +1369,16 @@ class ExperimentController(object):
 
         See Also
         --------
-        ExperimentController.clear_buffer
         ExperimentController.play
         ExperimentController.set_stim_db
         ExperimentController.start_stimulus
         ExperimentController.stop
         """
-        samples = self._validate_audio(samples) * self._stim_scaler
+        if self._playing:
+            raise RuntimeError('Previous audio must be stopped before loading '
+                               'the buffer')
+        samples = self._validate_audio(samples)
+        samples *= self._stim_scaler
         logger.exp('Expyfun: Loading {} samples to buffer'
                    ''.format(samples.size))
         self._ac.load_buffer(samples)
@@ -1402,7 +1393,6 @@ class ExperimentController(object):
 
         See Also
         --------
-        ExperimentController.clear_buffer
         ExperimentController.load_buffer
         ExperimentController.set_stim_db
         ExperimentController.start_stimulus
@@ -1420,15 +1410,18 @@ class ExperimentController(object):
             raise RuntimeError('Previous audio must be stopped before playing')
         self._ac.play()
         logger.debug('Expyfun: started audio')
-        self._playing = True
         self.write_data_line('play')
+
+    @property
+    def _playing(self):
+        """Whether or not a stimulus is currently playing"""
+        return self._ac.playing
 
     def stop(self):
         """Stop audio buffer playback and reset cursor to beginning of buffer
 
         See Also
         --------
-        ExperimentController.clear_buffer
         ExperimentController.load_buffer
         ExperimentController.play
         ExperimentController.set_stim_db
@@ -1437,7 +1430,6 @@ class ExperimentController(object):
         if self._ac is not None:  # need to check b/c used in __exit__
             self._ac.stop()
         self.write_data_line('stop')
-        self._playing = False
         logger.exp('Expyfun: Audio stopped and reset.')
 
     def set_noise_db(self, new_db):
@@ -1457,7 +1449,6 @@ class ExperimentController(object):
 
         See Also
         --------
-        ExperimentController.clear_buffer
         ExperimentController.load_buffer
         ExperimentController.play
         ExperimentController.start_stimulus
@@ -1484,13 +1475,11 @@ class ExperimentController(object):
         Returns
         -------
         samples : numpy.array(dtype='float32')
-            The correctly formatted audio samples.
+            The correctly formatted audio samples. Will be a copy of
+            the original samples.
         """
         # check data type
-        if isinstance(samples, list):
-            samples = np.asarray(samples, dtype='float32')
-        elif samples.dtype != 'float32':
-            samples = np.float32(samples)
+        samples = np.asarray(samples, dtype=np.float32)
 
         # check values
         if np.max(np.abs(samples)) > 1:
@@ -1499,6 +1488,14 @@ class ExperimentController(object):
 
         # check shape and dimensions, make stereo
         samples = _fix_audio_dims(samples, 2).T
+
+        # This limit is currently set by the TDT SerialBuf objects
+        # (per channel), it sets the limit on our stimulus durations...
+        if np.isclose(self.stim_fs, 24414, atol=1):
+            max_samples = 4000000 - 1
+            if samples.shape[0] > max_samples:
+                raise RuntimeError('Sample too long {0} > {1}'
+                                   ''.format(samples.shape[0], max_samples))
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
@@ -1528,9 +1525,9 @@ class ExperimentController(object):
                                ''.format(max_rms, self._stim_rms))
                 logger.warning(warn_string)
 
-        # always prepend a zero to deal with TDT reset of buffer position
-        samples = np.r_[np.atleast_2d([0.0, 0.0]), samples]
-        return np.ascontiguousarray(samples)
+        # this will create a copy, so we can modify inplace later!
+        samples = np.array(samples, np.float32)
+        return samples
 
     def set_rms_checking(self, check_rms):
         """Set the RMS checking flag.
@@ -1725,8 +1722,12 @@ class ExperimentController(object):
         if self._trial_progress != 'started':
             raise RuntimeError('trial cannot be okay unless it was started, '
                                'did you call ec.start_stimulus?')
+        if self._playing:
+            msg = 'ec.trial_ok called before stimulus had stopped'
+            logger.warn(msg)
         for func in self._on_trial_ok:
             func()
+        logger.exp('Expyfun: Trial OK')
         self._trial_progress = 'stopped'
 
     def _stamp_ec_id(self, id_):

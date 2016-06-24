@@ -83,7 +83,6 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     ec.set_background_color('k')
     fix.draw()
     ec.flip()
-    ec.clear_buffer()
     for ri in range(n_rep):
         ec.wait_secs(iri)
         for ii, (lev, fc) in enumerate(zip(levels, fixs)):
@@ -210,7 +209,6 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     # Subject "Training"
     #
     ec.stop()
-    ec.clear_buffer()
     ec.set_background_color(bgcolor)
     targstr, tonestr = ('wobble', 'beep') if targ_is_fm else ('beep', 'wobble')
     instr = ('Remember to press the button as quickly as possible following '

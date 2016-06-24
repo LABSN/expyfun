@@ -40,6 +40,7 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
         circle.draw()
         screenshot = ec.screenshot() if screenshot is None else screenshot
         ec.flip()
+        ec.stamp_triggers([2, 4, 8])
         pressed = ec.wait_one_press(0.5)[0]
         ec.stop()
 

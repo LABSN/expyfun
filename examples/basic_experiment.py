@@ -25,11 +25,10 @@ tone = np.sin(2 * np.pi * 1000 * np.arange(int(fs * dur)) / float(fs))
 tone *= 0.01 * np.sqrt(2)  # Set RMS to 0.01
 
 with ExperimentController('testExp', participant='foo', session='001',
-                          output_dir=None) as ec:
+                          output_dir=None, version='dev') as ec:
     ec.screen_prompt('Press a button when you hear the tone', max_wait=1)
 
     dot = FixationDot(ec)
-    ec.clear_buffer()
     ec.load_buffer(tone)
     dot.draw()
     screenshot = ec.screenshot()  # only because we want to show it in the docs
@@ -37,7 +36,6 @@ with ExperimentController('testExp', participant='foo', session='001',
     ec.identify_trial(ec_id='tone', ttl_id=[0, 0])
     ec.start_stimulus()
     presses = ec.wait_for_presses(dur)
-    ec.stop()
     ec.trial_ok()
     print('Presses:\n{}'.format(presses))
 

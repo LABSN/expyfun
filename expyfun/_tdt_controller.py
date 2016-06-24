@@ -37,9 +37,11 @@ class DummyRPcoX(object):
         self.model = model
         self.interface = interface
         names = ['LoadCOF', 'ClearCOF', 'Run', 'ZeroTag', 'SetTagVal',
-                 'GetSFreq', 'GetTagV', 'WriteTagV', 'Halt', 'SoftTrg']
+                 'GetSFreq', 'GetTagV', 'WriteTagV', 'Halt', 'SoftTrg',
+                 'WriteTagVEX']
         returns = [True, True, True, True, True,
-                   24414.0125, 0.0, True, True, True]
+                   24414.0125, 0.0, True, True, True,
+                   True]
         for name, ret in zip(names, returns):
             setattr(self, name, partial(_dummy_fun, self, name, ret))
         self._clock = ZeroClock()
@@ -49,6 +51,8 @@ class DummyRPcoX(object):
             return self._clock.get_time()
         elif name == 'npressabs':
             return 0
+        elif name == 'playing':
+            return False  # for testing only
         else:
             raise ValueError('unknown tag "{0}"'.format(name))
 
@@ -170,9 +174,11 @@ class TDTController(Keyboard):
             raise SystemError('Expyfun: Problem starting TDT circuit.')
         time.sleep(0.25)
         self._set_noise_corr()
-        self.clear_buffer()
         self._set_delay(tdt_params['TDT_DELAY'],
                         tdt_params['TDT_TRIG_DELAY'])
+        # Set output values to zero (esp. first few)
+        for tag in ('datainleft', 'datainright'):
+            self.rpcox.ZeroTag(tag)
 
     def _add_keyboard_init(self, ec, force_quit_keys):
         """Helper to init as keyboard"""
@@ -194,14 +200,11 @@ class TDTController(Keyboard):
             Audio data as floats scaled to (-1,+1), formatted as an Nx2 numpy
             array with dtype 'float32'.
         """
-        self.rpcox.WriteTagV('datainleft', 0, data[:, 0])
-        self.rpcox.WriteTagV('datainright', 0, data[:, 1])
-
-    def clear_buffer(self):
-        """Clear the TDT ring buffers.
-        """
-        self.rpcox.ZeroTag('datainleft')
-        self.rpcox.ZeroTag('datainright')
+        assert data.dtype == np.float32
+        # Leave the first sample zero so on reset the output goes to zero
+        self.rpcox.WriteTagVEX('datainleft', 1, 'F32', data[:, 0])
+        self.rpcox.WriteTagVEX('datainright', 1, 'F32', data[:, 1])
+        self.rpcox.SetTagVal('nsamples', max(data.shape[0] + 1, 1))
 
     def play(self):
         """Send the soft trigger to start the ring buffer playback.
@@ -210,16 +213,16 @@ class TDTController(Keyboard):
         self._trigger(1)
         logger.debug('Expyfun: Starting TDT ring buffer')
 
-    def stop(self):
-        """Stop playback and reset the buffer position"""
-        self.pause()
-        self.reset()
+    @property
+    def playing(self):
+        """Is a sound currently playing"""
+        return bool(int(self.rpcox.GetTagVal('playing')))
 
-    def pause(self):
-        """Send the soft trigger to stop the ring buffer playback.
+    def stop(self):
+        """Send the soft trigger to stop and reset the ring buffer playback.
         """
         self._trigger(2)
-        logger.debug('Stopping TDT audio')
+        logger.debug('Expyfun: Stopping TDT audio')
 
     def start_noise(self):
         """Send the soft trigger to start the noise generator.
@@ -237,12 +240,6 @@ class TDTController(Keyboard):
         """Set the amplitude of stationary background noise.
         """
         self.rpcox.SetTagVal('noiselev', new_level)
-
-    def reset(self):
-        """Send the soft trigger to reset the ring buffer to start position.
-        """
-        self._trigger(5)
-        logger.debug('Expyfun: Resetting TDT ring buffer')
 
     def _set_delay(self, delay, delay_trig):
         """Set the delay (in ms) of the system
@@ -321,6 +318,20 @@ class TDTController(Keyboard):
         # adds force_quit presses
         presses.extend(self._retrieve_keyboard_events([]))
         return presses
+
+    def _correct_presses(self, events, timestamp, relative_to, kind='press'):
+        """Correct timing of presses and check for quit press"""
+        if len(events):
+            events = [(k, s + self.time_correction, kind)
+                      for k, s in events]
+            self.log_presses(events)
+            keys = [k[0] for k in events]
+            self.check_force_quit(keys)
+            if timestamp:
+                events = [(k, s - relative_to, t) for (k, s, t) in events]
+            else:
+                events = [(k, t) for (k, s, t) in events]
+        return events
 
     def halt(self):
         """Wrapper for tdt.util.RPcoX.Halt()."""

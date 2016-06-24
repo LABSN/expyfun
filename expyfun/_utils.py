@@ -125,7 +125,7 @@ def set_log_level(verbose=None, return_old_level=False):
 
 
 def set_log_file(fname=None,
-                 output_format='%(asctime)s - %(levelname)-5s - %(message)s',
+                 output_format='%(asctime)s - %(levelname)-7s - %(message)s',
                  overwrite=None):
     """Convenience function for setting the log to print to a file
 
@@ -741,18 +741,17 @@ def _fix_audio_dims(signal, n_channels=None):
     Returns
     -------
     signal_fixed : array
-        The signal with standard dimensions.
+        The signal with standard dimensions (1, N) or (2, N).
     """
     # Check requested channel output
-    if n_channels not in [None, 1, 2]:
-        raise ValueError('Number of channels out must be ``None``, ``1``, '
-                         'or ``2``.')
+    if n_channels not in (None, 1, 2):
+        raise ValueError('Number of channels out must be None, 1, or 2.')
 
-    signal = np.asarray(signal)
+    signal = np.asarray(signal, dtype=np.float32)
 
     # Check dimensionality
-    if signal.ndim > 2:
-        raise ValueError('Sound data has more than two dimensions.')
+    if signal.ndim == 1:
+        signal = signal[np.newaxis, :]
     elif signal.ndim == 2:
         if np.min(signal.shape) > 2:
             raise ValueError('Sound data has more than two channels.')
@@ -762,17 +761,12 @@ def _fix_audio_dims(signal, n_channels=None):
             raise ValueError('Audio shape must be (N,), (1, N), or (2, N).')
         if signal.shape[0] == 2 and n_channels == 1:
             raise ValueError('Requested mono output but gave stereo input.')
-
+    else:
+        raise ValueError('Sound data must have one or two dimensions.')
     # Return data with correct dimensions
-    if signal.ndim == 2:
-        if (n_channels is None) or (n_channels == signal.shape[0]):
-            return signal
-        else:  # n_channels == 2
-            return np.tile(signal, (2, 1))
-    else:  # signal.ndim == 1:
-        if n_channels is None:
-            n_channels = 1
-        return np.tile(signal[np.newaxis, :], (n_channels, 1))
+    if n_channels is not None and n_channels != signal.shape[0]:
+        signal = np.tile(signal, (n_channels, 1))
+    return signal
 
 
 def _sanitize(text_like):

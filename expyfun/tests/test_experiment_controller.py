@@ -207,7 +207,6 @@ def test_ec(ac=None, rd=None):
         else:
             assert_equal(ec.get_presses(kind='both'), [])
             assert_equal(ec.get_presses(kind='releases'), [])
-        ec.clear_buffer()
         ec.set_noise_db(0)
         ec.set_stim_db(20)
         # test buffer data handling
@@ -219,6 +218,13 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(np.zeros((100, 2)))
         ec.load_buffer(np.zeros((1, 100)))
         ec.load_buffer(np.zeros((2, 100)))
+        data = np.empty(int(5e6), np.float32)  # too long for TDT
+        if this_fs == get_tdt_rates()['25k']:
+            assert_raises(RuntimeError, ec.load_buffer, data)
+        else:
+            ec.load_buffer(data)
+        ec.load_buffer(np.zeros(2))
+        del data
         assert_raises(ValueError, ec.stamp_triggers, 'foo')
         assert_raises(ValueError, ec.stamp_triggers, 0)
         assert_raises(ValueError, ec.stamp_triggers, 3)
@@ -277,7 +283,10 @@ def test_ec(ac=None, rd=None):
         assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
         ec.start_stimulus(flip=False, when=-1)
-        assert_raises(RuntimeError, ec.play)  # already played, must stop
+        if ac != 'tdt':
+            # dummy TDT version won't do this check properly, as
+            # ec._ac._playing -> GetTagVal('playing') always gives False
+            assert_raises(RuntimeError, ec.play)  # already played, must stop
         ec.stop()
         #
         # Third: trial_ok
