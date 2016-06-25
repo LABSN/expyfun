@@ -110,7 +110,8 @@ class ExperimentController(object):
         coincides with the visual signal. Defualt is ``None``, which uses the
         value from the configuration file (or sets it to 0 if that value is not
         defined in the file). Otherwise it can be any non-negative integer.
-        This parameter has no effect if the TDT is not the audio device.
+        Floats will be rounded. This parameter has no effect if the TDT is not
+        the audio device.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -289,21 +290,9 @@ class ExperimentController(object):
             # Handle the tdt_delay parameter
             if self._tdt_delay is not None:
                 if self.audio_type == 'tdt':
-                    try:
-                        np.isfinite(self._tdt_delay)  # bombs if not numeric
-                    except:
-                        raise TypeError('tdt_delay must be a non-negative '
-                                        'integer')
-                    if not np.isscalar(self._tdt_delay):
-                        raise TypeError('tdt_delay must be a non-negative '
-                                        'integer')
-                    if self._tdt_delay < 0 or not np.isfinite(self._tdt_delay):
-                        raise ValueError('tdt_delay must be a non-negative '
-                                         'integer')
-                    if not issubclass(type(self._tdt_delay), Integral):
-                        self._tdt_delay = int(np.round(self._tdt_delay))
-                        logger.warning('Expyfun: tdt_delay must be int.'
-                                       'Rounding and casting.')
+                    self._tdt_delay = int(np.round(self._tdt_delay))
+                    if self._tdt_delay < 0:
+                        raise ValueError('tdt_delay must be a non-negative.')
                 else:
                     logger.warning('Expyfun: tdt_delay parameter has no effect'
                                    'when not using the TDT for audio.')
