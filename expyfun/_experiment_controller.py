@@ -12,7 +12,6 @@ import warnings
 from os import path as op
 from functools import partial
 import traceback as tb
-from numbers import Integral
 try:
     import pyglet
     from pyglet import gl
