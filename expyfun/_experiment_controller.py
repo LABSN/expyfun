@@ -292,10 +292,12 @@ class ExperimentController(object):
                 if self.audio_type == 'tdt':
                     self._tdt_delay = int(np.round(self._tdt_delay))
                     if self._tdt_delay < 0:
-                        raise ValueError('tdt_delay must be a non-negative.')
+                        raise ValueError('tdt_delay must be non-negative.')
                 else:
-                    logger.warning('Expyfun: tdt_delay parameter has no effect'
-                                   'when not using the TDT for audio.')
+                    msg = ('Expyfun: tdt_delay parameter has no effect '
+                           'when not using the TDT for audio.')
+                    logger.warning(msg)
+                    warnings.warn(msg)
 
             # Audio (and for TDT, potentially keyboard)
             if self.audio_type == 'tdt':
@@ -1894,7 +1896,7 @@ class ExperimentController(object):
 
     @property
     def tdt_delay(self):
-        """Time that TDT delays audioa nd triggers for AV synchrony.
+        """Time that TDT delays audio and triggers for AV synchrony.
         """
         return self._tdt_delay
 
