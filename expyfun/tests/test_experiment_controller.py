@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
+from nose.plugins.skip import SkipTest
 from numpy.testing import assert_allclose
 from copy import deepcopy
 
@@ -322,6 +323,22 @@ def test_ec(ac=None, rd=None):
         # test __repr__
         assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
     del ec
+
+
+@_hide_window
+def test_tdtpy_failure(ac=None, rd=None):
+    """Test that failed TDTpy import raises ImportError"""
+    try:
+        from tdt.util import connect_rpcox  # noqa, analysis:ignore
+    except ImportError:
+        pass
+    else:
+        raise SkipTest('Cannot test TDT import failure')
+    ac = dict(TYPE='tdt', TDT_MODEL='RP2')
+    assert_raises(ImportError, ExperimentController,
+                  *std_args, audio_controller=ac, response_device='keyboard',
+                  trigger_controller='tdt', stim_fs=100.,
+                  suppress_resamp=True, **std_kwargs)
 
 
 @_hide_window

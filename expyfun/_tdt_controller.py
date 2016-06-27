@@ -8,7 +8,6 @@
 
 import time
 import numpy as np
-import platform
 from os import path as op
 from functools import partial
 from copy import deepcopy
@@ -16,14 +15,6 @@ import warnings
 
 from ._utils import get_config, wait_secs, logger, ZeroClock
 from ._input_controllers import Keyboard
-
-if 'Windows' in platform.platform():
-    try:
-        from tdt.util import connect_rpcox, connect_zbus
-    except ImportError:
-        connect_rpcox, connect_zbus = None, None  # analysis:ignore
-else:
-    connect_rpcox, connect_zbus = None, None
 
 
 def _dummy_fun(self, name, ret, *args, **kwargs):
@@ -91,14 +82,12 @@ class TDTController(Keyboard):
         tdt_params['TDT_TRIG_DELAY'] = int(tdt_params['TDT_TRIG_DELAY'])
         if tdt_params['TDT_MODEL'] is None:
             tdt_params['TDT_MODEL'] = 'dummy'
-        elif connect_rpcox is None:
-            # Force it to throw an error here
-            from tdt.util import connect_rpcox, connect_zbus  # noqa
 
         # Check keys
         for k in tdt_params.keys():
             if k not in legal_keys:
-                raise KeyError('Unrecognized key in tdt_params: {0}'.format(k))
+                raise KeyError('Unrecognized key in tdt_params {0}, must be '
+                               'one of {1}'.format(k, ', '.join(legal_keys)))
         self._model = tdt_params['TDT_MODEL']
 
         if tdt_params['TDT_CIRCUIT_PATH'] is None and self._model != 'dummy':
@@ -126,6 +115,7 @@ class TDTController(Keyboard):
         """
         # MID-LEVEL APPROACH
         if tdt_params['TDT_MODEL'] != 'dummy':
+            from tdt.util import connect_rpcox
             try:
                 self.rpcox = connect_rpcox(name=self.model,
                                            interface=self.interface,
