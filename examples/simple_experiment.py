@@ -12,7 +12,6 @@ the ExperimentController class.
 
 from os import path as op
 import numpy as np
-import matplotlib.pyplot as plt
 
 from expyfun import ExperimentController, get_keyboard_input, set_log_level
 from expyfun.io import read_hdf5
@@ -164,5 +163,4 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
                      'any key to close.'.format(running_total, num_trials),
                      max_wait=feedback_dur)
 
-plt.ion()
 ea.plot_screen(screenshot)

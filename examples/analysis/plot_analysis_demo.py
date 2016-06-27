@@ -14,6 +14,7 @@ functions ``dprime_2afc()`` and ``barplot()``.
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
 import expyfun.analyze as ea
 
 print(__doc__)
@@ -34,7 +35,6 @@ ctrl_dprime = ea.dprime_2afc(data[['ctrl_hit', 'ctrl_miss']])
 test_dprime = ea.dprime_2afc(data[['test_hit', 'test_miss']])
 results = pd.DataFrame(dict(ctrl=ctrl_dprime, test=test_dprime))
 # plot
-plt.ion()
 subplt, barplt = ea.barplot(results, axis=0, err_bars='sd', lines=True,
                             brackets=[(0, 1)], bracket_text=[r'$p < 10^{-9}$'])
 subplt.yaxis.set_label_text('d-prime +/- 1 s.d.')
@@ -66,3 +66,4 @@ subplt, barplt = ea.barplot(results, axis=0, err_bars='sd', lines=True,
                                           'foobar'])
 subplt.yaxis.set_label_text('d-prime +/- 1 s.d.')
 subplt.set_title('Each line represents a different subject')
+plt.show()

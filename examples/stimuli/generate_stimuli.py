@@ -100,6 +100,6 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
 
 if __name__ == '__main__':
     wav_dict = generate_stimuli()
-    plt.ion()
     plt.plot(wav_dict['stim_0_500'][:1000])
     play_sound(wav_dict['stim_0_500'])
+    plt.show()

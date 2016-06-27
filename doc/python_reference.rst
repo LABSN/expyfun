@@ -10,10 +10,9 @@ This is the classes and functions reference of expyfun. Functions are
 grouped by hardware control type.
 
 
-.. toctree::
-   :maxdepth: 2
-
-   python_reference
+.. contents::
+   :local:
+   :depth: 2
 
 
 Experiment control
@@ -31,6 +30,7 @@ Classes:
 
    ExperimentController
    EyelinkController
+   TDTController
 
 Functions:
 

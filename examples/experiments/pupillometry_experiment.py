@@ -27,8 +27,6 @@ with ExperimentController('pupilExp', full_screen=True, participant='foo',
     prf, t_srf, e_prf = find_pupil_tone_impulse_response(ec, el, bgcolor,
                                                          fcolor)
 
-plt.ion()
-
 uni_lev = np.unique(lev)
 uni_lev_label = (255 * uni_lev).astype(int)
 uni_lev[uni_lev == 0] = np.sort(uni_lev)[1] / 2.
@@ -51,3 +49,4 @@ ax.fill_between(t_srf, prf - e_prf, prf + e_prf, facecolor=(1, 1, 0),
 ax.plot(t_srf, prf, color='k')
 ax.set_xlim(t_srf[[0, -1]])
 plt.tight_layout()
+plt.show()

@@ -9,9 +9,7 @@ This example demonstrates differences between the Text and AttrText classes.
 #
 # License: BSD (3-clause)
 
-import matplotlib.pyplot as plt
-
-from expyfun import ExperimentController, analyze
+from expyfun import ExperimentController, analyze, building_doc
 from expyfun.visual import _convert_color
 
 print(__doc__)
@@ -32,6 +30,7 @@ thr = ('This text can have {{color {0}}}different {{color {1}}}colors '
        'not recommended.').format(blue, pink, white)
 fou = 'Press any key to change all the text to pink using .set_color().'
 fiv = 'Press any key to quit.'
+max_wait = float('inf') if not building_doc else 0.
 
 with ExperimentController('textDemo', participant='foo', session='001',
                           output_dir=None, version='dev') as ec:
@@ -41,11 +40,11 @@ with ExperimentController('textDemo', participant='foo', session='001',
                              font_size=32, color='#00CEE9')
     txt_thr = ec.screen_text(thr, pos=[0, -0.2])
     screenshot = ec.screenshot()
-    ec.screen_prompt(fou, pos=[0, -0.5])
+    ec.screen_prompt(fou, pos=[0, -0.5], max_wait=max_wait)
     for txt in (txt_one, txt_two, txt_thr):
         txt.set_color('#FF97AF')
         txt.draw()
-    ec.screen_prompt(fiv, pos=[0, -0.5], color='#FF97AF')
+        ec.flip()
+    ec.screen_prompt(fiv, pos=[0, -0.5], max_wait=max_wait)
 
-plt.ion()
 analyze.plot_screen(screenshot)

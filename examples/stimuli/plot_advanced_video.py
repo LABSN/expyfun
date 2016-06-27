@@ -10,7 +10,8 @@ This shows how to control various properties of a video file in expyfun.
 """
 
 import numpy as np
-from expyfun import ExperimentController, fetch_data_file
+from expyfun import (ExperimentController, fetch_data_file, building_doc,
+                     analyze as ea)
 
 print(__doc__)
 
@@ -61,8 +62,13 @@ with ExperimentController(**ec_args) as ec:
                 else:
                     ec.video.set_visible(True)
                     ec.video.play()
+        screenshot = ec.screenshot()
+        if building_doc:
+            break
     ec.delete_video()
     preamble = 'press times:' if len(all_presses) else 'no presses'
     msg = ', '.join(['{0:.3f}'.format(x[1]) for x in all_presses])
     ec.flip()
     ec.screen_prompt('\n'.join([preamble, msg]), max_wait=1.)
+
+ea.plot_screen(screenshot)

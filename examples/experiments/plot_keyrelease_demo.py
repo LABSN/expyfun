@@ -20,13 +20,13 @@ inprecise timing.
 #
 # License: BSD (3-clause)
 
-from expyfun import ExperimentController
+from expyfun import ExperimentController, building_doc, analyze as ea
 
 print(__doc__)
 
 isi = 0.5
-wait_dur = 3.0
-msg_dur = 3.0
+wait_dur = 3.0 if not building_doc else 0.
+msg_dur = 3.0 if not building_doc else 0.
 
 with ExperimentController('KeyPressAndReleaseDemo', screen_num=0,
                           window_size=[1280, 960], full_screen=False,
@@ -43,6 +43,7 @@ with ExperimentController('KeyPressAndReleaseDemo', screen_num=0,
     countdown = ec.current_time + disp_time
     ec.call_on_next_flip(ec.listen_presses)
     ec.screen_text(instruction.format(disp_time))
+    screenshot = ec.screenshot()
     ec.flip()
     while ec.current_time < countdown:
         cur_time = round(countdown - ec.current_time, 1)
@@ -61,3 +62,5 @@ with ExperimentController('KeyPressAndReleaseDemo', screen_num=0,
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
+
+ea.plot_screen(screenshot)

@@ -9,12 +9,12 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - change description by `Author`_.
+   - change description by `Eric Larson`_.
 
 BUG
 ~~~
 
-   - change description by `Author`_.
+   - change description by `Eric Larson`_.
 
 API
 ~~~
@@ -71,7 +71,7 @@ of commits):
     *   3  `Dean Pospisil`_
     *   3  `Mark Wronkewicz`_
 
-.. _Eric Larson: http://faculty.washington.edu/larsoner/
+.. _Eric Larson: http://staff.washington.edu/larsoner/
 
 .. _Daniel McCloy: http://dan.mccloy.info/
 

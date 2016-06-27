@@ -10,7 +10,7 @@ This shows how to make simple vocoded stimuli.
 """
 
 import numpy as np
-import matplotlib.pyplot as mpl
+import matplotlib.pyplot as plt
 
 from expyfun.stimuli import vocode, play_sound, window_edges, read_wav, rms
 from expyfun import fetch_data_file
@@ -41,15 +41,14 @@ snd = play_sound(data_allthree, fs, norm=False, wait=False)
 # Uncomment this to play the original, too:
 # snd = play_sound(data, fs, norm=False, wait=False)
 
-mpl.ion()
-ax1 = mpl.subplot(3, 1, 1)
+ax1 = plt.subplot(3, 1, 1)
 ax1.plot(t, data)
 ax1.set_title('Original')
 ax1.set_ylabel('Amplitude')
-ax2 = mpl.subplot(3, 1, 2, sharex=ax1, sharey=ax1)
+ax2 = plt.subplot(3, 1, 2, sharex=ax1, sharey=ax1)
 ax2.plot(t, data_noise)
 ax2.set_title('Vocoded')
-ax3 = mpl.subplot(3, 1, 3, sharex=ax1)
+ax3 = plt.subplot(3, 1, 3, sharex=ax1)
 ax2.set_title('Spectrogram')
 ax2.set_ylabel('Amplitude')
 ax3.specgram(data_noise, Fs=fs)
@@ -57,4 +56,5 @@ ax3.set_xlim(t[[0, -1]])
 ax3.set_ylim([0, fs / 2.])
 ax3.set_ylabel('Frequency (hz)')
 ax3.set_xlabel('Time (sec)')
-mpl.tight_layout()
+plt.tight_layout()
+plt.show()

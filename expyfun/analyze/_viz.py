@@ -3,15 +3,6 @@
 
 import numpy as np
 from itertools import chain
-try:
-    import matplotlib.pyplot as plt
-    from matplotlib import rcParams
-except ImportError:
-    plt = None
-try:
-    from pandas.core.frame import DataFrame
-except ImportError:
-    DataFrame = None
 
 from .._utils import string_types
 
@@ -207,9 +198,12 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         bracket color: dark gray (30%)
 
     """
-    # check matplotlib
-    if plt is None:
-        raise ImportError('Barplot requires matplotlib.pyplot.')
+    from matplotlib import pyplot as plt, rcParams
+    try:
+        from pandas.core.frame import DataFrame
+    except Exception:
+        DataFrame = None
+
     # be nice to pandas
     if DataFrame is not None:
         if isinstance(h, DataFrame) and bar_names is None:
@@ -485,11 +479,12 @@ def plot_screen(screen, ax=None):
         If provided, the axes will be plotted to and cleared of ticks.
         If None, a figure will be created.
 
-    Retruns
+    Returns
     -------
     ax : matplotlib Axes
         The axes used to plot the image.
     """
+    import matplotlib.pyplot as plt
     screen = np.array(screen)
     if screen.ndim != 3 or screen.shape[2] not in [3, 4]:
         raise ValueError('screen must be a 3D array with 3 or 4 channels')

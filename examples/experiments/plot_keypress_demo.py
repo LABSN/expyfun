@@ -10,17 +10,15 @@ in the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-import matplotlib.pyplot as plt
-
-from expyfun import ExperimentController
+from expyfun import ExperimentController, building_doc
 import expyfun.analyze as ea
 
 print(__doc__)
 
 
 isi = 0.5
-wait_dur = 3.0
-msg_dur = 3.0
+wait_dur = 3.0 if not building_doc else 0.
+msg_dur = 3.0 if not building_doc else 0.
 
 with ExperimentController('KeypressDemo', screen_num=0,
                           window_size=[640, 480], full_screen=False,
@@ -167,5 +165,4 @@ with ExperimentController('KeypressDemo', screen_num=0,
         message = ''.join(message)
     ec.screen_prompt(message, msg_dur)
 
-plt.ion()
 ea.plot_screen(screenshot)
