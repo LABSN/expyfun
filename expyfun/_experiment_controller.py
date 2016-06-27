@@ -49,7 +49,7 @@ class ExperimentController(object):
         remaining audio parameters will be read from the machine configuration
         file. If a dict, must include a key 'TYPE' that is either 'pyglet'
         or 'tdt'; the dict can contain other parameters specific to the TDT
-        (see documentation for expyfun.TDTController).
+        (see documentation for :class:`TDTController`).
     response_device : str | None
         Must be 'keyboard', 'cedrus', or 'tdt'.  If None, the type will be read
         from the machine configuration file.
@@ -104,13 +104,6 @@ class ExperimentController(object):
         the expected version of the expyfun codebase is being used when running
         experiments. To override version checking (e.g., during development)
         use ``version='dev'``.
-    tdt_delay : int | None
-        The number of milliseconds to delay the audio signal so that it
-        coincides with the visual signal. Defualt is ``None``, which uses the
-        value from the configuration file (or sets it to 0 if that value is not
-        defined in the file). Otherwise it can be any non-negative integer.
-        Floats will be rounded. This parameter has no effect if the TDT is not
-        the audio device.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -131,15 +124,14 @@ class ExperimentController(object):
                  output_dir='data', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
-                 verbose=None, check_rms='windowed', suppress_resamp=False,
-                 version=None, enable_video=False, tdt_delay=None):
+                 check_rms='windowed', suppress_resamp=False, version=None,
+                 enable_video=False, verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._stim_scaler = None
-        self._tdt_delay = tdt_delay
         self._suppress_resamp = suppress_resamp
         self._enable_video = enable_video
         self.video = None
@@ -286,24 +278,9 @@ class ExperimentController(object):
             # Initialize devices
             #
 
-            # Handle the tdt_delay parameter
-            if self._tdt_delay is not None:
-                if self.audio_type == 'tdt':
-                    self._tdt_delay = int(np.round(self._tdt_delay))
-                    if self._tdt_delay < 0:
-                        raise ValueError('tdt_delay must be non-negative.')
-                else:
-                    msg = ('Expyfun: tdt_delay parameter has no effect '
-                           'when not using the TDT for audio.')
-                    logger.warning(msg)
-                    warnings.warn(msg)
-
             # Audio (and for TDT, potentially keyboard)
             if self.audio_type == 'tdt':
                 logger.info('Expyfun: Setting up TDT')
-                if (self._tdt_delay is not None and
-                        'TDT_DELAY' not in audio_controller):
-                    audio_controller['TDT_DELAY'] = str(self._tdt_delay)
                 self._ac = TDTController(audio_controller)
                 self.audio_type = self._ac.model
             elif self.audio_type == 'pyglet':
@@ -1894,12 +1871,6 @@ class ExperimentController(object):
         """Timestamp from the experiment master clock.
         """
         return self._master_clock()
-
-    @property
-    def tdt_delay(self):
-        """Time that TDT delays audio and triggers for AV synchrony.
-        """
-        return self._tdt_delay
 
     @property
     def _fs_mismatch(self):

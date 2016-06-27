@@ -166,6 +166,9 @@ def test_ec(ac=None, rd=None):
         this_rd = rd
         this_tc = ac
         this_fs = get_tdt_rates()['25k']
+        assert_raises(ValueError, ExperimentController, *std_args,
+                      audio_controller=dict(TYPE=this_ac, TDT_MODEL='foo'),
+                      **std_kwargs)
     with warnings.catch_warnings(record=True) as w:
         for suppress in (True, False):
             with ExperimentController(*std_args, audio_controller=this_ac,
@@ -430,27 +433,23 @@ def test_background_color():
 @_hide_window
 def test_tdt_delay():
     """test the tdt_delay parameter"""
-    with ExperimentController(*std_args, tdt_delay=0, audio_controller='tdt',
+    with ExperimentController(*std_args,
+                              audio_controller=dict(TYPE='tdt', TDT_DELAY=0),
                               **std_kwargs) as ec:
-        ec.wait_secs(0)  # so pyflakes doesn't whine about not using ec
-    with ExperimentController(*std_args, tdt_delay=1, audio_controller='tdt',
+        assert_equal(ec._ac._used_params['TDT_DELAY'], 0)
+    with ExperimentController(*std_args,
+                              audio_controller=dict(TYPE='tdt', TDT_DELAY=1),
                               **std_kwargs) as ec:
-        ec.wait_secs(0)
-    with ExperimentController(*std_args, tdt_delay=None,
-                              audio_controller='tdt', **std_kwargs) as ec:
-        ec.wait_secs(0)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        with ExperimentController(*std_args, tdt_delay=3,
-                                  audio_controller='pyglet', 
-                                  **std_kwargs) as ec:
-            ec.wait_secs(0)
-        assert_equal(len(w), 1)
-    assert_raises(TypeError, ExperimentController, *std_args, tdt_delay='foo',
-                  audio_controller='tdt', **std_kwargs)
+        assert_equal(ec._ac._used_params['TDT_DELAY'], 1)
+    assert_raises(ValueError, ExperimentController, *std_args,
+                  audio_controller=dict(TYPE='tdt', TDT_DELAY='foo'),
+                  **std_kwargs)
     assert_raises(OverflowError, ExperimentController, *std_args,
-                  tdt_delay=np.inf, audio_controller='tdt', **std_kwargs)
+                  audio_controller=dict(TYPE='tdt', TDT_DELAY=np.inf),
+                  **std_kwargs)
     assert_raises(TypeError, ExperimentController, *std_args,
-                  tdt_delay=np.ones(2), audio_controller='tdt', **std_kwargs)
-    assert_raises(ValueError, ExperimentController, *std_args, tdt_delay=-1,
-                  audio_controller='tdt', **std_kwargs)
+                  audio_controller=dict(TYPE='tdt', TDT_DELAY=np.ones(2)),
+                  **std_kwargs)
+    assert_raises(ValueError, ExperimentController, *std_args,
+                  audio_controller=dict(TYPE='tdt', TDT_DELAY=-1),
+                  **std_kwargs)
