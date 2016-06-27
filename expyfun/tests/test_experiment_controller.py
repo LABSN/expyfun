@@ -439,11 +439,13 @@ def test_tdt_delay():
     with ExperimentController(*std_args, tdt_delay=None,
                               audio_controller='tdt', **std_kwargs) as ec:
         ec.wait_secs(0)
-    warnings.simplefilter('ignore')  # This should throw a warning. Ignore it.
-    with ExperimentController(*std_args, tdt_delay=None,
-                              audio_controller='pyglet', **std_kwargs) as ec:
-        ec.wait_secs(0)
-    warnings.simplefilter('always')
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        with ExperimentController(*std_args, tdt_delay=3,
+                                  audio_controller='pyglet', 
+                                  **std_kwargs) as ec:
+            ec.wait_secs(0)
+        assert_equal(len(w), 1)
     assert_raises(TypeError, ExperimentController, *std_args, tdt_delay='foo',
                   audio_controller='tdt', **std_kwargs)
     assert_raises(OverflowError, ExperimentController, *std_args,
