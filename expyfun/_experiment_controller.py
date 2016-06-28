@@ -755,10 +755,10 @@ class ExperimentController(object):
 
 # ############################### VIDEO METHODS ###############################
     def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
-        from pyglet.media.riff import WAVEFormatException
+        from pyglet.media import MediaFormatException
         try:
             self.video = Video(self, file_name, pos, units)
-        except WAVEFormatException:
+        except MediaFormatException:
             err = ('Something is wrong; probably you tried to load a '
                    'compressed video file but you do not have AVbin installed.'
                    ' Download and install it; if you are on Windows, you may '

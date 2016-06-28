@@ -14,13 +14,13 @@ from functools import partial
 
 import warnings
 import numpy as np
-from matplotlib.colors import colorConverter
 
-from .._utils import check_units, string_types
+from .._utils import check_units, string_types, logger
 
 
 def _convert_color(color, byte=True):
     """Convert 3- or 4-element color into OpenGL usable color"""
+    from matplotlib.colors import colorConverter
     color = (0., 0., 0., 0.) if color is None else color
     color = 255 * np.array(colorConverter.to_rgba(color))
     color = color.astype(np.uint8)
@@ -983,7 +983,11 @@ class Video(object):
         self._player = Player()
         self._player.queue(self._source)
         self._player._audio_player = None
-        self._dt = 1. / self.frame_rate
+        frame_rate = self.frame_rate
+        if frame_rate is None:
+            logger.warning('Frame rate could not be determined')
+            frame_rate = 60.
+        self._dt = 1. / frame_rate
         self._texture = None
         self._playing = False
         self._finished = False

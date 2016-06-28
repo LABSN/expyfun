@@ -15,9 +15,8 @@ distance.
 # License: BSD (3-clause)
 
 import numpy as np
-import matplotlib.pyplot as plt
 
-from expyfun import ExperimentController
+from expyfun import ExperimentController, building_doc
 from expyfun.visual import Rectangle
 import expyfun.analyze as ea
 
@@ -43,10 +42,9 @@ with ExperimentController('LevelTest', full_screen=True, noise_db=-np.inf,
         ec.screen_text('Output level: {} dB'.format(ec.stim_db), wrap=True)
         screenshot = ec.screenshot() if screenshot is None else screenshot
         t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
-        pressed = ec.wait_one_press(10)[0]
+        pressed = ec.wait_one_press(10)[0] if not building_doc else '8'
         ec.flip()
-        ec.wait_one_press(0.5)
+        ec.wait_one_press(0.5 if not building_doc else 0.)
         ec.stop()
 
-plt.ion()
 ea.plot_screen(screenshot)

@@ -2,18 +2,19 @@
 =============
 A-V sync test
 =============
+
 This example tests synchronization between the screen and the audio playback.
-NOTE: On Linux (w/NVIDIA), XFCE has been observed to give consistent timings,
-whereas Compiz WMs did not (doubled timings).
+
+.. note: On Linux (w/NVIDIA), XFCE has been observed to give consistent
+         timings, whereas Compiz WMs did not (doubled timings).
 """
 # Author: Dan McCloy <drmccloy@uw.edu>
 #
 # License: BSD (3-clause)
 
 import numpy as np
-import matplotlib.pyplot as plt
 
-from expyfun import ExperimentController
+from expyfun import ExperimentController, building_doc
 from expyfun.visual import Circle
 import expyfun.analyze as ea
 
@@ -41,8 +42,7 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
         screenshot = ec.screenshot() if screenshot is None else screenshot
         ec.flip()
         ec.stamp_triggers([2, 4, 8])
-        pressed = ec.wait_one_press(0.5)[0]
+        pressed = ec.wait_one_press(0.5)[0] if not building_doc else '8'
         ec.stop()
 
-plt.ion()
 ea.plot_screen(screenshot)

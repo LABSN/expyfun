@@ -10,7 +10,8 @@ already been installed.
 @author: drmccloy
 """
 
-from expyfun import ExperimentController, fetch_data_file
+from expyfun import (ExperimentController, fetch_data_file, analyze as ea,
+                     building_doc)
 
 print(__doc__)
 
@@ -27,6 +28,11 @@ with ExperimentController(**ec_args) as ec:
     while not ec.video.finished:
         if ec.video.playing:
             fliptime = ec.flip()
+        screenshot = ec.screenshot()
+        if building_doc:
+            break
     ec.delete_video()
     ec.flip()
     ec.screen_prompt('video over', max_wait=1.)
+
+ea.plot_screen(screenshot)

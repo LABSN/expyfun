@@ -4,6 +4,7 @@
 *.hdf5
 *.edf
 *.orig
+doc/generated
 
 # C extensions
 *.so

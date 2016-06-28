@@ -47,7 +47,7 @@ nosetests:
 test: clean nosetests flake
 
 test-doc:
-	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
+	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/
 
 version:
 	@expr substr `git rev-parse HEAD` 1 7

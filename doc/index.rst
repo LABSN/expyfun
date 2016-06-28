@@ -5,7 +5,8 @@ Expyfun home
 This software is provided to facilitate LABS^N experiment coding.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   expyfun
-
+   auto_examples/index.rst
+   python_reference.rst
+   whats_new.rst

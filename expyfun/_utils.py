@@ -171,6 +171,10 @@ def set_log_file(fname=None,
 ###############################################################################
 # RANDOM UTILITIES
 
+building_doc = any('sphinx-build' in ((''.join(i[4]).lower() + i[1])
+                                      if i[4] is not None else '')
+                   for i in inspect.stack())
+
 
 def run_subprocess(command, **kwargs):
     """Run command using subprocess.Popen

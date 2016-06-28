@@ -7,12 +7,13 @@ from ._version import __version__
 from ._utils import (set_log_level, set_log_file, set_config, check_units,
                      get_config, get_config_path, fetch_data_file,
                      run_subprocess)
-from ._utils import verbose_dec as verbose
+from ._utils import verbose_dec as verbose, building_doc
 from ._git import assert_version, download_version
 from ._experiment_controller import (ExperimentController, wait_secs,
                                      get_keyboard_input)
 from ._eyelink_controller import EyelinkController
 from ._trigger_controllers import decimals_to_binary, binary_to_decimals
+from ._tdt_controller import TDTController
 from . import analyze
 from . import codeblocks
 from . import io

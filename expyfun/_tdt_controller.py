@@ -51,6 +51,10 @@ class DummyRPcoX(object):
 class TDTController(Keyboard):
     """Interface for TDT audio output, stamping, and responses
 
+    .. warning:: This class should not be instantiated manually,
+                 but rather should be created automatically by an
+                 appropriate call to :class:`ExperimentController`.
+
     Parameters
     ----------
     tdt_params : dict | None

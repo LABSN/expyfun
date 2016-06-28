@@ -10,7 +10,6 @@ expyfun provides multiple methods for drawing simple screen objects.
 # License: BSD (3-clause)
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from expyfun import visual, ExperimentController
 import expyfun.analyze as ea
@@ -49,5 +48,4 @@ with ExperimentController('test', session='1', participant='2',
     ec.flip()
     ec.wait_for_presses(0.5)
 
-plt.ion()
 ea.plot_screen(screenshot)

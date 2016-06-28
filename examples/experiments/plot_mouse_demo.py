@@ -10,9 +10,7 @@ in the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-import matplotlib.pyplot as plt
-
-from expyfun import ExperimentController
+from expyfun import ExperimentController, building_doc
 import expyfun.analyze as ea
 from expyfun.visual import (Circle, Rectangle, Diamond, ConcentricCircles,
                             FixationDot)
@@ -20,8 +18,9 @@ from expyfun.visual import (Circle, Rectangle, Diamond, ConcentricCircles,
 print(__doc__)
 
 
-wait_dur = 3.0
-msg_dur = 1.5
+wait_dur = 3.0 if not building_doc else 0.
+msg_dur = 1.5 if not building_doc else 0.
+max_wait = float('inf') if not building_doc else 0.
 
 with ExperimentController('MouseDemo', screen_num=0,
                           window_size=[640, 480], full_screen=False,
@@ -42,12 +41,12 @@ with ExperimentController('MouseDemo', screen_num=0,
     # wait_one_click
     ec.screen_text('Press any mouse button.', wrap=False)
     ec.flip()
-    ec.wait_one_click()
+    ec.wait_one_click(max_wait=max_wait)
 
     ec.toggle_cursor(False)
     ec.screen_text('Press the left button.', wrap=False)
     ec.flip()
-    ec.wait_one_click(live_buttons=['left'], visible=True)
+    ec.wait_one_click(live_buttons=['left'], visible=True, max_wait=max_wait)
     ec.wait_secs(0.5)
     ec.toggle_cursor(True)
 
@@ -89,10 +88,10 @@ with ExperimentController('MouseDemo', screen_num=0,
             o.draw()
         screenshot = ec.screenshot()
         ec.flip()
-        click, ind = ec.wait_for_click_on(objects)
-        objects[ind].draw()
-        ec.flip()
-        ec.wait_secs(0.2)
+        click, ind = ec.wait_for_click_on(objects, max_wait=max_wait)
+        if ind is not None:
+            objects[ind].draw()
+            ec.flip()
+            ec.wait_secs(0.2)
 
-plt.ion()
 ea.plot_screen(screenshot)
