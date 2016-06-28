@@ -3,6 +3,7 @@
 *.mat
 *.hdf5
 *.edf
+*.orig
 
 # C extensions
 *.so
