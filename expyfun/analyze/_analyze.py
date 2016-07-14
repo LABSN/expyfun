@@ -97,7 +97,6 @@ def logit(prop, max_events=None):
     --------
     scipy.special.logit
     """
-    from scipy import special
     prop = np.atleast_1d(prop).astype(float)
     if np.any([prop > 1, prop < 0]):
         raise ValueError('Proportions must be in the range [0, 1].')
@@ -109,7 +108,7 @@ def logit(prop, max_events=None):
             prop[loc] = corr_factor[loc]
         for loc in zip(*np.where(prop == 1)):
             prop[loc] = 1 - corr_factor[loc]
-    return special.logit(prop)
+    return np.log(prop / (1. - prop))
 
 
 def sigmoid(x, lower=0., upper=1., midpt=0., slope=1.):
