@@ -136,12 +136,13 @@ html_theme_options = {
     'navbar_title': 'expyfun',
     'navbar_pagenav': False,
     'source_link_position': "footer",
-    'bootswatch_theme': "darkly",
+    'bootswatch_theme': "sandstone",
     'navbar_sidebarrel': False,
     'bootstrap_version': "3",
     'navbar_links': [
         ("API", "python_reference"),
         ("Gallery", "auto_examples/index"),
+        ("Whats new", "whats_new"),
     ],
     }
 
