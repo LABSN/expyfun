@@ -140,8 +140,8 @@ html_theme_options = {
     'navbar_sidebarrel': False,
     'bootstrap_version': "3",
     'navbar_links': [
-        ("API", "python_reference"),
-        ("Gallery", "auto_examples/index"),
+        ("API reference", "python_reference"),
+        ("Examples", "auto_examples/index"),
         ("Whats new", "whats_new"),
     ],
     }

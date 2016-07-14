@@ -19,7 +19,7 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
         List of press times (in seconds).
     targets : list
         List of target times.
-    foils : list | None
+    foils : list
         List of foil (distractor) times.
     tmin : float
         Minimum time after a target/foil to consider a press.
