@@ -131,10 +131,17 @@ Functions:
    :template: function.rst
 
    barplot
+   box_off
    dprime
    dprime_2afc
+   fit_sigmoid
+   format_pval
+   logit
    plot_screen
+   press_times_to_hmfc
    restore_values
+   rt_chisq
+   sigmoid
 
 Logging and configuration
 =========================
