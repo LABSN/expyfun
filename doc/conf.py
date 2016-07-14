@@ -133,9 +133,10 @@ html_theme = 'bootstrap'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'navbar_title': ' ',
+    'navbar_title': 'expyfun',
+    'navbar_pagenav': False,
     'source_link_position': "footer",
-    'bootswatch_theme': "flatly",
+    'bootswatch_theme': "darkly",
     'navbar_sidebarrel': False,
     'bootstrap_version': "3",
     'navbar_links': [

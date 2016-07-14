@@ -1,7 +1,8 @@
-Basic examples
-==============
+Examples
+========
 
-Some basic examples of how to use expyfun to show audio and visual stimuli.
+Some basic and advanced examples of how to use expyfun to generate and show
+stimuli, as well as do some analyses and plots.
 
 .. contents:: Contents
    :local:
