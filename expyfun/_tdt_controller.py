@@ -190,6 +190,7 @@ class TDTController(Keyboard):
         # Set output values to zero (esp. first few)
         for tag in ('datainleft', 'datainright'):
             self.rpcox.ZeroTag(tag)
+        self.rpcox.SetTagVal('trgname', 0)
         self._used_params = tdt_params
 
     def _add_keyboard_init(self, ec, force_quit_keys):
