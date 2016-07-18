@@ -1840,7 +1840,7 @@ class ExperimentController(object):
     def id_types(self):
         """Trial ID types needed for each trial.
         """
-        return list(self._id_call_dict.keys())
+        return sorted(self._id_call_dict.keys())
 
     @property
     def fs(self):
