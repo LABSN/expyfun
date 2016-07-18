@@ -21,6 +21,7 @@ def test_logging(ac='pyglet'):
     try:
         with ExperimentController(*std_args, audio_controller=ac,
                                   response_device='keyboard',
+                                  trigger_controller='dummy',
                                   **std_kwargs) as ec:
             test_name = ec._log_file
             stamp = ec.current_time

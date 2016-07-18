@@ -360,8 +360,8 @@ def test_button_presses_and_window_size():
     warnings.simplefilter('ignore')  # esc as quit key
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
-                              output_dir=None, full_screen=False,
-                              participant='foo', session='01',
+                              output_dir=None, full_screen=False, session='01',
+                              participant='foo', trigger_controller='dummy',
                               force_quit='escape', version='dev') as ec:
         warnings.simplefilter('always')
         fake_button_press(ec, '1', 0.3)
@@ -411,21 +411,21 @@ def test_background_color():
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
         ec.set_background_color('red')
-        ec.screen_text('red', color='white')
         ss = ec.screenshot()[:, :, :3]
-        white_mask = (ss == [255] * 3)
-        assert_true(white_mask.any())
-        red_mask = (ss == [255, 0, 0])
-        assert_true(red_mask.any())
-        assert_true(np.logical_or(white_mask, red_mask).all())
+        red_mask = (ss == [255, 0, 0]).all(axis=-1)
+        assert_true(red_mask.all())
+        ec.set_background_color('white')
+        ss = ec.screenshot()[:, :, :3]
+        white_mask = (ss == [255] * 3).all(axis=-1)
+        assert_true(white_mask.all())
         ec.flip()
-
         ec.set_background_color('0.5')
         visual.Rectangle(ec, [0, 0, 1, 1], fill_color='black').draw()
         ss = ec.screenshot()[:, :, :3]
-        gray_mask = (ss == [127] * 3) | (ss == [128] * 3)
+        gray_mask = ((ss == [127] * 3).all(axis=-1) |
+                     (ss == [128] * 3).all(axis=-1))
         assert_true(gray_mask.any())
-        black_mask = (ss == [0] * 3)
+        black_mask = (ss == [0] * 3).all(axis=-1)
         assert_true(black_mask.any())
         assert_true(np.logical_or(gray_mask, black_mask).all())
 
