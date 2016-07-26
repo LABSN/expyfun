@@ -168,7 +168,7 @@ def _check_log(obj, func):
     ptr = cast(pointer(log), POINTER(c_char))
     func(obj, 4096, pointer(c_int()), ptr)
     message = log.value
-    if message.startswith('No errors'):
+    if message.startswith(b'No errors'):
         pass
     elif message:
         raise RuntimeError(message)
