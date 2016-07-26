@@ -37,21 +37,21 @@ except Exception:
     pass
 
 try:
-    import pandas  # noqa, analysis:ignore
+    import pandas  # noqa
 except ImportError:
     has_pandas = False
 else:
     has_pandas = True
 
 try:
-    import h5py  # noqa, analysis:ignore
+    import h5py  # noqa
 except Exception:
     has_h5py = False
 else:
     has_h5py = True
 
 try:
-    import joblib  # noqa, analysis:ignore
+    import joblib  # noqa
 except Exception:
     has_joblib = False
 else:
@@ -60,7 +60,7 @@ else:
 # for py3k (eventually)
 if sys.version.startswith('2'):
     string_types = basestring  # noqa
-    input = raw_input  # noqa, input is raw_input in py3k
+    input = raw_input  # noqa
     text_type = unicode  # noqa
     from urllib2 import urlopen  # noqa
     from cStringIO import StringIO  # noqa
@@ -69,7 +69,7 @@ else:
     text_type = str
     from urllib.request import urlopen
     input = input
-    from io import StringIO  # noqa, analysis:ignore
+    from io import StringIO  # noqa
 
 ###############################################################################
 # LOGGING

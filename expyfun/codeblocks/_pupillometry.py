@@ -12,7 +12,7 @@ from ..stimuli import window_edges
 def _check_pyeparse():
     """Helper to ensure package is available"""
     try:
-        import pyeparse  # noqa analysis:ignore
+        import pyeparse  # noqa
     except ImportError:
         raise ImportError('Cannot run, requires "pyeparse" package')
 
