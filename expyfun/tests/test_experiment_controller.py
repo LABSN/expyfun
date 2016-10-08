@@ -1,15 +1,16 @@
+from copy import deepcopy
+from functools import partial
 import warnings
+
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from nose.plugins.skip import SkipTest
 from numpy.testing import assert_allclose
-from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
 from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
-from functools import partial
 
 warnings.simplefilter('always')
 
@@ -269,29 +270,46 @@ def test_ec(ac=None, rd=None):
         ec.set_visible(False)
         ec.call_on_every_flip(partial(dummy_print, 'called start stimuli'))
 
+        # Note: we put some wait_secs in here because otherwise the delay in
+        # play start (e.g. for trigdel and onsetdel) can
+        # mess things up! So we probably eventually should add
+        # some safeguard against stopping too quickly after starting...
+
         #
         # First: identify_trial
         #
+        noise = np.random.normal(scale=0.03, size=(int(ec.fs),))
+        ec.load_buffer(noise)
         assert_raises(RuntimeError, ec.start_stimulus)  # order violation
+        assert_true(ec._playing is False)
         ec.start_stimulus(start_of_trial=False)         # should work
+        ec.wait_secs(0.05)
+        assert_true(ec._playing is True)
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
         ec.stop()
+        assert_true(ec._playing is False)
         # only binary for TTL
         assert_raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
         assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
         assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
+        assert_true(ec._playing is False)
         ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
+        assert_true(ec._playing is False)
         #
         # Second: start_stimuli
         #
         assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
+        assert_true(ec._playing is False)
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
+        assert_true(ec._playing is False)
         ec.start_stimulus(flip=False, when=-1)
         if ac != 'tdt':
             # dummy TDT version won't do this check properly, as
             # ec._ac._playing -> GetTagVal('playing') always gives False
             assert_raises(RuntimeError, ec.play)  # already played, must stop
+        ec.wait_secs(0.05)
         ec.stop()
+        assert_true(ec._playing is False)
         #
         # Third: trial_ok
         #
@@ -302,16 +320,24 @@ def test_ec(ac=None, rd=None):
         assert_raises(RuntimeError, ec.start_stimulus)  # order violation
         ec.start_stimulus(start_of_trial=False)         # should work
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
+        ec.wait_secs(0.05)
         ec.stop()
+        assert_true(ec._playing is False)
 
         ec.flip(-np.inf)
+        assert_true(ec._playing is False)
         ec.estimate_screen_fs()
+        assert_true(ec._playing is False)
         ec.play()
+        ec.wait_secs(0.05)
+        assert_true(ec._playing is True)
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
+        ec.wait_secs(0.05)
         ec.stop()
+        assert_true(ec._playing is False)
         ec.start_stimulus(start_of_trial=False)
-        ec.call_on_next_flip(ec.stop_noise())
+        ec.call_on_next_flip(ec.stop_noise)
         ec.stop()
         ec.start_stimulus(start_of_trial=False)
         ec.get_mouse_position()
