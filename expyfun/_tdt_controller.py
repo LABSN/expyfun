@@ -28,14 +28,26 @@ class DummyRPcoX(object):
         self.model = model
         self.interface = interface
         names = ['LoadCOF', 'ClearCOF', 'Run', 'ZeroTag', 'SetTagVal',
-                 'GetSFreq', 'GetTagV', 'WriteTagV', 'Halt', 'SoftTrg',
-                 'WriteTagVEX']
+                 'GetSFreq', 'Halt']
         returns = [True, True, True, True, True,
-                   24414.0125, 0.0, True, True, True,
-                   True]
+                   24414.0125, True]
         for name, ret in zip(names, returns):
             setattr(self, name, partial(_dummy_fun, self, name, ret))
         self._clock = ZeroClock()
+        self._stim_dur = 0
+        self._play_start = 0
+
+    def WriteTagVEX(self, name, offset, kind, data):
+        if name == 'datainleft':
+            self._stim_dur = len(data) / self.GetSFreq()
+        return True
+
+    def SoftTrg(self, trignum):
+        if trignum == 1:
+            self._play_start = time.time()
+        elif trignum == 2:
+            self._play_start -= self._stim_dur
+        return True
 
     def GetTagVal(self, name):
         if name == 'masterclock':
@@ -43,7 +55,7 @@ class DummyRPcoX(object):
         elif name == 'npressabs':
             return 0
         elif name == 'playing':
-            return False  # for testing only
+            return (time.time() - self._play_start < self._stim_dur)
         else:
             raise ValueError('unknown tag "{0}"'.format(name))
 

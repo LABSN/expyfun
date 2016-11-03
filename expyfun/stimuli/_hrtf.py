@@ -4,7 +4,6 @@
 import numpy as np
 
 from ..io import read_hdf5
-from ._filter import resample
 from .._utils import fetch_data_file, _fix_audio_dims
 
 
@@ -148,6 +147,7 @@ def convolve_hrtf(data, fs, angle, source='barb'):
     brir, brir_fs, leftward = _get_hrtf(angle, source, brir_fs)
     order = [1, 0] if leftward else [0, 1]
     if not np.allclose(brir_fs, fs, rtol=0, atol=0.5):
+        from mne.filter import resample
         brir = [resample(b, fs, brir_fs) for b in brir]
     out = np.array([np.convolve(data, brir[o]) for o in order])
     return out

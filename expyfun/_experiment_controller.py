@@ -26,7 +26,6 @@ from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
-from .stimuli._filter import resample
 from .visual import Text, Rectangle, Video, _convert_color
 from ._git import assert_version
 
@@ -1500,6 +1499,7 @@ class ExperimentController(object):
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs), 2))
+            from mne.filter import resample
             samples = resample(samples, self.fs, self.stim_fs, axis=0)
 
         # check RMS
