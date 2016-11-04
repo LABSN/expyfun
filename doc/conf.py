@@ -66,7 +66,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'MNE'
+project = u'expyfun'
 td = date.today()
 copyright = u'2013-%s, expyfun developers. Last updated on %s' % (td.year,
                                                                   td.isoformat())
@@ -238,8 +238,6 @@ htmlhelp_basename = 'expyfun-doc'
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-#    ('index', 'MNE.tex', u'MNE Manual',
-#     u'MNE Contributors', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
