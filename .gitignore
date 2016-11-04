@@ -53,6 +53,7 @@ doc/auto_examples/
 doc/modules/generated/
 doc/source/generated/
 doc/source/auto_examples/
+circleci-keys
 
 # virtualenv
 env/
