@@ -32,6 +32,7 @@ def dummy_fun(*args, **kwargs):
     """A dummy function used by EL dummy mode"""
     return TRIAL_OK
 
+
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink

@@ -8,6 +8,7 @@ def _resample_error(*args, **kwargs):
     """
     raise ImportError('mne-python is required to use the resample function')
 
+
 try:
     from mne.filter import resample
 except ImportError:

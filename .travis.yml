@@ -1,67 +1,87 @@
 language: python
 
-python:
-    - "2.7"
+addons:
+  apt:
+    packages:
+      - pulseaudio
+      - libavbin-dev
+      - libavbin0
 
-env:
-    - PYTHON=2.7 DEPS=full TEST=standard
-    - PYTHON=2.7 DEPS=minimal TEST=standard
-    - PYTHON=3.4 DEPS=full TEST=standard _EXPYFUN_SILENT=true
-    # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
-
-virtualenv:
-    system_site_packages: true
+matrix:
+  exclude:
+      # Exclude the default Python 2.7 build
+      - python: 2.7
+  include:
+    # Enable python 2 and python 3 builds
+    # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
+    #            scikit-learn, nibabel pillow;
+    #            in the case of Python 2, also mayavi, traits, pysurfer
+    # DEPS=minimal: don't build optional dependencies; tests that require those
+    #               dependencies are supposed to be skipped
+    #
+    # Note that we don't run coverage on Py3k anyway because it slows our tests
+    # by a factor of 2 (!), so we make this our "from install dir" run.
+    #
+    # Run one test (3.5) with a non-default stim channel to make sure our
+    # tests are explicit about channels.
+    #
+        # Must force libpng version to avoid silly libpng.so.15 error (MPL 1.1 needs it)
+    #
+    # Conda currently has packaging bug with mayavi/traits/numpy where 1.10 can't be used
+    # but breaks sklearn on install; hopefully eventually the NUMPY=1.9 on 2.7 full can be removed
+    # Mayavi=4.3 on old 2.7 installs, but doesn't work properly due to a traits bug
+    - os: linux
+      env:
+        - PYTHON=2.7 DEPS=full TEST=standard CONDA_OS=Linux
+    - os: osx
+      language: objective-c
+      env:
+        - PYTHON=2.7 DEPS=full TEST=standard CONDA_OS=MacOSX
+    - os: linux
+      env:
+        - PYTHON=2.7 DEPS=minimal TEST=standard CONDA_OS=Linux
+    - os: linux
+      env:
+        # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
+        - PYTHON=3.5 DEPS=full TEST=standard CONDA_OS=Linux _EXPYFUN_SILENT=true
 
 before_install:
     # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
     # Only use Pulseaudio on 2.7 because on Travis 3.4 causes some strange error...
     - SRC_DIR=${PWD}
-    - travis_retry sudo apt-get update -qq
-    - if [ "${PYTHON}" == "2.7" ]; then
-        travis_retry sudo apt-get install -qq -y pulseaudio python-nose python-coverage python-scipy python-matplotlib python-setuptools;
-        dbus-launch pulseaudio --start;
-        travis_retry sudo pip install -q coveralls;
-      else
-        wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-        chmod +x miniconda.sh;
-        ./miniconda.sh -b -p ~/anaconda;
-        export PATH=~/anaconda/bin:$PATH;
-        conda update --yes conda;
-        conda create -n testenv --yes --quiet pip python=$PYTHON;
-        source activate testenv;
-        conda install --yes scipy matplotlib nose coverage setuptools;
-        travis_retry pip install -q coveralls;
-      fi;
+    - wget http://repo.continuum.io/miniconda/Miniconda3-latest-${CONDA_OS}-x86_64.sh -O miniconda.sh
+    - chmod +x miniconda.sh
+    - ./miniconda.sh -b -p ~/anaconda
+    - export PATH=~/anaconda/bin:$PATH
+    - conda update --yes conda
+    - conda create -n testenv --yes --quiet pip python=$PYTHON
+    - source activate testenv
+    - conda install --yes scipy matplotlib nose coverage setuptools
+    - pip install -q coveralls
     # install AVbin
-    - curl https://cloud.github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10 -o avbin.sh
-    - chmod +x avbin.sh
-    - sudo bash -c "yes | ./avbin.sh"
+    - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        curl https://cloud.github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
+        sudo installer -pkg AVbin10.pkg -target /;
+      else
+        export DISPLAY=:99.0;
+        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+        dbus-launch pulseaudio --start;
+      fi;
     # Only install these deps if necessary (slow on Py3k)
-    - travis_retry pip install -q nose-timer flake8;
-    - travis_retry pip install -q pyglet mne six;  # mne is a dependency now that resample is taken from it
+    - pip install -q nose-timer flake8 pyglet mne six;  # mne is a dependency now that resample is taken from it
     # Full dependencies (pandas, mne-python, h5py, joblib)
     - if [ "${DEPS}" == "full" ]; then
-        if [ "${PYTHON}" == "2.7" ]; then
-          sudo apt-get install -qq -y python-pandas python-h5py python-joblib;
-        else
-          conda install --yes --quiet pandas h5py;
-          travis_retry pip install -q joblib;
-        fi;
+        conda install --yes --quiet pandas h5py;
+        pip install -q joblib;
       fi;
-    - sudo ldconfig;
-    # We need to create a (fake) display on Travis, let's use a funny resolution
-    # This must be done before importing expyfun, since Pyglet needs it
-    - export DISPLAY=:99.0
-    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
 
 install:
     - python setup.py develop
 
 script:
-    - nosetests --with-timer --timer-top-n=5 --verbosity=2 --with-coverage
+    - nosetests --with-timer --timer-top-n=10
     - make flake
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
     - coveralls
-
