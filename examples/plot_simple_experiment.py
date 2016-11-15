@@ -13,7 +13,8 @@ the ExperimentController class.
 from os import path as op
 import numpy as np
 
-from expyfun import ExperimentController, get_keyboard_input, set_log_level
+from expyfun import (ExperimentController, get_keyboard_input, set_log_level,
+                     building_doc)
 from expyfun.io import read_hdf5
 import expyfun.analyze as ea
 
@@ -28,6 +29,7 @@ noise_db = 45  # dB for background noise
 stim_db = 65  # dB for stimuli
 min_resp_time = 0.1
 max_resp_time = 2.0
+max_wait = np.inf
 feedback_dur = 0.5
 isi = 0.2
 running_total = 0
@@ -59,15 +61,21 @@ instr_finished = ('Okay, now press any of those buttons to start the real '
 with ExperimentController('testExp', verbose=True, screen_num=0,
                           window_size=[800, 600], full_screen=False,
                           stim_db=stim_db, noise_db=noise_db, stim_fs=fs,
-                          participant='foo', session='001') as ec:
+                          participant='foo', session='001',
+                          version='dev') as ec:
 
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]
 
     # do training, or not
     ec.set_visible(False)
-    train = get_keyboard_input('Run training (0=no, 1=yes [default]): ',
-                               1, int)
+    long_resp_time = max_resp_time + 1
+    if building_doc:
+        max_wait = max_resp_time = min_resp_time = train = feedback_dur = 0
+        long_resp_time = 0
+    else:
+        train = get_keyboard_input('Run training (0=no, 1=yes [default]): ',
+                                   1, int)
     ec.set_visible(True)
 
     if train:
@@ -90,7 +98,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
         ec.wait_secs(isi)
 
     # show instructions finished screen
-    ec.screen_prompt(instr_finished, live_keys=live_keys)
+    ec.screen_prompt(instr_finished, live_keys=live_keys, max_wait=max_wait)
     ec.wait_secs(isi)
 
     ec.call_on_next_flip(ec.start_noise())
@@ -104,13 +112,11 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
     # run the single-tone trials
     for stim_num in single_trial_order:
         ec.load_buffer(wavs[stim_num])
-        print(wavs[stim_num].shape[0] / float(fs))
-        print(fs)
         ec.identify_trial(ec_id=stim_num, ttl_id=[0, 0])
         ec.write_data_line('one-tone trial', stim_num + 1)
         ec.start_stimulus()
-        pressed, timestamp, _ = ec.wait_one_press(max_resp_time, min_resp_time,
-                                                  live_keys)
+        pressed, timestamp = ec.wait_one_press(max_resp_time, min_resp_time,
+                                               live_keys)
         ec.stop()  # will stop stim playback as soon as response logged
         ec.trial_ok()
 
@@ -139,15 +145,16 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
                      'seconds to push the buttons in the order that the tones '
                      'played in. Press one of the buttons to begin.'
                      ''.format(len(mass_trial_order), max_resp_time),
-                     live_keys=live_keys)
+                     live_keys=live_keys, max_wait=max_wait)
     ec.load_buffer(concat_wavs)
     ec.identify_trial(ec_id='multi-tone', ttl_id=[0, 1])
     ec.write_data_line('multi-tone trial', [x + 1 for x in mass_trial_order])
     ec.start_stimulus()
-    ec.wait_secs(len(concat_wavs) / float(ec.stim_fs))
+    ec.wait_secs(len(concat_wavs) / float(ec.stim_fs) if not building_doc else
+                 0)
     ec.screen_text('Go!', wrap=False)
     ec.flip()
-    pressed = ec.wait_for_presses(max_resp_time + 1, min_resp_time,
+    pressed = ec.wait_for_presses(long_resp_time, min_resp_time,
                                   live_keys, False)
     answers = [str(x + 1) for x in mass_trial_order]
     correct = [press == ans for press, ans in zip(pressed, answers)]
