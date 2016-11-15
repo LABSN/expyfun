@@ -80,8 +80,9 @@ logging.addLevelName(EXP, 'EXP')
 
 def exp(self, message, *args, **kwargs):
     self.log(EXP, message, *args, **kwargs)
-logging.Logger.exp = exp
 
+
+logging.Logger.exp = exp
 logger = logging.getLogger('expyfun')
 
 
@@ -208,7 +209,7 @@ def run_subprocess(command, **kwargs):
     output = (stdout_.decode(), stderr.decode())
     if p.returncode:
         err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in inspect.getargspec(err_fun).args:
+        if 'output' in _get_args(err_fun):
             raise subprocess.CalledProcessError(p.returncode, command, output)
         else:
             raise subprocess.CalledProcessError(p.returncode, command)
@@ -378,6 +379,28 @@ class deprecated(object):
         return newdoc
 
 
+if hasattr(inspect, 'signature'):  # py35
+    def _get_args(function, varargs=False):
+        params = inspect.signature(function).parameters
+        args = [key for key, param in params.items()
+                if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)]
+        if varargs:
+            varargs = [param.name for param in params.values()
+                       if param.kind == param.VAR_POSITIONAL]
+            if len(varargs) == 0:
+                varargs = None
+            return args, varargs
+        else:
+            return args
+else:
+    def _get_args(function, varargs=False):
+        out = inspect.getargspec(function)  # args, varargs, keywords, defaults
+        if varargs:
+            return out[:2]
+        else:
+            return out[0]
+
+
 @decorator
 def verbose_dec(function, *args, **kwargs):
     """Improved verbose decorator to allow functions to override log-level
@@ -395,7 +418,7 @@ def verbose_dec(function, *args, **kwargs):
     dec - function
         The decorated function
     """
-    arg_names = inspect.getargspec(function).args
+    arg_names = _get_args(function)
 
     if len(arg_names) > 0 and arg_names[0] == 'self':
         default_level = getattr(args[0], 'verbose', None)
