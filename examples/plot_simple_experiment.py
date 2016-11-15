@@ -34,9 +34,13 @@ feedback_dur = 0.5
 isi = 0.2
 running_total = 0
 
-# you should run stimuli/generate_stimuli first to make the stimuli
+# run stimuli/generate_stimuli first to make the stimuli if necessary
 # load the result here
-stims = read_hdf5(op.join('stimuli', 'equally_spaced_sinewaves.hdf5'))
+fname = 'equally_spaced_sinewaves.hdf5'
+if not op.isfile(fname):
+    from generate_simple_stimuli import generate_stimuli
+    generate_stimuli()
+stims = read_hdf5(fname)
 orig_rms = stims['rms']
 freqs = stims['freqs']
 fs = stims['fs']
