@@ -9,11 +9,11 @@ the ExperimentController class.
 Please note that this currently only works for the keyboard, which has
 inprecise timing.
 
-.. warning:
-
-    It is currently not possible to get key-release events for Cedrus boxes or
-    TDT. Therefore, using get_presses(kind='releases') or
-    get_presses(kind='both') will throw an exception.
+.. warning: It is currently not possible to get key-release events for
+            Cedrus boxes or TDT. Therefore, key releases should not be
+            used in timing-critical experiments. Using
+            ``get_presses(kind='releases')`` or ``get_presses(kind='both')``
+            when using the TDT or Cedrus will throw an exception.
 
 """
 # Author: Jasper van den Bosch <jasperb@uw.edu>
@@ -32,13 +32,14 @@ with ExperimentController('KeyPressAndReleaseDemo', screen_num=0,
                           window_size=[1280, 960], full_screen=False,
                           stim_db=0, noise_db=0, output_dir=None,
                           participant='foo', session='001',
-                          version='dev') as ec:
+                          version='dev', response_device='keyboard') as ec:
     ec.wait_secs(isi)
 
     ###########################################
     # listen_presses / while loop / get_presses(kind='both')
     instruction = ("Press and release some keys\n\nlisten_presses()"
-                   "\nwhile loop {}\nget_presses(kind='both')")
+                   "\nwhile loop {}\n"
+                   "get_presses(kind='both', return_kinds=True)")
     disp_time = wait_dur
     countdown = ec.current_time + disp_time
     ec.call_on_next_flip(ec.listen_presses)
@@ -52,7 +53,7 @@ with ExperimentController('KeyPressAndReleaseDemo', screen_num=0,
             # redraw text with updated disp_time
             ec.screen_text(instruction.format(disp_time))
             ec.flip()
-    events = ec.get_presses(kind='both')
+    events = ec.get_presses(kind='both', return_kinds=True)
     ec.write_data_line('listen / while / get_presses', events)
     if not len(events):
         message = 'no keys pressed'
