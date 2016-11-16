@@ -928,9 +928,10 @@ class ExperimentController(object):
         self._response_handler.listen_presses()
 
     def get_presses(self, live_keys=None, timestamp=True, relative_to=None,
-                    kind='presses'):
-        """Get the entire keyboard / button box buffer. This will also clear
-        events that are not requested per ``type``.
+                    kind='presses', return_kinds=False):
+        """Get the entire keyboard / button box buffer.
+
+        This will also clear events that are not requested per ``type``.
 
         .. warning:
 
@@ -954,14 +955,17 @@ class ExperimentController(object):
         kind : string
             Which key events to return. One of ``presses``, ``releases`` or
             ``both``. (default ``presses``)
+        return_kinds : bool
+            Return the kinds of presses.
 
         Returns
         -------
         presses : list
             Returns a list of tuples with key events. Each tuple's first value
             will be the key pressed. If ``timestamp==True``, the second value
-            is the time for the event. The last value is a string indicating if
-            this was a key press or release event.
+            is the time for the event. If ``return_kinds==True``, then the
+            last value is a string indicating if this was a key press or
+            release event.
 
         See Also
         --------
@@ -969,8 +973,8 @@ class ExperimentController(object):
         ExperimentController.wait_one_press
         ExperimentController.wait_for_presses
         """
-        return self._response_handler.get_presses(live_keys, timestamp,
-                                                  relative_to, kind)
+        return self._response_handler.get_presses(
+            live_keys, timestamp, relative_to, kind, return_kinds)
 
     def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
                        timestamp=True, relative_to=None):
@@ -1011,9 +1015,8 @@ class ExperimentController(object):
         ExperimentController.get_presses
         ExperimentController.wait_for_presses
         """
-        return self._response_handler.wait_one_press(max_wait, min_wait,
-                                                     live_keys, timestamp,
-                                                     relative_to)
+        return self._response_handler.wait_one_press(
+            max_wait, min_wait, live_keys, timestamp, relative_to)
 
     def wait_for_presses(self, max_wait, min_wait=0.0, live_keys=None,
                          timestamp=True, relative_to=None):
@@ -1052,21 +1055,18 @@ class ExperimentController(object):
         ExperimentController.get_presses
         ExperimentController.wait_one_press
         """
-        return self._response_handler.wait_for_presses(max_wait, min_wait,
-                                                       live_keys, timestamp,
-                                                       relative_to)
+        return self._response_handler.wait_for_presses(
+            max_wait, min_wait, live_keys, timestamp, relative_to)
 
     def _log_presses(self, pressed):
-        """Write key presses to data file.
-        """
+        """Write key presses to data file."""
         # This function will typically be called by self._response_handler
         # after it retrieves some button presses
         for key, stamp, eventType in pressed:
             self.write_data_line('key'+eventType, key, stamp)
 
     def check_force_quit(self):
-        """Check to see if any force quit keys were pressed
-        """
+        """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
 
 # ############################## MOUSE METHODS ################################

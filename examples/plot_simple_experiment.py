@@ -90,7 +90,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
         ec.screen_text(instructions)
         ec.flip()
         while len(not_yet_pressed) > 0:
-            pressed, timestamp, _ = ec.wait_one_press(live_keys=live_keys)
+            pressed, timestamp = ec.wait_one_press(live_keys=live_keys)
             for p in pressed:
                 p = int(p)
                 ec.load_buffer(wavs[p - 1])
@@ -120,8 +120,8 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
         ec.identify_trial(ec_id=stim_num, ttl_id=[0, 0])
         ec.write_data_line('one-tone trial', stim_num + 1)
         ec.start_stimulus()
-        pressed, timestamp, _ = ec.wait_one_press(max_resp_time, min_resp_time,
-                                                  live_keys)
+        pressed, timestamp = ec.wait_one_press(max_resp_time, min_resp_time,
+                                               live_keys)
         ec.stop()  # will stop stim playback as soon as response logged
         ec.trial_ok()
 
@@ -162,7 +162,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
     pressed = ec.wait_for_presses(long_resp_time, min_resp_time,
                                   live_keys, False)
     answers = [str(x + 1) for x in mass_trial_order]
-    correct = [press[0] == ans for press, ans in zip(pressed, answers)]
+    correct = [press == ans for press, ans in zip(pressed, answers)]
     running_total += sum(correct)
     ec.call_on_next_flip(ec.stop_noise())
     ec.screen_prompt('You got {0} out of {1} correct.'

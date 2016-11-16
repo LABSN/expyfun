@@ -103,15 +103,13 @@ def test_data_line():
 
 @_hide_window
 def test_tdt():
-    """Test EC with TDT
-    """
+    """Test EC with TDT."""
     test_ec('tdt', 'tdt')
 
 
 @_hide_window
 def test_ec(ac=None, rd=None):
-    """Test EC methods
-    """
+    """Test EC methods."""
     if ac is None:
         # test type/value checking for audio_controller
         assert_raises(TypeError, ExperimentController, *std_args,
@@ -365,7 +363,7 @@ def test_ec(ac=None, rd=None):
 
 @_hide_window
 def test_tdtpy_failure(ac=None, rd=None):
-    """Test that failed TDTpy import raises ImportError"""
+    """Test that failed TDTpy import raises ImportError."""
     try:
         from tdt.util import connect_rpcox  # noqa, analysis:ignore
     except ImportError:
@@ -381,8 +379,7 @@ def test_tdtpy_failure(ac=None, rd=None):
 
 @_hide_window
 def test_button_presses_and_window_size():
-    """Test EC window_size=None and button press capture
-    """
+    """Test EC window_size=None and button press capture."""
     warnings.simplefilter('ignore')  # esc as quit key
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
@@ -390,9 +387,41 @@ def test_button_presses_and_window_size():
                               participant='foo', trigger_controller='dummy',
                               force_quit='escape', version='dev') as ec:
         warnings.simplefilter('always')
-        fake_button_press(ec, '1', 0.3)
+        ec.listen_presses()
+        ec.get_presses()
+        assert_equal(ec.get_presses(), [])
+
+        fake_button_press(ec, '1', 0.5)
         assert_equal(ec.screen_prompt('press 1', live_keys=['1'],
-                                      max_wait=1.5), ('1', 'press'))
+                                      max_wait=1.5), '1')
+        ec.listen_presses()
+        assert_equal(ec.get_presses(), [])
+        fake_button_press(ec, '1')
+        assert_equal(ec.get_presses(timestamp=False), [('1',)])
+
+        ec.listen_presses()
+        fake_button_press(ec, '1')
+        presses = ec.get_presses(timestamp=True, relative_to=0.2)
+        assert_equal(len(presses), 1)
+        assert_equal(len(presses[0]), 2)
+        assert_equal(presses[0][0], '1')
+        assert_true(isinstance(presses[0][1], float))
+
+        ec.listen_presses()
+        fake_button_press(ec, '1')
+        presses = ec.get_presses(timestamp=True, relative_to=0.1,
+                                 return_kinds=True)
+        assert_equal(len(presses), 1)
+        assert_equal(len(presses[0]), 3)
+        assert_equal(presses[0][::2], ('1', 'press'))
+        assert_true(isinstance(presses[0][1], float))
+
+        ec.listen_presses()
+        fake_button_press(ec, '1')
+        presses = ec.get_presses(timestamp=False, return_kinds=True)
+        assert_equal(presses, [('1', 'press')])
+
+        ec.listen_presses()
         ec.screen_text('press 1 again')
         ec.flip()
         fake_button_press(ec, '1', 0.3)
@@ -401,14 +430,13 @@ def test_button_presses_and_window_size():
         ec.flip()
         fake_button_press(ec, '1', 0.3)
         out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
-        assert_equal(out[0], ('1', 'press'))
+        assert_equal(out[0], '1')
 
 
 @_hide_window
 @requires_opengl21
 def test_mouse_clicks():
-    """Test EC mouse click support
-    """
+    """Test EC mouse click support."""
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
         rect = visual.Rectangle(ec, [0, 0, 2, 2])
