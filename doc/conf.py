@@ -12,11 +12,14 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
+import inspect
 import os
+from os.path import relpath, dirname
+import sys
 from datetime import date
-import sphinx_gallery
+import sphinx_gallery  # noqa
 import sphinx_bootstrap_theme
+from numpydoc import numpydoc, docscrape  # noqa
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -40,15 +43,15 @@ if not os.path.isdir('_images'):
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.coverage',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
+    'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',
+    'sphinx.ext.todo',
     'sphinx_gallery.gen_gallery',
+    'numpydoc',
 ]
-
-extensions += ['numpydoc'] 
 
 autosummary_generate = True
 autodoc_default_flags = ['inherited-members']
@@ -134,11 +137,12 @@ html_theme = 'bootstrap'
 # documentation.
 html_theme_options = {
     'navbar_title': 'expyfun',
+    'source_link_position': "nav",  # default
+    'bootswatch_theme': "yeti",
+    'navbar_sidebarrel': False,  # Render the next/prev links in navbar?
     'navbar_pagenav': False,
-    'source_link_position': "footer",
-    'bootswatch_theme': "sandstone",
-    'navbar_sidebarrel': False,
-    'bootstrap_version': "3",
+    'navbar_class': "navbar",
+    'bootstrap_version': "3",  # default
     'navbar_links': [
         ("API reference", "python_reference"),
         ("Examples", "auto_examples/index"),
@@ -264,6 +268,8 @@ intersphinx_mapping = {
     'python': ('http://docs.python.org/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy-dev/', None),
     'scipy': ('http://scipy.github.io/devdocs/', None),
+    'sklearn': ('http://scikit-learn.org/stable/', None),
+    'matplotlib': ('http://matplotlib.org/', None),
 }
 
 examples_dirs = ['../examples']
@@ -274,8 +280,8 @@ sphinx_gallery_conf = {
     'reference_url': {
         'expyfun': None,
         'matplotlib': 'http://matplotlib.org',
-        'numpy': 'http://docs.scipy.org/doc/numpy-1.10.1',
-        'scipy': 'http://docs.scipy.org/doc/scipy-0.17.0/reference',
+        'numpy': 'http://docs.scipy.org/doc/numpy/reference',
+        'scipy': 'http://docs.scipy.org/doc/scipy/reference',
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
@@ -285,3 +291,60 @@ sphinx_gallery_conf = {
     }
 
 numpydoc_class_members_toctree = False
+
+
+# -----------------------------------------------------------------------------
+# Source code links (adapted from SciPy (doc/source/conf.py))
+# -----------------------------------------------------------------------------
+
+def linkcode_resolve(domain, info):
+    """
+    Determine the URL corresponding to Python object
+    """
+    if domain != 'py':
+        return None
+
+    modname = info['module']
+    fullname = info['fullname']
+
+    submod = sys.modules.get(modname)
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in fullname.split('.'):
+        try:
+            obj = getattr(obj, part)
+        except:
+            return None
+
+    try:
+        fn = inspect.getsourcefile(obj)
+    except:
+        fn = None
+    if not fn:
+        try:
+            fn = inspect.getsourcefile(sys.modules[obj.__module__])
+        except:
+            fn = None
+    if not fn:
+        return None
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except:
+        lineno = None
+
+    if lineno:
+        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+    else:
+        linespec = ""
+
+    fn = relpath(fn, start=dirname(expyfun.__file__))
+
+    if 'dev' in expyfun.__version__:
+        return "https://github.com/LABSN/expyfun/blob/master/expyfun/%s%s" % (  # noqa
+           fn, linespec)
+    else:
+        return "https://github.com/LABSN/expyfun/blob/maint/%s/expyfun/%s%s" % (  # noqa
+           expyfun.__version__, fn, linespec)

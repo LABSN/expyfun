@@ -28,14 +28,26 @@ class DummyRPcoX(object):
         self.model = model
         self.interface = interface
         names = ['LoadCOF', 'ClearCOF', 'Run', 'ZeroTag', 'SetTagVal',
-                 'GetSFreq', 'GetTagV', 'WriteTagV', 'Halt', 'SoftTrg',
-                 'WriteTagVEX']
+                 'GetSFreq', 'Halt']
         returns = [True, True, True, True, True,
-                   24414.0125, 0.0, True, True, True,
-                   True]
+                   24414.0125, True]
         for name, ret in zip(names, returns):
             setattr(self, name, partial(_dummy_fun, self, name, ret))
         self._clock = ZeroClock()
+        self._stim_dur = 0
+        self._play_start = 0
+
+    def WriteTagVEX(self, name, offset, kind, data):
+        if name == 'datainleft':
+            self._stim_dur = len(data) / self.GetSFreq()
+        return True
+
+    def SoftTrg(self, trignum):
+        if trignum == 1:
+            self._play_start = time.time()
+        elif trignum == 2:
+            self._play_start -= self._stim_dur
+        return True
 
     def GetTagVal(self, name):
         if name == 'masterclock':
@@ -43,7 +55,7 @@ class DummyRPcoX(object):
         elif name == 'npressabs':
             return 0
         elif name == 'playing':
-            return False  # for testing only
+            return (time.time() - self._play_start < self._stim_dur)
         else:
             raise ValueError('unknown tag "{0}"'.format(name))
 
@@ -58,11 +70,21 @@ class TDTController(Keyboard):
     Parameters
     ----------
     tdt_params : dict | None
-        A dictionary containing keys:
-        'TYPE' (this should always be 'tdt');
-        'TDT_MODEL' (String name of the TDT model ('RM1', 'RP2', etc));
-        'TDT_CIRCUIT_PATH' (Path to the TDT circuit); and
-        'TDT_INTERFACE' (Type of connection, either 'USB' or 'GB').
+        A dictionary containing keys with string values:
+
+            * 'TYPE': this should always be 'tdt'.
+            * 'TDT_MODEL': String name of the TDT model, can be 'RM1', 'RP2',
+              'RZ6', or 'dummy' (default).
+            * 'TDT_CIRCUIT_PATH': Path to the TDT circuit. Defaults to an
+              internal expyfun circuit.
+            * 'TDT_INTERFACE': Type of connection, either 'USB' (default)
+              or 'GB').
+            * 'TDT_DELAY': the delay (in ms) for the circuit (default: '0').
+            * 'TDT_TRIG_DELAY': additional delay for the triggers
+              (default: '0').
+
+        Note that the defaults are overridden on individual machines by
+        the configuration file.
 
     Returns
     -------
@@ -72,24 +94,24 @@ class TDTController(Keyboard):
     def __init__(self, tdt_params):
         legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE',
                       'TDT_DELAY', 'TDT_TRIG_DELAY']
-        if tdt_params is None:
-            tdt_params = {'TYPE': 'tdt'}
+        tdt_params = dict(TYPE='tdt') if tdt_params is None else tdt_params
         tdt_params = deepcopy(tdt_params)
         if not isinstance(tdt_params, dict):
-            raise TypeError('tdt_params must be a dictionary.')
+            raise TypeError('tdt_params must be a dict, got '
+                            '{0}'.format(type(tdt_params)))
+        if tdt_params['TYPE'] != 'tdt':
+            raise ValueError('tdt_params["TYPE"] must be "tdt", not '
+                             '{0}'.format(tdt_params['TYPE']))
+        # Set sensible defaults for values that are not passed
+        defaults = dict(TDT_MODEL='dummy', TDT_DELAY='0', TDT_TRIG_DELAY='0',
+                        TYPE='tdt')  # if not listed -> None
         for k in legal_keys:
-            if k not in tdt_params.keys() and k != 'TYPE':
-                tdt_params[k] = get_config(k, None)
-
-        # Fix a couple keys
-        if tdt_params['TDT_DELAY'] is None:
-            tdt_params['TDT_DELAY'] = '0'
-        if tdt_params['TDT_TRIG_DELAY'] is None:
-            tdt_params['TDT_TRIG_DELAY'] = '0'
-        tdt_params['TDT_DELAY'] = int(tdt_params['TDT_DELAY'])
-        tdt_params['TDT_TRIG_DELAY'] = int(tdt_params['TDT_TRIG_DELAY'])
-        if tdt_params['TDT_MODEL'] is None:
-            tdt_params['TDT_MODEL'] = 'dummy'
+            tdt_params[k] = tdt_params.get(
+                k, get_config(k, defaults.get(k, None)))
+        for key in ('TDT_DELAY', 'TDT_TRIG_DELAY'):
+            tdt_params[key] = int(tdt_params[key])
+        if tdt_params['TDT_DELAY'] < 0:
+            raise ValueError('tdt_delay must be non-negative.')
 
         # Check keys
         for k in tdt_params.keys():
@@ -97,6 +119,10 @@ class TDTController(Keyboard):
                 raise KeyError('Unrecognized key in tdt_params {0}, must be '
                                'one of {1}'.format(k, ', '.join(legal_keys)))
         self._model = tdt_params['TDT_MODEL']
+        legal_models = ['RM1', 'RP2', 'RZ6', 'dummy']
+        if self._model not in legal_models:
+            raise ValueError('TDT_MODEL="{0}" must be one of '
+                             '{1}'.format(self._model, legal_models))
 
         if tdt_params['TDT_CIRCUIT_PATH'] is None and self._model != 'dummy':
             cl = dict(RM1='RM1', RP2='RM1', RZ6='RZ6')
@@ -176,6 +202,8 @@ class TDTController(Keyboard):
         # Set output values to zero (esp. first few)
         for tag in ('datainleft', 'datainright'):
             self.rpcox.ZeroTag(tag)
+        self.rpcox.SetTagVal('trgname', 0)
+        self._used_params = tdt_params
 
     def _add_keyboard_init(self, ec, force_quit_keys):
         """Helper to init as keyboard"""
@@ -316,18 +344,16 @@ class TDTController(Keyboard):
         presses.extend(self._retrieve_keyboard_events([]))
         return presses
 
-    def _correct_presses(self, events, timestamp, relative_to, kind='press'):
+    def _correct_presses(self, events, timestamp, relative_to, kind='presses'):
         """Correct timing of presses and check for quit press"""
-        if len(events):
-            events = [(k, s + self.time_correction, kind)
-                      for k, s in events]
-            self.log_presses(events)
-            keys = [k[0] for k in events]
-            self.check_force_quit(keys)
-            if timestamp:
-                events = [(k, s - relative_to, t) for (k, s, t) in events]
-            else:
-                events = [(k, t) for (k, s, t) in events]
+        events = [(k, s + self.time_correction, kind) for k, s in events]
+        self.log_presses(events)
+        keys = [k[0] for k in events]
+        self.check_force_quit(keys)
+        if timestamp:
+            events = [(k, s - relative_to, t) for (k, s, t) in events]
+        else:
+            events = [(k, t) for (k, s, t) in events]
         return events
 
     def halt(self):

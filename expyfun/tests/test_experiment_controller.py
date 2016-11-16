@@ -1,15 +1,16 @@
+from copy import deepcopy
+from functools import partial
 import warnings
+
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from nose.plugins.skip import SkipTest
 from numpy.testing import assert_allclose
-from copy import deepcopy
 
 from expyfun import ExperimentController, wait_secs, visual
 from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
-from functools import partial
 
 warnings.simplefilter('always')
 
@@ -102,15 +103,13 @@ def test_data_line():
 
 @_hide_window
 def test_tdt():
-    """Test EC with TDT
-    """
+    """Test EC with TDT."""
     test_ec('tdt', 'tdt')
 
 
 @_hide_window
 def test_ec(ac=None, rd=None):
-    """Test EC methods
-    """
+    """Test EC methods."""
     if ac is None:
         # test type/value checking for audio_controller
         assert_raises(TypeError, ExperimentController, *std_args,
@@ -166,6 +165,9 @@ def test_ec(ac=None, rd=None):
         this_rd = rd
         this_tc = ac
         this_fs = get_tdt_rates()['25k']
+        assert_raises(ValueError, ExperimentController, *std_args,
+                      audio_controller=dict(TYPE=this_ac, TDT_MODEL='foo'),
+                      **std_kwargs)
     with warnings.catch_warnings(record=True) as w:
         for suppress in (True, False):
             with ExperimentController(*std_args, audio_controller=this_ac,
@@ -266,29 +268,46 @@ def test_ec(ac=None, rd=None):
         ec.set_visible(False)
         ec.call_on_every_flip(partial(dummy_print, 'called start stimuli'))
 
+        # Note: we put some wait_secs in here because otherwise the delay in
+        # play start (e.g. for trigdel and onsetdel) can
+        # mess things up! So we probably eventually should add
+        # some safeguard against stopping too quickly after starting...
+
         #
         # First: identify_trial
         #
+        noise = np.random.normal(scale=0.03, size=(int(ec.fs),))
+        ec.load_buffer(noise)
         assert_raises(RuntimeError, ec.start_stimulus)  # order violation
+        assert_true(ec._playing is False)
         ec.start_stimulus(start_of_trial=False)         # should work
+        ec.wait_secs(0.05)
+        assert_true(ec._playing is True)
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
         ec.stop()
+        assert_true(ec._playing is False)
         # only binary for TTL
         assert_raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
         assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
         assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
+        assert_true(ec._playing is False)
         ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
+        assert_true(ec._playing is False)
         #
         # Second: start_stimuli
         #
         assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
+        assert_true(ec._playing is False)
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
+        assert_true(ec._playing is False)
         ec.start_stimulus(flip=False, when=-1)
         if ac != 'tdt':
             # dummy TDT version won't do this check properly, as
             # ec._ac._playing -> GetTagVal('playing') always gives False
             assert_raises(RuntimeError, ec.play)  # already played, must stop
+        ec.wait_secs(0.05)
         ec.stop()
+        assert_true(ec._playing is False)
         #
         # Third: trial_ok
         #
@@ -299,16 +318,24 @@ def test_ec(ac=None, rd=None):
         assert_raises(RuntimeError, ec.start_stimulus)  # order violation
         ec.start_stimulus(start_of_trial=False)         # should work
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
+        ec.wait_secs(0.05)
         ec.stop()
+        assert_true(ec._playing is False)
 
         ec.flip(-np.inf)
+        assert_true(ec._playing is False)
         ec.estimate_screen_fs()
+        assert_true(ec._playing is False)
         ec.play()
+        ec.wait_secs(0.05)
+        assert_true(ec._playing is True)
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
+        ec.wait_secs(0.05)
         ec.stop()
+        assert_true(ec._playing is False)
         ec.start_stimulus(start_of_trial=False)
-        ec.call_on_next_flip(ec.stop_noise())
+        ec.call_on_next_flip(ec.stop_noise)
         ec.stop()
         ec.start_stimulus(start_of_trial=False)
         ec.get_mouse_position()
@@ -336,7 +363,7 @@ def test_ec(ac=None, rd=None):
 
 @_hide_window
 def test_tdtpy_failure(ac=None, rd=None):
-    """Test that failed TDTpy import raises ImportError"""
+    """Test that failed TDTpy import raises ImportError."""
     try:
         from tdt.util import connect_rpcox  # noqa, analysis:ignore
     except ImportError:
@@ -352,18 +379,49 @@ def test_tdtpy_failure(ac=None, rd=None):
 
 @_hide_window
 def test_button_presses_and_window_size():
-    """Test EC window_size=None and button press capture
-    """
+    """Test EC window_size=None and button press capture."""
     warnings.simplefilter('ignore')  # esc as quit key
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
-                              output_dir=None, full_screen=False,
-                              participant='foo', session='01',
+                              output_dir=None, full_screen=False, session='01',
+                              participant='foo', trigger_controller='dummy',
                               force_quit='escape', version='dev') as ec:
         warnings.simplefilter('always')
-        fake_button_press(ec, '1', 0.3)
+        ec.listen_presses()
+        ec.get_presses()
+        assert_equal(ec.get_presses(), [])
+
+        fake_button_press(ec, '1', 0.5)
         assert_equal(ec.screen_prompt('press 1', live_keys=['1'],
-                                      max_wait=1.5), ('1', 'press'))
+                                      max_wait=1.5), '1')
+        ec.listen_presses()
+        assert_equal(ec.get_presses(), [])
+        fake_button_press(ec, '1')
+        assert_equal(ec.get_presses(timestamp=False), [('1',)])
+
+        ec.listen_presses()
+        fake_button_press(ec, '1')
+        presses = ec.get_presses(timestamp=True, relative_to=0.2)
+        assert_equal(len(presses), 1)
+        assert_equal(len(presses[0]), 2)
+        assert_equal(presses[0][0], '1')
+        assert_true(isinstance(presses[0][1], float))
+
+        ec.listen_presses()
+        fake_button_press(ec, '1')
+        presses = ec.get_presses(timestamp=True, relative_to=0.1,
+                                 return_kinds=True)
+        assert_equal(len(presses), 1)
+        assert_equal(len(presses[0]), 3)
+        assert_equal(presses[0][::2], ('1', 'press'))
+        assert_true(isinstance(presses[0][1], float))
+
+        ec.listen_presses()
+        fake_button_press(ec, '1')
+        presses = ec.get_presses(timestamp=False, return_kinds=True)
+        assert_equal(presses, [('1', 'press')])
+
+        ec.listen_presses()
         ec.screen_text('press 1 again')
         ec.flip()
         fake_button_press(ec, '1', 0.3)
@@ -372,14 +430,13 @@ def test_button_presses_and_window_size():
         ec.flip()
         fake_button_press(ec, '1', 0.3)
         out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
-        assert_equal(out[0], ('1', 'press'))
+        assert_equal(out[0], '1')
 
 
 @_hide_window
 @requires_opengl21
 def test_mouse_clicks():
-    """Test EC mouse click support
-    """
+    """Test EC mouse click support."""
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
         rect = visual.Rectangle(ec, [0, 0, 2, 2])
@@ -408,20 +465,45 @@ def test_background_color():
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
         ec.set_background_color('red')
-        ec.screen_text('red', color='white')
         ss = ec.screenshot()[:, :, :3]
-        white_mask = (ss == [255] * 3)
-        assert_true(white_mask.any())
-        red_mask = (ss == [255, 0, 0])
-        assert_true(red_mask.any())
-        assert_true(np.logical_or(white_mask, red_mask).all())
+        red_mask = (ss == [255, 0, 0]).all(axis=-1)
+        assert_true(red_mask.all())
+        ec.set_background_color('white')
+        ss = ec.screenshot()[:, :, :3]
+        white_mask = (ss == [255] * 3).all(axis=-1)
+        assert_true(white_mask.all())
         ec.flip()
-
         ec.set_background_color('0.5')
         visual.Rectangle(ec, [0, 0, 1, 1], fill_color='black').draw()
         ss = ec.screenshot()[:, :, :3]
-        gray_mask = (ss == [127] * 3) | (ss == [128] * 3)
+        gray_mask = ((ss == [127] * 3).all(axis=-1) |
+                     (ss == [128] * 3).all(axis=-1))
         assert_true(gray_mask.any())
-        black_mask = (ss == [0] * 3)
+        black_mask = (ss == [0] * 3).all(axis=-1)
         assert_true(black_mask.any())
         assert_true(np.logical_or(gray_mask, black_mask).all())
+
+
+@_hide_window
+def test_tdt_delay():
+    """test the tdt_delay parameter"""
+    with ExperimentController(*std_args,
+                              audio_controller=dict(TYPE='tdt', TDT_DELAY=0),
+                              **std_kwargs) as ec:
+        assert_equal(ec._ac._used_params['TDT_DELAY'], 0)
+    with ExperimentController(*std_args,
+                              audio_controller=dict(TYPE='tdt', TDT_DELAY=1),
+                              **std_kwargs) as ec:
+        assert_equal(ec._ac._used_params['TDT_DELAY'], 1)
+    assert_raises(ValueError, ExperimentController, *std_args,
+                  audio_controller=dict(TYPE='tdt', TDT_DELAY='foo'),
+                  **std_kwargs)
+    assert_raises(OverflowError, ExperimentController, *std_args,
+                  audio_controller=dict(TYPE='tdt', TDT_DELAY=np.inf),
+                  **std_kwargs)
+    assert_raises(TypeError, ExperimentController, *std_args,
+                  audio_controller=dict(TYPE='tdt', TDT_DELAY=np.ones(2)),
+                  **std_kwargs)
+    assert_raises(ValueError, ExperimentController, *std_args,
+                  audio_controller=dict(TYPE='tdt', TDT_DELAY=-1),
+                  **std_kwargs)

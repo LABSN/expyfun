@@ -455,8 +455,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
 
 def box_off(ax):
     """Remove the top and right edges of a plot frame, and point ticks outward.
-    Parameter
-    ---------
+
+    Parameters
+    ----------
     ax : matplotlib.axes.Axes
         A matplotlib plot or subplot object.
     """

@@ -44,7 +44,6 @@ with ExperimentController('textDemo', participant='foo', session='001',
     for txt in (txt_one, txt_two, txt_thr):
         txt.set_color('#FF97AF')
         txt.draw()
-        ec.flip()
     ec.screen_prompt(fiv, pos=[0, -0.5], max_wait=max_wait)
 
 analyze.plot_screen(screenshot)

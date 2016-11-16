@@ -26,10 +26,8 @@ from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
-from .stimuli._filter import resample
 from .visual import Text, Rectangle, Video, _convert_color
 from ._git import assert_version
-
 
 # Note: ec._trial_progress has three values:
 # 1. 'stopped', which ec.identify_trial turns into...
@@ -50,7 +48,7 @@ class ExperimentController(object):
         remaining audio parameters will be read from the machine configuration
         file. If a dict, must include a key 'TYPE' that is either 'pyglet'
         or 'tdt'; the dict can contain other parameters specific to the TDT
-        (see documentation for expyfun.TDTController).
+        (see documentation for :class:`TDTController`).
     response_device : str | None
         Must be 'keyboard', 'cedrus', or 'tdt'.  If None, the type will be read
         from the machine configuration file.
@@ -93,8 +91,6 @@ class ExperimentController(object):
         default the mode is 'dummy', since setting up the parallel port
         can be a pain. Can also be a dict with entries 'type' ('parallel')
         and 'address' (e.g., '/dev/parport0').
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see expyfun.verbose).
     check_rms : str | None
         Method to use in checking stimulus RMS to ensure appropriate levels.
         Possible values are ``None``, ``wholefile``, and ``windowed`` (the
@@ -107,6 +103,8 @@ class ExperimentController(object):
         the expected version of the expyfun codebase is being used when running
         experiments. To override version checking (e.g., during development)
         use ``version='dev'``.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see expyfun.verbose).
 
     Returns
     -------
@@ -125,8 +123,8 @@ class ExperimentController(object):
                  output_dir='data', window_size=None, screen_num=None,
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
-                 verbose=None, check_rms='windowed', suppress_resamp=False,
-                 version=None, enable_video=False):
+                 check_rms='windowed', suppress_resamp=False, version=None,
+                 enable_video=False, verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -930,9 +928,10 @@ class ExperimentController(object):
         self._response_handler.listen_presses()
 
     def get_presses(self, live_keys=None, timestamp=True, relative_to=None,
-                    kind='presses'):
-        """Get the entire keyboard / button box buffer. This will also clear
-        events that are not requested per ``type``.
+                    kind='presses', return_kinds=False):
+        """Get the entire keyboard / button box buffer.
+
+        This will also clear events that are not requested per ``type``.
 
         .. warning:
 
@@ -956,14 +955,17 @@ class ExperimentController(object):
         kind : string
             Which key events to return. One of ``presses``, ``releases`` or
             ``both``. (default ``presses``)
+        return_kinds : bool
+            Return the kinds of presses.
 
         Returns
         -------
         presses : list
             Returns a list of tuples with key events. Each tuple's first value
             will be the key pressed. If ``timestamp==True``, the second value
-            is the time for the event. The last value is a string indicating if
-            this was a key press or release event.
+            is the time for the event. If ``return_kinds==True``, then the
+            last value is a string indicating if this was a key press or
+            release event.
 
         See Also
         --------
@@ -971,8 +973,8 @@ class ExperimentController(object):
         ExperimentController.wait_one_press
         ExperimentController.wait_for_presses
         """
-        return self._response_handler.get_presses(live_keys, timestamp,
-                                                  relative_to, kind)
+        return self._response_handler.get_presses(
+            live_keys, timestamp, relative_to, kind, return_kinds)
 
     def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
                        timestamp=True, relative_to=None):
@@ -1013,9 +1015,8 @@ class ExperimentController(object):
         ExperimentController.get_presses
         ExperimentController.wait_for_presses
         """
-        return self._response_handler.wait_one_press(max_wait, min_wait,
-                                                     live_keys, timestamp,
-                                                     relative_to)
+        return self._response_handler.wait_one_press(
+            max_wait, min_wait, live_keys, timestamp, relative_to)
 
     def wait_for_presses(self, max_wait, min_wait=0.0, live_keys=None,
                          timestamp=True, relative_to=None):
@@ -1054,21 +1055,18 @@ class ExperimentController(object):
         ExperimentController.get_presses
         ExperimentController.wait_one_press
         """
-        return self._response_handler.wait_for_presses(max_wait, min_wait,
-                                                       live_keys, timestamp,
-                                                       relative_to)
+        return self._response_handler.wait_for_presses(
+            max_wait, min_wait, live_keys, timestamp, relative_to)
 
     def _log_presses(self, pressed):
-        """Write key presses to data file.
-        """
+        """Write key presses to data file."""
         # This function will typically be called by self._response_handler
         # after it retrieves some button presses
         for key, stamp, eventType in pressed:
             self.write_data_line('key'+eventType, key, stamp)
 
     def check_force_quit(self):
-        """Check to see if any force quit keys were pressed
-        """
+        """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
 
 # ############################## MOUSE METHODS ################################
@@ -1501,6 +1499,7 @@ class ExperimentController(object):
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs), 2))
+            from mne.filter import resample
             samples = resample(samples, self.fs, self.stim_fs, axis=0)
 
         # check RMS
@@ -1841,7 +1840,7 @@ class ExperimentController(object):
     def id_types(self):
         """Trial ID types needed for each trial.
         """
-        return list(self._id_call_dict.keys())
+        return sorted(self._id_call_dict.keys())
 
     @property
     def fs(self):
