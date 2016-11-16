@@ -10,7 +10,7 @@ the ExperimentController class.
 #
 # License: BSD (3-clause)
 
-from os import path as op, chdir
+from os import path as op
 import numpy as np
 
 from expyfun import (ExperimentController, get_keyboard_input, set_log_level,
@@ -19,8 +19,6 @@ from expyfun.io import read_hdf5
 import expyfun.analyze as ea
 
 print(__doc__)
-print(__file__)
-
 
 set_log_level('INFO')
 
@@ -37,9 +35,8 @@ running_total = 0
 
 # make the stimuli if necessary and then load them
 fname = 'equally_spaced_sinewaves.hdf5'
-chdir(op.dirname(op.abspath(__file__)))
 if not op.isfile(fname):
-    from plot_generate_simple_stimuli import generate_stimuli
+    from stimuli.plot_generate_simple_stimuli import generate_stimuli
     generate_stimuli()
 stims = read_hdf5(fname)
 orig_rms = stims['rms']
