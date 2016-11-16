@@ -134,10 +134,8 @@ class Keyboard(object):
         # handle non-presses
         if len(pressed):
             pressed = self._correct_presses(pressed, timestamp, relative_to)[0]
-        elif timestamp:
-            pressed = (None, None)
         else:
-            pressed = None
+            pressed = (None,) * (3 if timestamp else 2)
         return pressed
 
     def wait_for_presses(self, max_wait, min_wait, live_keys,
