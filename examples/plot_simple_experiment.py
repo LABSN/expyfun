@@ -19,6 +19,7 @@ from expyfun.io import read_hdf5
 import expyfun.analyze as ea
 
 print(__doc__)
+print(__file__)
 
 
 set_log_level('INFO')
@@ -34,12 +35,11 @@ feedback_dur = 2.0
 isi = 0.2
 running_total = 0
 
-# run stimuli/generate_stimuli first to make the stimuli if necessary
-# load the result here
+# make the stimuli if necessary and then load them
 fname = 'equally_spaced_sinewaves.hdf5'
-chdir(op.dirname(__file__))
+chdir(op.dirname(op.abspath(__file__)))
 if not op.isfile(fname):
-    from generate_simple_stimuli import generate_stimuli
+    from plot_generate_simple_stimuli import generate_stimuli
     generate_stimuli()
 stims = read_hdf5(fname)
 orig_rms = stims['rms']
