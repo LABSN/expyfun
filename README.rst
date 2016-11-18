@@ -82,3 +82,8 @@ expyfun is **BSD-licenced** (3 clause):
     (including negligence or otherwise) arising in any way out of the use
     of this software, even if advised of the possibility of such
     damage.**
+
+
+.. image:: https://badges.gitter.im/LABSN/expyfun.svg
+   :alt: Join the chat at https://gitter.im/LABSN/expyfun
+   :target: https://gitter.im/LABSN/expyfun?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
