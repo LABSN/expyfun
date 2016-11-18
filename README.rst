@@ -8,6 +8,9 @@
   :target: https://coveralls.io/r/LABSN/expyfun
 .. image:: https://zenodo.org/badge/doi/10.5281/zenodo.11640.png
   :target: http://dx.doi.org/10.5281/zenodo.11640
+.. image:: https://badges.gitter.im/LABSN/expyfun.svg
+  :alt: Join the chat at https://gitter.im/LABSN/expyfun
+  :target: https://gitter.im/LABSN/expyfun?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
 `expyfun`_
 =========
