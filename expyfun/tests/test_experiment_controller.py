@@ -365,7 +365,7 @@ def test_ec(ac=None, rd=None):
 def test_tdtpy_failure(ac=None, rd=None):
     """Test that failed TDTpy import raises ImportError."""
     try:
-        from tdt.util import connect_rpcox  # noqa, analysis:ignore
+        from tdt.util import connect_rpcox  # noqa
     except ImportError:
         pass
     else:
