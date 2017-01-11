@@ -8,12 +8,13 @@ To test this:
 
 1. Connect the TDT audio output to the sound card input. This can be on
    the same machine that the TDT is connected to, or a different one.
-   A 1/8" male-male cable running from the headphone monitor to the
+   In most cases you will need a 1/4" male to 1/8" male cable running from
+   the TDT headphone monitor to the recording computer's line input.
 2. Start Audacity on the sound-card machine.
 3. Configure the sound-card machine and/or Audacity to record from the sound
    card input.
 4. Tell Audacity to record.
-5. Run this script. It should take about 40 seconds.
+5. Run this script. It should take about 40 seconds at 24414 sample rate.
 6. When the script completes, stop the Audacity recording.
 7. Visually inspect the audacity recording for the time of the two sinc peaks.
    One peak should occur toward the beginning and the other toward the end.
@@ -44,17 +45,17 @@ print(__doc__)
 
 stim = np.zeros(int(1e6) + 1)
 stim[[0, -1]] = 1.
-stim_dur = len(stim) / 24414.
 with ExperimentController('FsTest', full_screen=False, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None,
                           version='dev') as ec:
     ec.identify_trial(ec_id='', ttl_id=[0])
     ec.load_buffer(stim)
-    print('Starting stimulus')
+    print('Starting stimulus.')
     ec.start_stimulus()
-    print('Stimulus started')
+    wait_dur = len(stim) / ec.fs + 1.
+    print('Stimulus started. Please wait %d seconds.' % wait_dur)
     if not building_doc:
-        ec.wait_secs(stim_dur + 1.)
+        ec.wait_secs(wait_dur)
     ec.stop()
-    print('Stimulus done')
+    print('Stimulus done.')
