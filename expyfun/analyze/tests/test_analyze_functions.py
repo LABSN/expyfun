@@ -12,62 +12,98 @@ import expyfun.analyze as ea
 warnings.simplefilter('always')
 
 
+def assert_rts_equal(actual, desired):
+    """Helper to assert RTs are equal."""
+    assert_true(isinstance(actual, tuple))
+    assert_true(isinstance(desired, (list, tuple)))
+    assert_equal(len(actual), 2)
+    assert_equal(len(desired), 2)
+    kinds = ['hits', 'fas']
+    for act, des, kind in zip(actual, desired, kinds):
+        assert_allclose(act, des, atol=1e-7,
+                        err_msg='{0} mismatch'.format(kind))
+
+
+def assert_hmfc(presses, targets, foils, hmfco, rts, tmin=0.1, tmax=0.6):
+    """Assert HMFC is correct."""
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
+    assert_array_equal(out, hmfco)
+    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax,
+                                 return_type=['counts', 'rts'])
+    assert_array_equal(out[0][:4:2], map(len, out[1]))
+    assert_array_equal(out[0], hmfco)
+    assert_rts_equal(out[1], rts)
+    # reversing targets and foils
+    out = ea.press_times_to_hmfc(presses, foils, targets, tmin, tmax,
+                                 return_type=['counts', 'rts'])
+    assert_array_equal(out[0], np.array(hmfco)[[2, 3, 0, 1, 4]])
+    assert_rts_equal(out[1], rts[::-1])
+
+
 def test_presses_to_hmfc():
-    """Test converting press times to HMFC"""
+    """Test converting press times to HMFCO and RTs."""
     # Simple example
     targets = [0., 1.]
     foils = [0.5, 1.5]
-    tmin, tmax = 0.1, 0.6
 
-    presses = [0.25, 1.25]
+    presses = [0.11, 1.3]
     hmfco = [2, 0, 0, 2, 0]
-    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
-    assert_array_equal(out, hmfco)
+    rts = [[0.11, 0.3], []]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
 
-    presses = [0.75, 1.601]  # just past the boundary
+    presses = [0.65, 1.601]  # just past the boundary
     hmfco = [0, 2, 2, 0, 0]
-    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
-    assert_array_equal(out, hmfco)
+    rts = [[], [0.15, 0.101]]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
 
     presses = [0.75, 1.55]  # smaller than tmin
     hmfco = [1, 1, 1, 1, 0]
-    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
-    assert_array_equal(out, hmfco)
+    rts = [[0.55], [0.25]]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
 
-    presses = [0.75, 2.11]  # greater than tmax
+    presses = [0.76, 2.11]  # greater than tmax
     hmfco = [0, 2, 1, 1, 1]
-    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
-    assert_array_equal(out, hmfco)
+    rts = [[], [0.26]]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
 
-    # A complicated example
+    # A complicated example: multiple preses to targ
     targets = [0, 2, 3]
     foils = [1, 4]
     tmin, tmax = 0., 0.5
-
-    presses = [0.1, 1.2, 1.3, 2.1, 2.7, 5.]  # multiple presses to same targ
+    presses = [0.111, 0.2, 1.101, 1.3, 2.222, 2.333, 2.7, 5.]
     hmfco = [2, 1, 1, 1, 2]
-
-    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
-    assert_array_equal(out, hmfco)
+    rts = [[0.111, 0.222], [0.101]]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
 
     presses = []  # no presses
     hmfco = [0, 3, 0, 2, 0]
-    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
-    assert_array_equal(out, hmfco)
+    rts = [[], []]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
 
     presses = [-1, 7, 8]  # all errant presses
     hmfco = [0, 3, 0, 2, 3]
-    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
-    assert_array_equal(out, hmfco)
+    rts = [[], []]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
+
+    # lots of presses
+    targets = [1, 2, 5, 6, 7]
+    foils = [0, 3, 4, 8]
+    presses = [0.201, 2.101, 4.202, 5.102, 6.103, 10.]
+    hmfco = [3, 2, 2, 2, 1]
+    rts = [[0.101, 0.102, 0.103], [0.201, 0.202]]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
 
     # Bad inputs
     assert_raises(ValueError, ea.press_times_to_hmfc,
                   presses, targets, foils, tmin, 1.1)
+    assert_raises(ValueError, ea.press_times_to_hmfc,
+                  presses, targets, foils, tmin, tmax, 'foo')
 
 
 def test_dprime():
-    """Test dprime and dprime_2afc accuracy
-    """
+    """Test dprime and dprime_2afc accuracy."""
     assert_raises(TypeError, ea.dprime, 'foo', 0, 0, 0)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -85,8 +121,7 @@ def test_dprime():
 
 
 def test_logit():
-    """Test logit calculations
-    """
+    """Test logit calculations."""
     assert_raises(ValueError, ea.logit, 2)
     # On some versions, this throws warnings about divide-by-zero
     with warnings.catch_warnings(record=True):
@@ -108,8 +143,7 @@ def test_logit():
 
 
 def test_sigmoid():
-    """Test sigmoidal fitting and generation
-    """
+    """Test sigmoidal fitting and generation."""
     n_pts = 1000
     x = np.random.randn(n_pts)
     p0 = (0., 1., 0., 1.)
@@ -126,8 +160,7 @@ def test_sigmoid():
 
 
 def test_rt_chisq():
-    """Test reaction time chi-square fitting
-    """
+    """Test reaction time chi-square fitting."""
     # 1D should return single float
     foo = np.random.rand(30)
     assert_raises(ValueError, ea.rt_chisq, foo - 1.)

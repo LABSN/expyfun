@@ -8,10 +8,12 @@ from scipy.optimize import curve_fit
 from functools import partial
 from collections import namedtuple
 
+from .._utils import string_types
+
 
 def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
                         return_type='counts'):
-    """Convert press times to hits/misses/FA/CR
+    """Convert press times to hits/misses/FA/CR and reaction times
 
     Parameters
     ----------
@@ -25,15 +27,25 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
         Minimum time after a target/foil to consider a press.
     tmax : float
         Maximum time after a target/foil to consider a press.
-    return_type : str
-        Currently only ``'counts'`` is supported. Eventually we will
-        add rection-time support as well.
+    return_type : str | list of str
+        A list containing:
+
+            ``'counts'`` (default)
+                ``hmfco`` is returned.
+            ``'rts'``
+                ``rts` is returned.
+
+        Can also be a single string, in which case only the one requested
+        type is returned.
 
     Returns
     -------
-    hmfco : list
-        Hits, misses, false alarms, correct rejections, and other presses
-        (not within the window for a target or a masker).
+    hmfco : tuple
+        5-element tuple of hits, misses, false alarms, correct rejections,
+        and other presses (not within the window for a target or a masker).
+        Only returned if ``'counts'`` is in ``return_type``.
+    rts : tuple
+        2-element tuple of reaction times for hits and false alarms.
 
     Notes
     -----
@@ -42,6 +54,15 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     press by this function. However, there is no such de-bouncing of responses
     to "other" times.
     """
+    known_types = ['counts', 'rts']
+    if isinstance(return_type, string_types):
+        singleton = True
+        return_type = [return_type]
+    else:
+        singleton = False
+    for r in return_type:
+        if not isinstance(r, string_types) or r not in known_types:
+            raise ValueError('r must be one of %s, got %s' % (known_types, r))
     # Sanity check that targets and foils don't overlap (due to tmin/tmax)
     targets = np.atleast_1d(targets) + tmin
     foils = np.atleast_1d(foils) + tmin
@@ -49,32 +70,51 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     assert dur > 0
     presses = np.sort(np.atleast_1d(presses))
     assert targets.ndim == foils.ndim == presses.ndim == 1
-    all_times = np.concatenate(([-np.inf], targets, foils, [np.inf]))
-    order = np.argsort(all_times)
-    inv_order = np.argsort(order)
-    all_times = all_times[order]
-    if not np.all(all_times[:-1] + dur <= all_times[1:]):
+    # Stack as targets, then foils
+    stim_times = np.concatenate(([-np.inf], targets, foils, [np.inf]))
+    order = np.argsort(stim_times)
+    stim_times = stim_times[order]
+    if not np.all(stim_times[:-1] + dur <= stim_times[1:]):
         raise ValueError('Analysis windows for targets and foils overlap')
-    # Let's just loop (could probably be done with vector math, but it's
-    # too hard and unlikely to be correct)
-    locs = np.searchsorted(all_times, presses, 'right')
-    if len(locs) > 0:
-        assert locs.max() < len(all_times)  # should be True b/c of np.inf
-        assert locs.min() >= 1
+    # figure out what targ/mask times our presses correspond to
+    press_to_stim = np.searchsorted(stim_times, presses, 'right') - 1
+    if len(press_to_stim) > 0:
+        assert press_to_stim.max() < len(stim_times)  # True b/c of np.inf
+        assert press_to_stim.min() >= 0
+    stim_times = stim_times[press_to_stim]
+    order = order[press_to_stim]
+    assert (stim_times <= presses).all()
 
-    # figure out which presses were to target or masker (valid_idx)
-    in_window = (presses <= all_times[locs - 1] + dur)
-    valid_idx = np.where(in_window)[0]
-    n_other = np.sum(~in_window)
-
+    # figure out which presses were to target or masker (valid_mask)
+    valid_mask = (presses <= stim_times + dur)
+    n_other = np.sum(~valid_mask)
+    press_to_stim = press_to_stim[valid_mask]
+    presses = presses[valid_mask]
+    stim_times = stim_times[valid_mask]
+    order = order[valid_mask]
+    del valid_mask
+    press_to_stim, used_map_idx = np.unique(press_to_stim, return_index=True)
+    presses = presses[used_map_idx]
+    stim_times = stim_times[used_map_idx]
+    order = order[used_map_idx]
+    assert len(presses) == len(stim_times)
+    diffs = presses - (stim_times - tmin)
+    assert all(diffs >= tmin)
+    assert all(diffs <= tmax)
+    del used_map_idx
     # figure out which of valid presses were to target or masker
-    used = np.unique(locs[valid_idx])  # unique to remove double-presses
-    orig_places = (inv_order[used - 1] - 1)
-    n_hit = sum(orig_places < len(targets))
-    n_fa = len(used) - n_hit
+    target_mask = (order <= len(targets))
+    n_hit = np.sum(target_mask)
+    n_fa = len(target_mask) - n_hit
     n_miss = len(targets) - n_hit
     n_cr = len(foils) - n_fa
-    return n_hit, n_miss, n_fa, n_cr, n_other
+    outs = dict(counts=(n_hit, n_miss, n_fa, n_cr, n_other),
+                rts=(diffs[target_mask], diffs[~target_mask]))
+    assert outs['counts'][:4:2] == tuple(map(len, outs['rts']))
+    outs = tuple(outs[r] for r in return_type)
+    if singleton:
+        outs = outs[0]
+    return outs
 
 
 def logit(prop, max_events=None):
@@ -254,7 +294,8 @@ def rt_chisq(x, axis=None):
     if axis is None:
         df, _, scale = ss.chi2.fit(x, floc=0)
     else:
-        fit = partial(ss.chi2.fit, floc=0)
+        def fit(x):
+            return np.array(ss.chi2.fit(x, floc=0))
         params = np.apply_along_axis(fit, axis=axis, arr=x)  # df, loc, scale
         pmut = np.concatenate((np.atleast_1d(axis),
                                np.delete(np.arange(x.ndim), axis)))

@@ -12,11 +12,6 @@ import warnings
 from os import path as op
 from functools import partial
 import traceback as tb
-try:
-    import pyglet
-    from pyglet import gl
-except Exception:  # maybe we don't have a display (e.g., in terminal)
-    pyglet = gl = None
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
@@ -219,6 +214,7 @@ class ExperimentController(object):
             if screen_num is None:
                 screen_num = int(get_config('SCREEN_NUM', '0'))
             if monitor is None:
+                import pyglet
                 mon_size = pyglet.window.get_platform().get_default_display()
                 mon_size = mon_size.get_screens()[screen_num]
                 mon_size = [mon_size.width, mon_size.height]
@@ -533,6 +529,7 @@ class ExperimentController(object):
         ``glClearColor`` will be set so the buffer starts out with the
         appropriate backgound color.
         """
+        from pyglet import gl
         if not self._enable_video:
             # we go a little over here to be safe from round-off errors
             Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
@@ -716,6 +713,7 @@ class ExperimentController(object):
             N x M x 3 array of screen pixel colors.
         """
         # next line must be done in order to instantiate image_buffer_manager
+        import pyglet
         data = pyglet.image.get_buffer_manager().get_color_buffer()
         data = self._win.context.image_buffer_manager.color_buffer.image_data
         data = data.get_data(data.format, data.pitch)
@@ -770,6 +768,8 @@ class ExperimentController(object):
 
 # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
+        import pyglet
+        from pyglet import gl
         # Use 16x sampling here
         config_kwargs = dict(depth_size=8, double_buffer=True, stereo=False,
                              stencil_size=0, samples=0, sample_buffers=0)
@@ -852,6 +852,7 @@ class ExperimentController(object):
         `call_on_next_flip`, followed by functions added with
         `call_on_every_flip`.
         """
+        from pyglet import gl
         if when is not None:
             self.wait_until(when)
         call_list = self._on_next_flip + self._on_every_flip

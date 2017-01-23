@@ -16,10 +16,10 @@ matrix:
     - os: linux
       env:
         - PYTHON=2.7 DEPS=full TEST=standard CONDA_OS=Linux
-    #- os: osx
-    #  language: objective-c
-    #  env:
-    #    - PYTHON=2.7 DEPS=full TEST=standard CONDA_OS=MacOSX
+    - os: osx
+      language: objective-c
+      env:
+        - PYTHON=2.7 DEPS=full TEST=standard CONDA_OS=MacOSX
     - os: linux
       env:
         - PYTHON=2.7 DEPS=minimal TEST=standard CONDA_OS=Linux
@@ -62,7 +62,7 @@ install:
     - python setup.py develop
 
 script:
-    - nosetests --with-timer --timer-top-n=10
+    - nosetests --with-timer --timer-top-n=10 --with-coverage
     - make flake
 
 after_success:
