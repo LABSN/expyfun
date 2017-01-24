@@ -32,7 +32,7 @@ def assert_hmfc(presses, targets, foils, hmfco, rts, tmin=0.1, tmax=0.6):
     assert_array_equal(out, hmfco)
     out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax,
                                  return_type=['counts', 'rts'])
-    assert_array_equal(out[0][:4:2], map(len, out[1]))
+    assert_array_equal(out[0][:4:2], list(map(len, out[1])))
     assert_array_equal(out[0], hmfco)
     assert_rts_equal(out[1], rts)
     # reversing targets and foils
