@@ -77,7 +77,7 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     if not np.all(stim_times[:-1] + dur <= stim_times[1:]):
         raise ValueError('Analysis windows for targets and foils overlap')
     # figure out what targ/mask times our presses correspond to
-    press_to_stim = np.searchsorted(stim_times, presses, 'right') - 1
+    press_to_stim = np.searchsorted(stim_times, presses) - 1
     if len(press_to_stim) > 0:
         assert press_to_stim.max() < len(stim_times)  # True b/c of np.inf
         assert press_to_stim.min() >= 0
