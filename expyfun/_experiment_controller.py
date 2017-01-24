@@ -1942,6 +1942,7 @@ def _get_dev_db(audio_controller):
         level = dict(
             RM1=108.,  # approx w/ knob @ 12 o'clock (knob not detented)
             RP2=108.,
+            RP2legacy=108.,
             RZ6=114.,
             pyglet=100.,  # TODO: this value not calibrated, system-dependent
             dummy=90.,  # only used for testing

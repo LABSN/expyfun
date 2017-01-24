@@ -1,4 +1,4 @@
-"""Hardware interfaces for TDT RP2 and RZ6"""
+"""Hardware interfaces for TDT RP2(.1), RM1, and RZ6."""
 
 # Authors: Dan McCloy <drmccloy@uw.edu>
 #          Eric Larson <larsoner@uw.edu>
@@ -74,7 +74,9 @@ class TDTController(Keyboard):
 
             * 'TYPE': this should always be 'tdt'.
             * 'TDT_MODEL': String name of the TDT model, can be 'RM1', 'RP2',
-              'RZ6', or 'dummy' (default).
+              'RP2legacy', 'RZ6', or 'dummy' (default). For historical
+              reasons, 'RP2' corresponds to the RP2.1, and 'RP2legacy'
+              corresponds to the first-revision RP2.
             * 'TDT_CIRCUIT_PATH': Path to the TDT circuit. Defaults to an
               internal expyfun circuit.
             * 'TDT_INTERFACE': Type of connection, either 'USB' (default)
@@ -125,7 +127,7 @@ class TDTController(Keyboard):
                              '{1}'.format(self._model, legal_models))
 
         if tdt_params['TDT_CIRCUIT_PATH'] is None and self._model != 'dummy':
-            cl = dict(RM1='RM1', RP2='RM1', RZ6='RZ6')
+            cl = dict(RM1='RM1', RP2='RM1', RP2legacy='RP2legacy', RZ6='RZ6')
             self._circuit = op.join(op.dirname(__file__), 'data',
                                     'expCircuitF32_' + cl[self._model] +
                                     '.rcx')
