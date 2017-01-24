@@ -46,6 +46,7 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
         Only returned if ``'counts'`` is in ``return_type``.
     rts : tuple
         2-element tuple of reaction times for hits and false alarms.
+        Only returned if ``'rts'`` is in ``return_type``.
 
     Notes
     -----
