@@ -712,8 +712,8 @@ class ExperimentController(object):
         scr : array
             N x M x 3 array of screen pixel colors.
         """
-        # next line must be done in order to instantiate image_buffer_manager
         import pyglet
+        # this must be done in order to instantiate image_buffer_manager
         data = pyglet.image.get_buffer_manager().get_color_buffer()
         data = self._win.context.image_buffer_manager.color_buffer.image_data
         data = data.get_data(data.format, data.pitch)
