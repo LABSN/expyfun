@@ -15,8 +15,7 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
 @_hide_window
 @requires_opengl21
 def test_visuals():
-    """Test EC visual methods
-    """
+    """Test EC visual methods."""
     with ExperimentController('test', **std_kwargs) as ec:
         assert_raises(TypeError, visual.Circle, ec, n_edges=3.5)
         assert_raises(ValueError, visual.Circle, ec, n_edges=3)
@@ -81,8 +80,7 @@ def test_visuals():
 @_hide_window
 @requires_avbin()
 def test_video():
-    """Test EC video methods
-    """
+    """Test EC video methods."""
     std_kwargs.update(dict(enable_video=True, window_size=(640, 480)))
     video_path = fetch_data_file('video/example-video.mp4')
     with ExperimentController('test', **std_kwargs) as ec:

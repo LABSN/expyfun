@@ -1,12 +1,12 @@
 """Analysis functions (mostly for psychophysics data).
 """
 
+from collections import namedtuple
 import warnings
+
 import numpy as np
 import scipy.stats as ss
 from scipy.optimize import curve_fit
-from functools import partial
-from collections import namedtuple
 
 from .._utils import string_types
 
@@ -256,17 +256,18 @@ def fit_sigmoid(x, y, p0=None, fixed=()):
     return namedtuple('params', p_types)(**kwargs)
 
 
-def rt_chisq(x, axis=None):
+def rt_chisq(x, axis=None, warn=True):
     """Chi square fit for reaction times (a better summary statistic than mean)
 
     Parameters
     ----------
     x : array-like
         Reaction time data to fit.
-
     axis : int | None
         The axis along which to calculate the chi-square fit. If none, ``x``
         will be flattened before fitting.
+    warn : bool
+        If True, warn about possible bad reaction times.
 
     Returns
     -------
@@ -305,7 +306,7 @@ def rt_chisq(x, axis=None):
     whiskers = quartiles + np.array((-1.5, 1.5)) * np.diff(quartiles)
     n_bad = np.sum(np.logical_or(np.less(x, whiskers[0]),
                                  np.greater(x, whiskers[1])))
-    if n_bad > 0:
+    if n_bad > 0 and warn:
         warnings.warn('{0} likely bad values in x (of {1})'
                       ''.format(n_bad, x.size))
     peak = np.maximum(0, (df - 2)) * scale

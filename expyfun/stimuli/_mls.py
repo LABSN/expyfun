@@ -7,7 +7,6 @@
 
 from os import path as op
 import numpy as np
-from scipy.fftpack import ifft, fft
 
 from .._utils import verbose_dec, logger
 
@@ -122,10 +121,12 @@ def compute_mls_impulse_response(response, mls, n_repeats, verbose=None):
     resp_wrap = response[:n_repeats * mls_len].copy()
     resp_wrap[:mls_len - 1] += response[n_repeats * mls_len:]
     # Compute the circular crosscorrelation, w/correction for MLS scaling
-    correction = np.empty(len(mls))
+    correction = np.empty(len(mls) // 2 + 1)
     correction.fill(1. / (2 ** (n_bits - 2) * n_repeats))
     correction[0] = 1. / ((4 ** (n_bits - 1)) * n_repeats)
-    y = np.real(ifft(correction * fft(resp_wrap) * fft(mls).conj()))
+    y = np.fft.irfft(correction *
+                     np.fft.rfft(resp_wrap) *
+                     np.fft.rfft(mls).conj())
     # Average out repeats
     h_est = np.mean(np.reshape(y, (n_repeats, mls_len)), axis=0)
     return h_est

@@ -15,8 +15,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 @_hide_window
 @requires_opengl21
 def test_eyelink_methods():
-    """Test EL methods
-    """
+    """Test EL methods."""
     with ExperimentController(*std_args, **std_kwargs) as ec:
         assert_raises(ValueError, EyelinkController, ec, fs=999)
         el = EyelinkController(ec)

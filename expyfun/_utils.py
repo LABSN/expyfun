@@ -6,8 +6,7 @@
 
 import warnings
 import subprocess
-import numpy as np
-import scipy as sp
+import importlib
 import os
 import os.path as op
 import inspect
@@ -26,6 +25,9 @@ import datetime
 from timeit import default_timer as clock
 from threading import Timer
 
+import numpy as np
+import scipy as sp
+
 from ._externals import decorator
 
 # set this first thing to make sure it "takes"
@@ -36,26 +38,6 @@ try:
 except Exception:
     pass
 
-try:
-    import pandas  # noqa, analysis:ignore
-except ImportError:
-    has_pandas = False
-else:
-    has_pandas = True
-
-try:
-    import h5py  # noqa, analysis:ignore
-except Exception:
-    has_h5py = False
-else:
-    has_h5py = True
-
-try:
-    import joblib  # noqa, analysis:ignore
-except Exception:
-    has_joblib = False
-else:
-    has_joblib = True
 
 # for py3k (eventually)
 if sys.version.startswith('2'):
@@ -456,10 +438,16 @@ def requires_avbin():
 
 
 _is_appveyor = (os.getenv('APPVEYOR', 'False').lower() == 'true')
-requires_pandas = skipif(has_pandas is False, 'Requires pandas')
-requires_h5py = skipif(has_h5py is False, 'Requires h5py')
-requires_joblib = skipif(has_joblib is False, 'Requires joblib')
 requires_opengl21 = skipif(_is_appveyor, 'Appveyor OpenGL too old')
+
+
+def requires_lib(lib):
+    val = False
+    try:
+        importlib.import_module(lib)
+    except Exception:
+        val = True
+    return skipif(val, 'Needs %s' % lib)
 
 
 def _has_scipy_version(version):
@@ -467,10 +455,15 @@ def _has_scipy_version(version):
 
 
 def _hide_window(function):
-    """Decorator to hide expyfun windows during testing"""
+    """Decorator to hide expyfun Pyglet windows during testing."""
     import nose
+    import pyglet
 
     def dec(*args, **kwargs):
+        try:
+            pyglet.window.get_platform().get_default_display()
+        except Exception:
+            raise nose.plugins.skip.SkipTest('Pyglet windowing unavailable')
         orig_val = os.getenv('_EXPYFUN_WIN_INVISIBLE')
         try:
             os.environ['_EXPYFUN_WIN_INVISIBLE'] = 'true'
