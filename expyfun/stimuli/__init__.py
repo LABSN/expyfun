@@ -7,6 +7,7 @@ from ._mls import compute_mls_impulse_response, repeated_mls
 from ._stimuli import rms, play_sound, window_edges
 from ._vocoder import vocode, get_band_freqs, get_bands, get_env, get_carriers
 from .._tdt_controller import get_tdt_rates
+from ._crm import crm_sentence, crm_response_menu, crm_prepare_corpus
 
 # for backward compat (not great to do this...)
 from ..io import read_wav, write_wav
