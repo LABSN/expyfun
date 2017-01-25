@@ -121,7 +121,7 @@ class TDTController(Keyboard):
                 raise KeyError('Unrecognized key in tdt_params {0}, must be '
                                'one of {1}'.format(k, ', '.join(legal_keys)))
         self._model = tdt_params['TDT_MODEL']
-        legal_models = ['RM1', 'RP2', 'RZ6', 'dummy']
+        legal_models = ['RM1', 'RP2', 'RZ6', 'RP2legacy', 'dummy']
         if self._model not in legal_models:
             raise ValueError('TDT_MODEL="{0}" must be one of '
                              '{1}'.format(self._model, legal_models))
@@ -153,9 +153,14 @@ class TDTController(Keyboard):
         if tdt_params['TDT_MODEL'] != 'dummy':
             from tdt.util import connect_rpcox
             try:
-                self.rpcox = connect_rpcox(name=self.model,
-                                           interface=self.interface,
-                                           device_id=1, address=None)
+                if self.model == 'RP2legacy':
+                    self.rpcox = connect_rpcox(name='RP2',
+                                               interface=self.interface,
+                                               device_id=1, address=None)
+                else:
+                    self.rpcox = connect_rpcox(name=self.model,
+                                               interface=self.interface,
+                                               device_id=1, address=None)
             except Exception as exp:
                 raise OSError('Could not connect to {}, is it turned on? '
                               '(TDT message: "{}")'.format(self._model, exp))
