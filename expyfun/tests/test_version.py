@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 from os import path as op
+import warnings
+
 from nose.tools import assert_raises, assert_true, assert_equal
 
 from expyfun import (ExperimentController, assert_version, download_version,
@@ -13,12 +15,14 @@ tempdir_2 = _TempDir()
 
 
 def test_version():
-    """Test version assertions
-    """
-    assert_raises(TypeError, assert_version, 1)
-    assert_raises(TypeError, assert_version, '1' * 8)
-    assert_raises(AssertionError, assert_version, 'x' * 7)
-    assert_version(__version__[-7:])
+    """Test version assertions."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        assert_raises(TypeError, assert_version, 1)
+        assert_raises(TypeError, assert_version, '1' * 8)
+        assert_raises(AssertionError, assert_version, 'x' * 7)
+        assert_version(__version__[-7:])
+    assert_true(all('actual' in str(ww.message) for ww in w))
 
     v = 'b798e65'
     f = 'drammock'

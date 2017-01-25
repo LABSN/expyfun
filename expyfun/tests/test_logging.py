@@ -13,8 +13,7 @@ std_kwargs = dict(participant='foo', session='01', full_screen=False,
 
 @_hide_window
 def test_logging(ac='pyglet'):
-    """Test logging to file (Pyglet)
-    """
+    """Test logging to file (Pyglet)."""
     tempdir = _TempDir()
     orig_dir = os.getcwd()
     os.chdir(tempdir)
@@ -52,4 +51,4 @@ def test_logging(ac='pyglet'):
 def test_logging_tdt():
     """Test logging to file (TDT)
     """
-    test_logging('tdt')
+    test_logging(ac='tdt')

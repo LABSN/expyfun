@@ -3,21 +3,25 @@ from os import path as op
 from nose.tools import assert_raises, assert_equal
 import warnings
 
+import matplotlib
+
 import expyfun.analyze as ea
-from expyfun._utils import _TempDir, requires_pandas
+from expyfun._utils import _TempDir, requires_lib
+
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')
 temp_dir = _TempDir()
 
 
 def _check_warnings(w):
-    """Silly helper to deal with MPL deprecation warnings"""
+    """Silly helper to deal with MPL deprecation warnings."""
     assert all(['expyfun' not in ww.filename for ww in w])
 
 
-@requires_pandas
+@requires_lib('pandas')
 def test_barplot_with_pandas():
-    """Test bar plot function pandas support"""
+    """Test bar plot function pandas support."""
     import pandas as pd
     tmp = pd.DataFrame(np.arange(20).reshape((4, 5)),
                        columns=['a', 'b', 'c', 'd', 'e'],
@@ -27,8 +31,7 @@ def test_barplot_with_pandas():
 
 
 def test_barplot():
-    """Test bar plot function
-    """
+    """Test bar plot function."""
     import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
     # TESTS THAT SHOULD FAIL
@@ -90,8 +93,7 @@ def test_barplot():
 
 
 def test_plot_screen():
-    """Test screen plotting function
-    """
+    """Test screen plotting function."""
     tmp = np.ones((10, 20, 2))
     assert_raises(ValueError, ea.plot_screen, tmp)
     tmp = np.ones((10, 20, 3))
@@ -99,8 +101,7 @@ def test_plot_screen():
 
 
 def test_format_pval():
-    """Test p-value formatting
-    """
+    """Test p-value formatting."""
     foo = ea.format_pval(1e-10, latex=False)
     bar = ea.format_pval(1e-10, scheme='ross')
     baz = ea.format_pval([0.2, 0.02])

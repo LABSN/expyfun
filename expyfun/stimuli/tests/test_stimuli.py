@@ -7,7 +7,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
 from scipy.signal import butter, lfilter
 
-from expyfun._utils import _TempDir, requires_h5py
+from expyfun._utils import _TempDir, requires_lib, _hide_window
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
                              vocode)
 
@@ -16,7 +16,7 @@ warnings.simplefilter('always')
 tempdir = _TempDir()
 
 
-@requires_h5py
+@requires_lib('h5py')
 def test_hrtf_convolution():
     """Test HRTF convolution
     """
@@ -39,9 +39,9 @@ def test_hrtf_convolution():
         assert_true(rmss[0] > 4 * rmss[1])
 
 
+@_hide_window  # will only work if Pyglet windowing works
 def test_play_sound():
-    """Test playing a sound
-    """
+    """Test playing a sound."""
     data = np.zeros((2, 100))
     play_sound(data).stop()
     play_sound(data[0], norm=False, wait=True)
@@ -58,8 +58,7 @@ def test_play_sound():
 
 
 def test_window_edges():
-    """Test windowing signal edges
-    """
+    """Test windowing signal edges."""
     sig = np.ones((2, 1000))
     fs = 44100
     assert_raises(ValueError, window_edges, sig, fs, window='foo')  # bad win
@@ -76,13 +75,12 @@ def test_window_edges():
 
 
 def _voc_similarity(orig, voc):
-    """Quantify envelope similiarity after vocoding"""
+    """Quantify envelope similiarity after vocoding."""
     return np.correlate(orig, voc, mode='full').max()
 
 
 def test_vocoder():
-    """Test noise, tone, and click vocoding
-    """
+    """Test noise, tone, and click vocoding."""
     data = np.random.randn(10000)
     env = np.random.randn(10000)
     b, a = butter(4, 0.001, 'lowpass')
@@ -104,8 +102,7 @@ def test_vocoder():
 
 
 def test_rms():
-    """Test RMS calculation
-    """
+    """Test RMS calculation."""
     # Test a couple trivial things we know
     sin = np.sin(2 * np.pi * 1000 * np.arange(10000, dtype=float) / 10000.)
     assert_array_almost_equal(rms(sin), 1. / np.sqrt(2))

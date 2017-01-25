@@ -5,10 +5,12 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
-from scipy import fftpack
 import sys
 import os
+import warnings
+
+import numpy as np
+
 import pyglet
 
 _use_silent = (os.getenv('_EXPYFUN_SILENT', '') == 'true')
@@ -21,11 +23,15 @@ _driver = _opts_dict[sys.platform] if not _use_silent else ('silent',)
 pyglet.options['audio'] = _driver
 
 # these must follow the above option setting, so PEP8 complains
-from pyglet.media import Player, AudioFormat, SourceGroup  # noqa
 try:
-    from pyglet.media import StaticMemorySource
-except ImportError:
-    from pyglet.media.sources.base import StaticMemorySource  # noqa
+    from pyglet.media import Player, AudioFormat, SourceGroup  # noqa
+    try:
+        from pyglet.media import StaticMemorySource
+    except ImportError:
+        from pyglet.media.sources.base import StaticMemorySource  # noqa
+except Exception as exp:
+    warnings.warn('Pyglet could not be imported:\n%s' % exp)
+    Player = AudioFormat = SourceGroup = StaticMemorySource = object
 
 from ._utils import logger, flush_logger  # noqa
 
@@ -74,10 +80,10 @@ class PygletSoundController(object):
         if stim_fs < self.fs:
             # note we can use cheap DFT method here b/c
             # circular convolution won't matter for AWGN (yay!)
-            freqs = fftpack.fftfreq(len(noise), 1. / self.fs)
-            noise = fftpack.fft(noise)
+            freqs = np.fft.rfftfreq(len(noise), 1. / self.fs)
+            noise = np.fft.rfft(noise)
             noise[np.abs(freqs) > stim_fs / 2.] = 0.0
-            noise = np.real(fftpack.ifft(noise))
+            noise = np.fft.irfft(noise)
 
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
         noise = noise / np.sqrt(np.mean(noise * noise))

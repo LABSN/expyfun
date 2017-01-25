@@ -16,8 +16,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 
 @_hide_window
 def test_parse():
-    """Test .tab parsing
-    """
+    """Test .tab parsing."""
     with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         ec.identify_trial(ec_id='one', ttl_id=[0])
         ec.start_stimulus()
