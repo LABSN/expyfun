@@ -24,9 +24,16 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     foils : list
         List of foil (distractor) times.
     tmin : float
-        Minimum time after a target/foil to consider a press.
+        Minimum time after a target/foil to consider a press, exclusive.
     tmax : float
-        Maximum time after a target/foil to consider a press.
+        Maximum time after a target/foil to consider a press, inclusive.
+        The final bounds will be :math:`(t_{min}, t_{max}]`.
+
+        .. note:: Do do not rely on floating point arithmetic to get
+                  exclusive/inclusive bounds right consistently. Such
+                  exact equivalence in floating point arithmetic should
+                  not be relied upon.
+
     return_type : str | list of str
         A list containing:
 
@@ -65,20 +72,18 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
         if not isinstance(r, string_types) or r not in known_types:
             raise ValueError('r must be one of %s, got %s' % (known_types, r))
     # Sanity check that targets and foils don't overlap (due to tmin/tmax)
-    targets = np.atleast_1d(targets) + tmin
-    foils = np.atleast_1d(foils) + tmin
-    dur = float(tmax - tmin)
-    assert dur > 0
+    targets = np.atleast_1d(targets)
+    foils = np.atleast_1d(foils)
     presses = np.sort(np.atleast_1d(presses))
     assert targets.ndim == foils.ndim == presses.ndim == 1
     # Stack as targets, then foils
     stim_times = np.concatenate(([-np.inf], targets, foils, [np.inf]))
     order = np.argsort(stim_times)
     stim_times = stim_times[order]
-    if not np.all(stim_times[:-1] + dur <= stim_times[1:]):
+    if not np.all(stim_times[:-1] + tmax <= stim_times[1:] + tmin):
         raise ValueError('Analysis windows for targets and foils overlap')
     # figure out what targ/mask times our presses correspond to
-    press_to_stim = np.searchsorted(stim_times, presses) - 1
+    press_to_stim = np.searchsorted(stim_times, presses - tmin) - 1
     if len(press_to_stim) > 0:
         assert press_to_stim.max() < len(stim_times)  # True b/c of np.inf
         assert press_to_stim.min() >= 0
@@ -86,8 +91,9 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     order = order[press_to_stim]
     assert (stim_times <= presses).all()
 
-    # figure out which presses were to target or masker (valid_mask)
-    valid_mask = (presses <= stim_times + dur)
+    # figure out which presses were valid (to target or masker)
+    valid_mask = ((presses >= stim_times + tmin) &
+                  (presses <= stim_times + tmax))
     n_other = np.sum(~valid_mask)
     press_to_stim = press_to_stim[valid_mask]
     presses = presses[valid_mask]
@@ -99,11 +105,10 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     stim_times = stim_times[used_map_idx]
     order = order[used_map_idx]
     assert len(presses) == len(stim_times)
-    diffs = presses - (stim_times - tmin)
-    assert all(diffs >= tmin)
-    assert all(diffs <= tmax)
+    diffs = presses - stim_times
     del used_map_idx
-    # figure out which of valid presses were to target or masker
+
+    # figure out which valid presses were to target or masker
     target_mask = (order <= len(targets))
     n_hit = np.sum(target_mask)
     n_fa = len(target_mask) - n_hit

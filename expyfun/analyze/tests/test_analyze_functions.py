@@ -49,8 +49,13 @@ def test_presses_to_hmfc():
     foils = [0.5, 1.5]
 
     presses = [0.1, 1.6]  # presses right at tmin/tmax
-    hmfco = [2, 0, 0, 2, 0]
-    rts = [[0.1, 0.6], []]
+    hmfco = [1, 1, 0, 2, 1]
+    rts = [[0.6], []]
+    assert_hmfc(presses, targets, foils, hmfco, rts)
+
+    presses = []  # no presses
+    hmfco = [0, 2, 0, 2, 0]
+    rts = [[], []]
     assert_hmfc(presses, targets, foils, hmfco, rts)
 
     presses = [0.65, 1.601]  # just past the boundary

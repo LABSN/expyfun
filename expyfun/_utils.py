@@ -462,6 +462,7 @@ def _hide_window(function):
     def dec(*args, **kwargs):
         try:
             pyglet.window.get_platform().get_default_display()
+            from pyglet.media import Player, AudioFormat, SourceGroup  # noqa
         except Exception:
             raise nose.plugins.skip.SkipTest('Pyglet windowing unavailable')
         orig_val = os.getenv('_EXPYFUN_WIN_INVISIBLE')
