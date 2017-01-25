@@ -35,15 +35,10 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
                   not be relied upon.
 
     return_type : str | list of str
-        A list containing:
-
-            ``'counts'`` (default)
-                ``hmfco`` is returned.
-            ``'rts'``
-                ``rts` is returned.
-
-        Can also be a single string, in which case only the one requested
-        type is returned.
+        A list containing one or more of ``['counts', 'rts']`` to return
+        a tuple of outputs (see below for description).
+        Can also be a single string, in which case only the single
+        requested type is returned (not within a tuple).
 
     Returns
     -------
