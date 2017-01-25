@@ -122,18 +122,18 @@ class TDTController(Keyboard):
                                'one of {1}'.format(k, ', '.join(legal_keys)))
         self._model = tdt_params['TDT_MODEL']
         legal_models = ['RM1', 'RP2', 'RZ6', 'RP2legacy', 'dummy']
-        if self._model not in legal_models:
+        if self.model not in legal_models:
             raise ValueError('TDT_MODEL="{0}" must be one of '
-                             '{1}'.format(self._model, legal_models))
+                             '{1}'.format(self.model, legal_models))
 
-        if tdt_params['TDT_CIRCUIT_PATH'] is None and self._model != 'dummy':
+        if tdt_params['TDT_CIRCUIT_PATH'] is None and self.model != 'dummy':
             cl = dict(RM1='RM1', RP2='RM1', RP2legacy='RP2legacy', RZ6='RZ6')
             self._circuit = op.join(op.dirname(__file__), 'data',
                                     'expCircuitF32_' + cl[self._model] +
                                     '.rcx')
         else:
             self._circuit = tdt_params['TDT_CIRCUIT_PATH']
-        if self._model != 'dummy' and not op.isfile(self._circuit):
+        if self.model != 'dummy' and not op.isfile(self._circuit):
             raise IOError('Could not find file {}'.format(self._circuit))
         if tdt_params['TDT_INTERFACE'] is None:
             tdt_params['TDT_INTERFACE'] = 'USB'
@@ -152,15 +152,11 @@ class TDTController(Keyboard):
         # MID-LEVEL APPROACH
         if tdt_params['TDT_MODEL'] != 'dummy':
             from tdt.util import connect_rpcox
+            use_model = self.model if self.model != 'RP2legacy' else 'RP2'
             try:
-                if self.model == 'RP2legacy':
-                    self.rpcox = connect_rpcox(name='RP2',
-                                               interface=self.interface,
-                                               device_id=1, address=None)
-                else:
-                    self.rpcox = connect_rpcox(name=self.model,
-                                               interface=self.interface,
-                                               device_id=1, address=None)
+                self.rpcox = connect_rpcox(name=use_model,
+                                           interface=self.interface,
+                                           device_id=1, address=None)
             except Exception as exp:
                 raise OSError('Could not connect to {}, is it turned on? '
                               '(TDT message: "{}")'.format(self._model, exp))
