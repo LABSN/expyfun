@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Adative tracks for psychophysics (individual or multiple randomly dealt)
+"""Adative tracks for psychophysics (individual, or multiple randomly dealt)
 """
 
-import warnings
+# import warnings
 import numpy as np
 import time
 from scipy.stats import binom as binom
@@ -20,12 +20,12 @@ def callback_dummy(event_type, value=None, timestamp=None):
 def check_callback(callback):
     """Check see if the callback is of an allowable type.
     """
-    if isinstance(callback, 'ExperimentController'):
-        callback = callback.write_data_line
-    elif callback is None:
+    if callback is None:
         callback = callback_dummy
+    elif isinstance(callback, 'ExperimentController'):
+        callback = callback.write_data_line
 
-    if callable(callback) or callback is None:
+    if callable(callback):
         return callback
     else:
         raise(TypeError,
@@ -91,9 +91,9 @@ class TrackerUD(object):
         self._tracker_id = id(self)
         self._callback('tracker_identify', json.dumps(dict(
             tracker_id=self._tracker_id,
-            tracker_type=type(self))))
+            tracker_type='TrackerUD')))
 
-        self._callback('tracker_%i_init' & self._tracker_id, json.dumps(dict(
+        self._callback('tracker_%i_init' % self._tracker_id, json.dumps(dict(
             callback=None,
             up=up,
             down=down,
@@ -163,15 +163,15 @@ class TrackerUD(object):
                     self._x[-1] = min(self._x_max, self._x[-1])
 
                 self._x_current = self._x[-1]
-                self._callback('tracker_%i_respond' & self._tracker_id,
+                self._callback('tracker_%i_respond' % self._tracker_id,
                                correct)
             else:
                 self._x = self._x[:-1]
                 self._callback(
-                    'tracker_%i_stop' & self._tracker_id, json.dumps(dict(
-                    responses=self._response,
-                    reversals=self._reversals,
-                    x=self._x)))
+                    'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
+                    responses=list(self._responses.astype(int)),
+                    reversals=list(self._reversals),
+                    x=list(self._x))))
         else:
             raise(RuntimeError, 'Tracker is stopped.')
 
@@ -315,8 +315,11 @@ class TrackerUD(object):
             else:
                 n_skip = self._change_criteria[1]
         rev_inds = self.reversal_inds[n_skip:]
-        return (np.mean(self._x[rev_inds[0::2]]) +
-                np.mean(self._x[rev_inds[1::2]])) / 2
+        if len(rev_inds) < 1:
+            return np.nan
+        else:
+            return (np.mean(self._x[rev_inds[0::2]]) +
+                    np.mean(self._x[rev_inds[1::2]])) / 2
 
 
 # =============================================================================
@@ -344,11 +347,11 @@ class TrackerBinom(object):
 
         # Now write the initialization data out
         self._tracker_id = id(self)
-        callback('tracker_identify', json.dumps(dict(
+        self._callback('tracker_identify', json.dumps(dict(
             tracker_id=self._tracker_id,
-            tracker_type=type(self))))
+            tracker_type='TrackerBinom')))
 
-        callback('tracker_%i_init' & self._tracker_id, json.dumps(dict(
+        self._callback('tracker_%i_init' % self._tracker_id, json.dumps(dict(
             callback=callback,
             alpha=alpha,
             chance=chance,
@@ -453,7 +456,7 @@ class TrackerBinom(object):
 
 # TODO: evemtually, make a BaseTracker class so that Trackers can make sure it
 # has the methods / properties it needs
-class Trackers(object):
+class TrackerDealer(object):
     def __init__(self, tracker, shape, pacer='reversals', slop=1, rand=None):
         from copy import deepcopy
         # dim will only be used for user output. Will be stored as 0-d
