@@ -7,6 +7,8 @@ import numpy as np
 import time
 from scipy.stats import binom as binom
 import json
+from .. import ExperimentController
+
 
 # =============================================================================
 # Set up the logging callback (use write_data_line or do nothing)
@@ -22,7 +24,7 @@ def check_callback(callback):
     """
     if callback is None:
         callback = callback_dummy
-    elif isinstance(callback, 'ExperimentController'):
+    elif isinstance(callback, ExperimentController):
         callback = callback.write_data_line
 
     if callable(callback):
