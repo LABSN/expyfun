@@ -21,7 +21,7 @@ def _inv_cams(E):
 
 
 def _scale_sound(x):
-    """Scale to appropriately to between +/- 1."""
+    """Scale appropriately to between +/- 1."""
     return 0.95 * x / np.max(np.abs(x))
 
 
@@ -51,11 +51,11 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=(0, 1, 0, 1),
     n_coh : int | None
         Number of tones to be temporally coherent. Default (None) is
         ``int(np.round(n_freqs * 0.8))``.
+    rho : float
+        Correlation between the envelopes of grouped tones (default is 1.0).
     seq : list
         Sequence of incoherent (False) and ccoherent (True) mixtures.
         Default is ``(0, 1, 0, 1)``.
-    rho : float
-        Correlation between the envelopes of grouped tones (default is 1.0).
     fs : float
         Sampling rate in Hz.
     dur : float
@@ -87,7 +87,7 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=(0, 1, 0, 1),
     if spacing_ERBs < 1.0:
         warnings.warn('The spacing between tones is LESS THAN 1 ERB!')
 
-    # Make a filter whose impulse response if purely positive (to avoid phase
+    # Make a filter whose impulse response is purely positive (to avoid phase
     # jumps) so that the filtered envelope is purely positive. Use a DPSS
     # window to minimize sidebands. For a bandwidth of bw, to get the shortest
     # filterlength, we need to restrict time-bandwidth product to a minimum.
