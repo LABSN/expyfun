@@ -17,7 +17,7 @@ n_freqs = 20
 n_coh = 18  # very coherent example
 
 # let's make a textured stimilus and play it
-sig = texture_ERB(n_freqs, n_coh, fs=fs)
+sig = texture_ERB(n_freqs, n_coh, fs=fs, seq=('inc', 'nb', 'sam'))
 play_sound(sig, fs, norm=True, wait=True)
 
 ###############################################################################

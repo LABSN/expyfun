@@ -40,8 +40,8 @@ def _make_narrow_noise(bw, f_c, dur, fs, ramp_dur, rng):
                         window='dpss')
 
 
-def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=(0, 1, 0, 1),
-                fs=24414.0625, dur=1., random_state=None):
+def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
+                fs=24414.0625, dur=1., SAM_freq=7., random_state=None):
     """Create ERB texture stimulus
 
     Parameters
@@ -54,7 +54,8 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=(0, 1, 0, 1),
     rho : float
         Correlation between the envelopes of grouped tones (default is 1.0).
     seq : list
-        Sequence of incoherent (False) and ccoherent (True) mixtures.
+        Sequence of incoherent (0), coherent noise envelope (1), and
+        SAM (2) mixtures.
         Default is ``(0, 1, 0, 1)``.
     fs : float
         Sampling rate in Hz.
@@ -72,6 +73,14 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=(0, 1, 0, 1),
     """
     from mne.time_frequency.multitaper import dpss_windows
     from mne.utils import check_random_state
+    if not isinstance(seq, (list, tuple, np.ndarray)):
+        raise TypeError('seq must be list, tuple, or ndarray, got %s'
+                        % type(seq))
+    known_seqs = ('inc', 'nb', 'sam')
+    for si, s in enumerate(seq):
+        if s not in known_seqs:
+            raise ValueError('all entries in seq must be one of %s, got '
+                             'seq[%s]=%s' % (known_seqs, si, s))
     fs = float(fs)
     rng = check_random_state(random_state)
     n_coh = int(np.round(n_freqs * 0.8)) if n_coh is None else n_coh
@@ -99,40 +108,43 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=(0, 1, 0, 1),
 
     # Incoherent
     envrate = 14
-    bw = 10
-    z = 0.
+    bw = 20
+    incoh = 0.
     for k in range(n_freqs):
         f = _inv_cams(_cams(f_min) + spacing_ERBs * k)
         env = _make_narrow_noise(bw, envrate, dur, fs, rise, rng)
         env[env < 0] = 0
         env = np.convolve(b, env)[:len(t)]
-        z += _scale_sound(window_edges(
+        incoh += _scale_sound(window_edges(
             env * np.sin(2 * np.pi * f * t), fs, rise, window='dpss'))
-    z /= rms(z)
+    incoh /= rms(incoh)
 
-    # Coherent
-    group = rng.permutation(np.arange(n_freqs))
-    env1 = _make_narrow_noise(bw, envrate, dur, fs, rise, rng)
-    env1[env1 < 0] = 0
-    env1 = np.convolve(b, env)[:len(t)]
-    y = 0
-    for k in group[:n_coh]:
-        f = _inv_cams(_cams(f_min) + spacing_ERBs * k)
-        env2 = _make_narrow_noise(bw, envrate, dur, fs, rise, rng)
-        env2[env2 < 0] = 0.
-        env2 = np.convolve(b, env2)[:len(t)]
-        env = np.sqrt(rho) * env1 + np.sqrt(1 - rho ** 2) * env2
-        y += _scale_sound(window_edges(
-            env * np.sin(2 * np.pi * f * t), fs, rise, window='dpss'))
-    for k in group[n_coh:]:
-        f = _inv_cams(_cams(f_min) + spacing_ERBs * k)
-        env = _make_narrow_noise(bw, envrate, dur, fs, rise, rng)
-        env[env < 0] = 0.
-        env = np.convolve(b, env)[:len(t)]
-        y += _scale_sound(window_edges(
-            env * np.sin(2 * np.pi * f * t), fs, rise, window='dpss'))
-    y /= rms(y)
-
-    stim = np.concatenate([y if s else z for s in seq])
+    # Coherent (noise band)
+    stims = dict(inc=0., nb=0., sam=0.)
+    for kind in known_seqs:
+        if kind == 'nb':  # noise band
+            env_coh = _make_narrow_noise(bw, envrate, dur, fs, rise, rng)
+        else:  # 'nb' or 'inc'
+            env_coh = 0.5 + np.sin(2 * np.pi * SAM_freq * t) / 2.
+            env_coh = window_edges(env_coh, fs, rise, window='dpss')
+        env_coh[env_coh < 0] = 0
+        env_coh = np.convolve(b, env_coh)[:len(t)]
+        if kind == 'inc':
+            group = []  # no coherent ones
+        else:  # 'nb' or 'sam'
+            group = rng.permutation(np.arange(n_freqs))
+        for k in range(n_freqs):
+            f = _inv_cams(_cams(f_min) + spacing_ERBs * k)
+            env_inc = _make_narrow_noise(bw, envrate, dur, fs, rise, rng)
+            env_inc[env_inc < 0] = 0.
+            env_inc = np.convolve(b, env_inc)[:len(t)]
+            if k in group[:n_coh]:
+                env = np.sqrt(rho) * env_coh + np.sqrt(1 - rho ** 2) * env_inc
+            else:
+                env = env_inc
+            stims[kind] += _scale_sound(window_edges(
+                env * np.sin(2 * np.pi * f * t), fs, rise, window='dpss'))
+        stims[kind] /= rms(stims[kind])
+    stim = np.concatenate([stims[s] for s in seq])
     stim = 0.01 * stim / rms(stim)
     return stim
