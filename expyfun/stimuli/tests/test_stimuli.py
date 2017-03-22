@@ -9,17 +9,27 @@ from scipy.signal import butter, lfilter
 
 from expyfun._utils import _TempDir, requires_lib, _hide_window
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
-                             vocode)
+                             vocode, texture_ERB)
 
 warnings.simplefilter('always')
 
 tempdir = _TempDir()
 
 
+def test_textures():
+    """Test stimulus textures."""
+    texture_ERB()  # smoke test
+    assert_raises(TypeError, texture_ERB, seq='foo')
+    assert_raises(ValueError, texture_ERB, seq=('foo',))
+    with warnings.catch_warnings(record=True) as w:
+        x = texture_ERB(freq_lims=(200, 500))
+    assert_true(any('less than' in str(ww.message).lower() for ww in w))
+    assert_allclose(len(x) / 24414., 4., rtol=1e-5)
+
+
 @requires_lib('h5py')
 def test_hrtf_convolution():
-    """Test HRTF convolution
-    """
+    """Test HRTF convolution."""
     data = np.random.randn(2, 10000)
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0)
     data = data[0]

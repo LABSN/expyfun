@@ -41,7 +41,8 @@ def _make_narrow_noise(bw, f_c, dur, fs, ramp_dur, rng):
 
 
 def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
-                fs=24414.0625, dur=1., SAM_freq=7., random_state=None):
+                fs=24414.0625, dur=1., SAM_freq=7., random_state=None,
+                freq_lims=(200, 8000)):
     """Create ERB texture stimulus
 
     Parameters
@@ -54,13 +55,19 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
     rho : float
         Correlation between the envelopes of grouped tones (default is 1.0).
     seq : list
-        Sequence of incoherent (0), coherent noise envelope (1), and
-        SAM (2) mixtures.
-        Default is ``(0, 1, 0, 1)``.
+        Sequence of incoherent ('inc'), coherent noise envelope ('nb'), and
+        SAM ('sam') mixtures. Default is ``('inc', 'nb', 'inc', 'nb')``.
     fs : float
         Sampling rate in Hz.
     dur : float
         Duration (in seconds) of each token in seq (default is 1.0).
+    SAM_freq : float
+        The SAM frequency to use.
+    freq_lims : tuple
+        The lower and upper frequency limits (default is (200, 8000)).
+    random_state : None | int | np.random.RandomState
+        The random generator state used for band selection and noise
+        envelope generation.
 
     Returns
     -------
@@ -87,7 +94,7 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
     rise = 0.002
     t = np.arange(int(round(dur * fs))) / fs
 
-    f_min, f_max = 200, 8000
+    f_min, f_max = freq_lims
     n_ERBs = _cams(f_max) - _cams(f_min)
     del f_max
     spacing_ERBs = n_ERBs / float(n_freqs - 1)
@@ -121,6 +128,7 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
 
     # Coherent (noise band)
     stims = dict(inc=0., nb=0., sam=0.)
+    group = np.sort(rng.permutation(np.arange(n_freqs))[:n_coh])
     for kind in known_seqs:
         if kind == 'nb':  # noise band
             env_coh = _make_narrow_noise(bw, envrate, dur, fs, rise, rng)
@@ -130,15 +138,15 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
         env_coh[env_coh < 0] = 0
         env_coh = np.convolve(b, env_coh)[:len(t)]
         if kind == 'inc':
-            group = []  # no coherent ones
+            use_group = []  # no coherent ones
         else:  # 'nb' or 'sam'
-            group = rng.permutation(np.arange(n_freqs))
+            use_group = group
         for k in range(n_freqs):
             f = _inv_cams(_cams(f_min) + spacing_ERBs * k)
             env_inc = _make_narrow_noise(bw, envrate, dur, fs, rise, rng)
             env_inc[env_inc < 0] = 0.
             env_inc = np.convolve(b, env_inc)[:len(t)]
-            if k in group[:n_coh]:
+            if k in use_group:
                 env = np.sqrt(rho) * env_coh + np.sqrt(1 - rho ** 2) * env_inc
             else:
                 env = env_inc
