@@ -776,8 +776,9 @@ class ExperimentController(object):
         # Travis can't handle multi-sampling, but our production machines must
         if os.getenv('TRAVIS') == 'true':
             del config_kwargs['samples'], config_kwargs['sample_buffers']
+        self._full_screen = full_screen
         win_kwargs = dict(width=window_size[0], height=window_size[1],
-                          caption=exp_name, fullscreen=full_screen,
+                          caption=exp_name, fullscreen=False,
                           screen=screen_num, style='borderless', visible=False,
                           config=pyglet.gl.Config(**config_kwargs))
 
@@ -788,8 +789,6 @@ class ExperimentController(object):
             except pyglet.gl.ContextException:
                 if ii == max_try - 1:
                     raise
-                else:
-                    pass
             else:
                 break
         if not full_screen:
@@ -911,6 +910,7 @@ class ExperimentController(object):
             the window is restored, regardless of what the glClearColor
             had been set to.
         """
+        self._win.set_fullscreen(visible and self._full_screen)
         self._win.set_visible(visible)
         logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
         if visible and flip:
