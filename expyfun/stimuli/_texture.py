@@ -71,8 +71,9 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
 
     Returns
     -------
-    x : ndarray, shape (N,)
-        The stimulus.
+    x : ndarray, shape (n_samples,)
+        The stimulus, where ``n_samples = len(seq) * (fs * dur)``
+        (approximately).
 
     Notes
     -----

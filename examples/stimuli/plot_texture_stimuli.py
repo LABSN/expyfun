@@ -39,7 +39,6 @@ fig.tight_layout()
 
 ###############################################################################
 # And the long-term spectrum:
-
 fig, ax = plt.subplots(1)
 ax.psd(sig, NFFT=16384, Fs=fs, color='k')
 xticks = [250, 500, 1000, 2000, 4000, 8000]
