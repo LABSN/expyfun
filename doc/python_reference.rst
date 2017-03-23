@@ -63,6 +63,7 @@ Functions:
    play_sound
    repeated_mls
    rms
+   texture_ERB
    vocode
    window_edges
 

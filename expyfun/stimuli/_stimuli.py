@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Generic stimulus generation functions
-"""
+"""Generic stimulus generation functions."""
 
 import warnings
 import numpy as np
@@ -27,7 +26,7 @@ def window_edges(sig, fs, dur=0.01, axis=-1, window='hann', edges='both'):
         The axis to operate over.
     window : str
         The window to use. For a list of valid options, see
-        ``scipy.signal.get_window()``.
+        ``scipy.signal.get_window()``, but can also be 'dpss'.
     edges : str
         Can be ``'leading'``, ``'trailing'``, or ``'both'`` (default).
 
@@ -44,7 +43,13 @@ def window_edges(sig, fs, dur=0.01, axis=-1, window='hann', edges='both'):
         raise RuntimeError('cannot create window of size {0} samples (dur={1})'
                            'for signal with length {2}'
                            ''.format(win_len, dur, sig_len))
-    win = signal.windows.get_window(window, 2 * win_len)[:win_len]
+    if window == 'dpss':
+        from mne.time_frequency.multitaper import dpss_windows
+        win = dpss_windows(2 * win_len + 1, 1, 1)[0][0][:win_len]
+        win -= win[0]
+        win /= win.max()
+    else:
+        win = signal.windows.get_window(window, 2 * win_len)[:win_len]
     valid_edges = ('leading', 'trailing', 'both')
     if edges not in valid_edges:
         raise ValueError('edges must be one of {0}, not "{1}"'
