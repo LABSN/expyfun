@@ -1,12 +1,14 @@
-# -*- coding: utf-8 -*-
 """Adative tracks for psychophysics (individual, or multiple randomly dealt)
 """
+# Author: Ross Maddox <ross.maddox@rochester.edu>
+#
+# License: BSD (3-clause)
 
-# import warnings
 import numpy as np
 import time
 from scipy.stats import binom as binom
 import json
+import matplotlib.pyplot as plt
 from .. import ExperimentController
 
 
@@ -20,29 +22,103 @@ def callback_dummy(event_type, value=None, timestamp=None):
 
 
 def check_callback(callback):
-    """Check see if the callback is of an allowable type.
+    """Check to see if the callback is of an allowable type.
     """
     if callback is None:
         callback = callback_dummy
     elif isinstance(callback, ExperimentController):
         callback = callback.write_data_line
 
-    if callable(callback):
-        return callback
-    else:
+    if not callable(callback):
         raise(TypeError,
               'callback must be a callable, None, or an instance of '
               'ExperimentController.')
+    return callback
 
 
 # =============================================================================
 # Define the TrackerUD Class
 # =============================================================================
 class TrackerUD(object):
+    """Up-down adaptive tracker
+
+    This class implements a standard up-down adative tracker object. Based on
+    how it is configured, it can be used to run a fixed-step m-down n-up
+    tracker (staircase), or it can implement a weighted up-down procedure.
+
+    Parameters
+    ----------
+    callback : callable | ExperimentController | None
+        The function that will be used to print the data, usually to the
+        experiment .tab file. It should follow the prototype of
+        ``ExperimentController.write_data_line``. If an instance of
+        ``ExperimentController`` is given, then it will take that object's
+        ``write_data_line`` function. If None is given, then it will not write
+        the data anywhere.
+    up : int
+        The number of wrong answers necessary to move the tracker level up.
+    down : int
+        The number of correct answers necessary to move the tracker level down.
+    step_size_up : float | list of float
+        The size the step when the tracker moves up. If float it will stay the
+        same. If list of float then it will change when when
+        ``change_criteria`` are encountered. See note below for more specific
+        information on dynamic tracker parameters specified with a list.
+    step_size_down : float | list of float
+        The size the step when the tracker moves down. If float it will stay
+        the same. If list of float then it will change when when
+        ``change_criteria`` are encountered. See note below for more specific
+        information on dynamic tracker parameters specified with a list.
+    stop_criterion : int
+        The number of reversals or trials that will stop the tracker.
+    stop_rule : str
+        How to determined when the tracker stops. Can be 'reversals' or
+        'trials.'
+    start_value : float
+        The starting level of the tracker.
+    change_criteria : list of int | None
+        The points along the tracker to change its step sizes. Has an effect
+        where ``step_size_up`` and ``step_size_down`` are
+        lists. The length of ``change_criteria`` must be the same as the
+        length of ``step_size_up`` and ``step_size_down``. See note below for
+        more specific usage information. Should be None if static step sizes
+        are used.
+    change_rule : str
+        Whether to change paramters based on 'trials' or 'reversals'.
+    x_min : float
+        The minimum value that the tracker level (``x``) is allowed to take.
+    x_max : float
+        The maximum value that the tracker level (``x``) is allowed to take.
+
+    Returns
+    -------
+    tracker : instance of TrackerUD
+        The up-down tracker object.
+
+    Notes
+    -----
+    It is common to use dynamic parameters in an adaptive tracker. For example:
+    the step size is often large for the first couple reversals to get in the
+    right general area, and then it is reduced for the remainder of the track.
+    This class allows that functionality by defining that parameter with a list
+    of values rather than a scalar. The parameter will change to the next value
+    in the list whenever a change criterion (number of trials or reversals) is
+    encountered. This means that the length of the list defining a dynamic
+    parameter must always be the same as that of ``change_criteria``, and the
+    first element of change_criteria must always be 0.
+    For the example given above:
+        ``step_size_up=[1., 0.2]``, ``step_size_down=[1., 0.2]``,
+        ``change_criteria=[0, 2]``, ``change_rule='reversals'``
+    would change the step sizes from 1 to 0.2 after two reversals.
+
+    If dynamic step sizes are used, both ``step_size_up`` and
+    ``step_size_down`` must have the same length as each other and
+    ``change_cirteria``. If static step sizes are used, both ``step_size_up``
+    and ``step_size_up`` must be scalars and ``change_criteria`` must be None.
+    """
     def __init__(self, callback, up, down, step_size_up, step_size_down,
                  stop_criterion, stop_rule, start_value, change_criteria=None,
-                 change_rule='reversals', x_min=None, x_max=None,
-                 start_1_down=False):
+                 change_rule='reversals', x_min=None, x_max=None):
         self._callback = check_callback(callback)
         self._up = up
         self._down = down
@@ -107,87 +183,93 @@ class TrackerUD(object):
             change_criteria=change_criteria,
             change_rule=change_rule,
             x_min=x_min,
-            x_max=x_max,
-            start_1_down=start_1_down)))
+            x_max=x_max)))
 
     def respond(self, correct):
-        if not self._stopped:
-            reversal = False
-            self._responses = np.append(self._responses, correct)
-            self._n_trials += 1
-            step_dir = 0  # 0 no step, 1 up, -1 down
+        """Update the tracker based on the last response.
 
-            # Determine if it's a reversal and which way we're going
-            if correct:
-                self._n_up = 0
-                self._n_down += 1
-                if self._n_down == self._down:
-                    step_dir = -1
-                    self._n_down = 0
-                    if self._direction > 0:
-                        reversal = True
-                        self._n_reversals += 1
-                    if self._direction >= 0:
-                        self._direction = -1
-            else:
+        Parameters
+        ----------
+        correct : boolean
+            Was the most recent subject response correct?
+        """
+        if self._stopped:
+            raise(RuntimeError, 'Tracker is stopped.')
+
+        reversal = False
+        self._responses = np.append(self._responses, correct)
+        self._n_trials += 1
+        step_dir = 0  # 0 no step, 1 up, -1 down
+
+        # Determine if it's a reversal and which way we're going
+        if correct:
+            self._n_up = 0
+            self._n_down += 1
+            if self._n_down == self._down:
+                step_dir = -1
                 self._n_down = 0
-                self._n_up += 1
-                if self._n_up == self._up:
-                    step_dir = 1
-                    self._n_up = 0
-                    if self._direction < 0:
-                        reversal = True
-                        self._n_reversals += 1
-                    if self._direction <= 0:
-                        self._direction = 1
-            if reversal:
-                self._reversals = np.append(self._reversals, self._n_reversals)
-            else:
-                self._reversals = np.append(self._reversals, 0)
+                if self._direction > 0:
+                    reversal = True
+                    self._n_reversals += 1
+                if self._direction >= 0:
+                    self._direction = -1
+        else:
+            self._n_down = 0
+            self._n_up += 1
+            if self._n_up == self._up:
+                step_dir = 1
+                self._n_up = 0
+                if self._direction < 0:
+                    reversal = True
+                    self._n_reversals += 1
+                if self._direction <= 0:
+                    self._direction = 1
+        if reversal:
+            self._reversals = np.append(self._reversals, self._n_reversals)
+        else:
+            self._reversals = np.append(self._reversals, 0)
 
-            # Update the staircase
-            if step_dir == 0:
-                self._x = np.append(self._x, self._x[-1])
-            elif step_dir < 0:
-                self._x = np.append(self._x, self._x[-1] -
-                                    self._current_step_size_down)
-            elif step_dir > 0:
-                self._x = np.append(self._x, self._x[-1] +
-                                    self._current_step_size_up)
+        # Update the staircase
+        if step_dir == 0:
+            self._x = np.append(self._x, self._x[-1])
+        elif step_dir < 0:
+            self._x = np.append(self._x, self._x[-1] -
+                                self._current_step_size_down)
+        elif step_dir > 0:
+            self._x = np.append(self._x, self._x[-1] +
+                                self._current_step_size_up)
 
-            # Should we stop here?
-            self._stopped = self._stop_here()
+        # Should we stop here?
+        self._stopped = self._stop_here()
 
-            if not self._stopped:
-                if self._x_min is not None:
-                    self._x[-1] = max(self._x_min, self._x[-1])
-                if self._x_max is not None:
-                    self._x[-1] = min(self._x_max, self._x[-1])
+        if not self._stopped:
+            if self._x_min is not None:
+                self._x[-1] = max(self._x_min, self._x[-1])
+            if self._x_max is not None:
+                self._x[-1] = min(self._x_max, self._x[-1])
 
-                self._x_current = self._x[-1]
-                self._callback('tracker_%i_respond' % self._tracker_id,
-                               correct)
-            else:
-                self._x = self._x[:-1]
-                self._callback(
-                    'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
+            self._x_current = self._x[-1]
+            self._callback('tracker_%i_respond' % self._tracker_id,
+                           correct)
+        else:
+            self._x = self._x[:-1]
+            self._callback(
+                'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
                     responses=list(self._responses.astype(int)),
                     reversals=list(self._reversals),
                     x=list(self._x))))
-        else:
-            raise(RuntimeError, 'Tracker is stopped.')
 
     def _stop_here(self):
-        if str.lower(self._stop_rule) == 'reversals':
+        if self._stop_rule.lower() == 'reversals':
             self._n_stop = self._n_reversals
-        elif str.lower(self._stop_rule) == 'trials':
+        elif self._stop_rule.lower() == 'trials':
             self._n_stop = self._n_trials
         return self._n_stop >= self._stop_criterion
 
     def _step_index(self):
-        if str.lower(self._change_rule) == 'reversals':
+        if self._change_rule.lower() == 'reversals':
             self._n_change = self._n_reversals
-        elif str.lower(self._stop_rule) == 'trials':
+        elif self._stop_rule.lower() == 'trials':
             self._n_change = self._n_trials
         return np.where(self._n_change >= self._change_criteria)[0][-1]
 
@@ -295,27 +377,67 @@ class TrackerUD(object):
     # Display functions
     # =========================================================================
     def plot(self):
-        import matplotlib.pyplot as plt
-        line = plt.plot(1 + np.arange(self._n_trials), self._x, 'k.-')
-        dots = plt.plot(1 + np.where(self._reversals > 0)[0],
-                        self._x[self._reversals > 0], 'ro')
-        plt.show()
-        plt.xlabel('Trial number')
-        plt.ylabel('Level')
-        return line + dots
+        """Plot the adaptive track.
 
-    def plot_thresh(self, n_skip=None):
-        import matplotlib.pyplot as plt
-        plt.plot([1, self._n_trials], [self.threshold(n_skip)] * 2,
-                 '--', color='gray')
-        plt.show()
+        Returns
+        -------
+        fig : Figure
+            The figure handle.
+        ax : AxesSubplot
+            The axes handle.
+        lines : list of Line2D
+            The handles to the staircase line and the reversal dots.
+        """
+        fig, ax = plt.subplots(1)
 
-    def threshold(self, n_skip=None):
-        if n_skip is None:
-            if len(self._change_criteria) == 1:
-                n_skip = 2
-            else:
-                n_skip = self._change_criteria[1]
+        line = ax.plot(1 + np.arange(self._n_trials), self._x, 'k.-')
+        dots = ax.plot(1 + np.where(self._reversals > 0)[0],
+                       self._x[self._reversals > 0], 'ro')
+        ax.set(xlabel='Trial number', ylabel='Level')
+        return fig, ax, line + dots
+
+    def plot_thresh(self, n_skip=2, ax=None):
+        """Plot a line showing the threshold.
+
+        Parameters
+        ----------
+            n_skip : int
+                See documentation for ``TrackerUD.threshold``.
+            ax : Axes
+                The handle to the axes object. If None, the current axes will
+                be used.
+
+        Returns
+        -------
+        line : list Line2D
+            The handle to the threshold line, as returned from ``plt.plot``.
+        """
+        if ax is None:
+            ax = plt.gca()
+        h = ax.plot([1, self._n_trials], [self.threshold(n_skip)] * 2,
+                    '--', color='gray')
+        return h
+
+    def threshold(self, n_skip=2):
+        """Plot a line showing the threshold on the current axes.
+
+        Parameters
+        ----------
+        n_skip : int
+            The number of reversals to skip at the beginning when computing
+            the threshold.
+
+        Returns
+        -------
+        threshold : float
+            The handle to the threshold line.
+
+        Notes
+        -----
+        The threshold is computed as the average of the up reversals and the
+        average of the down reversals. In this way if there's an unequal number
+        of them the assymetry won't bias the threshold estimate.
+        """
         rev_inds = self.reversal_inds[n_skip:]
         if len(rev_inds) < 1:
             return np.nan
@@ -328,6 +450,58 @@ class TrackerUD(object):
 # Define the TrackerBinom Class
 # =============================================================================
 class TrackerBinom(object):
+    """Binomial hypothesis testing tracker
+
+    This class implements a tracker that runs a test at each trial with the
+    null hypothesis that the stimulus presented has no effect on the subject's
+    response. This would happen in the case where the subject couldn't hear a
+    stimulus, they were not able to do a task, or they did not understand the
+    task. This function's main use is training: a subject may move on to the
+    experiment when the null hypothesis that they aren't doing the task has
+    been rejected.
+
+    Parameters
+    ----------
+    callback : callable | ExperimentController | None
+        The function that will be used to print the data, usually to the
+        experiment .tab file. It should follow the prototype of
+        ``ExperimentController.write_data_line``. If an instance of
+        ``ExperimentController`` is given, then it will take that object's
+        ``write_data_line`` function. If None is given, then it will not write
+        the data anywhere.
+    alpha : float
+        The p-value which is considered significant. Must be between 0 and 1.
+        Note that if ``stop_early`` is `true` there is the potential for
+        multiple comparisons issues and a more stringent ``alpha`` should be
+        considered.
+    chance : float
+        The chance level of the task being performed. Must be between 0 and 1.
+    max_trials : int
+        The maximum number of trials to run before stopping the track without
+        reaching ``alpha``.
+    min_trials : float | list of float
+        The minimum number of trials to run before allowing the track to stop
+        on reaching ``alpha``. Has no effect if if ``stop_early`` is ``False``.
+    stop_early : boolean
+        Whether to stop the adaptive track as soon as ``alpha`` is reached and
+        at least ``min_trials`` have been presented.
+    x_current : float
+        The level that you want to run the test at. This has no bearing on how
+        the track runs, and it will never change, but it is required to be
+        here for ``TrackerDealer``.
+
+    Returns
+    -------
+    tracker : instance of TrackerBinom
+        The binomial tracker object.
+
+    Notes
+    -----
+    The task, unlike with an adaptive tracker, should be done all at one
+    stimulus level, usually an easy one. The point of this tracker is to
+    confirm that the subject understands the task instructions and is capable
+    of following them.
+    """
     def __init__(self, callback, alpha, chance, max_trials, min_trials=0,
                  stop_early=True, x_current=None):
         self._callback = check_callback(callback)
@@ -363,6 +537,13 @@ class TrackerBinom(object):
             x_current=x_current)))
 
     def respond(self, correct):
+        """Update the tracker based on the last response.
+
+        Parameters
+        ----------
+        correct : boolean
+            Was the most recent subject response correct?
+        """
         self._responses = np.append(self._responses, correct)
         self._n_trials += 1
         if not correct:
@@ -456,7 +637,7 @@ class TrackerBinom(object):
 # TODO: Make it so you can add a list of values for each dimension (such as the
 # phase in a BMLD task) and have it return that
 
-# TODO: evemtually, make a BaseTracker class so that Trackers can make sure it
+# TODO: eventually, make a BaseTracker class so that Trackers can make sure it
 # has the methods / properties it needs
 class TrackerDealer(object):
     def __init__(self, tracker, shape, pacer='reversals', slop=1, rand=None):
@@ -563,7 +744,7 @@ class TrackerDealer(object):
 # Test the multi-tracker object
 def test_Trackers():
     ud = TrackerUD(1, 3, 1, 1, 10, 'reversals', 0)
-    t = Trackers(ud, [3, 2], pacer='trials')
+    t = TrackerDealer(ud, [3, 2], pacer='trials')
     while not t.stopped:
         [inds, level] = t.get_trial()
         if np.random.rand() < 0.95:
@@ -595,7 +776,7 @@ def test_UD():
     plt.subplot(122)
     kde = gaussian_kde(threshes)
     x = np.linspace(-4 * kde.dataset.std(),
-                     4 * kde.dataset.std(), 2e2) + kde.dataset.mean()
+                    4 * kde.dataset.std(), 2e2) + kde.dataset.mean()
     plt.plot(x, kde.evaluate(x), 'k')
     plt.grid()
     plt.xlim(x[0], x[-1])
@@ -619,9 +800,9 @@ def testbinom():
     print(100. * n_success / n_runs)
 
 
-#Test the binmial tracker in the Trackers container
+# Test the binmial tracker in the Trackers container
 def testbinom_Trackers():
-    t = Trackers(TrackerBinom(0.05, 0.5, 25), [3, 2], pacer='trials')
+    t = TrackerDealer(TrackerBinom(0.05, 0.5, 25), [3, 2], pacer='trials')
     while not t.stopped:
         [inds, level] = t.get_trial()
         t.respond(np.random.rand() < 0.8)
