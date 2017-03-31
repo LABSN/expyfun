@@ -543,7 +543,7 @@ class TrackerBinom(object):
             tracker_type='TrackerBinom')))
 
         self._callback('tracker_%i_init' % self._tracker_id, json.dumps(dict(
-            callback=callback,
+            callback=None,
             alpha=alpha,
             chance=chance,
             max_trials=max_trials,
@@ -577,6 +577,8 @@ class TrackerBinom(object):
                 (self._min_p_val >= self._alpha and self._stop_early)):
             if self._n_trials >= self._min_trials:
                 self._stopped = True
+        if self._n_trials == self._max_trials:
+            self._stopped = True
 
     # =========================================================================
     # Define all the public properties
@@ -627,7 +629,7 @@ class TrackerBinom(object):
 
     @property
     def pc(self):
-        """Percent correct
+        """Proportion correct (0-1, NaN before any responses made)
         """
         return self._pc
 
@@ -661,6 +663,10 @@ class TrackerBinom(object):
         """
         return np.array([self._x_current for _ in range(self._n_trials)])
 
+    @property
+    def stop_rule(self):
+        return 'trials'
+
 
 # =============================================================================
 # Define a container for interleaving several tracks simultaneously
@@ -684,11 +690,10 @@ class TrackerDealer(object):
         The arguments used to instantiate each of the trackers.
     tracker_kwargs : dict
         The keyword arguments used to instantiate each of the trackers.
-    pace_rule : str
-        Whether to pace the trackers based on 'reversals' or 'trials'.
     slop : int
         The number of reversals or trials by which the leading tracker may lead
-        the lagging one.
+        the lagging one. Whether this uses trials or reversals depends on the
+        ``stop_rule`` of the tracker
     rand : numpy.random.RandomState | None
         The random process used to deal the trackers. If None, the process is
         seeded based on the current time.
@@ -701,9 +706,13 @@ class TrackerDealer(object):
     Notes
     -----
     The trackers can be accessed like a numpy array, e.g. ``dealer[0, 1, :]``.
+
+    If dealing from TrackerBinom objects (which is probably not a good idea),
+    ``stop_early`` must be ``False`` or else they cannot be ensured to keep
+    pace.
     """
     def __init__(self, shape, tracker_class, tracker_args, tracker_kwargs,
-                 pace_rule='reversals', slop=1, rand=None):
+                 slop=1, rand=None):
         # dim will only be used for user output. Will be stored as 0-d
         if np.isscalar(shape):
             shape = [shape]
@@ -711,10 +720,7 @@ class TrackerDealer(object):
         self._n = np.prod(self._shape)
         self._trackers = [tracker_class(*tracker_args, **tracker_kwargs)
                           for _ in range(self._n)]
-        if pace_rule not in ['reversals', 'trials']:
-            raise(ValueError,
-                  "pace_rule must be either 'reversals' or 'trials'.")
-        self._pace_rule = pace_rule
+        self._pace_rule = self._trackers[0].stop_rule
         self._slop = slop
         if rand is None:
             self._seed = int(time.time())
@@ -725,6 +731,10 @@ class TrackerDealer(object):
         self._tracker_history = np.array([], dtype=int)
         self._response_history = np.array([], dtype=int)
         self._x_history = np.array([], dtype=float)
+        if isinstance(self._trackers[0], TrackerBinom):
+            if self._trackers[0].stop_early:
+                raise ValueError('stop_early must be False to deal trials '
+                                 'from a TrackerBinom object')
 
     def __getitem__(self, key):
         return np.reshape(self._trackers, self._shape)[key]
@@ -846,76 +856,3 @@ class TrackerDealer(object):
         """All of the tracker objects in the container
         """
         return np.reshape(self._trackers, self.shape)
-
-
-# =============================================================================
-# Junk functions for testing (remove on release)
-# =============================================================================
-
-# Test the multi-tracker object
-def test_Trackers():
-    ud = TrackerUD(1, 3, 1, 1, 10, 'reversals', 0)
-    t = TrackerDealer(ud, [3, 2], pace_rule='trials')
-    while not t.stopped:
-        [inds, level] = t.get_trial()
-        if np.random.rand() < 0.95:
-            t.respond(np.random.rand() < 0.794)
-
-
-# Test some tracks
-def test_UD():
-    import matplotlib.pyplot as plt
-    step_size = [8, 4, 2, 1]
-    n_rev = [2, 2, 4]
-    change_points = np.cumsum([0] + n_rev)
-    n_runs = 1000
-    threshes = []
-    plt.clf()
-    plt.subplot(121)
-    for ri in range(n_runs):
-        ud = TrackerUD(1, 3, step_size, np.asarray(step_size) / 1., 75,
-                       'trials', 0, change_criteria=change_points)
-        prob = ud._test_prob(0.5, -ud._test_iprob(0.5, 20)(.794))
-        while not ud.stopped:
-            ud.respond(np.random.rand() < prob(ud.x_current))
-        if ri < 10:
-            ud.plot_thresh(4)
-            ud.plot()
-        threshes += [ud.threshold(4)]
-
-    from scipy.stats import gaussian_kde
-    plt.subplot(122)
-    kde = gaussian_kde(threshes)
-    x = np.linspace(-4 * kde.dataset.std(),
-                    4 * kde.dataset.std(), 2e2) + kde.dataset.mean()
-    plt.plot(x, kde.evaluate(x), 'k')
-    plt.grid()
-    plt.xlim(x[0], x[-1])
-    plt.tight_layout()
-
-    print('%0.2f +/- %0.2f' % (np.mean(threshes), np.std(threshes)))
-    print('Perf at thresh: %0.2f%%' % prob(np.mean(threshes)))
-    return ud
-
-
-# Test the bionomial tracker
-def testbinom():
-    n_success = 0
-    n_runs = 100
-    pc = 0.8
-    for _ in range(n_runs):
-        t = TrackerBinom(0.05, 0.5, 25)
-        while not t.stopped:
-            t.respond(np.random.rand() < pc)
-        n_success += t.success
-    print(100. * n_success / n_runs)
-
-
-# Test the binmial tracker in the Trackers container
-def testbinom_Trackers():
-    t = TrackerDealer(TrackerBinom(0.05, 0.5, 25), [3, 2], pace_rule='trials')
-    while not t.stopped:
-        [inds, level] = t.get_trial()
-        t.respond(np.random.rand() < 0.8)
-    for tr in t:
-        print(tr.p_val),
