@@ -21,7 +21,7 @@ def test_tracker_ud():
         tr.respond(rand.rand() < tr.x_current)
 
     tr = TrackerUD(None, 3, 1, 1, 1, 10, 'reversals', 1, x_min=0, x_max=1.1)
-    tr.threshold
+    tr.threshold()
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
