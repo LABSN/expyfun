@@ -132,11 +132,11 @@ def test_tracker_dealer():
     dealer_ud[0]
     dealer_ud[:]
     dealer_ud[[1, 0, 1]]
+    [d for d in dealer_ud]
     dealer_ud.shape
     dealer_ud.trackers
     dealer_ud.history()
     dealer_ud.history(True)
-    [d.stopped for d in dealer_ud]
 
     assert_raises(TypeError, TrackerDealer, [2], TrackerUD,
                   [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {}, rand=1)
