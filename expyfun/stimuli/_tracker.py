@@ -799,7 +799,7 @@ class TrackerDealer(object):
         Inputs
         ------
             include_skips : boolean
-                Whether or not to include trails where a tracker was dealt but
+                Whether or not to include trials where a tracker was dealt but
                 no response was made.
 
         Returns
