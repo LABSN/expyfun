@@ -15,17 +15,17 @@ from .. import ExperimentController
 # =============================================================================
 # Set up the logging callback (use write_data_line or do nothing)
 # =============================================================================
-def callback_dummy(event_type, value=None, timestamp=None):
+def _callback_dummy(event_type, value=None, timestamp=None):
     """Take the arguments of write_data_line, but do nothing.
     """
     pass
 
 
-def check_callback(callback):
+def _check_callback(callback):
     """Check to see if the callback is of an allowable type.
     """
     if callback is None:
-        callback = callback_dummy
+        callback = _callback_dummy
     elif isinstance(callback, ExperimentController):
         callback = callback.write_data_line
 
@@ -60,20 +60,20 @@ class TrackerUD(object):
     down : int
         The number of correct answers necessary to move the tracker level down.
     step_size_up : float | list of float
-        The size the step when the tracker moves up. If float it will stay the
-        same. If list of float then it will change when when
-        ``change_criteria`` are encountered. See note below for more specific
-        information on dynamic tracker parameters specified with a list.
+        The size of the step when the tracker moves up. If float it will stay
+        the same. If list of float then it will change when ``change_criteria``
+        are encountered. See note below for more specific information on
+        dynamic tracker parameters specified with a list.
     step_size_down : float | list of float
-        The size the step when the tracker moves down. If float it will stay
-        the same. If list of float then it will change when when
-        ``change_criteria`` are encountered. See note below for more specific
-        information on dynamic tracker parameters specified with a list.
+        The size of the step when the tracker moves down. If float it will stay
+        the same. If list of float then it will change when ``change_criteria``
+        are encountered. See note below for more specific information on
+        dynamic tracker parameters specified with a list.
     stop_criterion : int
         The number of reversals or trials that will stop the tracker.
     stop_rule : str
         How to determined when the tracker stops. Can be 'reversals' or
-        'trials.'
+        'trials'.
     start_value : float
         The starting level of the tracker.
     change_criteria : list of int | None
@@ -111,15 +111,13 @@ class TrackerUD(object):
         ``change_criteria=[0, 2]``, ``change_rule='reversals'``
     would change the step sizes from 1 to 0.2 after two reversals.
 
-    If dynamic step sizes are used, both ``step_size_up`` and
-    ``step_size_down`` must have the same length as each other and
-    ``change_cirteria``. If static step sizes are used, both ``step_size_up``
+    If static step sizes are used, both ``step_size_up``
     and ``step_size_up`` must be scalars and ``change_criteria`` must be None.
     """
     def __init__(self, callback, up, down, step_size_up, step_size_down,
                  stop_criterion, stop_rule, start_value, change_criteria=None,
                  change_rule='reversals', x_min=None, x_max=None):
-        self._callback = check_callback(callback)
+        self._callback = _check_callback(callback)
         self._up = up
         self._down = down
         self._stop_criterion = stop_criterion
@@ -131,24 +129,21 @@ class TrackerUD(object):
         if change_criteria is None:
             change_criteria = [0]
         elif change_criteria[0] != 0:
-            raise(ValueError('First element of change points must be 0.'))
+            raise(ValueError('First element of change_crieria must be 0.'))
         self._change_criteria = np.asarray(change_criteria)
         if change_rule not in ['trials', 'reversals']:
             raise(ValueError, "change_rule must be either 'trials' or "
                   "'reversals'")
-        else:
-            self._change_rule = change_rule
+        self._change_rule = change_rule
 
-        if np.isscalar(step_size_up):
-            step_size_up = [step_size_up] * len(change_criteria)
-        elif len(step_size_up) != len(change_criteria):
+        step_size_up = list(np.atleast_1d(step_size_up))
+        if len(step_size_up) != len(change_criteria):
             raise(ValueError('If step_size_up is not scalar it must be the '
                              'same length as change_criteria.'))
         self._step_size_up = np.asarray(step_size_up, dtype=float)
 
-        if np.isscalar(step_size_down):
-            step_size_down = [step_size_down] * len(change_criteria)
-        elif len(step_size_down) != len(change_criteria):
+        step_size_down = list(np.atleast_1d(step_size_down))
+        if len(step_size_down) != len(change_criteria):
             raise(ValueError('If step_size_down is not scalar it must be the '
                   'same length as change_criteria.'))
         self._step_size_down = np.asarray(step_size_down, dtype=float)
@@ -368,27 +363,6 @@ class TrackerUD(object):
         return np.where(self._reversals)[0]
 
     # =========================================================================
-    # Utility functions
-    # =========================================================================
-    def _test_prob(self, chance, thresh=None):
-        from scipy.stats import norm
-        if thresh is None:
-            thresh = self._start_value
-        slope = np.mean([self._step_size_up.mean(),
-                         self._step_size_down.mean()]) ** -1.
-        return lambda x: (chance + (1 - chance) *
-                          norm.cdf((x - thresh) * slope))
-
-    def _test_iprob(self, chance, thresh=None):
-        from scipy.stats import norm
-        if thresh is None:
-            thresh = self._start_value
-        slope = ((self._step_size_up[-1] +
-                  self._step_size_down[-1]) / 2) ** -1.
-        return lambda x: (thresh +
-                          norm.ppf((x - chance) / (1 - chance)) / slope)
-
-    # =========================================================================
     # Display functions
     # =========================================================================
     def plot(self):
@@ -482,8 +456,8 @@ class TrackerBinom(object):
         experiment .tab file. It should follow the prototype of
         ``ExperimentController.write_data_line``. If an instance of
         ``ExperimentController`` is given, then it will take that object's
-        ``write_data_line`` function. If None is given, then it will not write
-        the data anywhere.
+        ``write_data_line`` function. If ``None`` is given, then it will not
+        write the data anywhere.
     alpha : float
         The p-value which is considered significant. Must be between 0 and 1.
         Note that if ``stop_early`` is `true` there is the potential for
@@ -519,7 +493,7 @@ class TrackerBinom(object):
     """
     def __init__(self, callback, alpha, chance, max_trials, min_trials=0,
                  stop_early=True, x_current=None):
-        self._callback = check_callback(callback)
+        self._callback = _check_callback(callback)
         self._alpha = alpha
         self._chance = chance
         self._max_trials = max_trials
@@ -726,6 +700,10 @@ class TrackerDealer(object):
             self._seed = int(time.time())
             self._rand = np.random.RandomState(self._seed)
         else:
+            if not isinstance(rand, np.random.RandomState):
+                raise TypeError('rand must be of type '
+                                'numpy.random.RandomState')
+            self._rand = rand
             self._seed = None
         self._trial_complete = True
         self._tracker_history = np.array([], dtype=int)
@@ -766,6 +744,7 @@ class TrackerDealer(object):
         lag_max = lag.max()
 
         if lag_max > self._slop:
+            # This should never happen, but handle it if it does
             inds = active[lag == lag_max]
         elif lag_max > 0:
             inds = active[lag > 0]

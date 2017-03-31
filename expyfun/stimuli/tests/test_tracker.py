@@ -19,6 +19,12 @@ def test_tracker_ud():
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
+
+    tr = TrackerUD(None, 3, 1, 1, 1, 10, 'reversals', 1, x_min=0, x_max=1.1)
+    tr.threshold
+    rand = np.random.RandomState(0)
+    while not tr.stopped:
+        tr.respond(rand.rand() < tr.x_current)
     assert_raises(RuntimeError, tr.respond, 0)
     tr.up
     tr.down
@@ -45,8 +51,12 @@ def test_tracker_ud():
     assert_raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, 'trials', 1)
 
     # test dynamic step size and error conditions
-    TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
-              change_criteria=[0, 2])
+    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
+                   change_criteria=[0, 2])
+    tr.respond(True)
+    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
+                   change_criteria=[0, 2], change_rule='trials')
+    tr.respond(True)
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1, change_criteria=[1, 2])
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
@@ -106,9 +116,13 @@ def test_tracker_dealer():
     # test TrackerDealer with TrackerUD
     dealer_ud = TrackerDealer(
         [2], TrackerUD, [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {})
+    dealer_ud = TrackerDealer(
+        2, TrackerUD, [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {},
+        rand=np.random.RandomState(0))
 
     assert_raises(RuntimeError, dealer_ud.respond, True)
     rand = np.random.RandomState(0)
+    trial = dealer_ud.get_trial()
     while not dealer_ud.stopped:
         trial = dealer_ud.get_trial()
         dealer_ud.respond(rand.rand() < trial[1])
@@ -120,14 +134,19 @@ def test_tracker_dealer():
     dealer_ud[[1, 0, 1]]
     dealer_ud.shape
     dealer_ud.trackers
+    dealer_ud.history()
+    dealer_ud.history(True)
+    [d.stopped for d in dealer_ud]
+
+    assert_raises(TypeError, TrackerDealer, [2], TrackerUD,
+                  [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {}, rand=1)
 
     # test TrackerDealer with TrackerBinom
     dealer_binom = TrackerDealer([2], TrackerBinom,
                                  [None, 0.05, 0.5, 50],
                                  dict(stop_early=False))
-
     rand = np.random.RandomState(0)
-    while not dealer_ud.stopped:
+    while not dealer_binom.stopped:
         trial = dealer_binom.get_trial()
         dealer_binom.respond(np.random.rand() < trial[1])
 
