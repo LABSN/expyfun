@@ -1,4 +1,4 @@
-"""Adative tracks for psychophysics (individual, or multiple randomly dealt)
+"""Adaptive tracks for psychophysics (individual, or multiple randomly dealt)
 """
 # Author: Ross Maddox <ross.maddox@rochester.edu>
 #
@@ -72,7 +72,7 @@ class TrackerUD(object):
     stop_criterion : int
         The number of reversals or trials that will stop the tracker.
     stop_rule : str
-        How to determined when the tracker stops. Can be 'reversals' or
+        How to determine when the tracker stops. Can be 'reversals' or
         'trials'.
     start_value : float
         The starting level of the tracker.
@@ -84,7 +84,7 @@ class TrackerUD(object):
         more specific usage information. Should be None if static step sizes
         are used.
     change_rule : str
-        Whether to change paramters based on 'trials' or 'reversals'.
+        Whether to change parameters based on 'trials' or 'reversals'.
     x_min : float
         The minimum value that the tracker level (``x``) is allowed to take.
     x_max : float
@@ -129,7 +129,7 @@ class TrackerUD(object):
         if change_criteria is None:
             change_criteria = [0]
         elif change_criteria[0] != 0:
-            raise(ValueError('First element of change_crieria must be 0.'))
+            raise(ValueError('First element of change_criteria must be 0.'))
         self._change_criteria = np.asarray(change_criteria)
         if change_rule not in ['trials', 'reversals']:
             raise(ValueError, "change_rule must be either 'trials' or "
