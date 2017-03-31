@@ -668,8 +668,8 @@ class TrackerBinom(object):
 # TODO: Make it so you can add a list of values for each dimension (such as the
 # phase in a BMLD task) and have it return that
 
-# TODO: eventually, make a BaseTracker class so that Trackers can make sure it
-# has the methods / properties it needs
+# TODO: eventually, make a BaseTracker class so that TrackerDealer can make
+# sure it has the methods / properties it needs
 class TrackerDealer(object):
     """Class for selecting and pacing independent simultaneous trackers
 
@@ -696,7 +696,7 @@ class TrackerDealer(object):
     Returns
     -------
     dealer : instance of TrackerDealer
-        The binomial tracker object.
+        The tracker dealer object.
 
     Notes
     -----
@@ -764,32 +764,72 @@ class TrackerDealer(object):
         return inds[self._rand.randint(len(inds))]
 
     def get_trial(self):
+        """Selects the tracker from which the next trial should be run
+
+        Returns
+        -------
+        subscripts : list-like
+            The position of the selected tracker.
+        x_current : float
+            The level of the selected tracker.
+        """
         if not self._trial_complete:
             # Chose a new tracker before responding, so record non-response
             self._response_history = np.append(self._response_history,
-                                                np.nan)
+                                               np.nan)
         self._trial_complete = False
         self._current_tracker = self._pick()
         self._tracker_history = np.append(self._tracker_history,
-                                           self._current_tracker)
+                                          self._current_tracker)
         ss = np.unravel_index(self._current_tracker, self.shape)
         level = self._trackers[self._current_tracker].x_current
         self._x_history = np.append(self._x_history, level)
         return ss, level
 
     def respond(self, correct):
-        """Update the current tracker based on the last response.
+        """Update the current tracker based on the last response
 
         Parameters
         ----------
         correct : boolean
             Was the most recent subject response correct?
+
+        Notes
+        -----
+        ``get_trial`` must be run before ``respond`` can be called.
         """
         if self._trial_complete:
             raise(RuntimeError, 'You must get a trial before you can respond.')
         self._trackers[self._current_tracker].respond(correct)
         self._trial_complete = True
         self._response_history = np.append(self._response_history, correct)
+
+    def history(self, include_skips=False):
+        """The history of the dealt trials and the responses
+
+        Inputs
+        ------
+            include_skips : boolean
+                Whether or not to include trails where a tracker was dealt but
+                no response was made.
+
+        Returns
+        -------
+            tracker_history : list of int
+                The index of which tracker was dealt on each trial. Note that
+                the ints in this list correspond the the raveled index.
+            x_history : list of float
+                The level of the dealt tracker on each trial.
+            response_history : list of boolean
+                The response history (i.e., correct or incorrect)
+        """
+        if include_skips:
+            return (self._tracker_history, self._x_history,
+                    self._response_history)
+        else:
+            inds = np.invert(np.isnan(self._response_history))
+            return (self._tracker_history[inds], self._x_history[inds],
+                    self._response_history[inds].astype(bool))
 
     @property
     def shape(self):
@@ -806,33 +846,6 @@ class TrackerDealer(object):
         """All of the tracker objects in the container
         """
         return np.reshape(self._trackers, self.shape)
-
-    def history(self, include_skips=False):
-        """The history of the dealt trials and the responses
-
-        Inputs
-        ------
-            include_skips : boolean
-                Whether or not to include trails where a tracker was dealt but
-                no response was made.
-
-        Returns
-        -------
-            tracker_history | list of int
-                The index of which tracker was dealt on each trial. Note that
-                the ints in this list correspond the the raveled index.
-            x_history
-                The level of the dealt tracker on each trial.
-            response_history
-                The response history (i.e., correct or incorrect)
-        """
-        if include_skips:
-            return (self._tracker_history, self._x_history,
-                    self._response_history)
-        else:
-            inds = np.invert(np.isnan(self._response_history))
-            return (self._tracker_history[inds], self._x_history[inds],
-                    self._response_history[inds].astype(bool))
 
 
 # =============================================================================
