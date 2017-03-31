@@ -470,7 +470,7 @@ class TrackerBinom(object):
         reaching ``alpha``.
     min_trials : float | list of float
         The minimum number of trials to run before allowing the track to stop
-        on reaching ``alpha``. Has no effect if if ``stop_early`` is ``False``.
+        on reaching ``alpha``. Has no effect if ``stop_early`` is ``False``.
     stop_early : boolean
         Whether to stop the adaptive track as soon as ``alpha`` is reached and
         at least ``min_trials`` have been presented.
