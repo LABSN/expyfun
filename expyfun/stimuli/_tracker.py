@@ -322,34 +322,49 @@ class TrackerUD(object):
 
     @property
     def stopped(self):
+        """Has the tracker stopped
+        """
         return self._stopped
 
     @property
     def x(self):
+        """The staircase
+        """
         return self._x
 
     @property
     def x_current(self):
+        """The current level
+        """
         return self._x_current
 
     @property
     def responses(self):
+        """The response history
+        """
         return self._responses
 
     @property
     def n_trials(self):
+        """The number of trials so far
+        """
         return self._n_trials
 
     @property
     def n_reversals(self):
+        """The number of reversals so far
+        """
         return self._n_reversals
 
     @property
     def reversals(self):
+        """The reversal history (0 where there was no reversal)
+        """
         return self._reversals
 
     @property
     def reversal_inds(self):
+        """The trial indices which had reversals"""
         return np.where(self._reversals)[0]
 
     # =========================================================================
@@ -600,34 +615,50 @@ class TrackerBinom(object):
 
     @property
     def n_wrong(self):
+        """The number of incorrect trials so far
+        """
         return self._n_wrong
 
     @property
     def n_correct(self):
+        """The number of correct trials so far
+        """
         return self._n_correct
 
     @property
     def pc(self):
+        """Percent correct
+        """
         return self._pc
 
     @property
     def responses(self):
+        """The response history
+        """
         return self._responses
 
     @property
     def stopped(self):
+        """Is the tracker stopped
+        """
         return self._stopped
 
     @property
     def success(self):
+        """Has the p-value reached significance
+        """
         return self._p_val <= self._alpha
 
     @property
     def x_current(self):
+        """Included only for compatibility with TrackerDealer
+        """
         return self._x_current
 
     @property
     def x(self):
+        """Included only for compatibility with TrackerDealer
+        """
         return np.array([self._x_current for _ in range(self._n_trials)])
 
 
@@ -640,21 +671,56 @@ class TrackerBinom(object):
 # TODO: eventually, make a BaseTracker class so that Trackers can make sure it
 # has the methods / properties it needs
 class TrackerDealer(object):
-    def __init__(self, tracker, shape, pacer='reversals', slop=1, rand=None):
-        from copy import deepcopy
+    """Class for selecting and pacing independent simultaneous trackers
+
+    Parameters
+    ----------
+    shape : list-like
+        The dimensions of the tracker container.
+    tracker_class : class
+        The class for the tracker you want to run, e.g. ``TrackerUD``--not an
+        instance.
+    tracker_args : list-like
+        The arguments used to instantiate each of the trackers.
+    tracker_kwargs : dict
+        The keyword arguments used to instantiate each of the trackers.
+    pace_rule : str
+        Whether to pace the trackers based on 'reversals' or 'trials'.
+    slop : int
+        The number of reversals or trials by which the leading tracker may lead
+        the lagging one.
+    rand : numpy.random.RandomState | None
+        The random process used to deal the trackers. If None, the process is
+        seeded based on the current time.
+
+    Returns
+    -------
+    dealer : instance of TrackerDealer
+        The binomial tracker object.
+
+    Notes
+    -----
+    The trackers can be accessed like a numpy array, e.g. ``dealer[0, 1, :]``.
+    """
+    def __init__(self, shape, tracker_class, tracker_args, tracker_kwargs,
+                 pace_rule='reversals', slop=1, rand=None):
         # dim will only be used for user output. Will be stored as 0-d
         if np.isscalar(shape):
             shape = [shape]
         self._shape = tuple(shape)
         self._n = np.prod(self._shape)
-        self._trackers = [deepcopy(tracker) for _ in range(self._n)]
-        if pacer not in ['reversals', 'trials']:
-            raise(ValueError, "pacer must be either 'reversals' or 'trials'.")
-        self._pacer = pacer
+        self._trackers = [tracker_class(*tracker_args, **tracker_kwargs)
+                          for _ in range(self._n)]
+        if pace_rule not in ['reversals', 'trials']:
+            raise(ValueError,
+                  "pace_rule must be either 'reversals' or 'trials'.")
+        self._pace_rule = pace_rule
         self._slop = slop
         if rand is None:
             self._seed = int(time.time())
-            self._rand = np.random.RandomState(seed)
+            self._rand = np.random.RandomState(self._seed)
+        else:
+            self._seed = None
         self._trial_complete = True
         self._tracker_history = np.array([], dtype=int)
         self._response_history = np.array([], dtype=int)
@@ -675,13 +741,15 @@ class TrackerDealer(object):
         return t
 
     def _pick(self):
+        """Decide which tracker to draw a trial from
+        """
         if self.stopped:
             raise(RuntimeError('All trackers have stopped.'))
         active = np.where(np.invert([t.stopped for t in self._trackers]))[0]
 
-        if self._pacer == 'reversals':
+        if self._pace_rule == 'reversals':
             pace = np.asarray([t.n_reversals for t in self._trackers])
-        elif self._pacer == 'trials':
+        elif self._pace_rule == 'trials':
             pace = np.asarray([t.n_trials for t in self._trackers])
         pace = pace[active]
         lag = pace.max() - pace
@@ -710,6 +778,13 @@ class TrackerDealer(object):
         return ss, level
 
     def respond(self, correct):
+        """Update the current tracker based on the last response.
+
+        Parameters
+        ----------
+        correct : boolean
+            Was the most recent subject response correct?
+        """
         if self._trial_complete:
             raise(RuntimeError, 'You must get a trial before you can respond.')
         self._trackers[self._current_tracker].respond(correct)
@@ -722,13 +797,35 @@ class TrackerDealer(object):
 
     @property
     def stopped(self):
+        """Are all the trackers stopped
+        """
         return np.all([t.stopped for t in self._trackers])
 
     @property
     def trackers(self):
+        """All of the tracker objects in the container
+        """
         return np.reshape(self._trackers, self.shape)
 
     def history(self, include_skips=False):
+        """The history of the dealt trials and the responses
+
+        Inputs
+        ------
+            include_skips : boolean
+                Whether or not to include trails where a tracker was dealt but
+                no response was made.
+
+        Returns
+        -------
+            tracker_history | list of int
+                The index of which tracker was dealt on each trial. Note that
+                the ints in this list correspond the the raveled index.
+            x_history
+                The level of the dealt tracker on each trial.
+            response_history
+                The response history (i.e., correct or incorrect)
+        """
         if include_skips:
             return (self._tracker_history, self._x_history,
                     self._response_history)
@@ -741,10 +838,11 @@ class TrackerDealer(object):
 # =============================================================================
 # Junk functions for testing (remove on release)
 # =============================================================================
+
 # Test the multi-tracker object
 def test_Trackers():
     ud = TrackerUD(1, 3, 1, 1, 10, 'reversals', 0)
-    t = TrackerDealer(ud, [3, 2], pacer='trials')
+    t = TrackerDealer(ud, [3, 2], pace_rule='trials')
     while not t.stopped:
         [inds, level] = t.get_trial()
         if np.random.rand() < 0.95:
@@ -802,7 +900,7 @@ def testbinom():
 
 # Test the binmial tracker in the Trackers container
 def testbinom_Trackers():
-    t = TrackerDealer(TrackerBinom(0.05, 0.5, 25), [3, 2], pacer='trials')
+    t = TrackerDealer(TrackerBinom(0.05, 0.5, 25), [3, 2], pace_rule='trials')
     while not t.stopped:
         [inds, level] = t.get_trial()
         t.respond(np.random.rand() < 0.8)
