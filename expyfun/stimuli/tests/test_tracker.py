@@ -82,6 +82,24 @@ def test_tacker_binom():
         tr.respond(True)
     assert(tr.n_trials == 100)
 
+    tr.alpha
+    tr.chance
+    tr.max_trials
+    tr.stop_early
+    tr.p_val
+    tr.min_p_val
+    tr.max_p_val
+    tr.n_trials
+    tr.n_wrong
+    tr.n_correct
+    tr.pc
+    tr.responses
+    tr.stopped
+    tr.success
+    tr.x_current
+    tr.x
+    tr.stop_rule
+
 
 def test_tracker_dealer():
     """Test TrackerDealer"""
@@ -100,6 +118,8 @@ def test_tracker_dealer():
     dealer_ud[0]
     dealer_ud[:]
     dealer_ud[[1, 0, 1]]
+    dealer_ud.shape
+    dealer_ud.trackers
 
     # test TrackerDealer with TrackerBinom
     dealer_binom = TrackerDealer([2], TrackerBinom,
