@@ -162,7 +162,7 @@ class TrackerUD(object):
         self._stopped = False
 
         # Now write the initialization data out
-        self._tracker_id = id(self)
+        self._tracker_id = int(id(self))
         self._callback('tracker_identify', json.dumps(dict(
             tracker_id=self._tracker_id,
             tracker_type='TrackerUD')))
@@ -523,7 +523,7 @@ class TrackerBinom(object):
         self._x_current = x_current
 
         # Now write the initialization data out
-        self._tracker_id = id(self)
+        self._tracker_id = int(id(self))
         self._callback('tracker_identify', json.dumps(dict(
             tracker_id=self._tracker_id,
             tracker_type='TrackerBinom')))
