@@ -1,7 +1,7 @@
 import numpy as np
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 from expyfun import ExperimentController
-from nose.tools import assert_raises  # , assert_equal, assert_true
+from nose.tools import assert_raises
 import matplotlib.pyplot as plt
 
 
@@ -25,7 +25,10 @@ def test_tracker_ud():
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
+    # test responding after stopped
     assert_raises(RuntimeError, tr.respond, 0)
+
+    # all the properties better work
     tr.up
     tr.down
     tr.step_size_up
@@ -46,8 +49,12 @@ def test_tracker_ud():
     tr.plot_thresh(ax=ax)
     tr.plot_thresh()
     plt.close(fig)
+    ax = plt.axes()
+    fig, ax, lines = tr.plot(ax)
+    plt.close(fig)
     tr.threshold
 
+    # bad callback type
     assert_raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, 'trials', 1)
 
     # test dynamic step size and error conditions
@@ -57,16 +64,22 @@ def test_tracker_ud():
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
                    change_criteria=[0, 2], change_rule='trials')
     tr.respond(True)
+    # first element of change_criteria non-zero
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1, change_criteria=[1, 2])
+    # first element of change_criteria length mistmatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1, change_criteria=[0])
+    # step_size_up length mismatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1], [1, 0.5], 10,
                   'trials', 1, change_criteria=[0, 2])
+    # step_size_down length mismatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1], 10,
                   'trials', 1, change_criteria=[0, 2])
+    # bad chane_rule
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1, change_criteria=[0, 2], change_rule='foo')
+    # no change_criteria (i.e. change_criteria=None)
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1)
 
@@ -120,6 +133,7 @@ def test_tracker_dealer():
         2, TrackerUD, [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {},
         rand=np.random.RandomState(0))
 
+    # can't respond before you pick a tracker and get a trial
     assert_raises(RuntimeError, dealer_ud.respond, True)
     rand = np.random.RandomState(0)
     trial = dealer_ud.get_trial()
@@ -128,7 +142,11 @@ def test_tracker_dealer():
         dealer_ud.respond(rand.rand() < trial[1])
         assert(np.abs(dealer_ud[0].n_reversals -
                       dealer_ud[0].n_reversals) <= 1)
+
+    # can't get a trial after tracker is stopped
     assert_raises(RuntimeError, dealer_ud.get_trial)
+
+    # test array-like indexing
     dealer_ud[0]
     dealer_ud[:]
     dealer_ud[[1, 0, 1]]
@@ -138,6 +156,7 @@ def test_tracker_dealer():
     dealer_ud.history()
     dealer_ud.history(True)
 
+    # bad rand type
     assert_raises(TypeError, TrackerDealer, [2], TrackerUD,
                   [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {}, rand=1)
 
@@ -150,5 +169,6 @@ def test_tracker_dealer():
         trial = dealer_binom.get_trial()
         dealer_binom.respond(np.random.rand() < trial[1])
 
+    # if you're dealing from TrackerBinom, you can't use stop_early feature
     assert_raises(ValueError, TrackerDealer, [2], TrackerBinom,
                   [None, 0.05, 0.5, 50], dict(stop_early=True))

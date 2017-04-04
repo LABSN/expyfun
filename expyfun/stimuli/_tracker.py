@@ -6,7 +6,7 @@
 
 import numpy as np
 import time
-from scipy.stats import binom as binom
+from scipy.stats import binom
 import json
 import matplotlib.pyplot as plt
 from .. import ExperimentController
@@ -112,7 +112,8 @@ class TrackerUD(object):
     would change the step sizes from 1 to 0.2 after two reversals.
 
     If static step sizes are used, both ``step_size_up``
-    and ``step_size_up`` must be scalars and ``change_criteria`` must be None.
+    and ``step_sizedownp`` must be scalars and ``change_criteria`` must be
+    None.
     """
     def __init__(self, callback, up, down, step_size_up, step_size_down,
                  stop_criterion, stop_rule, start_value, change_criteria=None,
@@ -136,13 +137,13 @@ class TrackerUD(object):
                   "'reversals'")
         self._change_rule = change_rule
 
-        step_size_up = list(np.atleast_1d(step_size_up))
+        step_size_up = np.atleast_1d(step_size_up)
         if len(step_size_up) != len(change_criteria):
             raise(ValueError('If step_size_up is not scalar it must be the '
                              'same length as change_criteria.'))
         self._step_size_up = np.asarray(step_size_up, dtype=float)
 
-        step_size_down = list(np.atleast_1d(step_size_down))
+        step_size_down = np.atleast_1d(step_size_down)
         if len(step_size_down) != len(change_criteria):
             raise(ValueError('If step_size_down is not scalar it must be the '
                   'same length as change_criteria.'))
@@ -170,12 +171,12 @@ class TrackerUD(object):
             callback=None,
             up=up,
             down=down,
-            step_size_up=step_size_up,
-            step_size_down=step_size_down,
+            step_size_up=list(step_size_up),
+            step_size_down=list(step_size_down),
             stop_criterion=stop_criterion,
             stop_rule=stop_rule,
             start_value=start_value,
-            change_criteria=change_criteria,
+            change_criteria=list(change_criteria),
             change_rule=change_rule,
             x_min=x_min,
             x_max=x_max)))
@@ -365,8 +366,13 @@ class TrackerUD(object):
     # =========================================================================
     # Display functions
     # =========================================================================
-    def plot(self):
+    def plot(self, ax=None):
         """Plot the adaptive track.
+
+        Parameters
+        ----------
+        ax : AxesSubplot | None
+            The axes to make the plot on. If ``None`` defaults to current axes.
 
         Returns
         -------
@@ -377,7 +383,10 @@ class TrackerUD(object):
         lines : list of Line2D
             The handles to the staircase line and the reversal dots.
         """
-        fig, ax = plt.subplots(1)
+        if ax is None:
+            fig, ax = plt.subplots(1)
+        else:
+            fig = ax.figure
 
         line = ax.plot(1 + np.arange(self._n_trials), self._x, 'k.-')
         dots = ax.plot(1 + np.where(self._reversals > 0)[0],
@@ -408,7 +417,7 @@ class TrackerUD(object):
         return h
 
     def threshold(self, n_skip=2):
-        """Plot a line showing the threshold on the current axes.
+        """Compute the track's threshold.
 
         Parameters
         ----------
@@ -426,6 +435,9 @@ class TrackerUD(object):
         The threshold is computed as the average of the up reversals and the
         average of the down reversals. In this way if there's an unequal number
         of them the assymetry won't bias the threshold estimate.
+
+        This can also be used before the track is stopped if the experimenter
+        wishes.
         """
         rev_inds = self.reversal_inds[n_skip:]
         if len(rev_inds) < 1:
@@ -460,7 +472,7 @@ class TrackerBinom(object):
         write the data anywhere.
     alpha : float
         The p-value which is considered significant. Must be between 0 and 1.
-        Note that if ``stop_early`` is `true` there is the potential for
+        Note that if ``stop_early`` is ``True`` there is the potential for
         multiple comparisons issues and a more stringent ``alpha`` should be
         considered.
     chance : float
@@ -664,7 +676,7 @@ class TrackerDealer(object):
         The arguments used to instantiate each of the trackers.
     tracker_kwargs : dict
         The keyword arguments used to instantiate each of the trackers.
-    slop : int
+    max_lag : int
         The number of reversals or trials by which the leading tracker may lead
         the lagging one. Whether this uses trials or reversals depends on the
         ``stop_rule`` of the tracker
@@ -686,7 +698,7 @@ class TrackerDealer(object):
     pace.
     """
     def __init__(self, shape, tracker_class, tracker_args, tracker_kwargs,
-                 slop=1, rand=None):
+                 max_lag=1, rand=None):
         # dim will only be used for user output. Will be stored as 0-d
         if np.isscalar(shape):
             shape = [shape]
@@ -695,7 +707,7 @@ class TrackerDealer(object):
         self._trackers = [tracker_class(*tracker_args, **tracker_kwargs)
                           for _ in range(self._n)]
         self._pace_rule = self._trackers[0].stop_rule
-        self._slop = slop
+        self._max_lag = max_lag
         if rand is None:
             self._seed = int(time.time())
             self._rand = np.random.RandomState(self._seed)
@@ -743,7 +755,7 @@ class TrackerDealer(object):
         lag = pace.max() - pace
         lag_max = lag.max()
 
-        if lag_max > self._slop:
+        if lag_max > self._max_lag:
             # This should never happen, but handle it if it does
             inds = active[lag == lag_max]
         elif lag_max > 0:
