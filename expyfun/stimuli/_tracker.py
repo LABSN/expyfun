@@ -250,9 +250,9 @@ class TrackerUD(object):
             self._x = self._x[:-1]
             self._callback(
                 'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
-                    responses=list(self._responses.astype(int)),
-                    reversals=list(self._reversals),
-                    x=list(self._x))))
+                    responses=[int(s) for s in self._responses],
+                    reversals=[int(s) for s in self._reversals],
+                    x=[int(s) for s in self._x])))
 
     def _stop_here(self):
         if self._stop_rule.lower() == 'reversals':
@@ -564,6 +564,15 @@ class TrackerBinom(object):
                 self._stopped = True
         if self._n_trials == self._max_trials:
             self._stopped = True
+
+        if self._stopped:
+            self._callback(
+                'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
+                    responses=[int(s) for s in self._responses],
+                    p_val=self._p_val,
+                    success=int(self.success))))
+        else:
+            self._callback('tracker_%i_respond' % self._tracker_id, correct)
 
     # =========================================================================
     # Define all the public properties
