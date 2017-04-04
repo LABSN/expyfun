@@ -123,8 +123,8 @@ class TrackerUD(object):
         self._stop_criterion = stop_criterion
         self._stop_rule = stop_rule
         self._start_value = start_value
-        self._x_min = x_min
-        self._x_max = x_max
+        self._x_min = -np.inf if x_min is None else x_min
+        self._x_max = np.inf if x_max is None else x_max
 
         if change_criteria is None:
             change_criteria = [0]
@@ -161,24 +161,24 @@ class TrackerUD(object):
         self._stopped = False
 
         # Now write the initialization data out
-        self._tracker_id = int(id(self))
+        self._tracker_id = id(self)
         self._callback('tracker_identify', json.dumps(dict(
             tracker_id=self._tracker_id,
             tracker_type='TrackerUD')))
 
         self._callback('tracker_%i_init' % self._tracker_id, json.dumps(dict(
             callback=None,
-            up=up,
-            down=down,
-            step_size_up=list(step_size_up),
-            step_size_down=list(step_size_down),
-            stop_criterion=stop_criterion,
-            stop_rule=stop_rule,
-            start_value=start_value,
-            change_criteria=list(change_criteria),
-            change_rule=change_rule,
-            x_min=x_min,
-            x_max=x_max)))
+            up=self._up,
+            down=self._down,
+            step_size_up=list(self._step_size_up),
+            step_size_down=list(self._step_size_down),
+            stop_criterion=self._stop_criterion,
+            stop_rule=self._stop_rule,
+            start_value=self._start_value,
+            change_criteria=list(self._change_criteria),
+            change_rule=self._change_rule,
+            x_min=self._x_min,
+            x_max=self._x_max)))
 
     def respond(self, correct):
         """Update the tracker based on the last response.
@@ -479,13 +479,13 @@ class TrackerBinom(object):
     max_trials : int
         The maximum number of trials to run before stopping the track without
         reaching ``alpha``.
-    min_trials : float | list of float
+    min_trials : int
         The minimum number of trials to run before allowing the track to stop
         on reaching ``alpha``. Has no effect if ``stop_early`` is ``False``.
     stop_early : boolean
         Whether to stop the adaptive track as soon as ``alpha`` is reached and
         at least ``min_trials`` have been presented.
-    x_current : float
+    x_current : float | None
         The level that you want to run the test at. This has no bearing on how
         the track runs, and it will never change, but it is required to be
         here for ``TrackerDealer``.
@@ -522,19 +522,19 @@ class TrackerBinom(object):
         self._x_current = x_current
 
         # Now write the initialization data out
-        self._tracker_id = int(id(self))
+        self._tracker_id = id(self)
         self._callback('tracker_identify', json.dumps(dict(
             tracker_id=self._tracker_id,
             tracker_type='TrackerBinom')))
 
         self._callback('tracker_%i_init' % self._tracker_id, json.dumps(dict(
             callback=None,
-            alpha=alpha,
-            chance=chance,
-            max_trials=max_trials,
-            min_trials=min_trials,
-            stop_early=stop_early,
-            x_current=x_current)))
+            alpha=self._alpha,
+            chance=self._chance,
+            max_trials=self._max_trials,
+            min_trials=self._min_trials,
+            stop_early=self._stop_early,
+            x_current=self._x_current)))
 
     def respond(self, correct):
         """Update the tracker based on the last response.
