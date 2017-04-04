@@ -30,9 +30,8 @@ def _check_callback(callback):
         callback = callback.write_data_line
 
     if not callable(callback):
-        raise(TypeError,
-              'callback must be a callable, None, or an instance of '
-              'ExperimentController.')
+        raise TypeError('callback must be a callable, None, or an instance of '
+                        'ExperimentController.')
     return callback
 
 
@@ -130,23 +129,23 @@ class TrackerUD(object):
         if change_criteria is None:
             change_criteria = [0]
         elif change_criteria[0] != 0:
-            raise(ValueError('First element of change_criteria must be 0.'))
+            raise ValueError('First element of change_criteria must be 0.')
         self._change_criteria = np.asarray(change_criteria)
         if change_rule not in ['trials', 'reversals']:
-            raise(ValueError, "change_rule must be either 'trials' or "
-                  "'reversals'")
+            raise ValueError("change_rule must be either 'trials' or "
+                             "'reversals'")
         self._change_rule = change_rule
 
         step_size_up = np.atleast_1d(step_size_up)
         if len(step_size_up) != len(change_criteria):
-            raise(ValueError('If step_size_up is not scalar it must be the '
-                             'same length as change_criteria.'))
+            raise ValueError('If step_size_up is not scalar it must be the '
+                             'same length as change_criteria.')
         self._step_size_up = np.asarray(step_size_up, dtype=float)
 
         step_size_down = np.atleast_1d(step_size_down)
         if len(step_size_down) != len(change_criteria):
-            raise(ValueError('If step_size_down is not scalar it must be the '
-                  'same length as change_criteria.'))
+            raise ValueError('If step_size_down is not scalar it must be the '
+                             'same length as change_criteria.')
         self._step_size_down = np.asarray(step_size_down, dtype=float)
 
         self._x = np.asarray([start_value], dtype=float)
@@ -190,7 +189,7 @@ class TrackerUD(object):
             Was the most recent subject response correct?
         """
         if self._stopped:
-            raise(RuntimeError, 'Tracker is stopped.')
+            raise RuntimeError('Tracker is stopped.')
 
         reversal = False
         self._responses = np.append(self._responses, correct)
@@ -744,7 +743,7 @@ class TrackerDealer(object):
         """Decide which tracker to draw a trial from
         """
         if self.stopped:
-            raise(RuntimeError('All trackers have stopped.'))
+            raise RuntimeError('All trackers have stopped.')
         active = np.where(np.invert([t.stopped for t in self._trackers]))[0]
 
         if self._pace_rule == 'reversals':
@@ -800,7 +799,7 @@ class TrackerDealer(object):
         ``get_trial`` must be run before ``respond`` can be called.
         """
         if self._trial_complete:
-            raise(RuntimeError, 'You must get a trial before you can respond.')
+            raise RuntimeError('You must get a trial before you can respond.')
         self._trackers[self._current_tracker].respond(correct)
         self._trial_complete = True
         self._response_history = np.append(self._response_history, correct)
