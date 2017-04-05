@@ -748,8 +748,11 @@ class TrackerDealer(object):
         self._index += 1
         return t
 
+    def __next__(self):  # for py3k compatibility
+        return self.next()
+
     def _pick(self):
-        """Decide which tracker to draw a trial from
+        """Decide which tracker from which to draw a trial
         """
         if self.stopped:
             raise RuntimeError('All trackers have stopped.')
