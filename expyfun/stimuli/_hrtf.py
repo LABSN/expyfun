@@ -152,6 +152,17 @@ def convolve_hrtf(data, fs, angle, source='barb'):
     out = np.array([np.convolve(data, brir[o]) for o in order])
     return out
 
+    
+def make_sym(x):
+    """
+    forces symmetry around zero
+    """
+    n = x.shape[-1]
+    x[..., :-((n + 1) // 2):-1] = np.conj(x[..., 1:(n + 1) // 2])
+    if np.mod(n, 2) == 0:
+        x[..., n // 2] = 0
+    return x
+    
 
 def interp_hrtf(angle, fs):
     """
@@ -199,8 +210,7 @@ def interp_hrtf(angle, fs):
 
     # combine magnitude and phase components
     HRTF_a = np.multiply(HRTF_a_mag, np.exp(1j * (HRTF_a_phase)))
-    HRTF_a[:, 93:185] = (np.fliplr(np.real(HRTF_a[:, 0:91]) - 1j *
-                         np.imag(HRTF_a[:, 0:91])))  # impose symmetry
+    HRTF_a = make_sym(HRTF_a)
     brir_a = np.real(np.fft.ifft(HRTF_a))
     brir_a = np.concatenate((brir_a[:, -delay:], brir_a[:, :-delay]), 1)
 
