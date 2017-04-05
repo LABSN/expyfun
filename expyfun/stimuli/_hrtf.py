@@ -95,7 +95,7 @@ def convolve_hrtf(data, fs, angle, source='barb'):
         http://earlab.bu.edu/databases/collections/cipic/documentation/hrir_data_documentation.pdf  # noqa
 
     The data were modified to suit our experimental needs. Below is the
-    liceneing information for the CIPIC data:
+    licensing information for the CIPIC data:
 
     **Copyright**
 
@@ -152,8 +152,8 @@ def convolve_hrtf(data, fs, angle, source='barb'):
     out = np.array([np.convolve(data, brir[o]) for o in order])
     return out
 
-    
-def make_sym(x):
+
+def _make_sym(x):
     """
     forces symmetry around zero
     """
@@ -162,9 +162,9 @@ def make_sym(x):
     if np.mod(n, 2) == 0:
         x[..., n // 2] = 0
     return x
-    
 
-def interp_hrtf(angle, fs):
+
+def _interp_hrtf(angle, fs):
     """
     This function takes the two nearest known HRTFs (in the form of a BRIR) and
     uses them to calculate an HRTF (again, as a BRIR) between them for any
@@ -180,7 +180,14 @@ def interp_hrtf(angle, fs):
 
     Returns
     -------
-    brir : 2 x 184 matrix containing interpolated BRIR for the given angle
+    brir : array
+        A 2D array ``shape=(2, n_samples)`` containing the brir data.
+        
+    References
+    ----------
+    R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer 
+    Functions", Australian Government Department of Defence: Defence Science 
+    and Technology Organization, Melbourne, Victoria, Australia, 2007.
 
     """
     a = float(angle)
@@ -210,7 +217,7 @@ def interp_hrtf(angle, fs):
 
     # combine magnitude and phase components
     HRTF_a = np.multiply(HRTF_a_mag, np.exp(1j * (HRTF_a_phase)))
-    HRTF_a = make_sym(HRTF_a)
+    HRTF_a = _make_sym(HRTF_a)
     brir_a = np.real(np.fft.ifft(HRTF_a))
     brir_a = np.concatenate((brir_a[:, -delay:], brir_a[:, :-delay]), 1)
 
