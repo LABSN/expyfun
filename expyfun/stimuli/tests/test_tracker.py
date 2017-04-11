@@ -88,6 +88,12 @@ def test_tracker_ud():
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1)
 
+    # start_value scalar type checking
+    assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
+                  'trials', [9, 5], change_criteria=[0, 2])
+    assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
+                  'trials', None, change_criteria=[0, 2])
+
 
 def test_tacker_binom():
     """Test TrackerBinom"""
@@ -142,8 +148,8 @@ def test_tracker_dealer():
     rand = np.random.RandomState(0)
     trial = dealer_ud.get_trial()
     while not dealer_ud.stopped:
-        trial = dealer_ud.get_trial()
-        dealer_ud.respond(rand.rand() < trial[1])
+        sub, x_current = dealer_ud.get_trial()
+        dealer_ud.respond(rand.rand() < x_current)
         assert(np.abs(dealer_ud[0].n_reversals -
                       dealer_ud[0].n_reversals) <= 1)
 
@@ -170,8 +176,8 @@ def test_tracker_dealer():
                                  dict(stop_early=False))
     rand = np.random.RandomState(0)
     while not dealer_binom.stopped:
-        trial = dealer_binom.get_trial()
-        dealer_binom.respond(np.random.rand() < trial[1])
+        sub, x_current = dealer_binom.get_trial()
+        dealer_binom.respond(True)
 
     # if you're dealing from TrackerBinom, you can't use stop_early feature
     assert_raises(ValueError, TrackerDealer, [2], TrackerBinom,

@@ -149,7 +149,9 @@ class TrackerUD(object):
         self._step_size_down = np.asarray(step_size_down, dtype=float)
 
         self._x = np.asarray([start_value], dtype=float)
-        self._x_current = start_value
+        if not np.isscalar(start_value):
+            raise TypeError('start_value must be a scalar')
+        self._x_current = float(start_value)
         self._responses = np.asarray([], dtype=bool)
         self._reversals = np.asarray([], dtype=int)
         self._n_up = 0
