@@ -9,16 +9,17 @@ def callback(event_type, value=None, timestamp=None):
     print(event_type, value, timestamp)
 
 
-std_args = ['test']
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
+                  trigger_controller='dummy', response_device='keyboard',
+                  audio_controller='pyglet',
                   verbose=True, version='dev')
 
 
 def test_tracker_ud():
     """Test TrackerUD"""
     tr = TrackerUD(callback, 3, 1, 1, 1, 10, 'trials', 1)
-    with ExperimentController(*std_args, **std_kwargs) as ec:
+    with ExperimentController('test', **std_kwargs) as ec:
         tr = TrackerUD(ec, 3, 1, 1, 1, 10, 'trials', 1)
     tr = TrackerUD(None, 3, 1, 1, 1, 10, 'trials', 1)
     rand = np.random.RandomState(0)
@@ -98,7 +99,7 @@ def test_tracker_ud():
 def test_tacker_binom():
     """Test TrackerBinom"""
     tr = TrackerBinom(callback, 0.05, 0.1, 5)
-    with ExperimentController(*std_args, **std_kwargs) as ec:
+    with ExperimentController('test', **std_kwargs) as ec:
         tr = TrackerBinom(ec, 0.05, 0.1, 5)
     tr = TrackerBinom(None, 0.05, 0.5, 2, stop_early=False)
     while not tr.stopped:
