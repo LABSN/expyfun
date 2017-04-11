@@ -28,7 +28,7 @@ from .._utils import fetch_data_file, _fix_audio_dims
 # Then the files were uploaded to lester.
 
 
-def _get_hrtf(angle, source, fs):
+def _get_hrtf(angle, source, fs, interp=False):
     """Helper to sub-select proper BRIR
 
     HRTF files must be .hdf5 files written by ``write_hdf5``. The dict stored
@@ -59,10 +59,10 @@ def _get_hrtf(angle, source, fs):
     return brir, data['fs'], leftward
 
 
-def convolve_hrtf(data, fs, angle, source='barb'):
+def convolve_hrtf(data, fs, angle, source='barb', interp=False):
     """Convolve a signal with a head-related transfer function
 
-    Technically we will be convolving with binaural room impluse
+    Technically we will be convolving with binaural room impulse
     responses (BRIRs), but HRTFs (freq-domain equiv. representations)
     are the common terminology.
 
@@ -78,6 +78,9 @@ def convolve_hrtf(data, fs, angle, source='barb'):
         Source to use for HRTFs. Currently `'barb'` and `'cipic'` are
         supported. The former is default for legacy purpose. The latter is
         recommended for new experiments.
+    interp : bool
+        Parameter to determine whether to use known HRTF values or to use an 
+        interpolated HRTF; set to 'False' by default
 
     Returns
     -------
@@ -144,7 +147,7 @@ def convolve_hrtf(data, fs, angle, source='barb'):
     ge = [int(np.round(fs)) <= k for k in known_fs[:-1]] + [True]
     brir_fs = known_fs[ge.index(True)]
 
-    brir, brir_fs, leftward = _get_hrtf(angle, source, brir_fs)
+    brir, brir_fs, leftward = _get_hrtf(angle, source, brir_fs, interp)
     order = [1, 0] if leftward else [0, 1]
     if not np.allclose(brir_fs, fs, rtol=0, atol=0.5):
         from mne.filter import resample
@@ -164,7 +167,7 @@ def _make_sym(x):
     return x
 
 
-def _interp_hrtf(angle, fs):
+def interp_hrtf(angle, fs):
     """
     This function takes the two nearest known HRTFs (in the form of a BRIR) and
     uses them to calculate an HRTF (again, as a BRIR) between them for any
@@ -208,10 +211,12 @@ def _interp_hrtf(angle, fs):
     HRTF_b = np.fft.fft(brir_b)
     HRTF_c = np.fft.fft(brir_c)
 
-    # weighted averages of magnitude and unwrapped phase
+    # weighted averages of log magnitude and unwrapped phase
     weight_b = (step - np.abs(a - b)) / step
     weight_c = (step - np.abs(a - c)) / step
-    HRTF_a_mag = weight_b * np.abs(HRTF_b) + weight_c * np.abs(HRTF_c)
+    HRTF_a_logmag = (weight_b * np.log10(np.abs(HRTF_b)) + 
+                     weight_c * np.log10(np.abs(HRTF_c)))
+    HRTF_a_mag = np.power(10, HRTF_a_logmag)
     HRTF_a_phase = (weight_b * np.unwrap(np.angle(HRTF_b)) +
                     weight_c * np.unwrap(np.angle(HRTF_c)))
 
