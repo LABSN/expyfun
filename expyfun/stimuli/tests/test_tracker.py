@@ -147,7 +147,6 @@ def test_tracker_dealer():
     # can't respond before you pick a tracker and get a trial
     assert_raises(RuntimeError, dealer_ud.respond, True)
     rand = np.random.RandomState(0)
-    trial = dealer_ud.get_trial()
     while not dealer_ud.stopped:
         sub, x_current = dealer_ud.get_trial()
         dealer_ud.respond(rand.rand() < x_current)
