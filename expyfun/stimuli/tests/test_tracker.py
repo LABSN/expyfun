@@ -1,12 +1,10 @@
 import numpy as np
-
 import matplotlib
-
+matplotlib.use('Agg')  # noqa
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 from expyfun import ExperimentController
 from nose.tools import assert_raises
-
-matplotlib.use('Agg')
+from expyfun._utils import _hide_window, requires_opengl21
 
 
 def callback(event_type, value=None, timestamp=None):
@@ -100,7 +98,8 @@ def test_tracker_ud():
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', None, change_criteria=[0, 2])
 
-
+@_hide_window
+@requires_opengl21
 def test_tracker_binom():
     """Test TrackerBinom"""
     tr = TrackerBinom(callback, 0.05, 0.1, 5)
@@ -139,7 +138,8 @@ def test_tracker_binom():
     tr.x
     tr.stop_rule
 
-
+@_hide_window
+@requires_opengl21
 def test_tracker_dealer():
     """Test TrackerDealer"""
     # test TrackerDealer with TrackerUD
