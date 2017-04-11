@@ -12,13 +12,13 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import sphinx_gallery  # noqa
+import sphinx_bootstrap_theme
 import inspect
 import os
 from os.path import relpath, dirname
 import sys
 from datetime import date
-import sphinx_gallery  # noqa
-import sphinx_bootstrap_theme
 from numpydoc import numpydoc, docscrape  # noqa
 
 # If extensions (or modules to document with autodoc) are in another directory,

@@ -1,8 +1,12 @@
 import numpy as np
+
+import matplotlib
+
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 from expyfun import ExperimentController
 from nose.tools import assert_raises
-import matplotlib.pyplot as plt
+
+matplotlib.use('Agg')
 
 
 def callback(event_type, value=None, timestamp=None):
@@ -18,6 +22,7 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
 
 def test_tracker_ud():
     """Test TrackerUD"""
+    import matplotlib.pyplot as plt
     tr = TrackerUD(callback, 3, 1, 1, 1, 10, 'trials', 1)
     with ExperimentController('test', **std_kwargs) as ec:
         tr = TrackerUD(ec, 3, 1, 1, 1, 10, 'trials', 1)
@@ -96,7 +101,7 @@ def test_tracker_ud():
                   'trials', None, change_criteria=[0, 2])
 
 
-def test_tacker_binom():
+def test_tracker_binom():
     """Test TrackerBinom"""
     tr = TrackerBinom(callback, 0.05, 0.1, 5)
     with ExperimentController('test', **std_kwargs) as ec:
