@@ -25,21 +25,18 @@ def test_version():
     assert_true(all('actual' in str(ww.message) for ww in w))
 
     v = 'b798e65'
-    f = 'drammock'
     if not _has_git:
-        assert_raises(ImportError, download_version, v, tempdir, f)
+        assert_raises(ImportError, download_version, v, tempdir)
     else:
-        assert_raises(IOError, download_version, v, op.join(tempdir, 'foo'), f)
-        assert_raises(RuntimeError, download_version, 'x' * 7, tempdir, f)
-        download_version(v, tempdir, f)
+        assert_raises(IOError, download_version, v, op.join(tempdir, 'foo'))
+        assert_raises(RuntimeError, download_version, 'x' * 7, tempdir)
+        download_version(v, tempdir)
         ex_dir = op.join(tempdir, 'expyfun')
         assert_true(op.isdir(ex_dir))
         assert_true(op.isfile(op.join(ex_dir, '__init__.py')))
         with open(op.join(ex_dir, '_version.py')) as fid:
             line1 = fid.readline().strip()
-            line2 = fid.readline().strip()
         assert_equal(line1.split(' = ')[1][-8:-1], v)
-        assert_equal(line2.split(' = ')[1].strip('\''), f)
 
         # auto dir determination
         orig_dir = os.getcwd()
