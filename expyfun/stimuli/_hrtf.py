@@ -28,6 +28,7 @@ from .._utils import fetch_data_file, _fix_audio_dims
 # Then the files were uploaded to lester.
 
 
+
 def _get_hrtf(angle, source, fs, interp=False):
     """Helper to sub-select proper BRIR
 
@@ -40,6 +41,19 @@ def _get_hrtf(angle, source, fs, interp=False):
     0-degree BRIRs (mean of that across channels) is equal to 1. This will
     ensure that the RMS of a white signal filtered with this signal is
     unchanged.
+    
+    If interp is True, the function takes the two nearest known HRTFs (in the 
+    form of a BRIR) and uses them to calculate an HRTF (again, as a BRIR) 
+    between them for any given azimuthal angle between 0 and 90 degrees.
+    
+    Interpolation relies on averagin log magnitude and phase in the frequency
+    domain as in the referenced paper.
+    
+    References
+    ----------
+    R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer 
+    Functions", Australian Government Department of Defence: Defence Science 
+    and Technology Organization, Melbourne, Victoria, Australia, 2007.
     """
     fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
     data = read_hdf5(fname)
@@ -49,14 +63,52 @@ def _get_hrtf(angle, source, fs, interp=False):
     if angle < 0:
         leftward = True
         read_angle = -angle
-    if read_angle not in angles:
+    if read_angle not in angles and not interp:
         raise ValueError('angle "{0}" must be one of +/-{1}'
                          ''.format(angle, list(angles)))
     brir = data['brir']
-    idx = np.where(angles == read_angle)[0]
-    assert len(idx) == 1
-    brir = brir[idx[0]].copy()
+    if not interp:
+        idx = np.where(angles == read_angle)[0]
+        assert len(idx) == 1
+        brir = brir[idx[0]].copy()
+    elif interp:
+        idx = np.where(angles < read_angle)[0]
+        # angles are
+        b = angles[idx[-1]]
+        c = angles[idx[-1] + 1]
+        # get known brirs
+        brir_b =  brir[idx[-1]].copy()
+        brir_c = brir[idx[-1] + 1].copy()
+    
+        # find location of maximum for each component of each known brir and
+        # average to find a generally good place to declare time = 0 (all data
+        # from before this point gets shifted to the end)
+        delay = int(np.mean([np.argmax(brir_b, 1), np.argmax(brir_c, 1)]))
+        brir_b = np.concatenate((brir_b[:, delay:], brir_b[:, :delay]), 1)
+        brir_c = np.concatenate((brir_c[:, delay:], brir_c[:, :delay]), 1)
+        # convert to frequency domain representation
+        HRTF_b = np.fft.fft(brir_b)
+        HRTF_c = np.fft.fft(brir_c)
+
+        # weighted averages of log magnitude and unwrapped phase
+        step = c-b
+        a = float(angle)
+        weight_b = (step - np.abs(a - b)) / step
+        weight_c = (step - np.abs(a - c)) / step
+        HRTF_a_logmag = (weight_b * np.log10(np.abs(HRTF_b)) + 
+                         weight_c * np.log10(np.abs(HRTF_c)))
+        HRTF_a_mag = np.power(10, HRTF_a_logmag)
+        HRTF_a_phase = (weight_b * np.unwrap(np.angle(HRTF_b)) +
+                        weight_c * np.unwrap(np.angle(HRTF_c)))
+
+        # combine magnitude and phase components
+        HRTF_a = np.multiply(HRTF_a_mag, np.exp(1j * (HRTF_a_phase)))
+        HRTF_a = _make_sym(HRTF_a)
+        brir_a = np.real(np.fft.ifft(HRTF_a))
+        brir = np.concatenate((brir_a[:, -delay:], brir_a[:, :-delay]), 1)
     return brir, data['fs'], leftward
+    
+    return brir_b, data['fs'], leftward
 
 
 def convolve_hrtf(data, fs, angle, source='barb', interp=False):
@@ -158,72 +210,10 @@ def convolve_hrtf(data, fs, angle, source='barb', interp=False):
 
 def _make_sym(x):
     """
-    forces symmetry around zero
+    forces symmetry
     """
     n = x.shape[-1]
     x[..., :-((n + 1) // 2):-1] = np.conj(x[..., 1:(n + 1) // 2])
     if np.mod(n, 2) == 0:
         x[..., n // 2] = 0
     return x
-
-
-def interp_hrtf(angle, fs):
-    """
-    This function takes the two nearest known HRTFs (in the form of a BRIR) and
-    uses them to calculate an HRTF (again, as a BRIR) between them for any
-    given azimuthal angle between 0 and 90 degrees.
-
-    Parameters
-    ----------
-    angle : float
-        The desired angle of the interpolated BRIR in degrees. The angle must
-        be between -90 and 90 degrees.
-    fs : int
-        The sampling frequency of the BRIR
-
-    Returns
-    -------
-    brir : array
-        A 2D array ``shape=(2, n_samples)`` containing the brir data.
-        
-    References
-    ----------
-    R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer 
-    Functions", Australian Government Department of Defence: Defence Science 
-    and Technology Organization, Melbourne, Victoria, Australia, 2007.
-
-    """
-    a = float(angle)
-    step = 5  # interval between hrtfs from cipic library
-    b = int(a + 0) / step * step
-    c = int(a + step) / step * step
-
-    # get known brirs
-    brir_b = convolve_hrtf([1], fs, b, 'cipic')
-    brir_c = convolve_hrtf([1], fs, c, 'cipic')
-    # find location of maximum for each component of each known brir and
-    # average to find a generally good place to declare time = 0 (all data
-    # from before this point gets shifted to the end)
-    delay = int(np.mean([np.argmax(brir_b, 1), np.argmax(brir_c, 1)]))
-    brir_b = np.concatenate((brir_b[:, delay:], brir_b[:, :delay]), 1)
-    brir_c = np.concatenate((brir_c[:, delay:], brir_c[:, :delay]), 1)
-    # convert to frequency domain representation
-    HRTF_b = np.fft.fft(brir_b)
-    HRTF_c = np.fft.fft(brir_c)
-
-    # weighted averages of log magnitude and unwrapped phase
-    weight_b = (step - np.abs(a - b)) / step
-    weight_c = (step - np.abs(a - c)) / step
-    HRTF_a_logmag = (weight_b * np.log10(np.abs(HRTF_b)) + 
-                     weight_c * np.log10(np.abs(HRTF_c)))
-    HRTF_a_mag = np.power(10, HRTF_a_logmag)
-    HRTF_a_phase = (weight_b * np.unwrap(np.angle(HRTF_b)) +
-                    weight_c * np.unwrap(np.angle(HRTF_c)))
-
-    # combine magnitude and phase components
-    HRTF_a = np.multiply(HRTF_a_mag, np.exp(1j * (HRTF_a_phase)))
-    HRTF_a = _make_sym(HRTF_a)
-    brir_a = np.real(np.fft.ifft(HRTF_a))
-    brir_a = np.concatenate((brir_a[:, -delay:], brir_a[:, :-delay]), 1)
-
-    return brir_a
