@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-===========================
-Do a couple adaptive tracks
-===========================
+==============================
+Do an adaptive track staircase
+==============================
 
 This shows how to make and use an adaptive track using AdaptiveTracker.
 
