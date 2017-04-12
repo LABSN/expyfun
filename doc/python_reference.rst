@@ -52,6 +52,16 @@ Stimulus design
 
 .. currentmodule:: expyfun.stimuli
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   TrackerBinom
+   TrackerDealer
+   TrackerUD
+
 Functions:
 
 .. autosummary::

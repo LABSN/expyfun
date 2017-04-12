@@ -17,9 +17,9 @@ import os
 from os.path import relpath, dirname
 import sys
 from datetime import date
-from numpydoc import numpydoc, docscrape  # noqa
 import sphinx_gallery  # noqa
 import sphinx_bootstrap_theme
+from numpydoc import numpydoc, docscrape  # noqa
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
