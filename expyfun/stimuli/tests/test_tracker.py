@@ -18,6 +18,8 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   verbose=True, version='dev')
 
 
+@_hide_window
+@requires_opengl21
 def test_tracker_ud():
     """Test TrackerUD"""
     import matplotlib.pyplot as plt
@@ -98,6 +100,7 @@ def test_tracker_ud():
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', None, change_criteria=[0, 2])
 
+
 @_hide_window
 @requires_opengl21
 def test_tracker_binom():
@@ -138,8 +141,7 @@ def test_tracker_binom():
     tr.x
     tr.stop_rule
 
-@_hide_window
-@requires_opengl21
+
 def test_tracker_dealer():
     """Test TrackerDealer"""
     # test TrackerDealer with TrackerUD

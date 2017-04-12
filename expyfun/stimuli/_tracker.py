@@ -8,7 +8,7 @@ import numpy as np
 import time
 from scipy.stats import binom
 import json
-import matplotlib.pyplot as plt
+
 from .. import ExperimentController
 
 
@@ -384,6 +384,7 @@ class TrackerUD(object):
         lines : list of Line2D
             The handles to the staircase line and the reversal dots.
         """
+        import matplotlib.pyplot as plt
         if ax is None:
             fig, ax = plt.subplots(1)
         else:
@@ -411,6 +412,7 @@ class TrackerUD(object):
         line : list Line2D
             The handle to the threshold line, as returned from ``plt.plot``.
         """
+        import matplotlib.pyplot as plt
         if ax is None:
             ax = plt.gca()
         h = ax.plot([1, self._n_trials], [self.threshold(n_skip)] * 2,
@@ -680,7 +682,8 @@ class TrackerDealer(object):
     shape : list-like
         The dimensions of the tracker container.
     tracker_class : class
-        The class for the tracker you want to run, e.g. ``TrackerUD``--not an
+        The class for the tracker you want to run, e.g.
+        :class:`expyfun.stimuli.TrackerUD`--not an
         instance.
     tracker_args : list-like
         The arguments used to instantiate each of the trackers.
@@ -712,6 +715,9 @@ class TrackerDealer(object):
         # dim will only be used for user output. Will be stored as 0-d
         if np.isscalar(shape):
             shape = [shape]
+        if not any(tracker_class is x for x in (TrackerUD, TrackerBinom)):
+            raise TypeError('tracker_class must be the class TrackerUD or '
+                            'TrackerBinom')
         self._shape = tuple(shape)
         self._n = np.prod(self._shape)
         self._trackers = [tracker_class(*tracker_args, **tracker_kwargs)
@@ -821,21 +827,21 @@ class TrackerDealer(object):
     def history(self, include_skips=False):
         """The history of the dealt trials and the responses
 
-        Inputs
+        Parameters
         ------
-            include_skips : boolean
-                Whether or not to include trials where a tracker was dealt but
-                no response was made.
+        include_skips : bool
+            Whether or not to include trials where a tracker was dealt but
+            no response was made.
 
         Returns
         -------
-            tracker_history : list of int
-                The index of which tracker was dealt on each trial. Note that
-                the ints in this list correspond the the raveled index.
-            x_history : list of float
-                The level of the dealt tracker on each trial.
-            response_history : list of boolean
-                The response history (i.e., correct or incorrect)
+        tracker_history : list of int
+            The index of which tracker was dealt on each trial. Note that
+            the ints in this list correspond the the raveled index.
+        x_history : list of float
+            The level of the dealt tracker on each trial.
+        response_history : list of bool
+            The response history (i.e., correct or incorrect)
         """
         if include_skips:
             return (self._tracker_history, self._x_history,
