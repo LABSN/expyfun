@@ -10,6 +10,8 @@ the ExperimentController class.
 #
 # License: BSD (3-clause)
 
+import os
+import sys
 from os import path as op
 import numpy as np
 
@@ -36,7 +38,13 @@ running_total = 0
 # make the stimuli if necessary and then load them
 fname = 'equally_spaced_sinewaves.hdf5'
 if not op.isfile(fname):
-    from stimuli.plot_generate_simple_stimuli import generate_stimuli
+    # This sys.path wrangling is only necessary for Sphinx automatic
+    # documentation building
+    sys.path.insert(0, os.getcwd())
+    try:
+        from plot_generate_simple_stimuli import generate_stimuli
+    finally:
+        sys.path.pop(0)
     generate_stimuli()
 stims = read_hdf5(fname)
 orig_rms = stims['rms']

@@ -45,11 +45,12 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
         RMS amplitude to which all sinwaves will be scaled.
     output_dir : str
         Directory to output the files into.
-    save_as : str
+    save_as : str | None
         Format in which to return the sinewaves. 'dict' returns sinewave arrays
         as values in a python dictionary; 'wav' saves them as WAV files at
         sampling frequency 'fs'; 'mat' saves them as a MAT file along with
         related variables 'fs', 'freqs', 'trial_order', and 'rms'.
+        None will not save any data.
     rand_seed : int | None
         Seed for the random number generator.
 
@@ -64,7 +65,7 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
         rng = np.random.RandomState(rand_seed)
 
     # check input arguments
-    if save_as not in ['dict', 'wav', 'hdf5']:
+    if save_as is not None and save_as not in ['dict', 'wav', 'hdf5']:
         raise ValueError('"save_as" must be "dict", "wav", or "hdf5"')
 
     fs = float(fs)
@@ -99,7 +100,7 @@ def generate_stimuli(num_trials=10, num_freqs=4, stim_dur=0.5, min_freq=500.0,
 
 
 if __name__ == '__main__':
-    wav_dict = generate_stimuli()
+    wav_dict = generate_stimuli(save_as=None)
     plt.plot(wav_dict['stim_0_500'][:1000])
     play_sound(wav_dict['stim_0_500'])
     plt.show()
