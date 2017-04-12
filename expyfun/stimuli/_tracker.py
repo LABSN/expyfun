@@ -679,16 +679,10 @@ class TrackerDealer(object):
 
     Parameters
     ----------
-    shape : list-like
-        The dimensions of the tracker container.
-    tracker_class : class
-        The class for the tracker you want to run, e.g.
-        :class:`expyfun.stimuli.TrackerUD`--not an
-        instance.
-    tracker_args : list-like
-        The arguments used to instantiate each of the trackers.
-    tracker_kwargs : dict
-        The keyword arguments used to instantiate each of the trackers.
+    trackers : array-like
+        The trackers to use. Must be instances of
+        :class:`expyfun.stimuli.TrackerUD` or
+        :class:`expyfun.stimuli.TrackerBinom`.
     max_lag : int
         The number of reversals or trials by which the leading tracker may lead
         the lagging one. Whether this uses trials or reversals depends on the
@@ -710,18 +704,15 @@ class TrackerDealer(object):
     ``stop_early`` must be ``False`` or else they cannot be ensured to keep
     pace.
     """
-    def __init__(self, shape, tracker_class, tracker_args, tracker_kwargs,
-                 max_lag=1, rand=None):
+    def __init__(self, trackers, max_lag=1, rand=None):
         # dim will only be used for user output. Will be stored as 0-d
-        if np.isscalar(shape):
-            shape = [shape]
-        if not any(tracker_class is x for x in (TrackerUD, TrackerBinom)):
-            raise TypeError('tracker_class must be the class TrackerUD or '
-                            'TrackerBinom')
-        self._shape = tuple(shape)
+        self._trackers = np.asarray(trackers)
+        for ti, t in enumerate(self._trackers.flat):
+            if not isinstance(t, (TrackerUD, TrackerBinom)):
+                raise TypeError('trackers.ravel()[%d] is type %s, must be '
+                                'TrackerUD or TrackerBinom' % (ti, type(t)))
+        self._shape = self._trackers.shape
         self._n = np.prod(self._shape)
-        self._trackers = [tracker_class(*tracker_args, **tracker_kwargs)
-                          for _ in range(self._n)]
         self._pace_rule = self._trackers[0].stop_rule
         self._max_lag = max_lag
         if rand is None:

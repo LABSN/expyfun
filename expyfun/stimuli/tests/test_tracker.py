@@ -143,13 +143,12 @@ def test_tracker_binom():
 
 
 def test_tracker_dealer():
-    """Test TrackerDealer"""
+    """Test TrackerDealer."""
     # test TrackerDealer with TrackerUD
-    dealer_ud = TrackerDealer(
-        [2], TrackerUD, [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {})
-    dealer_ud = TrackerDealer(
-        2, TrackerUD, [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {},
-        rand=np.random.RandomState(0))
+    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
+                for _ in range(2)]
+    dealer_ud = TrackerDealer(trackers)
+    dealer_ud = TrackerDealer(np.array(trackers))
 
     # can't respond before you pick a tracker and get a trial
     assert_raises(RuntimeError, dealer_ud.respond, True)
@@ -175,18 +174,20 @@ def test_tracker_dealer():
     dealer_ud.history(True)
 
     # bad rand type
-    assert_raises(TypeError, TrackerDealer, [2], TrackerUD,
-                  [None, 1, 1, 0.06, 0.02, 20, 'reversals', 1], {}, rand=1)
+    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
+                for _ in range(2)]
+    assert_raises(TypeError, TrackerDealer, trackers, rand=1)
 
     # test TrackerDealer with TrackerBinom
-    dealer_binom = TrackerDealer([2], TrackerBinom,
-                                 [None, 0.05, 0.5, 50],
-                                 dict(stop_early=False))
+    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
+                for _ in range(2)]
+    dealer_binom = TrackerDealer(trackers)
     rand = np.random.RandomState(0)
     while not dealer_binom.stopped:
         sub, x_current = dealer_binom.get_trial()
         dealer_binom.respond(True)
 
     # if you're dealing from TrackerBinom, you can't use stop_early feature
-    assert_raises(ValueError, TrackerDealer, [2], TrackerBinom,
-                  [None, 0.05, 0.5, 50], dict(stop_early=True))
+    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True)
+                for _ in range(2)]
+    assert_raises(ValueError, TrackerDealer, trackers)
