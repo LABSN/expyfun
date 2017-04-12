@@ -21,6 +21,8 @@ _opts_dict['linux'] = _opts_dict['linux2']  # new name on Py3k
 _driver = _opts_dict[sys.platform] if not _use_silent else ('silent',)
 
 pyglet.options['audio'] = _driver
+# We might also want this at some point if we hit OSX problems:
+# pyglet.options['shadow_window'] = False
 
 # these must follow the above option setting, so PEP8 complains
 try:
