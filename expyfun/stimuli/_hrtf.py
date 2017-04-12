@@ -28,7 +28,6 @@ from .._utils import fetch_data_file, _fix_audio_dims
 # Then the files were uploaded to lester.
 
 
-
 def _get_hrtf(angle, source, fs, interp=False):
     """Helper to sub-select proper BRIR
 
@@ -107,8 +106,6 @@ def _get_hrtf(angle, source, fs, interp=False):
         brir_a = np.real(np.fft.ifft(HRTF_a))
         brir = np.concatenate((brir_a[:, -delay:], brir_a[:, :-delay]), 1)
     return brir, data['fs'], leftward
-    
-    return brir_b, data['fs'], leftward
 
 
 def convolve_hrtf(data, fs, angle, source='barb', interp=False):
