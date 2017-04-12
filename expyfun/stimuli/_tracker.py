@@ -711,39 +711,42 @@ class TrackerDealer(object):
             if not isinstance(t, (TrackerUD, TrackerBinom)):
                 raise TypeError('trackers.ravel()[%d] is type %s, must be '
                                 'TrackerUD or TrackerBinom' % (ti, type(t)))
+            if not t.stop_rule == self._trackers.flat[0].stop_rule:
+                raise ValueError('stop rule mismatch between trackers.flat[0] '
+                                 'and trackers.flat[%d]' % (ti,))
+            if isinstance(t, TrackerBinom) and t.stop_early:
+                raise ValueError('stop_early for trackers.flat[%d] must be '
+                                 'False to deal trials from a TrackerBinom '
+                                 'object' % (ti,))
         self._shape = self._trackers.shape
         self._n = np.prod(self._shape)
-        self._pace_rule = self._trackers[0].stop_rule
+        self._pace_rule = self._trackers.flat[0].stop_rule
         self._max_lag = max_lag
         if rand is None:
             self._seed = int(time.time())
-            self._rand = np.random.RandomState(self._seed)
+            rand = np.random.RandomState(self._seed)
         else:
-            if not isinstance(rand, np.random.RandomState):
-                raise TypeError('rand must be of type '
-                                'numpy.random.RandomState')
-            self._rand = rand
             self._seed = None
+        if not isinstance(rand, np.random.RandomState):
+            raise TypeError('rand must be of type '
+                            'numpy.random.RandomState')
+        self._rand = rand
         self._trial_complete = True
         self._tracker_history = np.array([], dtype=int)
         self._response_history = np.array([], dtype=int)
         self._x_history = np.array([], dtype=float)
-        if isinstance(self._trackers[0], TrackerBinom):
-            if self._trackers[0].stop_early:
-                raise ValueError('stop_early must be False to deal trials '
-                                 'from a TrackerBinom object')
 
     def __getitem__(self, key):
-        return np.reshape(self._trackers, self._shape)[key]
+        return self._trackers[key]
 
     def __iter__(self):
         self._index = 0
         return self
 
     def next(self):
-        if self._index == len(self._trackers):
+        if self._index == self._trackers.size:
             raise(StopIteration)
-        t = self._trackers[self._index]
+        t = self._trackers.flat[self._index]
         self._index += 1
         return t
 
@@ -755,12 +758,12 @@ class TrackerDealer(object):
         """
         if self.stopped:
             raise RuntimeError('All trackers have stopped.')
-        active = np.where(np.invert([t.stopped for t in self._trackers]))[0]
+        active = np.where([not t.stopped for t in self._trackers.flat])[0]
 
         if self._pace_rule == 'reversals':
-            pace = np.asarray([t.n_reversals for t in self._trackers])
+            pace = np.asarray([t.n_reversals for t in self._trackers.flat])
         elif self._pace_rule == 'trials':
-            pace = np.asarray([t.n_trials for t in self._trackers])
+            pace = np.asarray([t.n_trials for t in self._trackers.flat])
         pace = pace[active]
         lag = pace.max() - pace
         lag_max = lag.max()
@@ -793,7 +796,7 @@ class TrackerDealer(object):
         self._tracker_history = np.append(self._tracker_history,
                                           self._current_tracker)
         ss = np.unravel_index(self._current_tracker, self.shape)
-        level = self._trackers[self._current_tracker].x_current
+        level = self._trackers.flat[self._current_tracker].x_current
         self._x_history = np.append(self._x_history, level)
         return ss, level
 
@@ -811,7 +814,7 @@ class TrackerDealer(object):
         """
         if self._trial_complete:
             raise RuntimeError('You must get a trial before you can respond.')
-        self._trackers[self._current_tracker].respond(correct)
+        self._trackers.flat[self._current_tracker].respond(correct)
         self._trial_complete = True
         self._response_history = np.append(self._response_history, correct)
 
@@ -850,10 +853,10 @@ class TrackerDealer(object):
     def stopped(self):
         """Are all the trackers stopped
         """
-        return np.all([t.stopped for t in self._trackers])
+        return all(t.stopped for t in self._trackers.flat)
 
     @property
     def trackers(self):
         """All of the tracker objects in the container
         """
-        return np.reshape(self._trackers, self.shape)
+        return self._trackers

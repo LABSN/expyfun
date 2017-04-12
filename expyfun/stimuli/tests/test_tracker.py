@@ -145,8 +145,8 @@ def test_tracker_binom():
 def test_tracker_dealer():
     """Test TrackerDealer."""
     # test TrackerDealer with TrackerUD
-    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
-                for _ in range(2)]
+    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
+                for _ in range(2)] for _ in range(3)]
     dealer_ud = TrackerDealer(trackers)
     dealer_ud = TrackerDealer(np.array(trackers))
 
@@ -157,8 +157,8 @@ def test_tracker_dealer():
     while not dealer_ud.stopped:
         sub, x_current = dealer_ud.get_trial()
         dealer_ud.respond(rand.rand() < x_current)
-        assert(np.abs(dealer_ud[0].n_reversals -
-                      dealer_ud[0].n_reversals) <= 1)
+        assert(np.abs(dealer_ud[0, 0].n_reversals -
+                      dealer_ud[0, 0].n_reversals) <= 1)
 
     # can't get a trial after tracker is stopped
     assert_raises(RuntimeError, dealer_ud.get_trial)
