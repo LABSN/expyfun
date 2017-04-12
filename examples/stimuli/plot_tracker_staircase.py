@@ -4,7 +4,7 @@
 Do an adaptive track staircase
 ==============================
 
-This shows how to make and use an adaptive track using AdaptiveTracker.
+This shows how to make and use an adaptive track using TrackerUD.
 
 @author: rkmaddox
 """
