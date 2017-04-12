@@ -255,7 +255,7 @@ sphinx_gallery_conf = {
     'gallery_dirs': gallery_dirs,
     'find_mayavi_figures': False,
     'default_thumb_file': os.path.join('_static', 'favicon.ico'),
-    'mod_example_dir': 'generated',
+    'backreferences_dir': 'generated',
     }
 
 numpydoc_class_members_toctree = False

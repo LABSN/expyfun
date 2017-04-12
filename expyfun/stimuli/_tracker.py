@@ -105,9 +105,11 @@ class TrackerUD(object):
     encountered. This means that the length of the list defining a dynamic
     parameter must always be the same as that of ``change_criteria``, and the
     first element of change_criteria must always be 0.
-    For the example given above:
-        ``step_size_up=[1., 0.2]``, ``step_size_down=[1., 0.2]``,
-        ``change_criteria=[0, 2]``, ``change_rule='reversals'``
+    For the example given above::
+
+        ..., step_size_up=[1., 0.2], step_size_down=[1., 0.2], \
+        change_criteria=[0, 2], change_rule='reversals', ...
+
     would change the step sizes from 1 to 0.2 after two reversals.
 
     If static step sizes are used, both ``step_size_up``
@@ -401,11 +403,11 @@ class TrackerUD(object):
 
         Parameters
         ----------
-            n_skip : int
-                See documentation for ``TrackerUD.threshold``.
-            ax : Axes
-                The handle to the axes object. If None, the current axes will
-                be used.
+        n_skip : int
+            See documentation for ``TrackerUD.threshold``.
+        ax : Axes
+            The handle to the axes object. If None, the current axes will
+            be used.
 
         Returns
         -------
@@ -822,7 +824,7 @@ class TrackerDealer(object):
         """The history of the dealt trials and the responses
 
         Parameters
-        ------
+        ----------
         include_skips : bool
             Whether or not to include trials where a tracker was dealt but
             no response was made.
