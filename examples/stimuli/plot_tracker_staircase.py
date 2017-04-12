@@ -4,7 +4,8 @@
 Do an adaptive track staircase
 ==============================
 
-This shows how to make and use an adaptive track using TrackerUD.
+This shows how to make and use an adaptive track using
+:class:`expyfun.stimuli.TrackerUD`.
 
 @author: rkmaddox
 """
@@ -19,7 +20,8 @@ print(__doc__)
 
 # Make a callback function that prints to the console, rather than log file
 def callback(event_type, value=None, timestamp=None):
-    print(event_type, value, timestamp)
+    print((str(event_type) + ':').ljust(40) + str(value))
+
 
 # Define parameters for modeled human subject (sigmoid probability)
 true_thresh = 35
@@ -30,12 +32,12 @@ chance = 0.5
 tr = TrackerUD(callback, 1, 1, [9, 3], [3, 1], 30, 'reversals', 60, [0, 4])
 
 # Initialize human state
-rand = np.random.RandomState(1)
+rng = np.random.RandomState(1)
 
 # Do the task until the tracker stops
 while not tr.stopped:
-    tr.respond(rand.rand() < sigmoid(tr.x_current - true_thresh,
-                                     lower=0.5, slope=0.1))
+    tr.respond(rng.rand() < sigmoid(tr.x_current - true_thresh,
+                                    lower=0.5, slope=0.1))
 
 # Plot the results
 fig, ax, lines = tr.plot()
