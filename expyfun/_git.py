@@ -10,12 +10,6 @@ from ._version import __version__
 this_version = __version__[-7:]
 
 try:
-    from ._version import __fork__
-    this_fork = __fork__
-except ImportError:
-    this_fork = None
-
-try:
     run_subprocess(['git', '--help'])
 except Exception as exp:
     _has_git, why_not = False, str(exp)
@@ -41,7 +35,7 @@ def _active_version(wd):
     return run_subprocess(['git', 'rev-parse', 'HEAD'], cwd=wd)[0][:7]
 
 
-def download_version(version='current', dest_dir=None, fork='LABSN'):
+def download_version(version='current', dest_dir=None):
     """Download specific expyfun version
 
     Parameters
@@ -53,8 +47,6 @@ def download_version(version='current', dest_dir=None, fork='LABSN'):
     dest_dir : str | None
         Destination directory. If None, the current working
         directory is used.
-    fork : str
-        GitHub username of the expyfun fork to download from.
 
     Notes
     -----
@@ -74,7 +66,7 @@ def download_version(version='current', dest_dir=None, fork='LABSN'):
     # fetch locally and get the proper version
     tempdir = _TempDir()
     expyfun_dir = op.join(tempdir, 'expyfun')  # git will auto-create this dir
-    repo_url = 'git://github.com/{}/expyfun.git'.format(fork)
+    repo_url = 'git://github.com/LABSN/expyfun.git'
     run_subprocess(['git', 'clone', repo_url, expyfun_dir])
     version = _active_version(expyfun_dir) if version == 'current' else version
     try:
@@ -100,7 +92,6 @@ def download_version(version='current', dest_dir=None, fork='LABSN'):
         sys.path.pop(sys.path.index(expyfun_dir))
         os.chdir(orig_dir)
     print('\n'.join(['Successfully checked out expyfun version:', version,
-                     'from the "{}" fork of expyfun'.format(fork),
                      'into destination directory:', op.join(dest_dir)]))
 
 
@@ -113,11 +104,6 @@ def assert_version(version):
         Version to check (7 characters).
     """
     _check_version_format(version)
-    if this_fork is not None and this_fork.lower() != 'labsn':
-        warnings.warn('You are running a forked version of the expyfun '
-                      'codebase (fork "{}"). Do not do this if you are '
-                      'running an actual experiment; only do this during '
-                      'development.'.format(this_fork), RuntimeWarning)
     if this_version.lower() != version.lower():
         raise AssertionError('Requested version {0} does not match current '
                              'version {1}'.format(version, this_version))
