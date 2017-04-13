@@ -100,7 +100,7 @@ def _get_hrtf(angle, source, fs, interp=False):
         weight_b = (step - np.abs(a - b)) / step
         weight_c = (step - np.abs(a - c)) / step
         hrtf_logmag = (np.abs(hrtf_b)) ** weight_b * np.log10(np.abs(hrtf_c)) 
-                         ** weight_c)
+                       ** weight_c)
         hrtf_phase = (weight_b * np.unwrap(np.angle(hrtf_b)) +
                         weight_c * np.unwrap(np.angle(hrtf_c)))
 
