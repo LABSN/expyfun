@@ -40,18 +40,18 @@ def _get_hrtf(angle, source, fs, interp=False):
     0-degree BRIRs (mean of that across channels) is equal to 1. This will
     ensure that the RMS of a white signal filtered with this signal is
     unchanged.
-    
-    If interp is True, the function takes the two nearest known HRTFs and uses 
-    them to calculate an HRTF between them for any given azimuthal angle 
+
+    If interp is True, the function takes the two nearest known HRTFs and uses
+    them to calculate an HRTF between them for any given azimuthal angle
     between 0 and 90 degrees.
-    
+
     Interpolation relies on averaging log magnitude and phase in the frequency
     domain as in the referenced paper.
-    
+
     References
     ----------
-    R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer 
-    Functions", Australian Government Department of Defence: Defence Science 
+    R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer
+    Functions", Australian Government Department of Defence: Defence Science
     and Technology Organization, Melbourne, Victoria, Australia, 2007.
     """
     fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
@@ -81,7 +81,7 @@ def _get_hrtf(angle, source, fs, interp=False):
         b = angles[idx[-1]]
         c = angles[idx[-1] + 1]
         # get known brirs
-        brir_b =  brir[idx[-1]].copy()
+        brir_b = brir[idx[-1]].copy()
         brir_c = brir[idx[-1] + 1].copy()
 
         # find location of maximum for each component of each known brir and
@@ -99,10 +99,10 @@ def _get_hrtf(angle, source, fs, interp=False):
         a = float(angle)
         weight_b = (step - np.abs(a - b)) / step
         weight_c = (step - np.abs(a - c)) / step
-        hrtf_mag = (np.abs(hrtf_b)) ** weight_b * 
-                    np.abs(hrtf_c)) ** weight_c)
+        hrtf_mag = (np.abs(hrtf_b) ** weight_b *
+                    np.abs(hrtf_c) ** weight_c)
         hrtf_phase = (weight_b * np.unwrap(np.angle(hrtf_b)) +
-                        weight_c * np.unwrap(np.angle(hrtf_c)))
+                      weight_c * np.unwrap(np.angle(hrtf_c)))
 
         # combine magnitude and phase components
         hrtf = np.multiply(hrtf_mag, np.exp(1j * (hrtf_phase)))
