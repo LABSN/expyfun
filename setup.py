@@ -33,7 +33,7 @@ def git_version():
         # minimal env; LANGUAGE is used on win32
         return subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                 ).communicate()[0]
-    GIT_REVISION = "Unknown"
+    GIT_REVISION = 'Unknown'
     if os.path.exists('.git'):
         try:
             out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
@@ -97,5 +97,5 @@ def setup_package(script_args=None):
         write_version(VERSION)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     setup_package()

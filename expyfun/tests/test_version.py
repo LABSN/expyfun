@@ -24,7 +24,7 @@ def test_version():
         assert_version(__version__[-7:])
     assert_true(all('actual' in str(ww.message) for ww in w))
 
-    v = 'b798e65'
+    v = '090948e'
     if not _has_git:
         assert_raises(ImportError, download_version, v, tempdir)
     else:
