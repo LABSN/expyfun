@@ -31,45 +31,23 @@ def git_version():
     """Helper adapted from Numpy"""
     def _minimal_ext_cmd(cmd):
         # minimal env; LANGUAGE is used on win32
-        env = dict(LANGUAGE='C', LANG='C', LC_ALL='C')
-        for k in ['SYSTEMROOT', 'PATH']:
-            v = os.environ.get(k)
-            if v is not None:
-                env[k] = v
         return subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                env=env).communicate()[0]
+                                ).communicate()[0]
+    GIT_REVISION = 'Unknown'
     if os.path.exists('.git'):
         try:
             out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
             GIT_REVISION = out.decode('utf-8').strip()
         except OSError:
-            GIT_REVISION = "Unknown"
-        try:
-            cmd = ['git', 'config', '--get', 'remote.origin.url']
-            out = _minimal_ext_cmd(cmd).decode('utf-8').strip()
-            start_idx = 0
-            for prefix in ['git@github.com:', 'git://github.com/',
-                           'http://github.com/', 'https://github.com/',
-                           'ssh://git@github.com/']:
-                if out.startswith(prefix):
-                    start_idx = len(prefix)
-            if start_idx:
-                FORK = out[start_idx:out.rindex('/')]
-        except OSError:
-            FORK = 'Unknown'
-    else:
-        GIT_REVISION = "Unknown"
-        FORK = 'Unknown'
-    return [GIT_REVISION[:7], FORK]
+            pass
+    return GIT_REVISION[:7]
 
 FULL_VERSION = VERSION + '+' + git_version()[0]
-FORK = git_version()[1]
 
 
-def write_version(version, fork='Unknown'):
+def write_version(version):
     with open(version_file, 'w') as fid:
         fid.write('__version__ = \'{0}\'\n'.format(version))
-        fid.write('__fork__ = \'{0}\'\n'.format(fork))
 
 
 def setup_package(script_args=None):
@@ -113,11 +91,11 @@ def setup_package(script_args=None):
     if script_args is not None:
         kwargs['script_args'] = script_args
     try:
-        write_version(FULL_VERSION, FORK)
+        write_version(FULL_VERSION)
         setup(**kwargs)
     finally:
-        write_version(VERSION, FORK)
+        write_version(VERSION)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     setup_package()
