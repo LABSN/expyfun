@@ -39,14 +39,16 @@ def test_hrtf_convolution():
         for source in ['barb', 'cipic']:
             out = convolve_hrtf(data, 44100, 0, source=source, interp=interp)
             out_2 = convolve_hrtf(data, 24414, 0, source=source, interp=interp)
-            out_3 = convolve_hrtf(data, 44100, 2.5, source=source, 
+            out_3 = convolve_hrtf(data, 44100, 2.5, source=source,
                                   interp=interp)
-            out_4 = convolve_hrtf(data, 44100, -2.5, source=source, 
+            out_4 = convolve_hrtf(data, 44100, -2.5, source=source,
                                   interp=interp)
             assert_equal(out.ndim, 2)
             assert_equal(out.shape[0], 2)
             assert_true(out.shape[1] > data.size)
             assert_true(out_2.shape[1] < out.shape[1])
+            assert_equal(out_3.ndim, 2)
+            assert_equal(out_4.ndim, 2)
             # ensure that, at least for zero degrees, it's close
             out = convolve_hrtf(data, 44100, 0, source=source,
                                 interp=interp)[:, 1024:-1024]
@@ -54,7 +56,6 @@ def test_hrtf_convolution():
             out = convolve_hrtf(data, 44100, -90, source=source, interp=interp)
             rmss = rms(out)
             assert_true(rmss[0] > 4 * rmss[1])
-            
 
 
 @_hide_window  # will only work if Pyglet windowing works
