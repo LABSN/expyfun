@@ -1,4 +1,4 @@
-"""Hardware interfaces for TDT RP2 and RZ6"""
+"""Hardware interfaces for TDT RP2(.1), RM1, and RZ6."""
 
 # Authors: Dan McCloy <drmccloy@uw.edu>
 #          Eric Larson <larsoner@uw.edu>
@@ -74,7 +74,9 @@ class TDTController(Keyboard):
 
             * 'TYPE': this should always be 'tdt'.
             * 'TDT_MODEL': String name of the TDT model, can be 'RM1', 'RP2',
-              'RZ6', or 'dummy' (default).
+              'RP2legacy', 'RZ6', or 'dummy' (default). For historical
+              reasons, 'RP2' corresponds to the RP2.1, and 'RP2legacy'
+              corresponds to the first-revision RP2.
             * 'TDT_CIRCUIT_PATH': Path to the TDT circuit. Defaults to an
               internal expyfun circuit.
             * 'TDT_INTERFACE': Type of connection, either 'USB' (default)
@@ -119,19 +121,19 @@ class TDTController(Keyboard):
                 raise KeyError('Unrecognized key in tdt_params {0}, must be '
                                'one of {1}'.format(k, ', '.join(legal_keys)))
         self._model = tdt_params['TDT_MODEL']
-        legal_models = ['RM1', 'RP2', 'RZ6', 'dummy']
-        if self._model not in legal_models:
+        legal_models = ['RM1', 'RP2', 'RZ6', 'RP2legacy', 'dummy']
+        if self.model not in legal_models:
             raise ValueError('TDT_MODEL="{0}" must be one of '
-                             '{1}'.format(self._model, legal_models))
+                             '{1}'.format(self.model, legal_models))
 
-        if tdt_params['TDT_CIRCUIT_PATH'] is None and self._model != 'dummy':
-            cl = dict(RM1='RM1', RP2='RM1', RZ6='RZ6')
+        if tdt_params['TDT_CIRCUIT_PATH'] is None and self.model != 'dummy':
+            cl = dict(RM1='RM1', RP2='RM1', RP2legacy='RP2legacy', RZ6='RZ6')
             self._circuit = op.join(op.dirname(__file__), 'data',
                                     'expCircuitF32_' + cl[self._model] +
                                     '.rcx')
         else:
             self._circuit = tdt_params['TDT_CIRCUIT_PATH']
-        if self._model != 'dummy' and not op.isfile(self._circuit):
+        if self.model != 'dummy' and not op.isfile(self._circuit):
             raise IOError('Could not find file {}'.format(self._circuit))
         if tdt_params['TDT_INTERFACE'] is None:
             tdt_params['TDT_INTERFACE'] = 'USB'
@@ -150,8 +152,9 @@ class TDTController(Keyboard):
         # MID-LEVEL APPROACH
         if tdt_params['TDT_MODEL'] != 'dummy':
             from tdt.util import connect_rpcox
+            use_model = self.model if self.model != 'RP2legacy' else 'RP2'
             try:
-                self.rpcox = connect_rpcox(name=self.model,
+                self.rpcox = connect_rpcox(name=use_model,
                                            interface=self.interface,
                                            device_id=1, address=None)
             except Exception as exp:
