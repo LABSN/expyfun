@@ -47,8 +47,9 @@ def test_hrtf_convolution():
             assert_equal(out.shape[0], 2)
             assert_true(out.shape[1] > data.size)
             assert_true(out_2.shape[1] < out.shape[1])
-            assert_equal(out_3.ndim, 2)
-            assert_equal(out_4.ndim, 2)
+            if interp==True:
+                assert_equal(out_3.ndim, 2)
+                assert_equal(out_4.ndim, 2)   
             # ensure that, at least for zero degrees, it's close
             out = convolve_hrtf(data, 44100, 0, source=source,
                                 interp=interp)[:, 1024:-1024]
