@@ -256,6 +256,7 @@ sphinx_gallery_conf = {
     'find_mayavi_figures': False,
     'default_thumb_file': os.path.join('_static', 'favicon.ico'),
     'backreferences_dir': 'generated',
+    'filename_pattern': '/.*(?<!_)\.py$',  # anything that isn't *_.py
     }
 
 numpydoc_class_members_toctree = False

@@ -41,10 +41,7 @@ if not op.isfile(fname):
     # This sys.path wrangling is only necessary for Sphinx automatic
     # documentation building
     sys.path.insert(0, os.getcwd())
-    try:
-        from plot_generate_simple_stimuli import generate_stimuli
-    finally:
-        sys.path.pop(0)
+    from generate_simple_stimuli import generate_stimuli
     generate_stimuli()
 stims = read_hdf5(fname)
 orig_rms = stims['rms']
@@ -72,7 +69,7 @@ with ExperimentController('testExp', verbose=True, screen_num=0,
                           window_size=[800, 600], full_screen=False,
                           stim_db=stim_db, noise_db=noise_db, stim_fs=fs,
                           participant='foo', session='001',
-                          version='dev') as ec:
+                          version='dev', output_dir=None) as ec:
 
     # define usable buttons / keys
     live_keys = [x + 1 for x in range(num_freqs)]
