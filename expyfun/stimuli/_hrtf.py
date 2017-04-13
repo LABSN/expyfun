@@ -132,8 +132,9 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
         supported. The former is default for legacy purpose. The latter is
         recommended for new experiments.
     interp : bool
-        Parameter to determine whether to use known HRTF values or to use an 
-        interpolated HRTF; set to 'False' by default
+        Parameter to determine whether to restrict use to known HRTF values or 
+        to use an interpolated HRTF for angles not in the source; set to 
+        'False' by default
 
     Returns
     -------

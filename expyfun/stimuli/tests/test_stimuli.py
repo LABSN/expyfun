@@ -31,15 +31,17 @@ def test_textures():
 def test_hrtf_convolution():
     """Test HRTF convolution."""
     data = np.random.randn(2, 10000)
-    assert_raises(ValueError, convolve_hrtf, data, 44100, 0)
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp=False)
     data = data[0]
-    assert_raises(ValueError, convolve_hrtf, data, 44100, 0.5, interp=False) 
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 90, interp=False)
     # invalid angle when interp=False
     for interp in [True, False]:
         for source in ['barb', 'cipic']:
             out = convolve_hrtf(data, 44100, 0, source=source, interp=interp)
             out_2 = convolve_hrtf(data, 24414, 0, source=source, interp=interp)
             out_3 = convolve_hrtf(data, 44100, 2.5, source=source, 
+                                  interp=interp)
+            out_4 = convolve_hrtf(data, 44100, -2.5, source=source, 
                                   interp=interp)
             assert_equal(out.ndim, 2)
             assert_equal(out.shape[0], 2)
