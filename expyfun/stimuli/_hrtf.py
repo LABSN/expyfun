@@ -75,7 +75,7 @@ def _get_hrtf(angle, source, fs, interp=False):
     elif interp:
         idx = np.where(angles < read_angle)[0]
         if idx > max(angles):
-            raise ValueError('angle "{0}" must be small than "{1}"'
+            raise ValueError('angle "{0}" must be smaller than "{1}"'
                              ''.format(angle, max(angles)))
         # angles are
         b = angles[idx[-1]]
