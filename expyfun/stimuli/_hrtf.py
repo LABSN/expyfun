@@ -99,15 +99,15 @@ def _get_hrtf(angle, source, fs, interp=False):
         a = float(angle)
         weight_b = (step - np.abs(a - b)) / step
         weight_c = (step - np.abs(a - c)) / step
-        hrtf_logmag = (np.abs(hrtf_b)) ** weight_b * np.log10(np.abs(hrtf_c)) 
-                       ** weight_c)
+        hrtf_mag = (np.abs(hrtf_b)) ** weight_b * 
+                    np.abs(hrtf_c)) ** weight_c)
         hrtf_phase = (weight_b * np.unwrap(np.angle(hrtf_b)) +
                         weight_c * np.unwrap(np.angle(hrtf_c)))
 
         # combine magnitude and phase components
-        hrtf = np.multiply(HRTF_a_mag, np.exp(1j * (HRTF_a_phase)))
-        hrtf = _make_sym(HRTF_a)
-        brir + np.real(np.fft.ifft(HRTF_a))
+        hrtf = np.multiply(hrtf_mag, np.exp(1j * (hrtf_phase)))
+        hrtf = _make_sym(hrtf)
+        brir = np.real(np.fft.ifft(hrtf))
         brir = np.concatenate((brir[:, -delay:], brir[:, :-delay]), 1)
     return brir, data['fs'], leftward
 
