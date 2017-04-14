@@ -190,7 +190,7 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
     angle = float(angle)
     known_sources = ['barb', 'cipic']
     known_fs = [24414, 44100]  # must be sorted
-    if source not in known_sources and not interp:
+    if source not in known_sources:
         raise ValueError('Source "{0}" unknown, must be one of {1}'
                          ''.format(source, known_sources))
     data = np.array(data, np.float64)
