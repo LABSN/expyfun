@@ -193,6 +193,8 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
     if source not in known_sources:
         raise ValueError('Source "{0}" unknown, must be one of {1}'
                          ''.format(source, known_sources))
+    if not type(interp) == type(True):
+        raise ValueError('interp must be bool')
     data = np.array(data, np.float64)
     data = _fix_audio_dims(data, n_channels=1).ravel()
 
