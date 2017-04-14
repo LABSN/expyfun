@@ -72,7 +72,7 @@ def _get_hrtf(angle, source, fs, interp=False):
         idx = np.where(angles == read_angle)[0]
         assert len(idx) == 1
         brir = brir[idx[0]].copy()
-    elif interp:
+    else:
         idx = np.where(angles < read_angle)[0]
         if idx[-1] > max(angles):
             raise ValueError('angle "{0}" must be smaller than "{1}"'
