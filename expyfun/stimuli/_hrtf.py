@@ -78,27 +78,23 @@ def _get_hrtf(angle, source, fs, interp=False):
             raise ValueError('angle "{0}" must be smaller than "{1}"'
                              ''.format(angle, max(angles)))
         # angles are
-        b = angles[idx[-1]]
-        c = angles[idx[-1] + 1]
+        knowns = [angles[idx[-1]], angles[idx[-1] + 1]]
         # get known brirs
-        brir_b = brir[idx[-1]].copy()
-        brir_c = brir[idx[-1] + 1].copy()
+        brirs = [brir[idx[-1]].copy(), brir[idx[-1] + 1].copy()]
 
         # find location of maximum for each component of each known brir and
         # average to find a generally good place to declare time = 0 (all data
         # from before this point gets shifted to the end)
-        delay = int(np.mean([np.argmax(brir_b, 1), np.argmax(brir_c, 1)]))
-        brir_b = np.concatenate((brir_b[:, delay:], brir_b[:, :delay]), 1)
-        brir_c = np.concatenate((brir_c[:, delay:], brir_c[:, :delay]), 1)
+        delay = int(np.mean([np.argmax(brirs, 1)]))
+        brirs = [np.concatenate((brirs[i][:, delay:], 
+                                 brirs[i][:, :delay]), 1) for i in [0, 1]]
         # convert to frequency domain representation
-        hrtf_b = np.fft.fft(brir_b)
-        hrtf_c = np.fft.fft(brir_c)
+        hrtfs = np.fft.fft(brirs)
 
         # weighted averages of log magnitude and unwrapped phase
-        step = c - b
+        step = knowns[1] - knowns[0]
         a = float(angle)
-        weight_b = (step - np.abs(a - b)) / step
-        weight_c = (step - np.abs(a - c)) / step
+        weights = (step - np.abs(a - knowns)) / step
         hrtf_mag = (np.abs(hrtf_b) ** weight_b *
                     np.abs(hrtf_c) ** weight_c)
         hrtf_phase = (weight_b * np.unwrap(np.angle(hrtf_b)) +
