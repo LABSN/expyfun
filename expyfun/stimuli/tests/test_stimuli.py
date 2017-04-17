@@ -34,7 +34,7 @@ def test_hrtf_convolution():
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp=False)
     data = data[0]
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0.5, interp=False)
-    assert_raises(ValueError, convolve_hrtf, data, 44100, 0, source='other', 
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0, source='other',
                   interp=False)
     assert_raises(ValueError, convolve_hrtf, data, 44100, 185, interp=True)
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp='other')

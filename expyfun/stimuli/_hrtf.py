@@ -97,7 +97,8 @@ def _get_hrtf(angle, source, fs, interp=False):
         weights = [(step - np.abs(a - knowns[i])) / step for i in [0, 1]]
         hrtf_mag = [np.abs(hrtfs[i]) ** weights[i] for i in [0, 1]]
         hrtf_mag = np.multiply(hrtf_mag[0], hrtf_mag[1])
-        hrtf_phase = [weights[i] * np.unwrap(np.angle(hrtfs[i])) for i in [0, 1]]
+        hrtf_phase = ([weights[i] * np.unwrap(np.angle(hrtfs[i]))
+                      for i in [0, 1]])
         hrtf_phase = hrtf_phase[0] + hrtf_phase[1]
 
         # combine magnitude and phase components
@@ -189,7 +190,7 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
     if source not in known_sources:
         raise ValueError('Source "{0}" unknown, must be one of {1}'
                          ''.format(source, known_sources))
-    if not type(interp) == type(True):
+    if not isinstance(interp, bool):
         raise ValueError('interp must be bool')
     data = np.array(data, np.float64)
     data = _fix_audio_dims(data, n_channels=1).ravel()
