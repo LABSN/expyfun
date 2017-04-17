@@ -82,30 +82,22 @@ def _get_hrtf(angle, source, fs, interp=False):
         # get known brirs
         brirs = [brir[idx[-1]].copy(), brir[idx[-1] + 1].copy()]
 
-        # find location of maximum for each component of each known brir and
-        # average to find a generally good place to declare time = 0 (all data
-        # from before this point gets shifted to the end)
-        delay = int(np.mean([np.argmax(brirs[0], 1), np.argmax(brirs[1], 1)]))
-        brirs = [np.concatenate((brirs[i][:, delay:],
-                                 brirs[i][:, :delay]), 1) for i in [0, 1]]
         # convert to frequency domain representation
         hrtfs = np.fft.fft(brirs)
 
         # weighted averages of log magnitude and unwrapped phase
         step = knowns[1] - knowns[0]
         a = float(read_angle)
-        weights = (step - np.abs(a - knowns))
+        weights = (step - np.abs(a - knowns)) / step
         hrtf_mag = (np.abs(hrtfs[0]) ** weights[0] *
                     np.abs(hrtfs[1]) ** weights[1])
         hrtf_phase = (weights[0] * np.unwrap(np.angle(hrtfs[0])) +
                       weights[1] * np.unwrap(np.angle(hrtfs[1])))
-                      
 
         # combine magnitude and phase components
         hrtf = np.multiply(hrtf_mag, np.exp(1j * (hrtf_phase)))
         hrtf = _make_sym(hrtf)
         brir = np.real(np.fft.ifft(hrtf))
-        brir = np.concatenate((brir[:, -delay:], brir[:, :-delay]), 1)
     return brir, data['fs'], leftward
 
 
