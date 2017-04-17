@@ -93,13 +93,13 @@ def _get_hrtf(angle, source, fs, interp=False):
 
         # weighted averages of log magnitude and unwrapped phase
         step = knowns[1] - knowns[0]
-        a = float(angle)
-        weights = [(step - np.abs(a - knowns[i])) / step for i in [0, 1]]
-        hrtf_mag = [np.abs(hrtfs[i]) ** weights[i] for i in [0, 1]]
-        hrtf_mag = np.multiply(hrtf_mag[0], hrtf_mag[1])
-        hrtf_phase = ([weights[i] * np.unwrap(np.angle(hrtfs[i]))
-                      for i in [0, 1]])
-        hrtf_phase = hrtf_phase[0] + hrtf_phase[1]
+        a = float(read_angle)
+        weights = (step - np.abs(a - knowns))
+        hrtf_mag = (np.abs(hrtfs[0]) ** weights[0] *
+                    np.abs(hrtfs[1]) ** weights[1])
+        hrtf_phase = (weights[0] * np.unwrap(np.angle(hrtfs[0])) +
+                      weights[1] * np.unwrap(np.angle(hrtfs[1])))
+                      
 
         # combine magnitude and phase components
         hrtf = np.multiply(hrtf_mag, np.exp(1j * (hrtf_phase)))
