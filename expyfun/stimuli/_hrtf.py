@@ -78,7 +78,7 @@ def _get_hrtf(angle, source, fs, interp=False):
             raise ValueError('angle "{0}" must be smaller than "{1}"'
                              ''.format(angle, max(angles)))
         # angles are
-        knowns = [angles[idx[-1]], angles[idx[-1] + 1]]
+        knowns = np.array([angles[idx[-1]], angles[idx[-1] + 1]])
         # get known brirs
         brirs = [brir[idx[-1]].copy(), brir[idx[-1] + 1].copy()]
 
