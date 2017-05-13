@@ -58,10 +58,10 @@ def _get_hrtf(angle, source, fs, interp=False):
     data = read_hdf5(fname)
     angles = data['angles']
     leftward = False
-    read_angle = angle
+    read_angle = float(angle)
     if angle < 0:
         leftward = True
-        read_angle = -angle
+        read_angle = float(-angle)
     if read_angle not in angles and not interp:
         raise ValueError('angle "{0}" must be one of +/-{1}'
                          ''.format(angle, list(angles)))
@@ -79,32 +79,29 @@ def _get_hrtf(angle, source, fs, interp=False):
         if (idx[-1] + 1) > (len(angles) - 1):
             raise ValueError('angle "{0}" must be smaller than "{1}"'
                              ''.format(angle, max(angles)))
-        # angles are
+        # angles with known hrtfs to interpolate between
         knowns = np.array([angles[idx[-1]], angles[idx[-1] + 1]])
 
-        
-        fname = ('hrtf_pair_{0}_{1}_{2}.hdf5'.format(knowns[0], 
-                knowns[1], fs))
-        
+        # pull in files containing known hrtfs and extract magnitude and phase
+        fname = ('hrtf_pair_{0}_{1}_{2}.hdf5'.format(knowns[0],
+                 knowns[1], fs))
         data = read_hdf5(fname)
-        
         hrtf_amp = data['hrtf_amp']
         hrtf_phase = data['hrtf_phase']
-        
+
         # weighted averages of log magnitude and unwrapped phase
         step = knowns[1] - knowns[0]
-        a = float(read_angle)
-        weights = (step - np.abs(a - knowns)) / step
-        hrtf_mag = (hrtf_amp[0] ** weights[0] *
+        weights = (step - np.abs(read_angle - knowns)) / step
+        hrtf_amp = (hrtf_amp[0] ** weights[0] *
                     hrtf_amp[1] ** weights[1])
-
         hrtf_phase = (weights[0] * hrtf_phase[0] +
                       weights[1] * hrtf_phase[1])
-
-        hrtf = hrtf_mag * np.exp(1j * (hrtf_phase))
+        
+        # reconstruct hrtf and convert to time domain
+        hrtf = hrtf_amp * np.exp(1j * hrtf_phase)
         hrtf = _make_sym(hrtf)
         brir = np.real(np.fft.ifft(hrtf))
-    
+
     return brir, data['fs'], leftward
 
 
