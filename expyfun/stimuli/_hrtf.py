@@ -3,8 +3,8 @@
 
 import numpy as np
 
-from expyfun.io import read_hdf5
-from expyfun._utils import fetch_data_file, _fix_audio_dims
+from ..io import read_hdf5
+from .._utils import fetch_data_file, _fix_audio_dims
 
 # This was used to generate "barb_anech.gz":
 #
@@ -73,6 +73,8 @@ def _get_hrtf(angle, source, fs, interp=False):
         assert len(idx) == 1
         brir = brir[idx[0]].copy()
     else:
+        if source not 'cipic':
+            raise ValueError('source must be ''cipic'' when interp=True')
         idx = np.where(angles < read_angle)[0]
         if (idx[-1] + 1) > (len(angles) - 1):
             raise ValueError('angle "{0}" must be smaller than "{1}"'

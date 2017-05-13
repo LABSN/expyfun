@@ -34,33 +34,40 @@ def test_hrtf_convolution():
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp=False)
     data = data[0]
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0.5, interp=False)
-    assert_raises(ValueError, convolve_hrtf, data, 44100, 0, source='other',
-                  interp=False)
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0, 
+                  source='foo', interp=False)
     assert_raises(ValueError, convolve_hrtf, data, 44100, 185, interp=True)
-    assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp='other')
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp='foo')
     # invalid angle when interp=False
     for interp in [True, False]:
         for source in ['barb', 'cipic']:
-            out = convolve_hrtf(data, 44100, 0, source=source, interp=interp)
-            out_2 = convolve_hrtf(data, 24414, 0, source=source, interp=interp)
-            assert_equal(out.ndim, 2)
-            assert_equal(out.shape[0], 2)
-            assert_true(out.shape[1] > data.size)
-            assert_true(out_2.shape[1] < out.shape[1])
-            if interp:
-                out_3 = convolve_hrtf(data, 44100, 2.5, source=source,
+            if interp and source = 'barb':
+                # raise an error when trying to interp with 'barb'
+                assert_raises(ValueError, convolve_hrtf, data, 44100, 2.5, 
+                              source=source, interp=interp)
+            else:
+                out = convolve_hrtf(data, 44100, 0, source=source, 
+                                    interp=interp)
+                out_2 = convolve_hrtf(data, 24414, 0, source=source, 
                                       interp=interp)
-                out_4 = convolve_hrtf(data, 44100, -2.5, source=source,
-                                      interp=interp)
-                assert_equal(out_3.ndim, 2)
-                assert_equal(out_4.ndim, 2)
-            # ensure that, at least for zero degrees, it's close
-            out = convolve_hrtf(data, 44100, 0, source=source,
-                                interp=interp)[:, 1024:-1024]
-            assert_allclose(np.mean(rms(out)), rms(data), rtol=1e-1)
-            out = convolve_hrtf(data, 44100, -90, source=source, interp=interp)
-            rmss = rms(out)
-            assert_true(rmss[0] > 4 * rmss[1])
+                assert_equal(out.ndim, 2)
+                assert_equal(out.shape[0], 2)
+                assert_true(out.shape[1] > data.size)
+                assert_true(out_2.shape[1] < out.shape[1])
+                if interp:
+                    out_3 = convolve_hrtf(data, 44100, 2.5, source=source,
+                                          interp=interp)
+                    out_4 = convolve_hrtf(data, 44100, -2.5, source=source,
+                                          interp=interp)
+                    assert_equal(out_3.ndim, 2)
+                    assert_equal(out_4.ndim, 2)
+                    # ensure that, at least for zero degrees, it's close
+                out = convolve_hrtf(data, 44100, 0, source=source,
+                                    interp=interp)[:, 1024:-1024]
+                assert_allclose(np.mean(rms(out)), rms(data), rtol=1e-1)
+                out = convolve_hrtf(data, 44100, -90, source=source, interp=interp)
+                rmss = rms(out)
+                assert_true(rmss[0] > 4 * rmss[1])
 
 
 @_hide_window  # will only work if Pyglet windowing works
