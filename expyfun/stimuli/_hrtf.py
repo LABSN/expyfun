@@ -3,9 +3,8 @@
 
 import numpy as np
 
-from ..io import read_hdf5
-from .._utils import fetch_data_file, _fix_audio_dims
-
+from expyfun.io import read_hdf5
+from expyfun._utils import fetch_data_file, _fix_audio_dims
 
 # This was used to generate "barb_anech.gz":
 #
@@ -54,6 +53,7 @@ def _get_hrtf(angle, source, fs, interp=False):
     Functions", Australian Government Department of Defence: Defence Science
     and Technology Organization, Melbourne, Victoria, Australia, 2007.
     """
+
     fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
     data = read_hdf5(fname)
     angles = data['angles']
@@ -79,25 +79,30 @@ def _get_hrtf(angle, source, fs, interp=False):
                              ''.format(angle, max(angles)))
         # angles are
         knowns = np.array([angles[idx[-1]], angles[idx[-1] + 1]])
-        # get known brirs
-        brirs = [brir[idx[-1]].copy(), brir[idx[-1] + 1].copy()]
 
-        # convert to frequency domain representation
-        hrtfs = np.fft.fft(brirs)
-
+        
+        fname = ('hrtf_pair_{0}_{1}_{2}.hdf5'.format(knowns[0], 
+                knowns[1], fs))
+        
+        data = read_hdf5(fname)
+        
+        hrtf_amp = data['hrtf_amp']
+        hrtf_phase = data['hrtf_phase']
+        
         # weighted averages of log magnitude and unwrapped phase
         step = knowns[1] - knowns[0]
         a = float(read_angle)
         weights = (step - np.abs(a - knowns)) / step
-        hrtf_mag = (np.abs(hrtfs[0]) ** weights[0] *
-                    np.abs(hrtfs[1]) ** weights[1])
-        hrtf_phase = (weights[0] * np.unwrap(np.angle(hrtfs[0])) +
-                      weights[1] * np.unwrap(np.angle(hrtfs[1])))
+        hrtf_mag = (hrtf_amp[0] ** weights[0] *
+                    hrtf_amp[1] ** weights[1])
 
-        # combine magnitude and phase components
-        hrtf = np.multiply(hrtf_mag, np.exp(1j * (hrtf_phase)))
+        hrtf_phase = (weights[0] * hrtf_phase[0] +
+                      weights[1] * hrtf_phase[1])
+
+        hrtf = hrtf_mag * np.exp(1j * (hrtf_phase))
         hrtf = _make_sym(hrtf)
         brir = np.real(np.fft.ifft(hrtf))
+    
     return brir, data['fs'], leftward
 
 
