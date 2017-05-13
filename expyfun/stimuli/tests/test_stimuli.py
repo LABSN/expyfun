@@ -34,21 +34,21 @@ def test_hrtf_convolution():
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp=False)
     data = data[0]
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0.5, interp=False)
-    assert_raises(ValueError, convolve_hrtf, data, 44100, 0, 
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 0,
                   source='foo', interp=False)
     assert_raises(ValueError, convolve_hrtf, data, 44100, 185, interp=True)
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp='foo')
     # invalid angle when interp=False
     for interp in [True, False]:
         for source in ['barb', 'cipic']:
-            if interp and source = 'barb':
+            if interp and source == 'barb':
                 # raise an error when trying to interp with 'barb'
-                assert_raises(ValueError, convolve_hrtf, data, 44100, 2.5, 
+                assert_raises(ValueError, convolve_hrtf, data, 44100, 2.5,
                               source=source, interp=interp)
             else:
-                out = convolve_hrtf(data, 44100, 0, source=source, 
+                out = convolve_hrtf(data, 44100, 0, source=source,
                                     interp=interp)
-                out_2 = convolve_hrtf(data, 24414, 0, source=source, 
+                out_2 = convolve_hrtf(data, 24414, 0, source=source,
                                       interp=interp)
                 assert_equal(out.ndim, 2)
                 assert_equal(out.shape[0], 2)
@@ -65,7 +65,8 @@ def test_hrtf_convolution():
                 out = convolve_hrtf(data, 44100, 0, source=source,
                                     interp=interp)[:, 1024:-1024]
                 assert_allclose(np.mean(rms(out)), rms(data), rtol=1e-1)
-                out = convolve_hrtf(data, 44100, -90, source=source, interp=interp)
+                out = convolve_hrtf(data, 44100, -90, source=source,
+                                    interp=interp)
                 rmss = rms(out)
                 assert_true(rmss[0] > 4 * rmss[1])
 
