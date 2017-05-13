@@ -73,7 +73,7 @@ def _get_hrtf(angle, source, fs, interp=False):
         assert len(idx) == 1
         brir = brir[idx[0]].copy()
     else:
-        if source not 'cipic':
+        if source == 'barb':
             raise ValueError('source must be ''cipic'' when interp=True')
         idx = np.where(angles < read_angle)[0]
         if (idx[-1] + 1) > (len(angles) - 1):
