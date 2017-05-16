@@ -41,7 +41,7 @@ def _check_callback(callback):
 class TrackerUD(object):
     """Up-down adaptive tracker
 
-    This class implements a standard up-down adative tracker object. Based on
+    This class implements a standard up-down adaptive tracker object. Based on
     how it is configured, it can be used to run a fixed-step m-down n-up
     tracker (staircase), or it can implement a weighted up-down procedure.
 
