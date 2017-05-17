@@ -40,12 +40,13 @@ for read_angle in np.arange(1, 90, 5):  # cover all pairs
     ######################################
     if read_angle < 90 and read_angle > 85:
 
-        hrtf_phase[-1][1][0, 50:] += -2 * np.pi
         hrtf_phase[-1][1][1, 41:] += -2 * np.pi
 
     elif read_angle < 85 and read_angle > 80:
 
         hrtf_phase[-1][0][1, 91:] += -2 * np.pi
+        hrtf_phase[-1][1][0, 35:] += -2 * np.pi
+        hrtf_phase[-1][0][0, 25:] += -2 * np.pi
 
     elif read_angle < 70 and read_angle > 65:
 
@@ -105,6 +106,10 @@ for read_angle in np.arange(1, 90, 5):  # cover all pairs
         hrtf_phase[-1][1][0, 35:] += -2 * np.pi
         hrtf_phase[-1][0][0, 24:] += -2 * np.pi
         hrtf_phase[-1][1][0, 51:] += -2 * np.pi
+
+    elif read_angle < 70 and read_angle > 65:
+
+        hrtf_phase[-1][1][0, 43:] += -2 * np.pi
 
     elif read_angle < 65 and read_angle > 60:
         

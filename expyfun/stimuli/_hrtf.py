@@ -89,6 +89,7 @@ def _get_hrtf(angle, source, fs, interp=False):
         hrtf_phase = data['hrtf_phase']
         pairs = data['pairs']        
         
+        # isolate appropriate pair of amplitude and phase
         index = np.where(pairs == knowns)[0][0]
         hrtf_amp = hrtf_amp[index]
         hrtf_phase = hrtf_phase[index]
