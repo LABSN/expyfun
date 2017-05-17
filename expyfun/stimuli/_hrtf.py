@@ -83,11 +83,15 @@ def _get_hrtf(angle, source, fs, interp=False):
         knowns = np.array([angles[idx[-1]], angles[idx[-1] + 1]])
 
         # pull in files containing known hrtfs and extract magnitude and phase
-        fname = ('hrtf_pair_{0}_{1}_{2}.hdf5'.format(knowns[0],
-                 knowns[1], fs))
+        fname = fetch_data_file('hrtf/pair_cipic_{0}.hdf5'.format(fs))
         data = read_hdf5(fname)
         hrtf_amp = data['hrtf_amp']
         hrtf_phase = data['hrtf_phase']
+        pairs = data['pairs']        
+        
+        index = np.where(pairs == knowns)[0][0]
+        hrtf_amp = hrtf_amp[index]
+        hrtf_phase = hrtf_phase[index]
 
         # weighted averages of log magnitude and unwrapped phase
         step = knowns[1] - knowns[0]
