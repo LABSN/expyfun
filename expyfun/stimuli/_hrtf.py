@@ -28,7 +28,7 @@ from .._utils import fetch_data_file, _fix_audio_dims
 
 
 def _get_hrtf(angle, source, fs, interp=False):
-    """Helper to sub-select proper BRIR
+    """Helper to sub-select proper BRIR.
 
     HRTF files must be .hdf5 files written by ``write_hdf5``. The dict stored
     in that file must contain the following: ``brir``: the BRIR data with shape
@@ -45,11 +45,11 @@ def _get_hrtf(angle, source, fs, interp=False):
     between 0 and 90 degrees.
 
     Interpolation relies on averaging log magnitude and phase in the frequency
-    domain as in the referenced paper.
+    domain. [1]
 
     References
     ----------
-    R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer
+    [1] R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer
     Functions", Australian Government Department of Defence: Defence Science
     and Technology Organization, Melbourne, Victoria, Australia, 2007.
     """
@@ -70,17 +70,19 @@ def _get_hrtf(angle, source, fs, interp=False):
         interp = False
     if not interp:
         idx = np.where(angles == read_angle)[0]
-        assert len(idx) == 1
-        brir = brir[idx[0]].copy()
+        if len(idx) != 1:
+            raise ValueError('angle "{0}" not uniquely found in angles'
+                             ''.format(angle))
+        brir = brir[idx[0]]
     else:
-        if source == 'barb':
+        if source != 'cipic':
             raise ValueError('source must be ''cipic'' when interp=True')
-        idx = np.where(angles < read_angle)[0]
-        if (idx[-1] + 1) > (len(angles) - 1):
-            raise ValueError('angle "{0}" must be smaller than "{1}"'
-                             ''.format(angle, max(angles)))
+        idx = np.searchsorted(angles, read_angle)
+        if idx > len(pairs):
+            raise ValueError('angle magnitude "{0}" must be smaller than "{1}"'
+                             ''.format(read_angle, pairs[-1][-1]))
         # angles with known hrtfs to interpolate between
-        knowns = np.array([angles[idx[-1]], angles[idx[-1] + 1]])
+        knowns = np.array([angles[idx + 1], angles[idx]])
 
         # pull in files containing known hrtfs and extract magnitude and phase
         fname = fetch_data_file('hrtf/pair_cipic_{0}.hdf5'.format(fs))
@@ -95,7 +97,7 @@ def _get_hrtf(angle, source, fs, interp=False):
         hrtf_phase = hrtf_phase[index]
 
         # weighted averages of log magnitude and unwrapped phase
-        step = knowns[1] - knowns[0]
+        step = float(knowns[1] - knowns[0])
         weights = (step - np.abs(read_angle - knowns)) / step
         hrtf_amp = (hrtf_amp[0] ** weights[0] *
                     hrtf_amp[1] ** weights[1])
@@ -132,7 +134,7 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
     interp : bool
         Parameter to determine whether to restrict use to known HRTF values or 
         to use an interpolated HRTF for angles not in the source; set to 
-        'False' by default
+        False by default
 
     Returns
     -------
