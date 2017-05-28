@@ -77,20 +77,21 @@ def _get_hrtf(angle, source, fs, interp=False):
     else:
         if source != 'cipic':
             raise ValueError('source must be ''cipic'' when interp=True')
-        idx = np.searchsorted(angles, read_angle)
-        if idx > len(pairs):
-            raise ValueError('angle magnitude "{0}" must be smaller than "{1}"'
-                             ''.format(read_angle, pairs[-1][-1]))
-        # angles with known hrtfs to interpolate between
-        knowns = np.array([angles[idx + 1], angles[idx]])
-
+        
         # pull in files containing known hrtfs and extract magnitude and phase
         fname = fetch_data_file('hrtf/pair_cipic_{0}.hdf5'.format(fs))
         data = read_hdf5(fname)
         hrtf_amp = data['hrtf_amp']
         hrtf_phase = data['hrtf_phase']
-        pairs = data['pairs']        
-        
+        pairs = data['pairs']
+            
+        idx = np.searchsorted(angles, read_angle)
+        if idx > len(pairs):
+            raise ValueError('angle magnitude "{0}" must be smaller than "{1}"'
+                             ''.format(read_angle, pairs[-1][-1]))
+        # angles with known hrtfs to interpolate between
+        knowns = np.array([angles[idx - 1], angles[idx]])
+
         # isolate appropriate pair of amplitude and phase
         index = np.where(pairs == knowns)[0][0]
         hrtf_amp = hrtf_amp[index]
@@ -99,10 +100,10 @@ def _get_hrtf(angle, source, fs, interp=False):
         # weighted averages of log magnitude and unwrapped phase
         step = float(knowns[1] - knowns[0])
         weights = (step - np.abs(read_angle - knowns)) / step
-        hrtf_amp = (hrtf_amp[0] ** weights[0] *
-                    hrtf_amp[1] ** weights[1])
-        hrtf_phase = (weights[0] * hrtf_phase[0] +
-                      weights[1] * hrtf_phase[1])
+        hrtf_amp = np.prod(hrtf_amp ** weights[:, np.newaxis, np.newaxis], 
+                           axis=0)
+        hrtf_phase = np.sum(hrtf_phase * weights[:, np.newaxis, np.newaxis], 
+                            axis=0)
         
         # reconstruct hrtf and convert to time domain
         hrtf = hrtf_amp * np.exp(1j * hrtf_phase)
