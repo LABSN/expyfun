@@ -77,7 +77,7 @@ def _get_hrtf(angle, source, fs, interp=False):
     else:  # interpolation
         if source != 'cipic':
             raise ValueError('source must be ''cipic'' when interp=True')
-        
+
         # pull in files containing known hrtfs and extract magnitude and phase
         fname = fetch_data_file('hrtf/pair_cipic_{0}.hdf5'.format(fs))
         data = read_hdf5(fname)
@@ -98,11 +98,11 @@ def _get_hrtf(angle, source, fs, interp=False):
         # weighted averages of log magnitude and unwrapped phase
         step = float(knowns[1] - knowns[0])
         weights = (step - np.abs(read_angle - knowns)) / step
-        hrtf_amp = np.prod(hrtf_amp ** weights[:, np.newaxis, np.newaxis], 
+        hrtf_amp = np.prod(hrtf_amp ** weights[:, np.newaxis, np.newaxis],
                            axis=0)
-        hrtf_phase = np.sum(hrtf_phase * weights[:, np.newaxis, np.newaxis], 
+        hrtf_phase = np.sum(hrtf_phase * weights[:, np.newaxis, np.newaxis],
                             axis=0)
-        
+
         # reconstruct hrtf and convert to time domain
         hrtf = hrtf_amp * np.exp(1j * hrtf_phase)
         hrtf = _make_sym(hrtf)
