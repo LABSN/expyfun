@@ -74,7 +74,7 @@ def _get_hrtf(angle, source, fs, interp=False):
             raise ValueError('angle "{0}" not uniquely found in angles'
                              ''.format(angle))
         brir = brir[idx[0]]
-    else:
+    else:  # interpolation
         if source != 'cipic':
             raise ValueError('source must be ''cipic'' when interp=True')
         
@@ -84,15 +84,13 @@ def _get_hrtf(angle, source, fs, interp=False):
         hrtf_amp = data['hrtf_amp']
         hrtf_phase = data['hrtf_phase']
         pairs = data['pairs']
-            
+
+        # isolate appropriate pair of amplitude and phase
         idx = np.searchsorted(angles, read_angle)
         if idx > len(pairs):
             raise ValueError('angle magnitude "{0}" must be smaller than "{1}"'
                              ''.format(read_angle, pairs[-1][-1]))
-        # angles with known hrtfs to interpolate between
         knowns = np.array([angles[idx - 1], angles[idx]])
-
-        # isolate appropriate pair of amplitude and phase
         index = np.where(pairs == knowns)[0][0]
         hrtf_amp = hrtf_amp[index]
         hrtf_phase = hrtf_phase[index]

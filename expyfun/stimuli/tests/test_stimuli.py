@@ -36,7 +36,7 @@ def test_hrtf_convolution():
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0.5, interp=False)
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0,
                   source='foo', interp=False)
-    assert_raises(ValueError, convolve_hrtf, data, 44100, 185, interp=True)
+    assert_raises(ValueError, convolve_hrtf, data, 44100, 90.5, interp=True)
     assert_raises(ValueError, convolve_hrtf, data, 44100, 0, interp='foo')
     # invalid angle when interp=False
     for interp in [True, False]:
