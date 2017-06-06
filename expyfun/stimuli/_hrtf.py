@@ -208,14 +208,3 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
         brir = [resample(b, fs, brir_fs) for b in brir]
     out = np.array([np.convolve(data, brir[o]) for o in order])
     return out
-
-
-def _make_sym(x):
-    """
-    forces symmetry
-    """
-    n = x.shape[-1]
-    x[..., :-((n + 1) // 2):-1] = np.conj(x[..., 1:(n + 1) // 2])
-    if np.mod(n, 2) == 0:
-        x[..., n // 2] = 0
-    return x
