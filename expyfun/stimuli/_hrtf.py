@@ -49,9 +49,9 @@ def _get_hrtf(angle, source, fs, interp=False):
 
     References
     ----------
-    [1] R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer
-    Functions", Australian Government Department of Defence: Defence Science
-    and Technology Organization, Melbourne, Victoria, Australia, 2007.
+    .. [1] R.  Martin and K.  McAnally, "Interpolation of Head-Related Transfer
+       Functions", Australian Government Department of Defence: Defence Science
+       and Technology Organization, Melbourne, Victoria, Australia, 2007.
     """
 
     fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
@@ -105,8 +105,10 @@ def _get_hrtf(angle, source, fs, interp=False):
 
         # reconstruct hrtf and convert to time domain
         hrtf = hrtf_amp * np.exp(1j * hrtf_phase)
+        
+        brir = np.fft.irfft(hrtf, int(hrtf.shape[-1]))
         hrtf = _make_sym(hrtf)
-        brir = np.real(np.fft.ifft(hrtf))
+        brir1 = np.real(np.fft.ifft(hrtf))
 
     return brir, data['fs'], leftward
 
