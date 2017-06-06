@@ -105,7 +105,6 @@ def _get_hrtf(angle, source, fs, interp=False):
 
         # reconstruct hrtf and convert to time domain
         hrtf = hrtf_amp * np.exp(1j * hrtf_phase)
-        
         brir = np.fft.irfft(hrtf, int(hrtf.shape[-1]))
 
     return brir, data['fs'], leftward
