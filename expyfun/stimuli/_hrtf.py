@@ -45,7 +45,7 @@ def _get_hrtf(angle, source, fs, interp=False):
     between 0 and 90 degrees.
 
     Interpolation relies on averaging log magnitude and phase in the frequency
-    domain. [1]
+    domain. [1]_
 
     References
     ----------
