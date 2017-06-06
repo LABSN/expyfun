@@ -107,8 +107,6 @@ def _get_hrtf(angle, source, fs, interp=False):
         hrtf = hrtf_amp * np.exp(1j * hrtf_phase)
         
         brir = np.fft.irfft(hrtf, int(hrtf.shape[-1]))
-        hrtf = _make_sym(hrtf)
-        brir1 = np.real(np.fft.ifft(hrtf))
 
     return brir, data['fs'], leftward
 
