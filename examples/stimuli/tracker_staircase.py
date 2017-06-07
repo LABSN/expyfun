@@ -36,7 +36,7 @@ rng = np.random.RandomState(1)
 # Do the task until the tracker stops
 while not tr.stopped:
     tr.respond(rng.rand() < sigmoid(tr.x_current - true_thresh,
-                                    lower=0.5, slope=0.1))
+                                    lower=chance, slope=slope))
 
 # Plot the results
 fig, ax, lines = tr.plot()
