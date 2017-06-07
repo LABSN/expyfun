@@ -22,6 +22,7 @@ print(__doc__)
 def callback(event_type, value=None, timestamp=None):
     print((str(event_type) + ':').ljust(40) + str(value))
 
+
 # Define parameters for modeled human subject (sigmoid probability)
 true_thresh = 35
 slope = 0.1
