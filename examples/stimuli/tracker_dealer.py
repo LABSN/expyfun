@@ -8,7 +8,7 @@ This file shows how to interleave multiple Tracker objects using
 :class:'expyfun.stimuli.TrackerDealer'
 
 In this case, a modeled human subject generates two curves (one for each trial
-type: 1 & w)
+type: 1 & 2)
 
 @author: maddycapp27
 """
@@ -44,6 +44,7 @@ rand = None
 def callback(event_type, value=None, timestamp=None):
     print((str(event_type) + ':').ljust(40) + str(value))
 
+
 # initialize two tracker objects--one for each trial type
 tr_UD = [TrackerUD(callback, up, down, step_size_up, step_size_down,
                    stop_criterion, stop_rule, start_value,
@@ -56,18 +57,15 @@ tr = TrackerDealer(tr_UD, max_lag, rand)
 rng = np.random.RandomState(1)
 
 while not tr.stopped:
-
-    # Get information of which trial type is next and what the level is at 
-    # that time from TrackerDealer 
-    ss, level = tr.get_trial()  
+    # Get information of which trial type is next and what the level is at
+    # that time from TrackerDealer
+    ss, level = tr.get_trial()
     ss = sum(ss)
-    
     tr_UD[ss].respond(rng.rand() < sigmoid(level - true_thresh[ss],
                                            lower=chance, slope=slope))
 
 # Plot the results
 for i in [0, 1]:
-
     fig, ax, lines = tr[i].plot()
     lines += tr[i].plot_thresh(4, ax=ax)
 
