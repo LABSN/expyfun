@@ -5,7 +5,7 @@ Tracker Dealer Example
 ======================
 
 This file shows how to interleave multiple Tracker objects using
-:class:'expyfun.stimuli.TrackerDealer'
+:class:`expyfun.stimuli.TrackerDealer`.
 
 In this case, a modeled human subject generates two curves (one for each trial
 type: 1 & 2)
@@ -16,6 +16,7 @@ type: 1 & 2)
 import numpy as np
 from expyfun.stimuli import TrackerUD, TrackerDealer
 from expyfun.analyze import sigmoid
+import matplotlib.pyplot as plt
 
 # define parameters of modeled subject (using sigmoid probability)
 true_thresh = [30, 40]
@@ -65,14 +66,16 @@ while not tr.stopped:
                                            lower=chance, slope=slope))
 
 # Plot the results
+axes = [plt.subplot(211), plt.subplot(212)]
 for i in [0, 1]:
-    fig, ax, lines = tr[i].plot()
+    fig, ax, lines = tr[i].plot(ax=axes[i])
     lines += tr[i].plot_thresh(4, ax=ax)
 
     lines[0].set_label('Trials')
     lines[1].set_label('Reversals')
     lines[2].set_label('Estimated threshold')
 
-    ax.legend()
+    ax.legend(loc='best')
     ax.set_title('Adaptive track of model human trial type {} (true threshold '
                  'is {})'.format(i + 1, true_thresh[i]))
+    plt.tight_layout()
