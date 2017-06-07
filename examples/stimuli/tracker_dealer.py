@@ -38,7 +38,7 @@ x_max = 90
 
 # parameters for the tracker dealer
 max_lag = 2
-rng = np.random.RandomState(3)
+rng_dealer = np.random.RandomState(3)
 
 
 # callback function that prints to console
@@ -52,18 +52,18 @@ tr_UD = [TrackerUD(callback, up, down, step_size_up, step_size_down,
                    change_criteria, change_rule, x_min, x_max) for i in [0, 1]]
 
 # initialize TrackerDealer object
-tr = TrackerDealer(tr_UD, max_lag, rng)
+tr = TrackerDealer(tr_UD, max_lag, rng_dealer)
 
 # Initialize human state
-rng = np.random.RandomState(1)
+rng_human = np.random.RandomState(1)
 
 while not tr.stopped:
     # Get information of which trial type is next and what the level is at
     # that time from TrackerDealer
     ss, level = tr.get_trial()
     ss = sum(ss)
-    tr_UD[ss].respond(rng.rand() < sigmoid(level - true_thresh[ss],
-                                           lower=chance, slope=slope))
+    tr_UD[ss].respond(rng_human.rand() < sigmoid(level - true_thresh[ss],
+                                                 lower=chance, slope=slope))
 
 # Plot the results
 axes = plt.subplots(2, 1)[1]
