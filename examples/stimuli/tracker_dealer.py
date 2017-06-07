@@ -25,12 +25,15 @@ chance = 0.5
 # define parameters for each tracker (assuming each tracker uses same rules)
 up = 1
 down = 1
-step_size_up = [5, 3]
+step_size_up = [9, 3]
 step_size_down = [3, 1]
-stop_criterion = 50
+stop_criterion = 30
 stop_rule = 'reversals'
-change_criterion = [0, 4]
 start_value = 45
+change_criteria = [0, 5]
+change_rule = 'reversals'
+x_min = 0
+x_max = 90
 
 # parameters for the tracker dealer
 max_lag = 2
@@ -44,7 +47,7 @@ def callback(event_type, value=None, timestamp=None):
 # initialize two tracker objects--one for each trial type
 tr_UD = [TrackerUD(callback, up, down, step_size_up, step_size_down,
                    stop_criterion, stop_rule, start_value,
-                   change_criterion) for i in [0, 1]]
+                   change_criteria, change_rule, x_min, x_max) for i in [0, 1]]
 
 # initialize TrackerDealer object
 tr = TrackerDealer(tr_UD, max_lag, rand)
