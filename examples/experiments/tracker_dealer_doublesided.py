@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-======================
-Tracker Dealer Example
-======================
+======================================
+Adaptive tracking from above and below
+======================================
 
 This file shows how to interleave multiple Tracker objects using
 :class:`expyfun.stimuli.TrackerDealer` to simultaneously approach a threshold
