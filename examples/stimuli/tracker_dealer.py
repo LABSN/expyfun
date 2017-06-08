@@ -78,8 +78,8 @@ while not tr.stopped:
     # Get information of which trial type is next and what the level is at
     # that time from TrackerDealer
     __, level = tr.get_trial()
-    tr_ud.respond(rng_human.rand() < sigmoid(level - true_thresh[ss],
-                                             lower=chance, slope=slope))
+    tr.respond(rng_human.rand() < sigmoid(level - true_thresh[ss],
+                                          lower=chance, slope=slope))
 
 ##############################################################################
 # Plotting the Results
