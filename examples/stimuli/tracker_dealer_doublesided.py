@@ -26,7 +26,7 @@ chance = 0.5
 # ---------------------------
 # In this example, the tracker parameters are the same for each instance of
 # the up-down adaptive tracker except for the start value. Each start value in
-# the list will be given to a different tracker. The other parameters are 
+# the list will be given to a different tracker. The other parameters are
 # defined such that the step sizes vary for both up v. down (the up step size
 # is larger by a factor of 3) and based on the number of reversals (the first
 # element in each list is the step size until the number of reversals dictated
