@@ -69,7 +69,7 @@ tr_ud = [TrackerUD(callback, up, down, step_size_up, step_size_down,
                    change_rule, x_min, x_max) for sv in start_value]
 
 # initialize TrackerDealer object
-tr = TrackerDealer(tr_UD, max_lag, rng_dealer)
+tr = TrackerDealer(tr_ud, max_lag, rng_dealer)
 
 # Initialize human state
 rng_human = np.random.RandomState(1)  # random seed for modeled subject
@@ -78,8 +78,8 @@ while not tr.stopped:
     # Get information of which trial type is next and what the level is at
     # that time from TrackerDealer
     __, level = tr.get_trial()
-    tr_UD.respond(rng_human.rand() < sigmoid(level - true_thresh,
-                                             lower=chance, slope=slope))
+    tr.respond(rng_human.rand() < sigmoid(level - true_thresh,
+                                          lower=chance, slope=slope))
 
 ##############################################################################
 # Plotting the Results
