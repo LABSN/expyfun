@@ -58,7 +58,7 @@ rng_dealer = np.random.RandomState(4)  # random seed for selecting trial type
 # Initializing and Running Trackers
 # ---------------------------------
 # The two trackers in this example use all of the same parameters except for
-# the start valueand then are passed into the dealer. After the dealer is
+# the start value and then are passed into the dealer. After the dealer is
 # created, the type of trial with the start value above or below the true
 # threshold (returned as an index) and trial level for that trial can be
 # acquired.
@@ -77,7 +77,7 @@ rng_human = np.random.RandomState(1)  # random seed for modeled subject
 while not tr.stopped:
     # Get information of which trial type is next and what the level is at
     # that time from TrackerDealer
-    __, level = tr.get_trial()
+    _, level = tr.get_trial()
     tr.respond(rng_human.rand() < sigmoid(level - true_thresh,
                                           lower=chance, slope=slope))
 
