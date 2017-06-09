@@ -700,21 +700,12 @@ class TrackerDealer(object):
 
     Notes
     -----
-    The trackers can be accessed like a numpy array, e.g. ``dealer[0, 1, :]``.
+    The trackers can be accessed like a numpy array through the trackers
+    property, e.g. ``dealer.trackers[0, 1, :]``.
 
     If dealing from TrackerBinom objects (which is probably not a good idea),
     ``stop_early`` must be ``False`` or else they cannot be ensured to keep
     pace.
-    
-    Selects the tracker from which the next trial should be run
-
-    Returns
-    -------
-    subscripts : list-like
-        The position of the selected tracker.
-    x_current : float
-        The level of the selected tracker.
-    
     """
     def __init__(self, trackers, max_lag=1, rand=None):
         # dim will only be used for user output. Will be stored as 0-d
@@ -752,6 +743,16 @@ class TrackerDealer(object):
         return self
 
     def next(self):
+       """ 
+       Selects the tracker from which the next trial should be run
+       
+       Returns
+       -------
+       subscripts : list-like
+            The position of the selected tracker.
+        x_current : float
+            The level of the selected tracker.
+        """
         if self.stopped:
             raise(StopIteration)
         if not self._trial_complete:
