@@ -41,7 +41,7 @@ def _check_callback(callback):
 class TrackerUD(object):
     """Up-down adaptive tracker
 
-    This class implements a standard up-down adaptive tracker object. Based on
+    This class implements a standard up-down adative tracker object. Based on
     how it is configured, it can be used to run a fixed-step m-down n-up
     tracker (staircase), or it can implement a weighted up-down procedure.
 
@@ -738,19 +738,33 @@ class TrackerDealer(object):
         self._response_history = np.array([], dtype=int)
         self._x_history = np.array([], dtype=float)
 
-    def __getitem__(self, key):
-        return self._trackers[key]
-
     def __iter__(self):
-        self._index = 0
         return self
 
     def next(self):
-        if self._index == self._trackers.size:
+        """Selects the tracker from which the next trial should be run
+
+        Returns
+        -------
+        subscripts : list-like
+            The position of the selected tracker.
+        x_current : float
+            The level of the selected tracker.
+        """
+        if self.stopped:
             raise(StopIteration)
-        t = self._trackers.flat[self._index]
-        self._index += 1
-        return t
+        if not self._trial_complete:
+            # Chose a new tracker before responding, so record non-response
+            self._response_history = np.append(self._response_history,
+                                               np.nan)
+        self._trial_complete = False
+        self._current_tracker = self._pick()
+        self._tracker_history = np.append(self._tracker_history,
+                                          self._current_tracker)
+        ss = np.unravel_index(self._current_tracker, self.shape)
+        level = self._trackers.flat[self._current_tracker].x_current
+        self._x_history = np.append(self._x_history, level)
+        return ss, level
 
     def __next__(self):  # for py3k compatibility
         return self.next()
