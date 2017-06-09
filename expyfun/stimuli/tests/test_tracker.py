@@ -187,7 +187,7 @@ def test_tracker_dealer():
         dealer_binom.respond(True)
 
     # if you're dealing from TrackerBinom, you can't use stop_early feature
-    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True)
+    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True, x_current=3)
                 for _ in range(2)]
     assert_raises(ValueError, TrackerDealer, callback, trackers)
 
