@@ -722,7 +722,7 @@ class TrackerDealer(object):
                 raise ValueError('stop_early for trackers.flat[%d] must be '
                                  'False to deal trials from a TrackerBinom '
                                  'object' % (ti,))
-            if isinstance(t, TrackerBinom) and not x_current:
+            if isinstance(t, TrackerBinom) and not t.x_current:
                 raise ValueError('trackers.flat[%d] must have x_current value'
                                  'given to deal trials from a TrackerBinom '
                                  'object' % (ti,))
