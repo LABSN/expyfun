@@ -148,12 +148,12 @@ def test_tracker_dealer():
     trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
                 for _ in range(2)] for _ in range(3)]
     dealer_ud = TrackerDealer(callback, trackers)
-    
+
     # can't respond to a trial twice
     dealer_ud.next()
     dealer_ud.respond(True)
     assert_raises(RuntimeError, dealer_ud.respond, True)
-    
+
     dealer_ud = TrackerDealer(callback, np.array(trackers))
 
     # can't respond before you pick a tracker and get a trial
@@ -180,7 +180,7 @@ def test_tracker_dealer():
     assert_raises(TypeError, TrackerDealer, trackers, rand=1)
 
     # test TrackerDealer with TrackerBinom
-    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False, 
+    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False,
                              x_current=3) for _ in range(2)]
     dealer_binom = TrackerDealer(callback, trackers)
     for sub, x_current in dealer_binom:
