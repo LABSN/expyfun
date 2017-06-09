@@ -148,6 +148,12 @@ def test_tracker_dealer():
     trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
                 for _ in range(2)] for _ in range(3)]
     dealer_ud = TrackerDealer(callback, trackers)
+    
+    # can't respond to a trial twice
+    dealer_ud.next()
+    dealer_ud.respond(True)
+    assert_raises(RuntimeError, dealer_ud.respond(True))
+    
     dealer_ud = TrackerDealer(callback, np.array(trackers))
 
     # can't respond before you pick a tracker and get a trial
@@ -158,9 +164,6 @@ def test_tracker_dealer():
         dealer_ud.respond(rand.rand() < x_current)
         assert(np.abs(dealer_ud.trackers[0, 0].n_reversals -
                       dealer_ud.trackers[1, 0].n_reversals) <= 1)
-
-    # can't respond to a trial after tracker is stopped
-    assert_raises(RuntimeError, dealer_ud.respond(rand.rand() < x_current))
 
     # test array-like indexing
     dealer_ud.trackers[0]
