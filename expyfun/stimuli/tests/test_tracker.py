@@ -152,7 +152,7 @@ def test_tracker_dealer():
     # can't respond to a trial twice
     dealer_ud.next()
     dealer_ud.respond(True)
-    assert_raises(RuntimeError, dealer_ud.respond(True))
+    assert_raises(RuntimeError, dealer_ud.respond, True)
     
     dealer_ud = TrackerDealer(callback, np.array(trackers))
 
