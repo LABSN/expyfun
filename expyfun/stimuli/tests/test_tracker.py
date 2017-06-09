@@ -183,7 +183,6 @@ def test_tracker_dealer():
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
                 for _ in range(2)]
     dealer_binom = TrackerDealer(callback, trackers)
-    rand = np.random.RandomState(0)
     for sub, x_current in dealer_binom:
         dealer_binom.respond(True)
 
