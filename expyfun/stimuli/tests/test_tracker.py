@@ -184,8 +184,7 @@ def test_tracker_dealer():
                 for _ in range(2)]
     dealer_binom = TrackerDealer(callback, trackers)
     rand = np.random.RandomState(0)
-    while not dealer_binom.stopped:
-        sub, x_current = dealer_binom.get_trial()
+    for sub, x_current in dealer_binom:
         dealer_binom.respond(True)
 
     # if you're dealing from TrackerBinom, you can't use stop_early feature
