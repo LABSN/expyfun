@@ -153,11 +153,11 @@ def test_tracker_dealer():
     # can't respond before you pick a tracker and get a trial
     assert_raises(RuntimeError, dealer_ud.respond, True)
     rand = np.random.RandomState(0)
-    
+
     for sub, x_current in dealer_ud:
         dealer_ud.respond(rand.rand() < x_current)
-        assert(np.abs(dealer_ud[0, 0].n_reversals -
-                      dealer_ud[0, 0].n_reversals) <= 1)
+        assert(np.abs(dealer_ud.trackers[0, 0].n_reversals -
+                      dealer_ud.trackers[1, 0].n_reversals) <= 1)
 
     # can't get a trial after tracker is stopped
     assert_raises(RuntimeError, dealer_ud.get_trial)

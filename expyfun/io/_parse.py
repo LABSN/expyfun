@@ -6,6 +6,33 @@ import numpy as np
 import csv
 
 
+def read_tab_raw(fname):
+    """Read .tab file from expyfun output without segmenting into trials
+    
+    Parameters
+    ----------
+    fname : str
+        Input filename.
+        
+    Returns
+    -------
+    data : dict
+        The data, wach value in the dict being a list of tuples (event, time)
+        for each occurrence of that key.
+    """
+    with open(fname, 'r') as f:
+        csvr = csv.reader(f, delimiter='\t')
+        lines = [c for c in csvr]
+
+    # first two lines are headers
+    assert (len(lines[0]) == 1 and lines[0][0][0] == '#')
+    #metadata = ast.literal_eval(lines[0][0][2:])
+    assert lines[1] == ['timestamp', 'event', 'value']
+    lines = lines[2:]
+
+    header = list(set([l[1] for l in lines]))
+    header.sort()
+
 def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
     """Read .tab file from expyfun output
 
