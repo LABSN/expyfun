@@ -147,8 +147,8 @@ def test_tracker_dealer():
     # test TrackerDealer with TrackerUD
     trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
                 for _ in range(2)] for _ in range(3)]
-    dealer_ud = TrackerDealer(trackers)
-    dealer_ud = TrackerDealer(np.array(trackers))
+    dealer_ud = TrackerDealer(callback, trackers)
+    dealer_ud = TrackerDealer(callback, np.array(trackers))
 
     # can't respond before you pick a tracker and get a trial
     assert_raises(RuntimeError, dealer_ud.respond, True)
