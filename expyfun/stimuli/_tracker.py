@@ -739,7 +739,7 @@ class TrackerDealer(object):
         self._tracker_history = np.array([], dtype=int)
         self._response_history = np.array([], dtype=int)
         self._x_history = np.array([], dtype=float)
-        
+
         self._dealer_id = id(self)
         self._callback('dealer_identity', json.dumps(dict(
             dealer_id=self._dealer_id)))
@@ -754,7 +754,7 @@ class TrackerDealer(object):
 
     def next(self):
         """Selects the tracker from which the next trial should be run
-       
+
         Returns
         -------
         subscripts : list-like
@@ -820,9 +820,9 @@ class TrackerDealer(object):
         if self.stopped:
             self._callback(
                 'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
-                    tracker_position=[int(s) for s in self._tracker_history],
-                    responses=[int(s) for s in self._response_history],
-                    x=[int(s) for s in self._x_history])))
+                    tracker_history=[int(s) for s in self._tracker_history],
+                    response_history=[int(s) for s in self._response_history],
+                    x_history=[float(s) for s in self._x_history])))
 
     def history(self, include_skips=False):
         """The history of the dealt trials and the responses
