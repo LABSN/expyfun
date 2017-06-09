@@ -820,7 +820,7 @@ class TrackerDealer(object):
         if self.stopped:
             self._callback(
                 'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
-                    tracker_position=[s for s in self._tracker_history],
+                    tracker_position=[int(s) for s in self._tracker_history],
                     responses=[int(s) for s in self._response_history],
                     x=[int(s) for s in self._x_history])))
 
