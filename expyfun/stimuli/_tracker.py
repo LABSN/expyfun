@@ -742,8 +742,7 @@ class TrackerDealer(object):
         
         self._dealer_id = id(self)
         self._callback('dealer_identity', json.dumps(dict(
-            dealer_id=self._dealer_id,
-            tracker_type='dealer')))
+            dealer_id=self._dealer_id)))
 
         self._callback('dealer_%i_init' % self._dealer_id, json.dumps(dict(
             trackers=[s._tracker_id for s in self._trackers.ravel()],
@@ -821,7 +820,7 @@ class TrackerDealer(object):
         if self.stopped:
             self._callback(
                 'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
-                    tracker_position=[int(s) for s in self._tracker_history],
+                    tracker_position=[s for s in self._tracker_history],
                     responses=[int(s) for s in self._response_history],
                     x=[int(s) for s in self._x_history])))
 
