@@ -153,9 +153,8 @@ def test_tracker_dealer():
     # can't respond before you pick a tracker and get a trial
     assert_raises(RuntimeError, dealer_ud.respond, True)
     rand = np.random.RandomState(0)
-    dealer_ud.get_trial()
-    while not dealer_ud.stopped:
-        sub, x_current = dealer_ud.get_trial()
+    
+    for sub, x_current in dealer_ud:
         dealer_ud.respond(rand.rand() < x_current)
         assert(np.abs(dealer_ud[0, 0].n_reversals -
                       dealer_ud[0, 0].n_reversals) <= 1)
@@ -164,12 +163,11 @@ def test_tracker_dealer():
     assert_raises(RuntimeError, dealer_ud.get_trial)
 
     # test array-like indexing
-    dealer_ud[0]
-    dealer_ud[:]
-    dealer_ud[[1, 0, 1]]
-    [d for d in dealer_ud]
+    dealer_ud.trackers[0]
+    dealer_ud.trackers[:]
+    dealer_ud.trackers[[1, 0, 1]]
+    [d for d in dealer_ud.trackers]
     dealer_ud.shape
-    dealer_ud.trackers
     dealer_ud.history()
     dealer_ud.history(True)
 
