@@ -491,7 +491,7 @@ class TrackerBinom(object):
     stop_early : boolean
         Whether to stop the adaptive track as soon as ``alpha`` is reached and
         at least ``min_trials`` have been presented.
-    x_current : float | None
+    x_current : float | np.nan
         The level that you want to run the test at. This has no bearing on how
         the track runs, and it will never change, but it is required to be
         here for ``TrackerDealer``.
