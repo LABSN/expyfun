@@ -159,8 +159,8 @@ def test_tracker_dealer():
         assert(np.abs(dealer_ud.trackers[0, 0].n_reversals -
                       dealer_ud.trackers[1, 0].n_reversals) <= 1)
 
-    # can't get a trial after tracker is stopped
-    assert_raises(RuntimeError, dealer_ud.get_trial)
+    # can't respond to a trial after tracker is stopped
+    assert_raises(RuntimeError, dealer_ud.respond(rand.rand() < x_current))
 
     # test array-like indexing
     dealer_ud.trackers[0]
