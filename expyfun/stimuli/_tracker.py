@@ -509,7 +509,7 @@ class TrackerBinom(object):
     of following them.
     """
     def __init__(self, callback, alpha, chance, max_trials, min_trials=0,
-                 stop_early=True, x_current=None):
+                 stop_early=True, x_current=np.nan):
         self._callback = _check_callback(callback)
         self._alpha = alpha
         self._chance = chance
@@ -722,10 +722,6 @@ class TrackerDealer(object):
                 raise ValueError('stop_early for trackers.flat[%d] must be '
                                  'False to deal trials from a TrackerBinom '
                                  'object' % (ti,))
-            #if isinstance(t, TrackerBinom) and not t.x_current:
-            #    raise ValueError('trackers.flat[%d] must have x_current value '
-            #                     'given to deal trials from a TrackerBinom '
-            #                     'object' % (ti,))
         self._shape = self._trackers.shape
         self._n = np.prod(self._shape)
         self._pace_rule = self._trackers.flat[0].stop_rule
