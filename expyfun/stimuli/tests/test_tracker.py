@@ -180,8 +180,8 @@ def test_tracker_dealer():
     assert_raises(TypeError, TrackerDealer, trackers, rand=1)
 
     # test TrackerDealer with TrackerBinom
-    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
-                for _ in range(2)]
+    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False, 
+                             x_current=3) for _ in range(2)]
     dealer_binom = TrackerDealer(callback, trackers)
     for sub, x_current in dealer_binom:
         dealer_binom.respond(True)
@@ -189,4 +189,9 @@ def test_tracker_dealer():
     # if you're dealing from TrackerBinom, you can't use stop_early feature
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True)
                 for _ in range(2)]
-    assert_raises(ValueError, TrackerDealer, trackers)
+    assert_raises(ValueError, TrackerDealer, callback, trackers)
+
+    # if you're dealing from TrackerBinom, you must include x_current
+    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True)
+                for _ in range(2)]
+    assert_raises(ValueError, TrackerDealer, callback, trackers)
