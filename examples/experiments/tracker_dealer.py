@@ -69,7 +69,7 @@ tr_ud = [TrackerUD(callback, up, down, step_size_up, step_size_down,
                    change_criteria, change_rule, x_min, x_max) for i in [0, 1]]
 
 # initialize TrackerDealer object
-td = TrackerDealer(tr_ud, max_lag, rng_dealer)
+td = TrackerDealer(callback, tr_ud, max_lag, rng_dealer)
 
 # Initialize human state
 rng_human = np.random.RandomState(1)  # random seed for modeled subject

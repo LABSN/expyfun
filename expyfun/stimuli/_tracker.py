@@ -707,8 +707,9 @@ class TrackerDealer(object):
     ``stop_early`` must be ``False`` or else they cannot be ensured to keep
     pace.
     """
-    def __init__(self, trackers, max_lag=1, rand=None):
+    def __init__(self, callback, trackers, max_lag=1, rand=None):
         # dim will only be used for user output. Will be stored as 0-d
+        self._callback = _check_callback(callback)
         self._trackers = np.asarray(trackers)
         for ti, t in enumerate(self._trackers.flat):
             if not isinstance(t, (TrackerUD, TrackerBinom)):
@@ -738,6 +739,16 @@ class TrackerDealer(object):
         self._tracker_history = np.array([], dtype=int)
         self._response_history = np.array([], dtype=int)
         self._x_history = np.array([], dtype=float)
+        
+        self._dealer_id = id(self)
+        self._callback('dealer_identity', json.dumps(dict(
+            dealer_id=self._dealer_id,
+            tracker_type='dealer')))
+
+        self._callback('dealer_%i_init' % self._dealer_id, json.dumps(dict(
+            trackers=[s._tracker_id for s in self._trackers.ravel()],
+            shape=self._shape,
+            max_lag=self._max_lag)))
 
     def __iter__(self):
         return self
@@ -807,6 +818,12 @@ class TrackerDealer(object):
         self._trackers.flat[self._current_tracker].respond(correct)
         self._trial_complete = True
         self._response_history = np.append(self._response_history, correct)
+        if self.stopped:
+            self._callback(
+                'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
+                    tracker_position=[int(s) for s in self._tracker_history],
+                    responses=[int(s) for s in self._response_history],
+                    x=[int(s) for s in self._x_history])))
 
     def history(self, include_skips=False):
         """The history of the dealt trials and the responses
