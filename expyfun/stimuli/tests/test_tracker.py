@@ -182,7 +182,7 @@ def test_tracker_dealer():
     # test TrackerDealer with TrackerBinom
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
                 for _ in range(2)]
-    dealer_binom = TrackerDealer(trackers)
+    dealer_binom = TrackerDealer(callback, trackers)
     rand = np.random.RandomState(0)
     while not dealer_binom.stopped:
         sub, x_current = dealer_binom.get_trial()
