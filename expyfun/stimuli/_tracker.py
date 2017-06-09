@@ -743,12 +743,11 @@ class TrackerDealer(object):
         return self
 
     def next(self):
-       """ 
-       Selects the tracker from which the next trial should be run
+        """Selects the tracker from which the next trial should be run
        
-       Returns
-       -------
-       subscripts : list-like
+        Returns
+        -------
+        subscripts : list-like
             The position of the selected tracker.
         x_current : float
             The level of the selected tracker.
