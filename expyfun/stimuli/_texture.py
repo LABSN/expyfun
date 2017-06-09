@@ -42,7 +42,7 @@ def _make_narrow_noise(bw, f_c, dur, fs, ramp_dur, rng):
 
 def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
                 fs=24414.0625, dur=1., SAM_freq=7., random_state=None,
-                freq_lims=(200, 8000)):
+                freq_lims=(200, 8000), verbose=True):
     """Create ERB texture stimulus
 
     Parameters
@@ -68,6 +68,8 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
     random_state : None | int | np.random.RandomState
         The random generator state used for band selection and noise
         envelope generation.
+    verbose : bool
+        If True, print the resulting ERB spacing.
 
     Returns
     -------
@@ -99,8 +101,9 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
     n_ERBs = _cams(f_max) - _cams(f_min)
     del f_max
     spacing_ERBs = n_ERBs / float(n_freqs - 1)
-    print('This stim will have successive tones separated by %2.2f ERBs'
-          % spacing_ERBs)
+    if verbose:
+        print('This stim will have successive tones separated by %2.2f ERBs'
+              % spacing_ERBs)
     if spacing_ERBs < 1.0:
         warnings.warn('The spacing between tones is LESS THAN 1 ERB!')
 
