@@ -705,6 +705,16 @@ class TrackerDealer(object):
     If dealing from TrackerBinom objects (which is probably not a good idea),
     ``stop_early`` must be ``False`` or else they cannot be ensured to keep
     pace.
+    
+    Selects the tracker from which the next trial should be run
+
+    Returns
+    -------
+    subscripts : list-like
+        The position of the selected tracker.
+    x_current : float
+        The level of the selected tracker.
+    
     """
     def __init__(self, trackers, max_lag=1, rand=None):
         # dim will only be used for user output. Will be stored as 0-d
@@ -742,15 +752,6 @@ class TrackerDealer(object):
         return self
 
     def next(self):
-        """Selects the tracker from which the next trial should be run
-
-        Returns
-        -------
-        subscripts : list-like
-            The position of the selected tracker.
-        x_current : float
-            The level of the selected tracker.
-        """
         if self.stopped:
             raise(StopIteration)
         if not self._trial_complete:
@@ -793,29 +794,6 @@ class TrackerDealer(object):
             inds = active
         return inds[self._rand.randint(len(inds))]
 
-    def get_trial(self):
-        """Selects the tracker from which the next trial should be run
-
-        Returns
-        -------
-        subscripts : list-like
-            The position of the selected tracker.
-        x_current : float
-            The level of the selected tracker.
-        """
-        if not self._trial_complete:
-            # Chose a new tracker before responding, so record non-response
-            self._response_history = np.append(self._response_history,
-                                               np.nan)
-        self._trial_complete = False
-        self._current_tracker = self._pick()
-        self._tracker_history = np.append(self._tracker_history,
-                                          self._current_tracker)
-        ss = np.unravel_index(self._current_tracker, self.shape)
-        level = self._trackers.flat[self._current_tracker].x_current
-        self._x_history = np.append(self._x_history, level)
-        return ss, level
-
     def respond(self, correct):
         """Update the current tracker based on the last response
 
@@ -823,10 +801,6 @@ class TrackerDealer(object):
         ----------
         correct : boolean
             Was the most recent subject response correct?
-
-        Notes
-        -----
-        ``get_trial`` must be run before ``respond`` can be called.
         """
         if self._trial_complete:
             raise RuntimeError('You must get a trial before you can respond.')

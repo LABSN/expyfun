@@ -69,16 +69,15 @@ tr_ud = [TrackerUD(callback, up, down, step_size_up, step_size_down,
                    change_criteria, change_rule, x_min, x_max) for i in [0, 1]]
 
 # initialize TrackerDealer object
-tr = TrackerDealer(tr_ud, max_lag, rng_dealer)
+td = TrackerDealer(tr_ud, max_lag, rng_dealer)
 
 # Initialize human state
 rng_human = np.random.RandomState(1)  # random seed for modeled subject
 
-while not tr.stopped:
+for ss, level in td:
     # Get information of which trial type is next and what the level is at
     # that time from TrackerDealer
-    ss, level = tr.get_trial()
-    tr.respond(rng_human.rand() < sigmoid(level - true_thresh[sum(ss)],
+    td.respond(rng_human.rand() < sigmoid(level - true_thresh[sum(ss)],
                                           lower=chance, slope=slope))
 
 ##############################################################################
@@ -86,8 +85,8 @@ while not tr.stopped:
 # ---------------------------
 axes = plt.subplots(2, 1)[1]
 for i in [0, 1]:
-    fig, ax, lines = tr[i].plot(ax=axes[i])
-    lines += tr[i].plot_thresh(4, ax=ax)
+    fig, ax, lines = td.trackers.ravel()[i].plot(ax=axes[i])
+    lines += td.trackers.ravel()[i].plot_thresh(4, ax=ax)
 
     lines[0].set_label('Trials')
     lines[1].set_label('Reversals')
