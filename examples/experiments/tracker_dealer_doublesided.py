@@ -52,7 +52,7 @@ def callback(event_type, value=None, timestamp=None):
 
 # parameters for the tracker dealer
 max_lag = 2
-rng_dealer = np.random.RandomState(4)  # random seed for selecting trial type
+rng_dealer = np.random.RandomState(2)  # random seed for selecting trial type
 
 ##############################################################################
 # Initializing and Running Trackers

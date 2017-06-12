@@ -831,7 +831,8 @@ class TrackerDealer(object):
             self._callback(
                 'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
                     tracker_history=[int(s) for s in self._tracker_history],
-                    response_history=[float(s) for s in self._response_history],
+                    response_history=[float(s) for s in 
+                                      self._response_history],
                     x_history=[float(s) for s in self._x_history])))
 
     def history(self, include_skips=False):
