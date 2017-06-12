@@ -86,11 +86,6 @@ for ss, level in td:
 axes = plt.subplots(2, 1)[1]
 for i in [0, 1]:
     fig, ax, lines = td.trackers.ravel()[i].plot(ax=axes[i])
-    lines += td.trackers.ravel()[i].plot_thresh(4, ax=ax)
-
-    lines[0].set_label('Trials')
-    lines[1].set_label('Reversals')
-    lines[2].set_label('Estimated threshold')
 
     ax.legend(loc='best')
     ax.set_title('Adaptive track of model human trial type {} (true threshold '

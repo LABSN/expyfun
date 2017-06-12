@@ -43,10 +43,5 @@ while not tr.stopped:
 fig, ax, lines = tr.plot()
 lines += tr.plot_thresh(4, ax=ax)
 
-lines[0].set_label('Trials')
-lines[1].set_label('Reversals')
-lines[2].set_label('Estimated threshold')
-
-ax.legend()
 ax.set_title('Adaptive track of model human (true threshold is {})'
              .format(true_thresh))

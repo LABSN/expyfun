@@ -379,13 +379,16 @@ class TrackerUD(object):
     # =========================================================================
     # Display functions
     # =========================================================================
-    def plot(self, ax=None):
+    def plot(self, ax=None, threshold=True, n_skip=2):
         """Plot the adaptive track.
 
         Parameters
         ----------
         ax : AxesSubplot | None
             The axes to make the plot on. If ``None`` defaults to current axes.
+        threshold : bool
+            Whether to plot the estimated threshold on the axes. Default is
+            True.
 
         Returns
         -------
@@ -403,9 +406,15 @@ class TrackerUD(object):
             fig = ax.figure
 
         line = ax.plot(1 + np.arange(self._n_trials), self._x, 'k.-')
+        line[0].set_label('Trials')
         dots = ax.plot(1 + np.where(self._reversals > 0)[0],
                        self._x[self._reversals > 0], 'ro')
+        dots[0].set_label('Reversals')
         ax.set(xlabel='Trial number', ylabel='Level')
+        if threshold == True:
+            thresh = self.plot_thresh(n_skip, ax)
+            thresh[0].set_label('Estimated Threshold')
+        ax.legend()
         return fig, ax, line + dots
 
     def plot_thresh(self, n_skip=2, ax=None):
