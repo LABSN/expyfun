@@ -127,7 +127,7 @@ class TrackerUD(object):
         self._x_min = -np.inf if x_min is None else x_min
         self._x_max = np.inf if x_max is None else x_max
 
-        if change_indices is None:
+         if change_indices is None:
             change_indices = [0]
         self._change_indices = np.asarray(change_indices)
         if change_rule not in ['trials', 'reversals']:
@@ -493,7 +493,7 @@ class TrackerBinom(object):
     stop_early : boolean
         Whether to stop the adaptive track as soon as ``alpha`` is reached and
         at least ``min_trials`` have been presented.
-    x_current : float | None
+    x_current : float | np.nan
         The level that you want to run the test at. This has no bearing on how
         the track runs, and it will never change, but it is required to be
         here for ``TrackerDealer``.
@@ -511,7 +511,7 @@ class TrackerBinom(object):
     of following them.
     """
     def __init__(self, callback, alpha, chance, max_trials, min_trials=0,
-                 stop_early=True, x_current=None):
+                 stop_early=True, x_current=np.nan):
         self._callback = _check_callback(callback)
         self._alpha = alpha
         self._chance = chance
@@ -702,14 +702,16 @@ class TrackerDealer(object):
 
     Notes
     -----
-    The trackers can be accessed like a numpy array, e.g. ``dealer[0, 1, :]``.
+    The trackers can be accessed like a numpy array through the trackers
+    property, e.g. ``dealer.trackers[0, 1, :]``.
 
     If dealing from TrackerBinom objects (which is probably not a good idea),
     ``stop_early`` must be ``False`` or else they cannot be ensured to keep
     pace.
     """
-    def __init__(self, trackers, max_lag=1, rand=None):
+    def __init__(self, callback, trackers, max_lag=1, rand=None):
         # dim will only be used for user output. Will be stored as 0-d
+        self._callback = _check_callback(callback)
         self._trackers = np.asarray(trackers)
         for ti, t in enumerate(self._trackers.flat):
             if not isinstance(t, (TrackerUD, TrackerBinom)):
@@ -740,19 +742,42 @@ class TrackerDealer(object):
         self._response_history = np.array([], dtype=int)
         self._x_history = np.array([], dtype=float)
 
-    def __getitem__(self, key):
-        return self._trackers[key]
+        self._dealer_id = id(self)
+        self._callback('dealer_identity', json.dumps(dict(
+            dealer_id=self._dealer_id)))
+
+        self._callback('dealer_%i_init' % self._dealer_id, json.dumps(dict(
+            trackers=[s._tracker_id for s in self._trackers.ravel()],
+            shape=self._shape,
+            max_lag=self._max_lag)))
 
     def __iter__(self):
-        self._index = 0
         return self
 
     def next(self):
-        if self._index == self._trackers.size:
+        """Selects the tracker from which the next trial should be run
+
+        Returns
+        -------
+        subscripts : list-like
+            The position of the selected tracker.
+        x_current : float
+            The level of the selected tracker.
+        """
+        if self.stopped:
             raise(StopIteration)
-        t = self._trackers.flat[self._index]
-        self._index += 1
-        return t
+        if not self._trial_complete:
+            # Chose a new tracker before responding, so record non-response
+            self._response_history = np.append(self._response_history,
+                                               np.nan)
+        self._trial_complete = False
+        self._current_tracker = self._pick()
+        self._tracker_history = np.append(self._tracker_history,
+                                          self._current_tracker)
+        ss = np.unravel_index(self._current_tracker, self.shape)
+        level = self._trackers.flat[self._current_tracker].x_current
+        self._x_history = np.append(self._x_history, level)
+        return ss, level
 
     def __next__(self):  # for py3k compatibility
         return self.next()
@@ -781,29 +806,6 @@ class TrackerDealer(object):
             inds = active
         return inds[self._rand.randint(len(inds))]
 
-    def get_trial(self):
-        """Selects the tracker from which the next trial should be run
-
-        Returns
-        -------
-        subscripts : list-like
-            The position of the selected tracker.
-        x_current : float
-            The level of the selected tracker.
-        """
-        if not self._trial_complete:
-            # Chose a new tracker before responding, so record non-response
-            self._response_history = np.append(self._response_history,
-                                               np.nan)
-        self._trial_complete = False
-        self._current_tracker = self._pick()
-        self._tracker_history = np.append(self._tracker_history,
-                                          self._current_tracker)
-        ss = np.unravel_index(self._current_tracker, self.shape)
-        level = self._trackers.flat[self._current_tracker].x_current
-        self._x_history = np.append(self._x_history, level)
-        return ss, level
-
     def respond(self, correct):
         """Update the current tracker based on the last response
 
@@ -811,16 +813,18 @@ class TrackerDealer(object):
         ----------
         correct : boolean
             Was the most recent subject response correct?
-
-        Notes
-        -----
-        ``get_trial`` must be run before ``respond`` can be called.
         """
         if self._trial_complete:
             raise RuntimeError('You must get a trial before you can respond.')
         self._trackers.flat[self._current_tracker].respond(correct)
         self._trial_complete = True
         self._response_history = np.append(self._response_history, correct)
+        if self.stopped:
+            self._callback(
+                'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
+                    tracker_history=[int(s) for s in self._tracker_history],
+                    response_history=[int(s) for s in self._response_history],
+                    x_history=[float(s) for s in self._x_history])))
 
     def history(self, include_skips=False):
         """The history of the dealt trials and the responses
