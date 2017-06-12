@@ -70,35 +70,32 @@ def test_tracker_ud():
 
     # test dynamic step size and error conditions
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
-                   change_criteria=[0, 2])
+                   change_indices=[2])
     tr.respond(True)
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
-                   change_criteria=[0, 2], change_rule='trials')
+                   change_indices=[2], change_rule='trials')
     tr.respond(True)
-    # first element of change_criteria non-zero
+    # change_indices too long
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', 1, change_criteria=[1, 2])
-    # first element of change_criteria length mistmatch
-    assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', 1, change_criteria=[0])
+                  'trials', 1, change_indices=[1, 2])
     # step_size_up length mismatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1], [1, 0.5], 10,
-                  'trials', 1, change_criteria=[0, 2])
+                  'trials', 1, change_indices=[2])
     # step_size_down length mismatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1], 10,
-                  'trials', 1, change_criteria=[0, 2])
-    # bad chane_rule
+                  'trials', 1, change_indices=[2])
+    # bad change_rule
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', 1, change_criteria=[0, 2], change_rule='foo')
-    # no change_criteria (i.e. change_criteria=None)
+                  'trials', 1, change_indices=[2], change_rule='foo')
+    # no change_criteria (i.e. change_indices=None)
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1)
 
     # start_value scalar type checking
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', [9, 5], change_criteria=[0, 2])
+                  'trials', [9, 5], change_indices=[2])
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', None, change_criteria=[0, 2])
+                  'trials', None, change_indices=[2])
 
 
 @_hide_window
@@ -180,7 +177,7 @@ def test_tracker_dealer():
     assert_raises(TypeError, TrackerDealer, trackers, rand=1)
 
     # test TrackerDealer with TrackerBinom
-    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False) 
+    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
                 for _ in range(2)]
     dealer_binom = TrackerDealer(callback, trackers)
     for sub, x_current in dealer_binom:

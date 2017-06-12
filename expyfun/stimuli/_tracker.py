@@ -129,6 +129,12 @@ class TrackerUD(object):
 
         if change_indices is None:
             change_indices = [0]
+            if not np.isscalar(step_size_up):
+                raise ValueError('If step_size_up is longer than 1, you must '
+                                 'specify change indices.')
+            if not np.isscalar(step_size_down):
+                raise ValueError('If step_size_down is longer than 1, you must'
+                                 ' specify change indices.')
         self._change_indices = np.asarray(change_indices)
         if change_rule not in ['trials', 'reversals']:
             raise ValueError("change_rule must be either 'trials' or "
@@ -270,7 +276,7 @@ class TrackerUD(object):
         elif self._stop_rule.lower() == 'trials':
             self._n_change = self._n_trials
         step_index = np.where(self._n_change >= self._change_indices)[0]
-        if len(step_index) == 1:
+        if len(step_index) == 0 or self._change_indices == [0]:
             step_index = 0
         else:
             step_index = step_index[-1] + 1
@@ -825,7 +831,7 @@ class TrackerDealer(object):
             self._callback(
                 'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
                     tracker_history=[int(s) for s in self._tracker_history],
-                    response_history=[int(s) for s in self._response_history],
+                    response_history=[float(s) for s in self._response_history],
                     x_history=[float(s) for s in self._x_history])))
 
     def history(self, include_skips=False):
