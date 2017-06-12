@@ -136,15 +136,17 @@ class TrackerUD(object):
         self._change_rule = change_rule
 
         step_size_up = np.atleast_1d(step_size_up)
-        if len(step_size_up) != len(change_indices) + 1:
-            raise ValueError('If step_size_up is not scalar it must be one '
-                             'element longer than change_indices.')
+        if change_indices != [0]:
+            if len(step_size_up) != len(change_indices) + 1:
+                raise ValueError('If step_size_up is not scalar it must be one'
+                                 ' element longer than change_indices.')
         self._step_size_up = np.asarray(step_size_up, dtype=float)
 
         step_size_down = np.atleast_1d(step_size_down)
-        if len(step_size_down) != len(change_indices) + 1:
-            raise ValueError('If step_size_down is not scalar it must be one '
-                             'element longer than change_indices.')
+        if change_indices != [0]:
+            if len(step_size_down) != len(change_indices) + 1:
+                raise ValueError('If step_size_down is not scalar it must be '
+                                 'one element longer than change_indices.')
         self._step_size_down = np.asarray(step_size_down, dtype=float)
 
         self._x = np.asarray([start_value], dtype=float)
@@ -268,7 +270,7 @@ class TrackerUD(object):
         elif self._stop_rule.lower() == 'trials':
             self._n_change = self._n_trials
         step_index = np.where(self._n_change >= self._change_indices)[0]
-        if len(step_index) == 0:
+        if len(step_index) == 1:
             step_index = 0
         else:
             step_index = step_index[-1] + 1
