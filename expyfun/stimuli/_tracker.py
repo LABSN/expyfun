@@ -112,7 +112,7 @@ class TrackerUD(object):
     would change the step sizes from 1 to 0.2 after two reversals.
 
     If static step sizes are used, both ``step_size_up``
-    and ``step_sizedownp`` must be scalars and ``change_indices`` must be
+    and ``step_size_down`` must be scalars and ``change_indices`` must be
     None.
     """
     def __init__(self, callback, up, down, step_size_up, step_size_down,

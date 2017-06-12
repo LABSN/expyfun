@@ -39,7 +39,7 @@ step_size_down = [3, 1]
 stop_criterion = 30
 stop_rule = 'reversals'
 start_value = [15, 45]
-change_criteria = [5]
+change_indices = [5]
 change_rule = 'reversals'
 x_min = 0
 x_max = 90
@@ -65,7 +65,7 @@ rng_dealer = np.random.RandomState(4)  # random seed for selecting trial type
 
 # initialize two tracker objects--one for each start value
 tr_ud = [TrackerUD(callback, up, down, step_size_up, step_size_down,
-                   stop_criterion, stop_rule, sv, change_criteria,
+                   stop_criterion, stop_rule, sv, change_indices,
                    change_rule, x_min, x_max) for sv in start_value]
 
 # initialize TrackerDealer object
