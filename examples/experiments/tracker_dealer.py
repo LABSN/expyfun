@@ -66,7 +66,7 @@ rng_dealer = np.random.RandomState(3)  # random seed for selecting trial type
 # initialize two tracker objects--one for each trial type
 tr_ud = [TrackerUD(callback, up, down, step_size_up, step_size_down,
                    stop_criterion, stop_rule, start_value,
-                   change_criteria, change_rule, x_min, x_max) for i in [0, 1, 2]]
+                   change_criteria, change_rule, x_min, x_max) for i in [0, 1]]
 
 # initialize TrackerDealer object
 td = TrackerDealer(callback, tr_ud, max_lag, rng_dealer)

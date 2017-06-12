@@ -127,7 +127,7 @@ class TrackerUD(object):
         self._x_min = -np.inf if x_min is None else x_min
         self._x_max = np.inf if x_max is None else x_max
 
-         if change_indices is None:
+        if change_indices is None:
             change_indices = [0]
         self._change_indices = np.asarray(change_indices)
         if change_rule not in ['trials', 'reversals']:
