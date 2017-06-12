@@ -74,7 +74,9 @@ def test_tracker_ud():
     tr.respond(True)
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
                    change_indices=[2], change_rule='trials')
-    tr.respond(True)
+    for t in np.arange(2):  # run long enough to encounter change_indices
+        tr.respond(True)
+        tr.respond(False)
     # change_indices too long
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1, change_indices=[1, 2])
@@ -87,7 +89,7 @@ def test_tracker_ud():
     # bad change_rule
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1, change_indices=[2], change_rule='foo')
-    # no change_criteria (i.e. change_indices=None)
+    # no change_indices (i.e. change_indices=None)
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   'trials', 1)
 
