@@ -411,7 +411,7 @@ class TrackerUD(object):
                        self._x[self._reversals > 0], 'ro')
         dots[0].set_label('Reversals')
         ax.set(xlabel='Trial number', ylabel='Level')
-        if threshold == True:
+        if threshold:
             thresh = self.plot_thresh(n_skip, ax)
             thresh[0].set_label('Estimated Threshold')
         ax.legend()
