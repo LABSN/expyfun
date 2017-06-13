@@ -144,7 +144,7 @@ def test_tracker_binom():
 def test_tracker_dealer():
     """Test TrackerDealer."""
     # test TrackerDealer with TrackerUD
-    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, None, 
+    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, None,
                            1) for _ in range(2)] for _ in range(3)]
     dealer_ud = TrackerDealer(callback, trackers)
 
@@ -189,6 +189,6 @@ def test_tracker_dealer():
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True, x_current=3)
                 for _ in range(2)]
     assert_raises(ValueError, TrackerDealer, callback, trackers, 1, 'trials')
-    
+
     # if you're dealing from TrackerBinom, you can't use reversals to pace
     assert_raises(ValueError, TrackerDealer, callback, trackers, 1)

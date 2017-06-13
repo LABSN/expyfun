@@ -185,8 +185,8 @@ class TrackerUD(object):
             down=self._down,
             step_size_up=[int(s) for s in self._step_size_up],
             step_size_down=[int(s) for s in self._step_size_down],
-            stop_reversals = self._stop_reversals,
-            stop_trials = self._stop_trials,
+            stop_reversals=self._stop_reversals,
+            stop_trials=self._stop_trials,
             start_value=self._start_value,
             change_indices=[int(s) for s in self._change_indices],
             change_rule=self._change_rule,
@@ -747,12 +747,12 @@ class TrackerDealer(object):
                 raise ValueError('stop_early for trackers.flat[%d] must be '
                                  'False to deal trials from a TrackerBinom '
                                  'object' % (ti,))
-            
+
         self._shape = self._trackers.shape
         self._n = np.prod(self._shape)
         self._max_lag = max_lag
         self._pace_rule = pace_rule
-        if any([isinstance(t, TrackerBinom) for t in 
+        if any([isinstance(t, TrackerBinom) for t in
                 self._trackers]) and pace_rule == 'reversals':
             raise ValueError('pace_rule must be ''trials'' to deal trials from'
                              ' a TrackerBinom object')
