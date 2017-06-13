@@ -23,15 +23,15 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
 def test_tracker_ud():
     """Test TrackerUD"""
     import matplotlib.pyplot as plt
-    tr = TrackerUD(callback, 3, 1, 1, 1, 10, 'trials', 1)
+    tr = TrackerUD(callback, 3, 1, 1, 1, None, 10, 1)
     with ExperimentController('test', **std_kwargs) as ec:
-        tr = TrackerUD(ec, 3, 1, 1, 1, 10, 'trials', 1)
-    tr = TrackerUD(None, 3, 1, 1, 1, 10, 'trials', 1)
+        tr = TrackerUD(ec, 3, 1, 1, 1, None, 10, 1)
+    tr = TrackerUD(None, 3, 1, 1, 1, None, 10, 1)
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
 
-    tr = TrackerUD(None, 3, 1, 1, 1, 10, 'reversals', 1, x_min=0, x_max=1.1)
+    tr = TrackerUD(None, 3, 1, 1, 1, None, 10, 1, x_min=0, x_max=1.1)
     tr.threshold()
     rand = np.random.RandomState(0)
     while not tr.stopped:
@@ -44,8 +44,8 @@ def test_tracker_ud():
     tr.down
     tr.step_size_up
     tr.step_size_down
-    tr.stop_criterion
-    tr.stop_rule
+    tr.stop_reversals
+    tr.stop_trials
     tr.start_value
     tr.x_min
     tr.x_max
@@ -66,38 +66,38 @@ def test_tracker_ud():
     tr.threshold
 
     # bad callback type
-    assert_raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, 'trials', 1)
+    assert_raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, None, 1)
 
     # test dynamic step size and error conditions
-    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
+    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, None, 1,
                    change_indices=[2])
     tr.respond(True)
-    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, 'trials', 1,
+    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], None, 10, 1,
                    change_indices=[2], change_rule='trials')
     for t in np.arange(2):  # run long enough to encounter change_indices
         tr.respond(True)
         tr.respond(False)
     # change_indices too long
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', 1, change_indices=[1, 2])
+                  None, 1, change_indices=[1, 2])
     # step_size_up length mismatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1], [1, 0.5], 10,
-                  'trials', 1, change_indices=[2])
+                  None, 1, change_indices=[2])
     # step_size_down length mismatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1], 10,
-                  'trials', 1, change_indices=[2])
+                  None, 1, change_indices=[2])
     # bad change_rule
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', 1, change_indices=[2], change_rule='foo')
+                  None, 1, change_indices=[2], change_rule='foo')
     # no change_indices (i.e. change_indices=None)
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', 1)
+                  None, 1)
 
     # start_value scalar type checking
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', [9, 5], change_indices=[2])
+                  None, [9, 5], change_indices=[2])
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  'trials', None, change_indices=[2])
+                  None, None, change_indices=[2])
 
 
 @_hide_window
@@ -144,8 +144,8 @@ def test_tracker_binom():
 def test_tracker_dealer():
     """Test TrackerDealer."""
     # test TrackerDealer with TrackerUD
-    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
-                for _ in range(2)] for _ in range(3)]
+    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, 50,
+                           1) for _ in range(2)] for _ in range(3)]
     dealer_ud = TrackerDealer(callback, trackers)
 
     # can't respond to a trial twice
@@ -174,18 +174,21 @@ def test_tracker_dealer():
     dealer_ud.history(True)
 
     # bad rand type
-    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 'reversals', 1)
+    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, None, 1)
                 for _ in range(2)]
     assert_raises(TypeError, TrackerDealer, trackers, rand=1)
 
     # test TrackerDealer with TrackerBinom
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
                 for _ in range(2)]
-    dealer_binom = TrackerDealer(callback, trackers)
+    dealer_binom = TrackerDealer(callback, trackers, pace_rule='trials')
     for sub, x_current in dealer_binom:
         dealer_binom.respond(True)
 
     # if you're dealing from TrackerBinom, you can't use stop_early feature
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True, x_current=3)
                 for _ in range(2)]
-    assert_raises(ValueError, TrackerDealer, callback, trackers)
+    assert_raises(ValueError, TrackerDealer, callback, trackers, 1, 'trials')
+    
+    # if you're dealing from TrackerBinom, you can't use reversals to pace
+    assert_raises(ValueError, TrackerDealer, callback, trackers, 1)

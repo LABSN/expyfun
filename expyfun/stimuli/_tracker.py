@@ -68,11 +68,14 @@ class TrackerUD(object):
         the same. If list of float then it will change when ``change_indices``
         are encountered. See note below for more specific information on
         dynamic tracker parameters specified with a list.
-    stop_criterion : int
-        The number of reversals or trials that will stop the tracker.
-    stop_rule : str
-        How to determine when the tracker stops. Can be 'reversals' or
-        'trials'.
+    stop_reversals : int
+        The minimum number of reversals before the tracker stops. If
+        ``stop_trials`` is also specified, the tracker will stop when either
+        condition is satisfied.
+    stop_trials : int | None
+        The minimum number of trials before the tracker stops. If
+        ``stop_reversals`` is also specified, the tracker will stop when either
+        condition is satisfied.
     start_value : float
         The starting level of the tracker.
     change_indices : list of int | None
@@ -116,13 +119,14 @@ class TrackerUD(object):
     None.
     """
     def __init__(self, callback, up, down, step_size_up, step_size_down,
-                 stop_criterion, stop_rule, start_value, change_indices=None,
+                 stop_reversals, stop_trials, start_value, change_indices=None,
                  change_rule='reversals', x_min=None, x_max=None):
         self._callback = _check_callback(callback)
         self._up = up
         self._down = down
-        self._stop_criterion = stop_criterion
-        self._stop_rule = stop_rule
+        self._stop_reversals = (np.inf if stop_reversals is None else
+                                stop_reversals)
+        self._stop_trials = np.inf if stop_trials is None else stop_trials
         self._start_value = start_value
         self._x_min = -np.inf if x_min is None else x_min
         self._x_max = np.inf if x_max is None else x_max
@@ -181,8 +185,8 @@ class TrackerUD(object):
             down=self._down,
             step_size_up=[int(s) for s in self._step_size_up],
             step_size_down=[int(s) for s in self._step_size_down],
-            stop_criterion=self._stop_criterion,
-            stop_rule=self._stop_rule,
+            stop_reversals = self._stop_reversals,
+            stop_trials = self._stop_trials,
             start_value=self._start_value,
             change_indices=[int(s) for s in self._change_indices],
             change_rule=self._change_rule,
@@ -264,16 +268,18 @@ class TrackerUD(object):
                     x=[int(s) for s in self._x])))
 
     def _stop_here(self):
-        if self._stop_rule.lower() == 'reversals':
-            self._n_stop = self._n_reversals
-        elif self._stop_rule.lower() == 'trials':
-            self._n_stop = self._n_trials
-        return self._n_stop >= self._stop_criterion
+        if self._n_reversals > self._stop_reversals:
+            self._n_stop = True
+        elif self._n_trials > self._stop_trials:
+            self._n_stop = True
+        else:
+            self._n_stop = False
+        return self._n_stop
 
     def _step_index(self):
         if self._change_rule.lower() == 'reversals':
             self._n_change = self._n_reversals
-        elif self._stop_rule.lower() == 'trials':
+        elif self._change_rule.lower() == 'trials':
             self._n_change = self._n_trials
         step_index = np.where(self._n_change >= self._change_indices)[0]
         if len(step_index) == 0 or self._change_indices == [0]:
@@ -310,12 +316,12 @@ class TrackerUD(object):
         return self._step_size_down
 
     @property
-    def stop_criterion(self):
-        return self._stop_criterion
+    def stop_reversals(self):
+        return self._stop_reversals
 
     @property
-    def stop_rule(self):
-        return self._stop_rule
+    def stop_trials(self):
+        return self._stop_trials
 
     @property
     def start_value(self):
@@ -706,8 +712,10 @@ class TrackerDealer(object):
         :class:`expyfun.stimuli.TrackerBinom`.
     max_lag : int
         The number of reversals or trials by which the leading tracker may lead
-        the lagging one. Whether this uses trials or reversals depends on the
-        ``stop_rule`` of the tracker
+        the lagging one. The ``pace_rule`` dictates whether reversals or trials
+        are used.
+    pace_rule : str
+        Must be ``reversals`` or ``trials``.
     rand : numpy.random.RandomState | None
         The random process used to deal the trackers. If None, the process is
         seeded based on the current time.
@@ -726,7 +734,8 @@ class TrackerDealer(object):
     ``stop_early`` must be ``False`` or else they cannot be ensured to keep
     pace.
     """
-    def __init__(self, callback, trackers, max_lag=1, rand=None):
+    def __init__(self, callback, trackers, max_lag=1, pace_rule='reversals',
+                 rand=None):
         # dim will only be used for user output. Will be stored as 0-d
         self._callback = _check_callback(callback)
         self._trackers = np.asarray(trackers)
@@ -734,17 +743,19 @@ class TrackerDealer(object):
             if not isinstance(t, (TrackerUD, TrackerBinom)):
                 raise TypeError('trackers.ravel()[%d] is type %s, must be '
                                 'TrackerUD or TrackerBinom' % (ti, type(t)))
-            if not t.stop_rule == self._trackers.flat[0].stop_rule:
-                raise ValueError('stop rule mismatch between trackers.flat[0] '
-                                 'and trackers.flat[%d]' % (ti,))
             if isinstance(t, TrackerBinom) and t.stop_early:
                 raise ValueError('stop_early for trackers.flat[%d] must be '
                                  'False to deal trials from a TrackerBinom '
                                  'object' % (ti,))
+            
         self._shape = self._trackers.shape
         self._n = np.prod(self._shape)
-        self._pace_rule = self._trackers.flat[0].stop_rule
         self._max_lag = max_lag
+        self._pace_rule = pace_rule
+        if any([isinstance(t, TrackerBinom) for t in 
+                self._trackers]) and pace_rule == 'reversals':
+            raise ValueError('pace_rule must be ''trials'' to deal trials from'
+                             ' a TrackerBinom object')
         if rand is None:
             self._seed = int(time.time())
             rand = np.random.RandomState(self._seed)
@@ -766,7 +777,8 @@ class TrackerDealer(object):
         self._callback('dealer_%i_init' % self._dealer_id, json.dumps(dict(
             trackers=[s._tracker_id for s in self._trackers.ravel()],
             shape=self._shape,
-            max_lag=self._max_lag)))
+            max_lag=self._max_lag,
+            pace_rule=self._pace_rule)))
 
     def __iter__(self):
         return self
