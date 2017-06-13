@@ -68,7 +68,7 @@ class TrackerUD(object):
         the same. If list of float then it will change when ``change_indices``
         are encountered. See note below for more specific information on
         dynamic tracker parameters specified with a list.
-    stop_reversals : int
+    stop_reversals : int | None
         The minimum number of reversals before the tracker stops. If
         ``stop_trials`` is also specified, the tracker will stop when either
         condition is satisfied.

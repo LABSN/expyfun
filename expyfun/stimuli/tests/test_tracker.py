@@ -144,7 +144,7 @@ def test_tracker_binom():
 def test_tracker_dealer():
     """Test TrackerDealer."""
     # test TrackerDealer with TrackerUD
-    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, 50,
+    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, None, 
                            1) for _ in range(2)] for _ in range(3)]
     dealer_ud = TrackerDealer(callback, trackers)
 
@@ -157,8 +157,8 @@ def test_tracker_dealer():
 
     # can't respond before you pick a tracker and get a trial
     assert_raises(RuntimeError, dealer_ud.respond, True)
-    rand = np.random.RandomState(0)
 
+    rand = np.random.RandomState(0)
     for sub, x_current in dealer_ud:
         dealer_ud.respond(rand.rand() < x_current)
         assert(np.abs(dealer_ud.trackers[0, 0].n_reversals -
@@ -174,7 +174,7 @@ def test_tracker_dealer():
     dealer_ud.history(True)
 
     # bad rand type
-    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, None, 1)
+    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 50, 1)
                 for _ in range(2)]
     assert_raises(TypeError, TrackerDealer, trackers, rand=1)
 
