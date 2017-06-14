@@ -520,8 +520,8 @@ class TrackerBinom(object):
         at least ``min_trials`` have been presented.
     x_current : float
         The level that you want to run the test at. This has no bearing on how
-        the track runs, and it will never change, but it is required to be
-        here for ``TrackerDealer``.
+        the track runs, and it will never change, but it is both useful to
+        document the level and required to exist if using ``TrackerDealer``.
 
     Returns
     -------
