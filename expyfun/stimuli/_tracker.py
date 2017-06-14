@@ -176,6 +176,7 @@ class TrackerUD(object):
         self._n_trials = 0
         self._n_reversals = 0
         self._stopped = False
+        self._repeat_limit = 'reversal'
 
         # Now write the initialization data out
         self._tracker_id = id(self)
@@ -236,6 +237,10 @@ class TrackerUD(object):
                     self._n_reversals += 1
                 if self._direction <= 0:
                     self._direction = 1
+        if self._repeat_limit == 'reversal':
+            if self._x_current in [self._x_max, self._x_min]:
+                reversal = True
+                self._n_reversals += 1
         if reversal:
             self._reversals = np.append(self._reversals, self._n_reversals)
         else:
