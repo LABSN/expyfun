@@ -98,6 +98,10 @@ def test_tracker_ud():
                   None, [9, 5], change_indices=[2])
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
                   None, None, change_indices=[2])
+    
+    # test with multiple change_indices
+    tr = TrackerUD(None, 3, 1, [3, 2, 1], [3, 2, 1], 10, None, 1,
+                   change_indices = [2, 4], change_rule = 'reversals')
 
 
 @_hide_window
