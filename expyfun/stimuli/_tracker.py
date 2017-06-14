@@ -72,10 +72,12 @@ class TrackerUD(object):
         The minimum number of reversals before the tracker stops. If
         ``stop_trials`` is also specified, the tracker will stop when either
         condition is satisfied.
-    stop_trials : int | None
+    stop_trials : int | np.inf
         The minimum number of trials before the tracker stops. If
         ``stop_reversals`` is also specified, the tracker will stop when either
-        condition is satisfied.
+        condition is satisfied. Only use np.inf if you are sure that the
+        tracker will reach the reversal stopping criteria without getting stuck
+        on either x_min or x_max.
     start_value : float
         The starting level of the tracker.
     change_indices : list of int | None
@@ -126,7 +128,9 @@ class TrackerUD(object):
         self._down = down
         self._stop_reversals = (np.inf if stop_reversals is None else
                                 stop_reversals)
-        self._stop_trials = np.inf if stop_trials is None else stop_trials
+        if stop_trials != np.inf and type(stop_trials) != int:
+            raise ValueError('stop_trials must be an integer or np.inf')
+        self._stop_trials = stop_trials
         self._start_value = start_value
         self._x_min = -np.inf if x_min is None else x_min
         self._x_max = np.inf if x_max is None else x_max

@@ -66,10 +66,10 @@ def test_tracker_ud():
     tr.threshold
 
     # bad callback type
-    assert_raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, None, 1)
+    assert_raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, np.inf, 1)
 
     # test dynamic step size and error conditions
-    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, None, 1,
+    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
                    change_indices=[2])
     tr.respond(True)
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], None, 10, 1,
@@ -77,30 +77,34 @@ def test_tracker_ud():
     for t in np.arange(2):  # run long enough to encounter change_indices
         tr.respond(True)
         tr.respond(False)
+
+    # bad stop_trials
+    assert_raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 10, 'foo', 1)
+
     # change_indices too long
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  None, 1, change_indices=[1, 2])
+                  np.inf, 1, change_indices=[1, 2])
     # step_size_up length mismatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1], [1, 0.5], 10,
-                  None, 1, change_indices=[2])
+                  np.inf, 1, change_indices=[2])
     # step_size_down length mismatch
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1], 10,
-                  None, 1, change_indices=[2])
+                  np.inf, 1, change_indices=[2])
     # bad change_rule
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  None, 1, change_indices=[2], change_rule='foo')
+                  np.inf, 1, change_indices=[2], change_rule='foo')
     # no change_indices (i.e. change_indices=None)
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  None, 1)
+                  np.inf, 1)
 
     # start_value scalar type checking
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  None, [9, 5], change_indices=[2])
+                  np.inf, [9, 5], change_indices=[2])
     assert_raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  None, None, change_indices=[2])
-    
+                  np.inf, None, change_indices=[2])
+
     # test with multiple change_indices
-    tr = TrackerUD(None, 3, 1, [3, 2, 1], [3, 2, 1], 10, None, 1,
+    tr = TrackerUD(None, 3, 1, [3, 2, 1], [3, 2, 1], 10, np.inf, 1,
                    change_indices=[2, 4], change_rule='reversals')
 
 
@@ -148,7 +152,7 @@ def test_tracker_binom():
 def test_tracker_dealer():
     """Test TrackerDealer."""
     # test TrackerDealer with TrackerUD
-    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, None,
+    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, np.inf,
                            1) for _ in range(2)] for _ in range(3)]
     dealer_ud = TrackerDealer(callback, trackers)
 
