@@ -101,7 +101,7 @@ def test_tracker_ud():
     
     # test with multiple change_indices
     tr = TrackerUD(None, 3, 1, [3, 2, 1], [3, 2, 1], 10, None, 1,
-                   change_indices = [2, 4], change_rule = 'reversals')
+                   change_indices=[2, 4], change_rule='reversals')
 
 
 @_hide_window
