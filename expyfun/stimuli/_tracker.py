@@ -282,7 +282,7 @@ class TrackerUD(object):
         elif self._change_rule.lower() == 'trials':
             self._n_change = self._n_trials
         step_index = np.where(self._n_change >= self._change_indices)[0]
-        if len(step_index) == 0 or self._change_indices == [0]:
+        if len(step_index) == 0 or np.array_equal(self._change_indices, [0]):
             step_index = 0
         else:
             step_index = step_index[-1] + 1
@@ -395,6 +395,8 @@ class TrackerUD(object):
         threshold : bool
             Whether to plot the estimated threshold on the axes. Default is
             True.
+        n_skip : int
+            See documentation for ``TrackerUD.threshold``.
 
         Returns
         -------
@@ -516,7 +518,7 @@ class TrackerBinom(object):
     stop_early : boolean
         Whether to stop the adaptive track as soon as ``alpha`` is reached and
         at least ``min_trials`` have been presented.
-    x_current : float | np.nan
+    x_current : float
         The level that you want to run the test at. This has no bearing on how
         the track runs, and it will never change, but it is required to be
         here for ``TrackerDealer``.
