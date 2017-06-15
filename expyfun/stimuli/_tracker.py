@@ -188,8 +188,8 @@ class TrackerUD(object):
             callback=None,
             up=self._up,
             down=self._down,
-            step_size_up=[int(s) for s in self._step_size_up],
-            step_size_down=[int(s) for s in self._step_size_down],
+            step_size_up=[float(s) for s in self._step_size_up],
+            step_size_down=[float(s) for s in self._step_size_down],
             stop_reversals=self._stop_reversals,
             stop_trials=self._stop_trials,
             start_value=self._start_value,
@@ -274,7 +274,7 @@ class TrackerUD(object):
                 'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
                     responses=[int(s) for s in self._responses],
                     reversals=[int(s) for s in self._reversals],
-                    x=[int(s) for s in self._x])))
+                    x=[float(s) for s in self._x])))
 
     def _stop_here(self):
         if self._n_reversals > self._stop_reversals:
