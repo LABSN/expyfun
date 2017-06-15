@@ -60,28 +60,33 @@ class TrackerUD(object):
         The number of correct answers necessary to move the tracker level down.
     step_size_up : float | list of float
         The size of the step when the tracker moves up. If float it will stay
-        the same. If list of float then it will change when ``change_criteria``
+        the same. If list of float then it will change when ``change_indices``
         are encountered. See note below for more specific information on
         dynamic tracker parameters specified with a list.
     step_size_down : float | list of float
         The size of the step when the tracker moves down. If float it will stay
-        the same. If list of float then it will change when ``change_criteria``
+        the same. If list of float then it will change when ``change_indices``
         are encountered. See note below for more specific information on
         dynamic tracker parameters specified with a list.
-    stop_criterion : int
-        The number of reversals or trials that will stop the tracker.
-    stop_rule : str
-        How to determine when the tracker stops. Can be 'reversals' or
-        'trials'.
+    stop_reversals : int | np.inf
+        The minimum number of reversals before the tracker stops. If
+        ``stop_trials`` is also specified, the tracker will stop when either
+        condition is satisfied.
+    stop_trials : int | np.inf
+        The minimum number of trials before the tracker stops. If
+        ``stop_reversals`` is also specified, the tracker will stop when either
+        condition is satisfied. Only use np.inf if you are sure that the
+        tracker will reach the reversal stopping criteria without getting stuck
+        on either x_min or x_max.
     start_value : float
         The starting level of the tracker.
-    change_criteria : list of int | None
+    change_indices : list of int | None
         The points along the tracker to change its step sizes. Has an effect
         where ``step_size_up`` and ``step_size_down`` are
-        lists. The length of ``change_criteria`` must be the same as the
-        length of ``step_size_up`` and ``step_size_down``. See note below for
-        more specific usage information. Should be None if static step sizes
-        are used.
+        lists. The length of ``change_indices`` must be the same as the
+        length of ``step_size_up`` and ``step_size_down`` minus 1. See note
+        below for more specific usage information. Should be None if static
+        step sizes are used.
     change_rule : str
         Whether to change parameters based on 'trials' or 'reversals'.
     x_min : float
@@ -103,51 +108,60 @@ class TrackerUD(object):
     of values rather than a scalar. The parameter will change to the next value
     in the list whenever a change criterion (number of trials or reversals) is
     encountered. This means that the length of the list defining a dynamic
-    parameter must always be the same as that of ``change_criteria``, and the
-    first element of change_criteria must always be 0.
+    parameter must always be the 1 longer than that of ``change_indices``.
     For the example given above::
 
         ..., step_size_up=[1., 0.2], step_size_down=[1., 0.2], \
-        change_criteria=[0, 2], change_rule='reversals', ...
+        change_indices=[2], change_rule='reversals', ...
 
     would change the step sizes from 1 to 0.2 after two reversals.
 
     If static step sizes are used, both ``step_size_up``
-    and ``step_sizedownp`` must be scalars and ``change_criteria`` must be
+    and ``step_size_down`` must be scalars and ``change_indices`` must be
     None.
     """
     def __init__(self, callback, up, down, step_size_up, step_size_down,
-                 stop_criterion, stop_rule, start_value, change_criteria=None,
+                 stop_reversals, stop_trials, start_value, change_indices=None,
                  change_rule='reversals', x_min=None, x_max=None):
         self._callback = _check_callback(callback)
         self._up = up
         self._down = down
-        self._stop_criterion = stop_criterion
-        self._stop_rule = stop_rule
+        if stop_reversals != np.inf and type(stop_reversals) != int:
+            raise ValueError('stop_reversals must be an integer or np.inf')
+        self._stop_reversals = stop_reversals
+        if stop_trials != np.inf and type(stop_trials) != int:
+            raise ValueError('stop_trials must be an integer or np.inf')
+        self._stop_trials = stop_trials
         self._start_value = start_value
         self._x_min = -np.inf if x_min is None else x_min
         self._x_max = np.inf if x_max is None else x_max
 
-        if change_criteria is None:
-            change_criteria = [0]
-        elif change_criteria[0] != 0:
-            raise ValueError('First element of change_criteria must be 0.')
-        self._change_criteria = np.asarray(change_criteria)
+        if change_indices is None:
+            change_indices = [0]
+            if not np.isscalar(step_size_up):
+                raise ValueError('If step_size_up is longer than 1, you must '
+                                 'specify change indices.')
+            if not np.isscalar(step_size_down):
+                raise ValueError('If step_size_down is longer than 1, you must'
+                                 ' specify change indices.')
+        self._change_indices = np.asarray(change_indices)
         if change_rule not in ['trials', 'reversals']:
             raise ValueError("change_rule must be either 'trials' or "
                              "'reversals'")
         self._change_rule = change_rule
 
         step_size_up = np.atleast_1d(step_size_up)
-        if len(step_size_up) != len(change_criteria):
-            raise ValueError('If step_size_up is not scalar it must be the '
-                             'same length as change_criteria.')
+        if change_indices != [0]:
+            if len(step_size_up) != len(change_indices) + 1:
+                raise ValueError('If step_size_up is not scalar it must be one'
+                                 ' element longer than change_indices.')
         self._step_size_up = np.asarray(step_size_up, dtype=float)
 
         step_size_down = np.atleast_1d(step_size_down)
-        if len(step_size_down) != len(change_criteria):
-            raise ValueError('If step_size_down is not scalar it must be the '
-                             'same length as change_criteria.')
+        if change_indices != [0]:
+            if len(step_size_down) != len(change_indices) + 1:
+                raise ValueError('If step_size_down is not scalar it must be '
+                                 'one element longer than change_indices.')
         self._step_size_down = np.asarray(step_size_down, dtype=float)
 
         self._x = np.asarray([start_value], dtype=float)
@@ -163,6 +177,7 @@ class TrackerUD(object):
         self._n_trials = 0
         self._n_reversals = 0
         self._stopped = False
+        self._repeat_limit = 'reversal'
 
         # Now write the initialization data out
         self._tracker_id = id(self)
@@ -174,12 +189,12 @@ class TrackerUD(object):
             callback=None,
             up=self._up,
             down=self._down,
-            step_size_up=[int(s) for s in self._step_size_up],
-            step_size_down=[int(s) for s in self._step_size_down],
-            stop_criterion=self._stop_criterion,
-            stop_rule=self._stop_rule,
+            step_size_up=[float(s) for s in self._step_size_up],
+            step_size_down=[float(s) for s in self._step_size_down],
+            stop_reversals=self._stop_reversals,
+            stop_trials=self._stop_trials,
             start_value=self._start_value,
-            change_criteria=[int(s) for s in self._change_criteria],
+            change_indices=[int(s) for s in self._change_indices],
             change_rule=self._change_rule,
             x_min=self._x_min,
             x_max=self._x_max)))
@@ -223,6 +238,7 @@ class TrackerUD(object):
                     self._n_reversals += 1
                 if self._direction <= 0:
                     self._direction = 1
+
         if reversal:
             self._reversals = np.append(self._reversals, self._n_reversals)
         else:
@@ -256,21 +272,28 @@ class TrackerUD(object):
                 'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
                     responses=[int(s) for s in self._responses],
                     reversals=[int(s) for s in self._reversals],
-                    x=[int(s) for s in self._x])))
+                    x=[float(s) for s in self._x])))
 
     def _stop_here(self):
-        if self._stop_rule.lower() == 'reversals':
-            self._n_stop = self._n_reversals
-        elif self._stop_rule.lower() == 'trials':
-            self._n_stop = self._n_trials
-        return self._n_stop >= self._stop_criterion
+        if self._n_reversals > self._stop_reversals:
+            self._n_stop = True
+        elif self._n_trials > self._stop_trials:
+            self._n_stop = True
+        else:
+            self._n_stop = False
+        return self._n_stop
 
     def _step_index(self):
         if self._change_rule.lower() == 'reversals':
             self._n_change = self._n_reversals
-        elif self._stop_rule.lower() == 'trials':
+        elif self._change_rule.lower() == 'trials':
             self._n_change = self._n_trials
-        return np.where(self._n_change >= self._change_criteria)[0][-1]
+        step_index = np.where(self._n_change >= self._change_indices)[0]
+        if len(step_index) == 0 or np.array_equal(self._change_indices, [0]):
+            step_index = 0
+        else:
+            step_index = step_index[-1] + 1
+        return step_index
 
     @property
     def _current_step_size_up(self):
@@ -300,12 +323,12 @@ class TrackerUD(object):
         return self._step_size_down
 
     @property
-    def stop_criterion(self):
-        return self._stop_criterion
+    def stop_reversals(self):
+        return self._stop_reversals
 
     @property
-    def stop_rule(self):
-        return self._stop_rule
+    def stop_trials(self):
+        return self._stop_trials
 
     @property
     def start_value(self):
@@ -369,13 +392,18 @@ class TrackerUD(object):
     # =========================================================================
     # Display functions
     # =========================================================================
-    def plot(self, ax=None):
+    def plot(self, ax=None, threshold=True, n_skip=2):
         """Plot the adaptive track.
 
         Parameters
         ----------
         ax : AxesSubplot | None
             The axes to make the plot on. If ``None`` defaults to current axes.
+        threshold : bool
+            Whether to plot the estimated threshold on the axes. Default is
+            True.
+        n_skip : int
+            See documentation for ``TrackerUD.threshold``.
 
         Returns
         -------
@@ -393,9 +421,15 @@ class TrackerUD(object):
             fig = ax.figure
 
         line = ax.plot(1 + np.arange(self._n_trials), self._x, 'k.-')
+        line[0].set_label('Trials')
         dots = ax.plot(1 + np.where(self._reversals > 0)[0],
                        self._x[self._reversals > 0], 'ro')
+        dots[0].set_label('Reversals')
         ax.set(xlabel='Trial number', ylabel='Level')
+        if threshold:
+            thresh = self.plot_thresh(n_skip, ax)
+            thresh[0].set_label('Estimated Threshold')
+        ax.legend()
         return fig, ax, line + dots
 
     def plot_thresh(self, n_skip=2, ax=None):
@@ -491,10 +525,10 @@ class TrackerBinom(object):
     stop_early : boolean
         Whether to stop the adaptive track as soon as ``alpha`` is reached and
         at least ``min_trials`` have been presented.
-    x_current : float | None
+    x_current : float
         The level that you want to run the test at. This has no bearing on how
-        the track runs, and it will never change, but it is required to be
-        here for ``TrackerDealer``.
+        the track runs, and it will never change, but it is both useful to
+        document the level and required to exist if using ``TrackerDealer``.
 
     Returns
     -------
@@ -509,7 +543,7 @@ class TrackerBinom(object):
     of following them.
     """
     def __init__(self, callback, alpha, chance, max_trials, min_trials=0,
-                 stop_early=True, x_current=None):
+                 stop_early=True, x_current=np.nan):
         self._callback = _check_callback(callback)
         self._alpha = alpha
         self._chance = chance
@@ -687,8 +721,10 @@ class TrackerDealer(object):
         :class:`expyfun.stimuli.TrackerBinom`.
     max_lag : int
         The number of reversals or trials by which the leading tracker may lead
-        the lagging one. Whether this uses trials or reversals depends on the
-        ``stop_rule`` of the tracker
+        the lagging one. The ``pace_rule`` dictates whether reversals or trials
+        are used.
+    pace_rule : str
+        Must be ``reversals`` or ``trials``.
     rand : numpy.random.RandomState | None
         The random process used to deal the trackers. If None, the process is
         seeded based on the current time.
@@ -700,30 +736,35 @@ class TrackerDealer(object):
 
     Notes
     -----
-    The trackers can be accessed like a numpy array, e.g. ``dealer[0, 1, :]``.
+    The trackers can be accessed like a numpy array through the trackers
+    property, e.g. ``dealer.trackers[0, 1, :]``.
 
     If dealing from TrackerBinom objects (which is probably not a good idea),
     ``stop_early`` must be ``False`` or else they cannot be ensured to keep
     pace.
     """
-    def __init__(self, trackers, max_lag=1, rand=None):
+    def __init__(self, callback, trackers, max_lag=1, pace_rule='reversals',
+                 rand=None):
         # dim will only be used for user output. Will be stored as 0-d
+        self._callback = _check_callback(callback)
         self._trackers = np.asarray(trackers)
         for ti, t in enumerate(self._trackers.flat):
             if not isinstance(t, (TrackerUD, TrackerBinom)):
                 raise TypeError('trackers.ravel()[%d] is type %s, must be '
                                 'TrackerUD or TrackerBinom' % (ti, type(t)))
-            if not t.stop_rule == self._trackers.flat[0].stop_rule:
-                raise ValueError('stop rule mismatch between trackers.flat[0] '
-                                 'and trackers.flat[%d]' % (ti,))
             if isinstance(t, TrackerBinom) and t.stop_early:
                 raise ValueError('stop_early for trackers.flat[%d] must be '
                                  'False to deal trials from a TrackerBinom '
                                  'object' % (ti,))
+
         self._shape = self._trackers.shape
         self._n = np.prod(self._shape)
-        self._pace_rule = self._trackers.flat[0].stop_rule
         self._max_lag = max_lag
+        self._pace_rule = pace_rule
+        if any([isinstance(t, TrackerBinom) for t in
+                self._trackers]) and pace_rule == 'reversals':
+            raise ValueError('pace_rule must be ''trials'' to deal trials from'
+                             ' a TrackerBinom object')
         if rand is None:
             self._seed = int(time.time())
             rand = np.random.RandomState(self._seed)
@@ -738,19 +779,43 @@ class TrackerDealer(object):
         self._response_history = np.array([], dtype=int)
         self._x_history = np.array([], dtype=float)
 
-    def __getitem__(self, key):
-        return self._trackers[key]
+        self._dealer_id = id(self)
+        self._callback('dealer_identity', json.dumps(dict(
+            dealer_id=self._dealer_id)))
+
+        self._callback('dealer_%i_init' % self._dealer_id, json.dumps(dict(
+            trackers=[s._tracker_id for s in self._trackers.ravel()],
+            shape=self._shape,
+            max_lag=self._max_lag,
+            pace_rule=self._pace_rule)))
 
     def __iter__(self):
-        self._index = 0
         return self
 
     def next(self):
-        if self._index == self._trackers.size:
+        """Selects the tracker from which the next trial should be run
+
+        Returns
+        -------
+        subscripts : list-like
+            The position of the selected tracker.
+        x_current : float
+            The level of the selected tracker.
+        """
+        if self.stopped:
             raise(StopIteration)
-        t = self._trackers.flat[self._index]
-        self._index += 1
-        return t
+        if not self._trial_complete:
+            # Chose a new tracker before responding, so record non-response
+            self._response_history = np.append(self._response_history,
+                                               np.nan)
+        self._trial_complete = False
+        self._current_tracker = self._pick()
+        self._tracker_history = np.append(self._tracker_history,
+                                          self._current_tracker)
+        ss = np.unravel_index(self._current_tracker, self.shape)
+        level = self._trackers.flat[self._current_tracker].x_current
+        self._x_history = np.append(self._x_history, level)
+        return ss, level
 
     def __next__(self):  # for py3k compatibility
         return self.next()
@@ -779,29 +844,6 @@ class TrackerDealer(object):
             inds = active
         return inds[self._rand.randint(len(inds))]
 
-    def get_trial(self):
-        """Selects the tracker from which the next trial should be run
-
-        Returns
-        -------
-        subscripts : list-like
-            The position of the selected tracker.
-        x_current : float
-            The level of the selected tracker.
-        """
-        if not self._trial_complete:
-            # Chose a new tracker before responding, so record non-response
-            self._response_history = np.append(self._response_history,
-                                               np.nan)
-        self._trial_complete = False
-        self._current_tracker = self._pick()
-        self._tracker_history = np.append(self._tracker_history,
-                                          self._current_tracker)
-        ss = np.unravel_index(self._current_tracker, self.shape)
-        level = self._trackers.flat[self._current_tracker].x_current
-        self._x_history = np.append(self._x_history, level)
-        return ss, level
-
     def respond(self, correct):
         """Update the current tracker based on the last response
 
@@ -809,16 +851,19 @@ class TrackerDealer(object):
         ----------
         correct : boolean
             Was the most recent subject response correct?
-
-        Notes
-        -----
-        ``get_trial`` must be run before ``respond`` can be called.
         """
         if self._trial_complete:
             raise RuntimeError('You must get a trial before you can respond.')
         self._trackers.flat[self._current_tracker].respond(correct)
         self._trial_complete = True
         self._response_history = np.append(self._response_history, correct)
+        if self.stopped:
+            self._callback(
+                'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
+                    tracker_history=[int(s) for s in self._tracker_history],
+                    response_history=[float(s) for s in
+                                      self._response_history],
+                    x_history=[float(s) for s in self._x_history])))
 
     def history(self, include_skips=False):
         """The history of the dealt trials and the responses

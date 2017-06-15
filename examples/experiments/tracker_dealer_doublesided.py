@@ -36,10 +36,10 @@ up = 1
 down = 1
 step_size_up = [9, 3]
 step_size_down = [3, 1]
-stop_criterion = 30
-stop_rule = 'reversals'
+stop_reversals = 30
+stop_trials = np.inf
 start_value = [15, 45]
-change_criteria = [0, 5]
+change_indices = [5]
 change_rule = 'reversals'
 x_min = 0
 x_max = 90
@@ -52,6 +52,7 @@ def callback(event_type, value=None, timestamp=None):
 
 # parameters for the tracker dealer
 max_lag = 2
+pace_rule = 'reversals'
 rng_dealer = np.random.RandomState(4)  # random seed for selecting trial type
 
 ##############################################################################
@@ -65,20 +66,19 @@ rng_dealer = np.random.RandomState(4)  # random seed for selecting trial type
 
 # initialize two tracker objects--one for each start value
 tr_ud = [TrackerUD(callback, up, down, step_size_up, step_size_down,
-                   stop_criterion, stop_rule, sv, change_criteria,
+                   stop_reversals, stop_trials, sv, change_indices,
                    change_rule, x_min, x_max) for sv in start_value]
 
 # initialize TrackerDealer object
-tr = TrackerDealer(tr_ud, max_lag, rng_dealer)
+td = TrackerDealer(callback, tr_ud, max_lag, pace_rule, rng_dealer)
 
 # Initialize human state
 rng_human = np.random.RandomState(1)  # random seed for modeled subject
 
-while not tr.stopped:
+for _, level in td:
     # Get information of which trial type is next and what the level is at
     # that time from TrackerDealer
-    _, level = tr.get_trial()
-    tr.respond(rng_human.rand() < sigmoid(level - true_thresh,
+    td.respond(rng_human.rand() < sigmoid(level - true_thresh,
                                           lower=chance, slope=slope))
 
 ##############################################################################
@@ -86,12 +86,7 @@ while not tr.stopped:
 # ---------------------------
 axes = plt.subplots(2, 1)[1]
 for i in [0, 1]:
-    fig, ax, lines = tr[i].plot(ax=axes[i])
-    lines += tr[i].plot_thresh(4, ax=ax)
-
-    lines[0].set_label('Trials')
-    lines[1].set_label('Reversals')
-    lines[2].set_label('Estimated threshold')
+    fig, ax, lines = td.trackers.ravel()[i].plot(ax=axes[i], n_skip=4)
 
     ax.legend(loc='best')
     ax.set_title('Adaptive track with start value {} (true threshold '

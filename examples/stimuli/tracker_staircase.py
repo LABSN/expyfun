@@ -29,7 +29,7 @@ slope = 0.1
 chance = 0.5
 
 # Make a tracker that uses the weighted up-down procedure to find 75%
-tr = TrackerUD(callback, 1, 1, [9, 3], [3, 1], 30, 'reversals', 60, [0, 4])
+tr = TrackerUD(callback, 1, 1, [9, 3], [3, 1], 30, np.inf, 60, [4])
 
 # Initialize human state
 rng = np.random.RandomState(1)
@@ -43,10 +43,5 @@ while not tr.stopped:
 fig, ax, lines = tr.plot()
 lines += tr.plot_thresh(4, ax=ax)
 
-lines[0].set_label('Trials')
-lines[1].set_label('Reversals')
-lines[2].set_label('Estimated threshold')
-
-ax.legend()
 ax.set_title('Adaptive track of model human (true threshold is {})'
              .format(true_thresh))
