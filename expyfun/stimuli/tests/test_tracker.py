@@ -23,15 +23,15 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
 def test_tracker_ud():
     """Test TrackerUD"""
     import matplotlib.pyplot as plt
-    tr = TrackerUD(callback, 3, 1, 1, 1, None, 10, 1)
+    tr = TrackerUD(callback, 3, 1, 1, 1, np.inf, 10, 1)
     with ExperimentController('test', **std_kwargs) as ec:
-        tr = TrackerUD(ec, 3, 1, 1, 1, None, 10, 1)
-    tr = TrackerUD(None, 3, 1, 1, 1, None, 10, 1)
+        tr = TrackerUD(ec, 3, 1, 1, 1, np.inf, 10, 1)
+    tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1)
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
 
-    tr = TrackerUD(None, 3, 1, 1, 1, None, 10, 1, x_min=0, x_max=1.1)
+    tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1, x_min=0, x_max=1.1)
     tr.threshold()
     rand = np.random.RandomState(0)
     while not tr.stopped:
@@ -72,7 +72,7 @@ def test_tracker_ud():
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
                    change_indices=[2])
     tr.respond(True)
-    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], None, 10, 1,
+    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], np.inf, 10, 1,
                    change_indices=[2], change_rule='trials')
     for t in np.arange(2):  # run long enough to encounter change_indices
         tr.respond(True)
@@ -80,6 +80,9 @@ def test_tracker_ud():
 
     # bad stop_trials
     assert_raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 10, 'foo', 1)
+
+    # bad stop_reversals
+    assert_raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 'foo', 10, 1)
 
     # change_indices too long
     assert_raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,

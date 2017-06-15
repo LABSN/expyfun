@@ -68,7 +68,7 @@ class TrackerUD(object):
         the same. If list of float then it will change when ``change_indices``
         are encountered. See note below for more specific information on
         dynamic tracker parameters specified with a list.
-    stop_reversals : int | None
+    stop_reversals : int | np.inf
         The minimum number of reversals before the tracker stops. If
         ``stop_trials`` is also specified, the tracker will stop when either
         condition is satisfied.
@@ -126,8 +126,9 @@ class TrackerUD(object):
         self._callback = _check_callback(callback)
         self._up = up
         self._down = down
-        self._stop_reversals = (np.inf if stop_reversals is None else
-                                stop_reversals)
+        if stop_reversals != np.inf and type(stop_reversals) != int:
+            raise ValueError('stop_reversals must be an integer or np.inf')
+        self._stop_reversals = stop_reversals
         if stop_trials != np.inf and type(stop_trials) != int:
             raise ValueError('stop_trials must be an integer or np.inf')
         self._stop_trials = stop_trials
@@ -237,10 +238,7 @@ class TrackerUD(object):
                     self._n_reversals += 1
                 if self._direction <= 0:
                     self._direction = 1
-        if self._repeat_limit == 'reversal':
-            if self._x_current in [self._x_max, self._x_min]:
-                reversal = True
-                self._n_reversals += 1
+        
         if reversal:
             self._reversals = np.append(self._reversals, self._n_reversals)
         else:
