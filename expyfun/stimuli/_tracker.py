@@ -238,7 +238,7 @@ class TrackerUD(object):
                     self._n_reversals += 1
                 if self._direction <= 0:
                     self._direction = 1
-        
+
         if reversal:
             self._reversals = np.append(self._reversals, self._n_reversals)
         else:
