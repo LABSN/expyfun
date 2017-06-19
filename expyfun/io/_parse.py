@@ -134,6 +134,7 @@ def reconstruct_tracker(fname):
             tr.append(TrackerUD(**tracker_dict))
         else:
             tr.append(TrackerBinom(**tracker_dict))
+        tr[-1]._tracker_id = tracker_id  # make sure tracker has original ID
         stop_str = 'tracker_' + str(tracker_id) + '_stopped'
         tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
         if len(tracker_stop_idx) == 0:
@@ -141,8 +142,7 @@ def reconstruct_tracker(fname):
                              'must be stopped.'.format(tracker_id))
         responses = ast.literal_eval(raw[tracker_stop_idx][2]['responses'])
         # feed in responses from tracker_ID_stop
-        [tr.respond(r) for r in responses]
-        
+        [tr[-1].respond(r) for r in responses]
     return tr
 
 def reconstruct_dealer(fname):
@@ -161,4 +161,7 @@ def reconstruct_dealer(fname):
         their stopped state.
     """
     trackers = reconstruct_tracker(fname)
+    raw = read_tab_raw(fname)
+    dealer_idx = np.where([r[1] == 'tracker_identify' for r in raw])[0]
+    
     return dealer
