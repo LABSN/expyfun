@@ -102,7 +102,6 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
     
     
 def reconstruct_tracker(fname):
-    from ..stimuli import TrackerUD, TrackerBinom
     """Reconstruct TrackerUD and TrackerBinom objects from .tab files. 
     
     Parameters
@@ -117,6 +116,7 @@ def reconstruct_tracker(fname):
         stopped state (as long as the trackers were allowed to stop during
         the generation of the file.)
     """
+    from ..stimuli import TrackerUD, TrackerBinom
     # read in raw data
     raw = read_tab_raw(fname)
 
@@ -135,7 +135,7 @@ def reconstruct_tracker(fname):
         else:
             tr.append(TrackerBinom(**tracker_dict))
         tr[-1]._tracker_id = tracker_id  # make sure tracker has original ID
-        stop_str = 'tracker_' + str(tracker_id) + '_stopped'
+        stop_str = 'tracker_' + str(tracker_id) + '_stop'
         tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
         if len(tracker_stop_idx) == 0:
             raise ValueError('Tracker {} has not stopped. All Trackers '
@@ -160,8 +160,41 @@ def reconstruct_dealer(fname):
         The TrackerDealer objects with all responses such that they are in
         their stopped state.
     """
-    trackers = reconstruct_tracker(fname)
+    from ..stimuli import TrackerDealer
     raw = read_tab_raw(fname)
-    dealer_idx = np.where([r[1] == 'tracker_identify' for r in raw])[0]
     
+    # find infor on dealer
+    dealer_idx = np.where([r[1] == 'dealer_identify' for r in raw])[0]
+    dealer = []
+    for ii in dealer_idx:
+        dealer_id = ast.literal_eval(raw[ii][2])['dealer_id']
+        dealer_init_str = 'dealer_' + str(dealer_id) + '_init'
+        dealer_dict_idx = np.where([r[1] == dealer_init_str for r in raw])[0]
+        dealer_dict = ast.literal_eval(raw[dealer_dict_idx][2])
+        dealer_trackers = dealer_dict['trackers']
+        
+        # match up tracker objects to id 
+        trackers = reconstruct_tracker(fname)
+        tr_objects = []
+        for t in dealer_trackers:
+            idx = np.where([t == t_id for t_id in trackers._tracker_id])[0]
+            tr_objects.append(trackers[idx])
+        
+        # make the dealer object
+        max_lag = dealer_dict['max_lag']
+        pace_rule = dealer_dict['pace_rule']
+        dealer.append(TrackerDealer(None, tr_objects, max_lag, pace_rule))
+        
+        # force input responses/log data
+        dealer_stop_str = 'dealer_' + str(dealer_id) + '_stop'
+        dealer_stop_idx = np.where([r[1] == dealer_stop_str for r in raw])[0]
+        dealer_stop_log = json.loads(raw[dealer_stop_idx][2])
+        log_response_history = dealer_stop_log['response_history']
+        log_x_history = dealer_stop_log['x_history']
+        log_tracker_history = dealer_stop_log['tracker_history']
+        
+        dealer[-1]._response_history = log_response_history
+        dealer[-1]._x_history = log_x_history
+        dealer[-1]._tracker_history = log_tracker_history
+        
     return dealer
