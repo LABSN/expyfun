@@ -523,7 +523,8 @@ class TrackerBinom(object):
         The minimum number of trials to run before allowing the track to stop
         on reaching ``alpha``. Has no effect if ``stop_early`` is ``False``.
     stop_early : boolean
-        Whether to stop the adaptive track as soon as ``alpha`` is reached and
+        Whether to stop the adaptive track as soon as the track is not able to
+        reach ``alpha`` even if the remaining responses are all correct and
         at least ``min_trials`` have been presented.
     x_current : float
         The level that you want to run the test at. This has no bearing on how
