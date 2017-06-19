@@ -5,8 +5,8 @@
 import numpy as np
 import csv
 import ast
-from ..stimuli import TrackerUD, TrackerBinom, TrackerDealer
-
+import json
+from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 
 def read_tab_raw(fname):
     """Read .tab file from expyfun output without segmenting into trials
@@ -34,7 +34,6 @@ def read_tab_raw(fname):
     times = [float(line[0]) for line in lines]
     keys = [line[1] for line in lines]
     vals = [line[2] for line in lines]
-    data = dict()
     idx = np.arange(len(lines))
     data = [(times[ii], keys[ii], vals[ii]) for ii in idx]
     return data
@@ -105,32 +104,48 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
     def reconstruct_tracker(fname):
         # read in raw data
         raw = read_tab_raw(fname)
-        # if dealer is used, find dealer_id and info
-        dealer_idx = np.where([r[1] == 'dealer_identify' for r in raw])[0]
-        if len(dealer_idx) != 0:
-            dealer_id = [ast.literal_eval(raw[ii][2])['dealer_id'] for ii in dealer_idx]
-            dealer_init_str = ['dealer_' + str(t) + '_init' for t in dealer_id]
-            dealer_dict_idx = np.where([r[1] == init_str for r in raw])[0]
-            dealer_dict = [ast.literal_eval(raw[ii][2]) for ii in dealer_dict_idx]
 
         # find tracker_identify and make list of IDs
         tracker_idx = np.where([r[1] == 'tracker_identify' for r in raw])[0]
+        tracker_id = []
         tr = []
         for ii in tracker_idx:
-            tracker_id = ast.literal_eval(raw[ii][2])['tracker_id']
+            tracker_id.append(ast.literal_eval(raw[ii][2])['tracker_id'])
             tracker_type = ast.literal_eval(raw[ii][2])['tracker_type']
             # find tracker_ID_init lines and get dict
-            init_str = 'tracker_' + str(tracker_id) + '_init'
-            tracker_dict_idx = np.where(raw[1] == init_str)
-            tracker_dicts = ast.literal_eval(raw[tracker_dict_idx][2])
-            if t_type == 'TrackerUD':
-                tr.append(TrackerUD(**t_dict))
+            init_str = 'tracker_' + str(tracker_id[-1]) + '_init'
+            tracker_dict_idx = np.where([r[1] == init_str for r in raw])[0][0]
+            tracker_dict = json.loads(raw[tracker_dict_idx][2])
+            if tracker_type == 'TrackerUD':
+                tr.append(TrackerUD(**tracker_dict))
             else:
-                tr.append(TrackerBinom(**t_dict))
+                tr.append(TrackerBinom(**tracker_dict))
             stop_str = 'tracker_' + str(tracker_id) + '_stopped'
-            tracker_stop_idx = np.where(raw[1] == stop_str)
+            tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
+            if len(tracker_stop_idx) == 0:
+                raise ValueError('Tracker {} has not stopped. All Trackers '
+                                 'must be stopped.'.format(tracker_id[-1]))
             responses = ast.literal_eval(raw[tracker_stop_idx][2]['responses'])
             # feed in responses from tracker_ID_stop
             [tr.respond(r) for r in responses]
             
+        # if dealer is used, find dealer_id and info
+        dealer_idx = np.where([r[1] == 'dealer_identify' for r in raw])[0]
+        if len(dealer_idx) != 0:
+            trackers = tr
+            tr = []
+            for ii in dealer_idx:
+                dealer_id = ast.literal_eval(raw[ii][2])['dealer_id']
+                dealer_init_str = 'dealer_' + str(t) + '_init'
+                dealer_dict_idx = np.where([r[1] == dealer_init_str for r 
+                                            in raw])[0]
+                dealer_dict = ast.literal_eval(raw[dealer_dict_idx][2])
+                dealer_trackers = ast.literal_eval(raw[ii][2]['trackers'])
+                dealer_shape = ast.literal_eval(raw[ii][2]['shape'])
+                for t_id in dealer_trackers:
+                    tracker_idx = np.where(t_id == tracker_id)[0]
+                    tr.append(trackers[tracker_idx])
+                tr.reshape(dealer_shape)
+            
         return tr
+    
