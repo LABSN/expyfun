@@ -6,7 +6,7 @@ import numpy as np
 import csv
 import ast
 import json
-from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
+
 
 def read_tab_raw(fname):
     """Read .tab file from expyfun output without segmenting into trials
@@ -101,51 +101,64 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
     return data
     
     
-    def reconstruct_tracker(fname):
-        # read in raw data
-        raw = read_tab_raw(fname)
-
-        # find tracker_identify and make list of IDs
-        tracker_idx = np.where([r[1] == 'tracker_identify' for r in raw])[0]
-        tracker_id = []
-        tr = []
-        for ii in tracker_idx:
-            tracker_id.append(ast.literal_eval(raw[ii][2])['tracker_id'])
-            tracker_type = ast.literal_eval(raw[ii][2])['tracker_type']
-            # find tracker_ID_init lines and get dict
-            init_str = 'tracker_' + str(tracker_id[-1]) + '_init'
-            tracker_dict_idx = np.where([r[1] == init_str for r in raw])[0][0]
-            tracker_dict = json.loads(raw[tracker_dict_idx][2])
-            if tracker_type == 'TrackerUD':
-                tr.append(TrackerUD(**tracker_dict))
-            else:
-                tr.append(TrackerBinom(**tracker_dict))
-            stop_str = 'tracker_' + str(tracker_id) + '_stopped'
-            tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
-            if len(tracker_stop_idx) == 0:
-                raise ValueError('Tracker {} has not stopped. All Trackers '
-                                 'must be stopped.'.format(tracker_id[-1]))
-            responses = ast.literal_eval(raw[tracker_stop_idx][2]['responses'])
-            # feed in responses from tracker_ID_stop
-            [tr.respond(r) for r in responses]
-            
-        # if dealer is used, find dealer_id and info
-        dealer_idx = np.where([r[1] == 'dealer_identify' for r in raw])[0]
-        if len(dealer_idx) != 0:
-            trackers = tr
-            tr = []
-            for ii in dealer_idx:
-                dealer_id = ast.literal_eval(raw[ii][2])['dealer_id']
-                dealer_init_str = 'dealer_' + str(t) + '_init'
-                dealer_dict_idx = np.where([r[1] == dealer_init_str for r 
-                                            in raw])[0]
-                dealer_dict = ast.literal_eval(raw[dealer_dict_idx][2])
-                dealer_trackers = ast.literal_eval(raw[ii][2]['trackers'])
-                dealer_shape = ast.literal_eval(raw[ii][2]['shape'])
-                for t_id in dealer_trackers:
-                    tracker_idx = np.where(t_id == tracker_id)[0]
-                    tr.append(trackers[tracker_idx])
-                tr.reshape(dealer_shape)
-            
-        return tr
+def reconstruct_tracker(fname):
+    from ..stimuli import TrackerUD, TrackerBinom
+    """Reconstruct TrackerUD and TrackerBinom objects from .tab files. 
     
+    Parameters
+    ----------
+    fname : str
+        Input filename.
+        
+    Returns
+    -------
+    tr : list of TrackerUD or TrackerBinom
+        The tracker objects with all responses such that they are in their
+        stopped state (as long as the trackers were allowed to stop during
+        the generation of the file.)
+    """
+    # read in raw data
+    raw = read_tab_raw(fname)
+
+    # find tracker_identify and make list of IDs
+    tracker_idx = np.where([r[1] == 'tracker_identify' for r in raw])[0]
+    tr = []
+    for ii in tracker_idx:
+        tracker_id = ast.literal_eval(raw[ii][2])['tracker_id']
+        tracker_type = ast.literal_eval(raw[ii][2])['tracker_type']
+        # find tracker_ID_init lines and get dict
+        init_str = 'tracker_' + str(tracker_id) + '_init'
+        tracker_dict_idx = np.where([r[1] == init_str for r in raw])[0][0]
+        tracker_dict = json.loads(raw[tracker_dict_idx][2])
+        if tracker_type == 'TrackerUD':
+            tr.append(TrackerUD(**tracker_dict))
+        else:
+            tr.append(TrackerBinom(**tracker_dict))
+        stop_str = 'tracker_' + str(tracker_id) + '_stopped'
+        tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
+        if len(tracker_stop_idx) == 0:
+            raise ValueError('Tracker {} has not stopped. All Trackers '
+                             'must be stopped.'.format(tracker_id))
+        responses = ast.literal_eval(raw[tracker_stop_idx][2]['responses'])
+        # feed in responses from tracker_ID_stop
+        [tr.respond(r) for r in responses]
+        
+    return tr
+
+def reconstruct_dealer(fname):
+    """Reconstruct TrackerDealer object from .tab files. The 
+    ``reconstruct_tracker`` function will be called to retrieve the trackers.
+    
+    Parameters
+    ----------
+    fname : str
+        Input filename.
+        
+    Returns
+    -------
+    dealer : list of TrackerDealer
+        The TrackerDealer objects with all responses such that they are in
+        their stopped state.
+    """
+    trackers = reconstruct_tracker(fname)
+    return dealer

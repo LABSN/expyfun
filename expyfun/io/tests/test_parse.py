@@ -4,6 +4,7 @@ from nose.tools import assert_equal, assert_in, assert_raises
 from expyfun import ExperimentController
 from expyfun.io import read_tab
 from expyfun._utils import _TempDir, _hide_window
+from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 
 warnings.simplefilter('always')
 
@@ -45,3 +46,8 @@ def test_parse():
     data = read_tab(ec.data_fname, group_end=None)
     assert_equal(len(data[0]['misc']), 2)  # includes between-trials stuff
     assert_equal(len(data[1]['misc']), 2)
+
+def test_reconstruct_tracker():
+    """Test reconstruction of TrackerUD and TrackerBinom objects from .tab
+    log files."""
+    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
