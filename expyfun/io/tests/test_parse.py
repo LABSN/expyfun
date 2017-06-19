@@ -1,3 +1,4 @@
+import numpy as np
 import warnings
 from nose.tools import assert_equal, assert_in, assert_raises
 
@@ -50,4 +51,10 @@ def test_parse():
 def test_reconstruct_tracker():
     """Test reconstruction of TrackerUD and TrackerBinom objects from .tab
     log files."""
+    from expyfun.io import reconstruct_tracker
     with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+        tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
+        while not tr.stopped: 
+            tr.respond(np.random.rand () < tr.x_current)
+            
+    tracker = reconstruct_tracker(ec.data_fname)
