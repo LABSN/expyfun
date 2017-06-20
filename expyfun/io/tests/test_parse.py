@@ -19,7 +19,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 @_hide_window
 def test_parse():
     """Test .tab parsing."""
-    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         ec.identify_trial(ec_id='one', ttl_id=[0])
         ec.start_stimulus()
         ec.write_data_line('misc', 'trial one')
@@ -53,7 +53,7 @@ def test_reconstruct():
     """Test Tracker objects reconstruction"""
 
     # test with one TrackerUD
-    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
         while not tr.stopped:
             tr.respond(np.random.rand() < tr.x_current)
@@ -63,7 +63,7 @@ def test_reconstruct():
     tracker.x_current
 
     # test with one TrackerBinom
-    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         tr = TrackerBinom(ec, .05, .5, 10)
         while not tr.stopped:
             tr.respond(True)
@@ -73,14 +73,14 @@ def test_reconstruct():
     tracker.x_current
 
     # tracker not stopped
-    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
         tr.respond(np.random.rand() < tr.x_current)
         assert(not tr.stopped)
     assert_raises(ValueError, reconstruct_tracker, ec.data_fname)
 
     # test with dealer
-    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         tr = [TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3) for _ in range(3)]
         td = TrackerDealer(ec, tr)
 
@@ -93,7 +93,7 @@ def test_reconstruct():
     assert(all(td._response_history == dealer._response_history))
 
     # no tracker/dealer in file
-    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         ec.identify_trial(ec_id='one', ttl_id=[0])
         ec.start_stimulus()
         ec.write_data_line('misc', 'trial one')

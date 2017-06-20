@@ -114,7 +114,8 @@ def reconstruct_tracker(fname):
     tr : list of TrackerUD or TrackerBinom
         The tracker objects with all responses such that they are in their
         stopped state (as long as the trackers were allowed to stop during
-        the generation of the file.)
+        the generation of the file.) If only one tracker is found in the file,
+        it will still be stored in a list and will be assessible as ``tr[0]``.
     """
     from ..stimuli import TrackerUD, TrackerBinom
     # read in raw data
@@ -144,7 +145,8 @@ def reconstruct_tracker(fname):
                              'must be stopped.'.format(tracker_id))
         responses = json.loads(raw[tracker_stop_idx[0]][2])['responses']
         # feed in responses from tracker_ID_stop
-        [tr[-1].respond(r) for r in responses]
+        for r in responses:
+            tr[-1].respond(r)
     return tr
 
 
@@ -161,7 +163,8 @@ def reconstruct_dealer(fname):
     -------
     dealer : list of TrackerDealer
         The TrackerDealer objects with all responses such that they are in
-        their stopped state.
+        their stopped state. If only one dealer is found in the file, it will
+        still be stored in a list and will be assessible as ``td[0]``.
     """
     from ..stimuli import TrackerDealer
     raw = read_tab_raw(fname)
@@ -198,11 +201,15 @@ def reconstruct_dealer(fname):
             raise ValueError('TrackerDealer {} has not stopped. All dealers '
                              'must be stopped.'.format(dealer_id))
         dealer_stop_log = json.loads(raw[dealer_stop_idx[0]][2])
+        
+        shape = dealer_dict['shape']
         log_response_history = dealer_stop_log['response_history']
         log_x_history = dealer_stop_log['x_history']
         log_tracker_history = dealer_stop_log['tracker_history']
 
+        dealer[-1]._shape = shape
         dealer[-1]._response_history = log_response_history
         dealer[-1]._x_history = log_x_history
         dealer[-1]._tracker_history = log_tracker_history
+        dealer[-1]._stopped = True
     return dealer
