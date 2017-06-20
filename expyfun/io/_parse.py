@@ -201,7 +201,7 @@ def reconstruct_dealer(fname):
             raise ValueError('TrackerDealer {} has not stopped. All dealers '
                              'must be stopped.'.format(dealer_id))
         dealer_stop_log = json.loads(raw[dealer_stop_idx[0]][2])
-        
+
         shape = dealer_dict['shape']
         log_response_history = dealer_stop_log['response_history']
         log_x_history = dealer_stop_log['x_history']
