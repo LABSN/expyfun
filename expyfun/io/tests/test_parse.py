@@ -48,17 +48,18 @@ def test_parse():
     assert_equal(len(data[0]['misc']), 2)  # includes between-trials stuff
     assert_equal(len(data[1]['misc']), 2)
 
+
 def test_reconstruct():
     """Test Tracker objects reconstruction"""
-    
+
     # test with one TrackerUD
     with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
-        while not tr.stopped: 
-            tr.respond(np.random.rand () < tr.x_current)
+        while not tr.stopped:
+            tr.respond(np.random.rand() < tr.x_current)
 
     tracker = reconstruct_tracker(ec.data_fname)[0]
-    assert(tracker.stopped==True)
+    assert(tracker.stopped)
     tracker.x_current
 
     # test with one TrackerBinom
@@ -68,23 +69,23 @@ def test_reconstruct():
             tr.respond(True)
 
     tracker = reconstruct_tracker(ec.data_fname)[0]
-    assert(tracker.stopped==True)
+    assert(tracker.stopped)
     tracker.x_current
 
     # tracker not stopped
     with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
-        tr.respond(np.random.rand () < tr.x_current)
-        assert(tr.stopped==False)
+        tr.respond(np.random.rand() < tr.x_current)
+        assert(not tr.stopped)
     assert_raises(ValueError, reconstruct_tracker, ec.data_fname)
 
     # test with dealer
     with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         tr = [TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3) for _ in range(3)]
         td = TrackerDealer(ec, tr)
-        
+
         for _, x_current in td:
-            td.respond(np.random.rand () < x_current)
+            td.respond(np.random.rand() < x_current)
 
     dealer = reconstruct_dealer(ec.data_fname)[0]
     assert(all(td._x_history == dealer._x_history))
@@ -99,6 +100,6 @@ def test_reconstruct():
         ec.stop()
         ec.trial_ok()
         ec.write_data_line('misc', 'end')
-        
+
     assert_raises(ValueError, reconstruct_tracker, ec.data_fname)
     assert_raises(ValueError, reconstruct_dealer, ec.data_fname)

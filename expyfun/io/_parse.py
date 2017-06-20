@@ -102,7 +102,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
 
 
 def reconstruct_tracker(fname):
-    """Reconstruct TrackerUD and TrackerBinom objects from .tab files. 
+    """Reconstruct TrackerUD and TrackerBinom objects from .tab files.
 
     Parameters
     ----------
@@ -149,7 +149,7 @@ def reconstruct_tracker(fname):
 
 
 def reconstruct_dealer(fname):
-    """Reconstruct TrackerDealer object from .tab files. The 
+    """Reconstruct TrackerDealer object from .tab files. The
     ``reconstruct_tracker`` function will be called to retrieve the trackers.
 
     Parameters
@@ -174,12 +174,12 @@ def reconstruct_dealer(fname):
     for ii in dealer_idx:
         dealer_id = ast.literal_eval(raw[ii][2])['dealer_id']
         dealer_init_str = 'dealer_' + str(dealer_id) + '_init'
-        dealer_dict_idx = np.where([r[1] == dealer_init_str 
+        dealer_dict_idx = np.where([r[1] == dealer_init_str
                                     for r in raw])[0][0]
         dealer_dict = ast.literal_eval(raw[dealer_dict_idx][2])
         dealer_trackers = dealer_dict['trackers']
 
-        # match up tracker objects to id 
+        # match up tracker objects to id
         trackers = reconstruct_tracker(fname)
         tr_objects = []
         for t in dealer_trackers:
@@ -196,7 +196,7 @@ def reconstruct_dealer(fname):
         dealer_stop_idx = np.where([r[1] == dealer_stop_str for r in raw])[0]
         if len(dealer_stop_idx) == 0:
             raise ValueError('TrackerDealer {} has not stopped. All dealers '
-                             'must be stopped.'.format(tracker_id))
+                             'must be stopped.'.format(dealer_id))
         dealer_stop_log = json.loads(raw[dealer_stop_idx[0]][2])
         log_response_history = dealer_stop_log['response_history']
         log_x_history = dealer_stop_log['x_history']
