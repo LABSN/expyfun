@@ -5,7 +5,6 @@ from nose.tools import assert_equal, assert_in, assert_raises
 from expyfun import ExperimentController
 from expyfun.io import read_tab
 from expyfun._utils import _TempDir, _hide_window
-from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 
 warnings.simplefilter('always')
 
@@ -50,15 +49,26 @@ def test_parse():
 
 def test_reconstruct():
     """Test Tracker objects reconstruction"""
-    from expyfun.io import reconstruct_tracker, reconstruct_dealer
+    from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
+    from expyfun.io._parse import reconstruct_tracker, reconstruct_dealer
     
-    # test with one tracker
+    # test with one TrackerUD
     with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
         while not tr.stopped: 
             tr.respond(np.random.rand () < tr.x_current)
 
-    tracker = reconstruct_tracker(ec.data_fname)
+    tracker = reconstruct_tracker(ec.data_fname)[0]
+    assert(tracker.stopped==True)
+    tracker.x_current
+
+    # test with one TrackerBinom
+    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+        tr = TrackerBinom(ec, .05, .5, 10)
+        while not tr.stopped: 
+            tr.respond(True)
+
+    tracker = reconstruct_tracker(ec.data_fname)[0]
     assert(tracker.stopped==True)
     tracker.x_current
 

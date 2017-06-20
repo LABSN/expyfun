@@ -99,8 +99,8 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
             d[key] = [(these_vals[ii], these_times[ii]) for ii in idx]
         data.append(d)
     return data
-    
-    
+
+
 def reconstruct_tracker(fname):
     """Reconstruct TrackerUD and TrackerBinom objects from .tab files. 
 
@@ -136,14 +136,15 @@ def reconstruct_tracker(fname):
             tr.append(TrackerBinom(**tracker_dict))
         tr[-1]._tracker_id = tracker_id  # make sure tracker has original ID
         stop_str = 'tracker_' + str(tracker_id) + '_stop'
-        tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
+        tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0][0]
         if len(tracker_stop_idx) == 0:
             raise ValueError('Tracker {} has not stopped. All Trackers '
                              'must be stopped.'.format(tracker_id))
-        responses = ast.literal_eval(raw[tracker_stop_idx][2]['responses'])
+        responses = ast.literal_eval(raw[tracker_stop_idx][2])['responses']
         # feed in responses from tracker_ID_stop
         [tr[-1].respond(r) for r in responses]
     return tr
+
 
 def reconstruct_dealer(fname):
     """Reconstruct TrackerDealer object from .tab files. The 
