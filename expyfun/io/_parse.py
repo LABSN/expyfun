@@ -18,8 +18,9 @@ def read_tab_raw(fname):
 
     Returns
     -------
-    data : dict
+    data : list of tuple
         The data with each line from the tab file being a tuple in a list.
+        Each tuple is of the form (``timestamp``, ``key``, ``value).
     """
     with open(fname, 'r') as f:
         csvr = csv.reader(f, delimiter='\t')
@@ -60,8 +61,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
         key.
     """
     # load everything into memory for ease of use
-    raw = read_tab_raw(fname)
-    lines = [r for r in raw]
+    lines = read_tab_raw(fname)
 
     # determine the event fields
     header = list(set([l[1] for l in lines]))
@@ -115,7 +115,7 @@ def reconstruct_tracker(fname):
         The tracker objects with all responses such that they are in their
         stopped state (as long as the trackers were allowed to stop during
         the generation of the file.) If only one tracker is found in the file,
-        it will still be stored in a list and will be assessible as ``tr[0]``.
+        it will still be stored in a list and will be accessible as ``tr[0]``.
     """
     from ..stimuli import TrackerUD, TrackerBinom
     # read in raw data
@@ -151,8 +151,10 @@ def reconstruct_tracker(fname):
 
 
 def reconstruct_dealer(fname):
-    """Reconstruct TrackerDealer object from .tab files. The
-    ``reconstruct_tracker`` function will be called to retrieve the trackers.
+    """Reconstruct TrackerDealer object from .tab files. 
+    
+    The ``reconstruct_tracker`` function will be called to retrieve the
+    trackers.
 
     Parameters
     ----------
