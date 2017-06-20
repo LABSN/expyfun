@@ -133,10 +133,8 @@ def reconstruct_tracker(fname):
         init_str = 'tracker_' + str(tracker_id) + '_init'
         tracker_dict_idx = np.where([r[1] == init_str for r in raw])[0][0]
         tracker_dict = json.loads(raw[tracker_dict_idx][2])
-        if tracker_type == 'TrackerUD':
-            tr.append(TrackerUD(**tracker_dict))
-        else:
-            tr.append(TrackerBinom(**tracker_dict))
+        td = dict(TrackerUD=TrackerUD, TrackerBinom=TrackerBinom)
+        tr.append(td[tracker_type](**tracker_dict))
         tr[-1]._tracker_id = tracker_id  # make sure tracker has original ID
         stop_str = 'tracker_' + str(tracker_id) + '_stop'
         tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
