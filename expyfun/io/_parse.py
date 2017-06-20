@@ -136,11 +136,11 @@ def reconstruct_tracker(fname):
             tr.append(TrackerBinom(**tracker_dict))
         tr[-1]._tracker_id = tracker_id  # make sure tracker has original ID
         stop_str = 'tracker_' + str(tracker_id) + '_stop'
-        tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0][0]
+        tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
         if len(tracker_stop_idx) == 0:
             raise ValueError('Tracker {} has not stopped. All Trackers '
                              'must be stopped.'.format(tracker_id))
-        responses = ast.literal_eval(raw[tracker_stop_idx][2])['responses']
+        responses = json.loads(raw[tracker_stop_idx[0]][2])['responses']
         # feed in responses from tracker_ID_stop
         [tr[-1].respond(r) for r in responses]
     return tr
