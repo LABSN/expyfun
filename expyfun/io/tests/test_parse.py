@@ -48,13 +48,37 @@ def test_parse():
     assert_equal(len(data[0]['misc']), 2)  # includes between-trials stuff
     assert_equal(len(data[1]['misc']), 2)
 
-def test_reconstruct_tracker():
-    """Test reconstruction of TrackerUD and TrackerBinom objects from .tab
-    log files."""
-    from expyfun.io import reconstruct_tracker
+def test_reconstruct():
+    """Test Tracker objects reconstruction"""
+    from expyfun.io import reconstruct_tracker, reconstruct_dealer
+    
+    # test with one tracker
     with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
         while not tr.stopped: 
             tr.respond(np.random.rand () < tr.x_current)
-            
+
     tracker = reconstruct_tracker(ec.data_fname)
+    assert(tracker.stopped==True)
+    tracker.x_current
+
+    # tracker not stopped
+    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+        tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
+        tr.respond(np.random.rand () < tr.x_current)
+        assert(tr.stopped==False)
+    assert_raises(ValueError, reconstruct_tracker, ec.data_fname)
+
+    # test with dealer
+    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+        tr = [TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3) for _ in range(3)]
+        td = TrackerDealer(ec, tr)
+        
+        for _, x_current in td:
+            td.respond(np.random.rand () < x_current)
+
+    dealer = reconstruct_dealer(ec.data_fname)
+    assert(td._x_history == dealer._x_history)
+    assert(td._tracker_history == dealer._tracker_history)
+    assert(td._response_history == dealer._response_history)
+    assert(td.trackers == dealer.trackers)

@@ -10,12 +10,12 @@ import json
 
 def read_tab_raw(fname):
     """Read .tab file from expyfun output without segmenting into trials
-    
+
     Parameters
     ----------
     fname : str
         Input filename.
-        
+
     Returns
     -------
     data : dict
@@ -103,12 +103,12 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
     
 def reconstruct_tracker(fname):
     """Reconstruct TrackerUD and TrackerBinom objects from .tab files. 
-    
+
     Parameters
     ----------
     fname : str
         Input filename.
-        
+
     Returns
     -------
     tr : list of TrackerUD or TrackerBinom
@@ -148,12 +148,12 @@ def reconstruct_tracker(fname):
 def reconstruct_dealer(fname):
     """Reconstruct TrackerDealer object from .tab files. The 
     ``reconstruct_tracker`` function will be called to retrieve the trackers.
-    
+
     Parameters
     ----------
     fname : str
         Input filename.
-        
+
     Returns
     -------
     dealer : list of TrackerDealer
@@ -162,7 +162,7 @@ def reconstruct_dealer(fname):
     """
     from ..stimuli import TrackerDealer
     raw = read_tab_raw(fname)
-    
+
     # find infor on dealer
     dealer_idx = np.where([r[1] == 'dealer_identify' for r in raw])[0]
     dealer = []
@@ -172,19 +172,19 @@ def reconstruct_dealer(fname):
         dealer_dict_idx = np.where([r[1] == dealer_init_str for r in raw])[0]
         dealer_dict = ast.literal_eval(raw[dealer_dict_idx][2])
         dealer_trackers = dealer_dict['trackers']
-        
+
         # match up tracker objects to id 
         trackers = reconstruct_tracker(fname)
         tr_objects = []
         for t in dealer_trackers:
             idx = np.where([t == t_id for t_id in trackers._tracker_id])[0]
             tr_objects.append(trackers[idx])
-        
+
         # make the dealer object
         max_lag = dealer_dict['max_lag']
         pace_rule = dealer_dict['pace_rule']
         dealer.append(TrackerDealer(None, tr_objects, max_lag, pace_rule))
-        
+
         # force input responses/log data
         dealer_stop_str = 'dealer_' + str(dealer_id) + '_stop'
         dealer_stop_idx = np.where([r[1] == dealer_stop_str for r in raw])[0]
@@ -192,9 +192,8 @@ def reconstruct_dealer(fname):
         log_response_history = dealer_stop_log['response_history']
         log_x_history = dealer_stop_log['x_history']
         log_tracker_history = dealer_stop_log['tracker_history']
-        
+
         dealer[-1]._response_history = log_response_history
         dealer[-1]._x_history = log_x_history
         dealer[-1]._tracker_history = log_tracker_history
-        
     return dealer
