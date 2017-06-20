@@ -65,7 +65,7 @@ def test_reconstruct():
     # test with one TrackerBinom
     with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
         tr = TrackerBinom(ec, .05, .5, 10)
-        while not tr.stopped: 
+        while not tr.stopped:
             tr.respond(True)
 
     tracker = reconstruct_tracker(ec.data_fname)[0]
