@@ -122,6 +122,8 @@ def reconstruct_tracker(fname):
 
     # find tracker_identify and make list of IDs
     tracker_idx = np.where([r[1] == 'tracker_identify' for r in raw])[0]
+    if len(tracker_idx) == 0:
+        raise ValueError('There are no Trackers in this file.')
     tr = []
     for ii in tracker_idx:
         tracker_id = ast.literal_eval(raw[ii][2])['tracker_id']
@@ -166,11 +168,14 @@ def reconstruct_dealer(fname):
 
     # find infor on dealer
     dealer_idx = np.where([r[1] == 'dealer_identify' for r in raw])[0]
+    if len(dealer_idx) == 0:
+        raise ValueError('There are no TrackerDealers in this file.')
     dealer = []
     for ii in dealer_idx:
         dealer_id = ast.literal_eval(raw[ii][2])['dealer_id']
         dealer_init_str = 'dealer_' + str(dealer_id) + '_init'
-        dealer_dict_idx = np.where([r[1] == dealer_init_str for r in raw])[0]
+        dealer_dict_idx = np.where([r[1] == dealer_init_str 
+                                    for r in raw])[0][0]
         dealer_dict = ast.literal_eval(raw[dealer_dict_idx][2])
         dealer_trackers = dealer_dict['trackers']
 
@@ -178,7 +183,7 @@ def reconstruct_dealer(fname):
         trackers = reconstruct_tracker(fname)
         tr_objects = []
         for t in dealer_trackers:
-            idx = np.where([t == t_id for t_id in trackers._tracker_id])[0]
+            idx = np.where([t == t_id._tracker_id for t_id in trackers])[0][0]
             tr_objects.append(trackers[idx])
 
         # make the dealer object
@@ -189,7 +194,10 @@ def reconstruct_dealer(fname):
         # force input responses/log data
         dealer_stop_str = 'dealer_' + str(dealer_id) + '_stop'
         dealer_stop_idx = np.where([r[1] == dealer_stop_str for r in raw])[0]
-        dealer_stop_log = json.loads(raw[dealer_stop_idx][2])
+        if len(dealer_stop_idx) == 0:
+            raise ValueError('TrackerDealer {} has not stopped. All dealers '
+                             'must be stopped.'.format(tracker_id))
+        dealer_stop_log = json.loads(raw[dealer_stop_idx[0]][2])
         log_response_history = dealer_stop_log['response_history']
         log_x_history = dealer_stop_log['x_history']
         log_tracker_history = dealer_stop_log['tracker_history']
