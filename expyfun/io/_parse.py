@@ -149,8 +149,8 @@ def reconstruct_tracker(fname):
 
 
 def reconstruct_dealer(fname):
-    """Reconstruct TrackerDealer object from .tab files. 
-    
+    """Reconstruct TrackerDealer object from .tab files.
+
     The ``reconstruct_tracker`` function will be called to retrieve the
     trackers.
 
