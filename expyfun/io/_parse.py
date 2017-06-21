@@ -208,6 +208,7 @@ def reconstruct_dealer(fname):
         log_tracker_history = dealer_stop_log['tracker_history']
 
         dealer[-1]._shape = shape
+        dealer[-1]._trackers.reshape(shape)
         dealer[-1]._response_history = log_response_history
         dealer[-1]._x_history = log_x_history
         dealer[-1]._tracker_history = log_tracker_history
