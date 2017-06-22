@@ -9,7 +9,7 @@ import json
 
 
 def read_tab_raw(fname):
-    """Read .tab file from expyfun output without segmenting into trials
+    """Read .tab file from expyfun output without segmenting into trials.
 
     Parameters
     ----------
@@ -20,7 +20,7 @@ def read_tab_raw(fname):
     -------
     data : list of tuple
         The data with each line from the tab file being a tuple in a list.
-        Each tuple is of the form (``timestamp``, ``key``, ``value).
+        Each tuple is of the form (``timestamp``, ``key``, ``value``).
     """
     with open(fname, 'r') as f:
         csvr = csv.reader(f, delimiter='\t')
@@ -36,12 +36,12 @@ def read_tab_raw(fname):
     keys = [line[1] for line in lines]
     vals = [line[2] for line in lines]
     idx = np.arange(len(lines))
-    data = [(times[ii], keys[ii], vals[ii]) for ii in idx]
+    data = list(zip(times, keys, vals))
     return data
 
 
 def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
-    """Read .tab file from expyfun output
+    """Read .tab file from expyfun output.
 
     Parameters
     ----------
@@ -202,13 +202,13 @@ def reconstruct_dealer(fname):
                              'must be stopped.'.format(dealer_id))
         dealer_stop_log = json.loads(raw[dealer_stop_idx[0]][2])
 
-        shape = dealer_dict['shape']
+        shape = tuple(dealer_dict['shape'])
         log_response_history = dealer_stop_log['response_history']
         log_x_history = dealer_stop_log['x_history']
         log_tracker_history = dealer_stop_log['tracker_history']
 
         dealer[-1]._shape = shape
-        dealer[-1]._trackers.reshape(shape)
+        dealer[-1]._trackers.shape = shape
         dealer[-1]._response_history = log_response_history
         dealer[-1]._x_history = log_x_history
         dealer[-1]._tracker_history = log_tracker_history

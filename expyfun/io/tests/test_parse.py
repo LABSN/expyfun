@@ -91,6 +91,8 @@ def test_reconstruct():
     assert_true(all(td._x_history == dealer._x_history))
     assert_true(all(td._tracker_history == dealer._tracker_history))
     assert_true(all(td._response_history == dealer._response_history))
+    assert_true(td.shape == dealer.shape)
+    assert_true(td.trackers.shape == dealer.trackers.shape)
 
     # no tracker/dealer in file
     with ExperimentController(*std_args, **std_kwargs) as ec:
