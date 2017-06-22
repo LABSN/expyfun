@@ -1,6 +1,6 @@
 import numpy as np
 import warnings
-from nose.tools import assert_equal, assert_in, assert_raises
+from nose.tools import assert_equal, assert_in, assert_raises, assert_true
 
 from expyfun import ExperimentController
 from expyfun.io import read_tab, reconstruct_tracker, reconstruct_dealer
@@ -59,7 +59,7 @@ def test_reconstruct():
             tr.respond(np.random.rand() < tr.x_current)
 
     tracker = reconstruct_tracker(ec.data_fname)[0]
-    assert(tracker.stopped)
+    assert_true(tracker.stopped)
     tracker.x_current
 
     # test with one TrackerBinom
@@ -76,7 +76,7 @@ def test_reconstruct():
     with ExperimentController(*std_args, **std_kwargs) as ec:
         tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
         tr.respond(np.random.rand() < tr.x_current)
-        assert(not tr.stopped)
+        assert_true(not tr.stopped)
     assert_raises(ValueError, reconstruct_tracker, ec.data_fname)
 
     # test with dealer
@@ -88,9 +88,9 @@ def test_reconstruct():
             td.respond(np.random.rand() < x_current)
 
     dealer = reconstruct_dealer(ec.data_fname)[0]
-    assert(all(td._x_history == dealer._x_history))
-    assert(all(td._tracker_history == dealer._tracker_history))
-    assert(all(td._response_history == dealer._response_history))
+    assert_true(all(td._x_history == dealer._x_history))
+    assert_true(all(td._tracker_history == dealer._tracker_history))
+    assert_true(all(td._response_history == dealer._response_history))
 
     # no tracker/dealer in file
     with ExperimentController(*std_args, **std_kwargs) as ec:
