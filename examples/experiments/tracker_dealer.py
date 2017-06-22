@@ -71,16 +71,16 @@ with ExperimentController(*std_args, **std_kwargs) as ec:
 
     # initialize two tracker objects--one for each trial type
     tr_ud = [TrackerUD(ec, up, down, step_size_up, step_size_down,
-                       stop_reversals, stop_trials, start_value, 
+                       stop_reversals, stop_trials, start_value,
                        change_indices, change_rule, x_min,
                        x_max) for i in [0, 1]]
-    
+
     # initialize TrackerDealer object
     td = TrackerDealer(ec, tr_ud, max_lag, pace_rule, rng_dealer)
-    
+
     # Initialize human state
     rng_human = np.random.RandomState(1)  # random seed for modeled subject
-    
+
     for ss, level in td:
         # Get information of which trial type is next and what the level is at
         # that time from TrackerDealer
