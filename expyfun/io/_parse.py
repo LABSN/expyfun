@@ -35,7 +35,6 @@ def read_tab_raw(fname):
     times = [float(line[0]) for line in lines]
     keys = [line[1] for line in lines]
     vals = [line[2] for line in lines]
-    idx = np.arange(len(lines))
     data = list(zip(times, keys, vals))
     return data
 
