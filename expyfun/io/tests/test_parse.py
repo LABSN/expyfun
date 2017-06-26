@@ -49,6 +49,7 @@ def test_parse():
     assert_equal(len(data[1]['misc']), 2)
 
 
+@_hide_window
 def test_reconstruct():
     """Test Tracker objects reconstruction"""
 
@@ -69,7 +70,7 @@ def test_reconstruct():
             tr.respond(True)
 
     tracker = reconstruct_tracker(ec.data_fname)[0]
-    assert(tracker.stopped)
+    assert_true(tracker.stopped)
     tracker.x_current
 
     # tracker not stopped

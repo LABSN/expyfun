@@ -88,10 +88,13 @@ Functions:
    :template: function.rst
 
    read_hdf5
+   read_tab_raw
    read_tab
    read_wav
    write_hdf5
    write_wav
+   reconstruct_tracker
+   reconstruct_dealer
 
 :py:mod:`expyfun.visual`:
 

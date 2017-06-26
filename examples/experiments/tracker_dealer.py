@@ -6,8 +6,8 @@ Adaptive tracking for two trial types and tracker reconstruction from .tab
 
 This file shows how to interleave multiple Tracker objects using
 :class:`expyfun.stimuli.TrackerDealer` as well as how to reconstruct the
-dealer from the .tab file logged by experiment controller with the
-``reconstruct_dealer()`` function.
+dealer from the .tab file logged by experiment controller with
+:func: `expyfun.io.reconstruct_dealer`,
 
 In this case, a modeled human subject generates two curves (one for each trial
 type: 1 & 2).
@@ -60,8 +60,9 @@ rng_dealer = np.random.RandomState(3)  # random seed to select trial type
 # The two trackers in this example use all of the same parameters and then are
 # passed into the dealer. After the dealer is created, the type of each trial
 # (returned as an index of the array of individual trackers) and trial level
-# for that trial can be acquired. ExperimentController is used to generate log
-# files with TrackerUD and TrackerDealer information.
+# for that trial can be acquired. :class:`ExperimentController` is used to
+# generate log files with :class:`expyfun.stimuli.TrackerUD` and
+# :class:`expyfun.stimuli.TrackerDealer` information.
 std_args = ['test']  # experiment name
 std_kwargs = dict(full_screen=False, window_size=(1, 1), participant='foo',
                   session='01', stim_db=0.0, noise_db=0.0, verbose=True,
