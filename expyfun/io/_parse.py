@@ -21,7 +21,7 @@ def read_tab_raw(fname):
     data : list of tuple
         The data with each line from the tab file being a tuple in a list.
         Each tuple is of the form (``timestamp``, ``key``, ``value``).
-        
+
     See Also
     --------
     read_tab
@@ -62,7 +62,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
         The data, with a dict for each trial. Each value in the dict
         is a list of tuples (event, time) for each occurrence of that
         key.
-        
+
     See Also
     --------
     read_tab_raw
