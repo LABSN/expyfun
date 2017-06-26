@@ -93,10 +93,10 @@ with ExperimentController(*std_args, **std_kwargs) as ec:
 # ---------------------------------------
 # The TrackerDealer object has many built in analysis functions that are can
 # only be access through the object itself (not the log files alone). By using
-# ``reconstruct_dealer()``, the object can be recreated such that the analysis
-# functions are accessible. Note that the function always returns a list of
-# objects. Similar reconstructions of single trackers can be done with
-# ``reconstruct_tracker()``.
+# :func:`reconstruct_dealer()`, the object can be recreated such that the
+# analysis functions are accessible. Note that the function always returns a
+# list of objects. Similar reconstructions of single trackers can be done with
+# :func:`reconstruct_tracker()`.
 
 td_tab = reconstruct_dealer(ec.data_fname)[0]
 
