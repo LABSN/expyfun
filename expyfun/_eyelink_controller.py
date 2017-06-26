@@ -603,7 +603,6 @@ class EyelinkController(object):
                 eye_pos = np.array(sample.getRightEye().getGaze())
             else:
                 eye_pos = np.array([np.inf, np.inf])
-            eye_pos -= (self._size / 2.)
         else:
             # use mouse, already referenced to center
             eye_pos = self._ec.get_mouse_position()
