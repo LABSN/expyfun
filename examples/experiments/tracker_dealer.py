@@ -7,7 +7,7 @@ Adaptive tracking for two trial types and tracker reconstruction from .tab
 This file shows how to interleave multiple Tracker objects using
 :class:`expyfun.stimuli.TrackerDealer` as well as how to reconstruct the
 dealer from the .tab file logged by experiment controller with
-:func: `expyfun.io.reconstruct_dealer`,
+:func:`expyfun.io.reconstruct_dealer`,
 
 In this case, a modeled human subject generates two curves (one for each trial
 type: 1 & 2).
@@ -93,10 +93,10 @@ with ExperimentController(*std_args, **std_kwargs) as ec:
 # ---------------------------------------
 # The TrackerDealer object has many built in analysis functions that are can
 # only be access through the object itself (not the log files alone). By using
-# :func:`reconstruct_dealer()`, the object can be recreated such that the
-# analysis functions are accessible. Note that the function always returns a
-# list of objects. Similar reconstructions of single trackers can be done with
-# :func:`reconstruct_tracker()`.
+# :func:`expyfun.io.reconstruct_dealer`, the object can be recreated such that
+# the analysis functions are accessible. Note that the function always returns
+# a list of objects. Similar reconstructions of single trackers can be done
+# with :func:`expyfun.io.reconstruct_tracker`.
 
 td_tab = reconstruct_dealer(ec.data_fname)[0]
 
