@@ -781,7 +781,7 @@ class TrackerDealer(object):
         self._x_history = np.array([], dtype=float)
 
         self._dealer_id = id(self)
-        self._callback('dealer_identity', json.dumps(dict(
+        self._callback('dealer_identify', json.dumps(dict(
             dealer_id=self._dealer_id)))
 
         self._callback('dealer_%i_init' % self._dealer_id, json.dumps(dict(

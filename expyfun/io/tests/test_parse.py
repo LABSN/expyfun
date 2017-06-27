@@ -1,9 +1,11 @@
+import numpy as np
 import warnings
-from nose.tools import assert_equal, assert_in, assert_raises
+from nose.tools import assert_equal, assert_in, assert_raises, assert_true
 
 from expyfun import ExperimentController
-from expyfun.io import read_tab
+from expyfun.io import read_tab, reconstruct_tracker, reconstruct_dealer
 from expyfun._utils import _TempDir, _hide_window
+from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 
 warnings.simplefilter('always')
 
@@ -17,7 +19,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
 @_hide_window
 def test_parse():
     """Test .tab parsing."""
-    with ExperimentController(*std_args, stim_fs=44100, **std_kwargs) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         ec.identify_trial(ec_id='one', ttl_id=[0])
         ec.start_stimulus()
         ec.write_data_line('misc', 'trial one')
@@ -45,3 +47,62 @@ def test_parse():
     data = read_tab(ec.data_fname, group_end=None)
     assert_equal(len(data[0]['misc']), 2)  # includes between-trials stuff
     assert_equal(len(data[1]['misc']), 2)
+
+
+@_hide_window
+def test_reconstruct():
+    """Test Tracker objects reconstruction"""
+
+    # test with one TrackerUD
+    with ExperimentController(*std_args, **std_kwargs) as ec:
+        tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
+        while not tr.stopped:
+            tr.respond(np.random.rand() < tr.x_current)
+
+    tracker = reconstruct_tracker(ec.data_fname)[0]
+    assert_true(tracker.stopped)
+    tracker.x_current
+
+    # test with one TrackerBinom
+    with ExperimentController(*std_args, **std_kwargs) as ec:
+        tr = TrackerBinom(ec, .05, .5, 10)
+        while not tr.stopped:
+            tr.respond(True)
+
+    tracker = reconstruct_tracker(ec.data_fname)[0]
+    assert_true(tracker.stopped)
+    tracker.x_current
+
+    # tracker not stopped
+    with ExperimentController(*std_args, **std_kwargs) as ec:
+        tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)
+        tr.respond(np.random.rand() < tr.x_current)
+        assert_true(not tr.stopped)
+    assert_raises(ValueError, reconstruct_tracker, ec.data_fname)
+
+    # test with dealer
+    with ExperimentController(*std_args, **std_kwargs) as ec:
+        tr = [TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3) for _ in range(3)]
+        td = TrackerDealer(ec, tr)
+
+        for _, x_current in td:
+            td.respond(np.random.rand() < x_current)
+
+    dealer = reconstruct_dealer(ec.data_fname)[0]
+    assert_true(all(td._x_history == dealer._x_history))
+    assert_true(all(td._tracker_history == dealer._tracker_history))
+    assert_true(all(td._response_history == dealer._response_history))
+    assert_true(td.shape == dealer.shape)
+    assert_true(td.trackers.shape == dealer.trackers.shape)
+
+    # no tracker/dealer in file
+    with ExperimentController(*std_args, **std_kwargs) as ec:
+        ec.identify_trial(ec_id='one', ttl_id=[0])
+        ec.start_stimulus()
+        ec.write_data_line('misc', 'trial one')
+        ec.stop()
+        ec.trial_ok()
+        ec.write_data_line('misc', 'end')
+
+    assert_raises(ValueError, reconstruct_tracker, ec.data_fname)
+    assert_raises(ValueError, reconstruct_dealer, ec.data_fname)
