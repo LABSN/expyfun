@@ -5,19 +5,20 @@
 import os
 from os.path import join
 import numpy as np
-from ..stimuli import resample
+from mne.filter import resample
 import expyfun.visual as vis
 from ._stimuli import window_edges
 from ..io import read_wav, write_wav
-from fractions import Fraction
-from .._utils import fetch_data_file
+from .._utils import fetch_data_file, _get_user_home_path
 from zipfile import ZipFile
 from joblib import Parallel, delayed, cpu_count
 import struct
 
 #from scipy.signal import resample
 
-_fs_binary = 40e3
+_fs_binary = 40e3  # the sampling rate of the original corpus binaries
+_rms_binary = 0.099977227591239365  # the RMS of the original corpus binaries
+_rms_prepped = 0.01  # the RMS for preparation of the whole corpus at an fs
 _sexes = {
     'male': 0,
     'female': 1,
@@ -98,7 +99,7 @@ _numbers = {
     6: 6,
     7: 7}
 
-_n_sex = 2
+_n_sexes = 2
 _n_talkers = 4
 _n_callsigns = 8
 _n_colors = 4
@@ -180,57 +181,49 @@ def _pad_zeros(stims, axis=-1, alignment='start', return_array=True):
         return stims
 
 
-def _prepare_stim(zip_file, path_out, sex, tal, cal, col, num, fs_out,
-                  fs_binary, rms_binary, ref_rms, n_jobs):
+def _prepare_stim(zip_file, path_out, sex, tal, cal, col, num, fs_out, dtype,
+                  ref_rms, n_jobs):
     """Read in a binary CRM file and write out a scaled resampled wav
     """
     x = _read_binary(zip_file, cal, col, num, 0)
     fn = '%i%i%i%i%i.wav' % (sex, tal, cal, col, num)
-    #x = resample(x, int((len(x) * fs_out) / fs_binary))  # scipy
-    rat = Fraction(np.round(fs_out).astype(int),
-                   np.round(fs_binary).astype(int)).limit_denominator(500)
-    x = resample(x, rat.numerator, rat.denominator, n_jobs=n_jobs, verbose=0)
-    x *= ref_rms / rms_binary
-    write_wav(join(path_out, fn), x, fs_out, overwrite=True, verbose=False)
+    x = resample(x, fs_out, _fs_binary, n_jobs=n_jobs, verbose=0)
+    x *= ref_rms / _rms_binary
+    write_wav(join(path_out, fn), x, fs_out, overwrite=True, dtype=dtype,
+              verbose=False)
 
 
-def crm_prepare_corpus(path_out, fs, ref_rms=0.01, talker_list=None,
-                       overwrite=False, n_jobs=None, verbose=True):
+def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
+                       n_jobs=None, verbose=True):
     """Prepare the CRM corpus for a given sampling rate and convert to wav
 
     Parameters
     ----------
-    path_out : str
-        The path to write the prepared CRM corpus.
     fs : int
         The sampling rate of the prepared corpus.
-    ref_rms : float
-        The baseline RMS value to normalize the stimuli. Default is 0.01.
-    talker_list : list of dicts | `None`
-        A list of dict objects specifying which talkers to prepare. The
-        elements of the dict must be `sex` and `talker_num`, with allowable
-        options for sex being `'male'`, `'female'`, `'m'`, `'f'`, or 0 or 1,
-        corresponding to male and female, respectively. Valid options for
-        `talker_num` are the integers 0 through 3 inclusive. If `None`, all
-        talkers of both sexes will be prepared.
+    path_out : str
+        The path to write the prepared CRM corpus. In most cases this will be 
+        the `expyfun` data directory (default), but it allows for other 
+        options.
     overwrite : bool
         Whether or not to overwrite the files that may already exist in
         `path_out`.
+    dtype : type
+        The data type for saving the data. ``np.float64`` is the default for
+        maintaining fidelity. ``np.int16`` is standard for wav files.
     n_jobs : int | `'cuda'` | `None`
         Number of cores to use. The fastest option, if enabled, is `'cuda'`.
         If `None` it will use all available cores except for one.
     verbose : bool
         Whether or not to ouput status as stimuli are prepared.
     """
+    if path_out is None:
+        path_out = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
     path_out_fs = join(path_out, str(int(fs)))
-    rms_binary = 0.099977227591239365  # this doesn't need to be recalculated
     if n_jobs is None:
         n_jobs = cpu_count() - 1
     if n_jobs != 'cuda':
         n_jobs = min([n_jobs, cpu_count()])
-    if talker_list is None:
-        talker_list = [dict(sex=s, talker_num=t) for s in range(_n_sex) for
-                       t in range(_n_talkers)]
     if not os.path.isdir(path_out):
         os.makedirs(path_out)
     if not os.path.isdir(path_out_fs):
@@ -238,10 +231,11 @@ def crm_prepare_corpus(path_out, fs, ref_rms=0.01, talker_list=None,
     elif not overwrite:
         raise(RuntimeError('Directory already exists and overwrite=False'))
     cn = [[c, n] for c in range(_n_colors) for n in range(_n_numbers)]
-
+    talker_list = [dict(sex=s, talker_num=t) for s in range(_n_sexes) for
+                   t in range(_n_talkers)]
     from time import time
     start_time = time()
-    for sex in range(_n_sex):
+    for sex in range(_n_sexes):
         if verbose:
             print('Preparing sex %i.' % sex)
         for tal in range(_n_talkers):
@@ -252,15 +246,15 @@ def crm_prepare_corpus(path_out, fs, ref_rms=0.01, talker_list=None,
                     print('    Preparing talker %i.' % tal),
                 if n_jobs != 'cuda':
                     Parallel(n_jobs=n_jobs)(delayed(_prepare_stim)(
-                        zf, path_out_fs, sex, tal, cal, col, num, fs,
-                        _fs_binary, rms_binary, ref_rms, n_jobs=1) for
+                        zf, path_out_fs, sex, tal, cal, col, num, fs, dtype,
+                        _rms_prepped, n_jobs=1) for
                         col, num in cn for cal in range(_n_callsigns))
                 else:
                     for cal in range(_n_callsigns):
                         for col, num in cn:
                             _prepare_stim(zf, path_out_fs, sex, tal, cal, col,
-                                          num, fs, _fs_binary, rms_binary,
-                                          ref_rms, n_jobs='cuda')
+                                          num, fs, dtype, _rms_prepped,
+                                          n_jobs='cuda')
                 if verbose:
                     print('')
     if verbose:
@@ -268,8 +262,14 @@ def crm_prepare_corpus(path_out, fs, ref_rms=0.01, talker_list=None,
 
 
 # Read a CRM wav file that has been prepared for use with expyfun
-def crm_sentence(path, fs, sex, talker_num, callsign, color, number,
-                 ramp_dur=0.01, stereo=False):
+def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
+                 ramp_dur=0.01, stereo=False, path=None):
+    """
+    ref_rms : float
+        The baseline RMS value to normalize the stimuli. Default is 0.01.
+    """
+    if path is None:
+        path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
     path = join(path, str(int(fs)))
     if not os.path.isdir(path):
         raise(RuntimeError('prepare_corpus() has not yet been run '
@@ -277,7 +277,7 @@ def crm_sentence(path, fs, sex, talker_num, callsign, color, number,
     fn = join(path, '%i%i%i%i%i.wav' % (_sexes[sex], _talker_nums[talker_num],
                                         _callsigns[callsign],
                                         _colors[color], _numbers[number]))
-    x = read_wav(fn, verbose=False)[0][0]
+    x = read_wav(fn, verbose=False)[0][0] * ref_rms / _rms_prepped
     if ramp_dur:
         x = window_edges(x, _fs_binary, dur=ramp_dur)
     if stereo:
@@ -286,17 +286,26 @@ def crm_sentence(path, fs, sex, talker_num, callsign, color, number,
 
 
 def crm_info():
-    '''
-    Returns lists of options for: sex, talker number, callsign, color, number.
-    Example usage: sex, tal, cal, col, num = crm_info()
-    '''
+    """Get allowable options for CRM stimuli.
+    
+    Returns
+    -------
+    options : dict of lists
+        sex, talker number, callsign, color, number.
+    
+    Notes
+    -----
+    
+    
+    """
     sex = ['male', 'female']
     tal = ['0', '1', '2', '3']
     cal = ['charlie', 'ringo', 'laker', 'hopper',
            'arrow', 'tiger', 'eagle', 'baron']
     col = ['blue', 'red', 'white', 'green']
     num = ['1', '2', '3', '4', '5', '6', '7', '8']
-    return sex, tal, cal, col, num
+    return dict(sex=sex, talker_number=tal, calllsign=cal, color=col,
+                number=num)
 
 
 def crm_response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
@@ -353,9 +362,29 @@ def crm_response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
         ec.write_data_line('crm_timeout')
         return (None, None)
 
-#from expyfun import ExperimentController
-#with ExperimentController('crm', participant='test', session='test') as ec:
-#    for _ in range(3):
-#        ec.wait_secs(1)
-#        # draw the CRM responder
-#        print(crm_response(ec))
+
+class CRMPreload(object):
+    def __init__(self, fs, ramp_dur=0.01, ref_rms=0.01, stereo=False, path=None):
+        """
+        ref_rms : float
+            The baseline RMS value to normalize the stimuli. Default is 0.01.
+        """
+        if path is None:
+            path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
+        if not os.path.isdir(path):
+            raise(RuntimeError('prepare_corpus() has not yet been run '
+                               'for sampling rate of %i' % fs))
+        self._all_stim = {sex:{tal:{cal:{col:{num:
+                          crm_sentence(fs, sex, tal, cal, col, num, ref_rms,
+                                       ramp_dur, stereo, path)
+                          for num in range(_n_numbers)}
+                          for col in range(_n_colors)}
+                          for cal in range(_n_callsigns)}
+                          for tal in range(_n_talkers)}
+                          for sex in range(_n_sexes)}
+    
+    def sentence(self, sex, talker_num, callsign, color, number):
+        return np.copy(self._all_stim[_sexes[sex]][_talker_nums[talker_num]]
+                                     [_callsigns[callsign]][_colors[color]]
+                                     [_numbers[number]])
+    
