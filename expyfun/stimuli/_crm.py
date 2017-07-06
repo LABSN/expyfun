@@ -19,6 +19,7 @@ import struct
 _fs_binary = 40e3  # the sampling rate of the original corpus binaries
 _rms_binary = 0.099977227591239365  # the RMS of the original corpus binaries
 _rms_prepped = 0.01  # the RMS for preparation of the whole corpus at an fs
+
 _sexes = {
     'male': 0,
     'female': 1,
@@ -128,7 +129,7 @@ _check_color = lambda value: _check_parameter_value(_colors, value, 'color')
 
 def _read_talker_zip_file(sex, talker_num):
     talker_num_raw = _n_talkers * _sexes[sex] + _talker_nums[talker_num]
-    fn = fetch_data_file('crm/Talker %i.zip' % talker_num_raw)
+    fn = fetch_data_file(join('crm', 'Talker %i.zip' % talker_num_raw))
     return ZipFile(fn)
 
 
@@ -203,17 +204,17 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
         The sampling rate of the prepared corpus.
     path_out : str
         The path to write the prepared CRM corpus. In most cases this will be 
-        the `expyfun` data directory (default), but it allows for other 
+        the ``expyfun`` data directory (default), but it allows for other 
         options.
     overwrite : bool
         Whether or not to overwrite the files that may already exist in
-        `path_out`.
+        ``path_out``.
     dtype : type
         The data type for saving the data. ``np.float64`` is the default for
         maintaining fidelity. ``np.int16`` is standard for wav files.
-    n_jobs : int | `'cuda'` | `None`
-        Number of cores to use. The fastest option, if enabled, is `'cuda'`.
-        If `None` it will use all available cores except for one.
+    n_jobs : int | ``'cuda'`` | ``None``
+        Number of cores to use. The fastest option, if enabled, is ``'cuda'``.
+        If ``None`` it will use all available cores except for one.
     verbose : bool
         Whether or not to ouput status as stimuli are prepared.
     """
@@ -264,9 +265,50 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
 # Read a CRM wav file that has been prepared for use with expyfun
 def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
                  ramp_dur=0.01, stereo=False, path=None):
-    """
+    """Get a specific sentence from the hard drive.
+        
+    Parameters
+    ----------
+    fs : float
+        The sampling rate of the corpus to load. You must have run
+        ``prepare_corpus`` for that sampling rate first.
+    sex : str | int
+        The sex of the talker
+    talker_num : str | int
+        The zero-indexed talker number. Note that, obviously, male 2 is a
+        different talker than female 2.
+    callsign : str | int
+        The callsign of the sentence.
+    color : str | int
+        The color of the sentence.
+    number : str | int
+        The number of the sentence. See Notes below for a cautionary point.
     ref_rms : float
         The baseline RMS value to normalize the stimuli. Default is 0.01.
+        Normalization is done at the corpus level, not at the sentence or
+        talker.
+    ramp_dur : float
+        The duration (in seconds) of the onset-offset ramps. Use 0 for no ramp.
+    stereo : bool
+        Whether to return the data as stereo or not.
+    path : str
+        The location of the stimulus directory. Defaults to the data directory
+        where the raw CRM originals are stored.
+    
+    Returns
+    -------
+    sentence : array
+        The requested sentence data.
+    
+    Notes
+    -----
+    Use ``crm_info`` to see allowable values.
+    
+    When getting a CRM sentence, you can use the full word (e.g., 'male',
+    'green'), the first letter of that word ('m', 'g'), or the index of
+    that word in the list of options (0, 3). It should be noted that the
+    index of '1' is 0, so care must be taken if using indices for the
+    number argument.    
     """
     if path is None:
         path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
@@ -291,12 +333,7 @@ def crm_info():
     Returns
     -------
     options : dict of lists
-        sex, talker number, callsign, color, number.
-    
-    Notes
-    -----
-    
-    
+        Keys are sex, talker number, callsign, color, number.
     """
     sex = ['male', 'female']
     tal = ['0', '1', '2', '3']
@@ -364,11 +401,27 @@ def crm_response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
 
 
 class CRMPreload(object):
-    def __init__(self, fs, ramp_dur=0.01, ref_rms=0.01, stereo=False, path=None):
-        """
-        ref_rms : float
-            The baseline RMS value to normalize the stimuli. Default is 0.01.
-        """
+    """A class that stores the CRM corpus in memory for fast access
+    
+    Parameters
+    ----------
+    fs : float
+        The sampling rate of the corpus to load. You must have run
+        ``prepare_corpus`` for that sampling rate first.
+    ref_rms : float
+        The baseline RMS value to normalize the stimuli. Default is 0.01.
+        Normalization is done at the corpus level, not at the sentence or
+        talker.
+    ramp_dur : float
+        The duration (in seconds) of the onset-offset ramps. Use 0 for no ramp.
+    stereo : bool
+        Whether to return the data as stereo or not.
+    path : str
+        The location of the stimulus directory. Defaults to the data directory
+        where the raw CRM originals are stored.
+    """
+    def __init__(self, fs, ref_rms=0.01, ramp_dur=0.01, stereo=False,
+                 path=None):
         if path is None:
             path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
         if not os.path.isdir(path):
@@ -384,6 +437,37 @@ class CRMPreload(object):
                           for sex in range(_n_sexes)}
     
     def sentence(self, sex, talker_num, callsign, color, number):
+        """Get a specific sentence from the pre-loaded data
+        
+        Parameters
+        ----------
+        sex : str | int
+            The sex of the talker
+        talker_num : str | int
+            The zero-indexed talker number. Note that, obviously, male 2 is a
+            different talker than female 2.
+        callsign : str | int
+            The callsign of the sentence.
+        color : str | int
+            The color of the sentence.
+        number : str | int
+            The number of the sentence. See Notes below for a cautionary point.
+            
+        Returns
+        -------
+        sentence : array
+            The requested sentence data.
+        
+        Notes
+        -----
+        Use ``crm_info`` to see allowable values.
+        
+        When getting a CRM sentence, you can use the full word (e.g., 'male',
+        'green'), the first letter of that word ('m', 'g'), or the index of
+        that word in the list of options (0, 3). It should be noted that the
+        index of '1' is 0, so care must be taken if using indices for the
+        number argument.
+        """
         return np.copy(self._all_stim[_sexes[sex]][_talker_nums[talker_num]]
                                      [_callsigns[callsign]][_colors[color]]
                                      [_numbers[number]])
