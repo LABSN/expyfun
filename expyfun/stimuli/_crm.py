@@ -341,7 +341,7 @@ def crm_info():
            'arrow', 'tiger', 'eagle', 'baron']
     col = ['blue', 'red', 'white', 'green']
     num = ['1', '2', '3', '4', '5', '6', '7', '8']
-    return dict(sex=sex, talker_number=tal, calllsign=cal, color=col,
+    return dict(sex=sex, talker_number=tal, callsign=cal, color=col,
                 number=num)
 
 
