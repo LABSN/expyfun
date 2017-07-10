@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Functions for using the Coordinate Response Measure (CRM) corpus
+"""Functions for using the Coordinate Response Measure (CRM) corpus.
 """
 
 import os
@@ -150,7 +150,7 @@ def _read_binary(zip_file, callsign, color, number,
 
 
 def _pad_zeros(stims, axis=-1, alignment='start', return_array=True):
-    """Add zeros to make a list of arrays the same length along a given axis
+    """Add zeros to make a list of arrays the same length along a given axis.
     """
     if not np.all(np.array([s.ndim for s in stims]) == stims[0].ndim):
         raise(ValueError('All arrays must have the same number of dimensions'))
@@ -184,11 +184,12 @@ def _pad_zeros(stims, axis=-1, alignment='start', return_array=True):
 
 def _prepare_stim(zip_file, path_out, sex, tal, cal, col, num, fs_out, dtype,
                   ref_rms, n_jobs):
-    """Read in a binary CRM file and write out a scaled resampled wav
+    """Read in a binary CRM file and write out a scaled resampled wav.
     """
     x = _read_binary(zip_file, cal, col, num, 0)
     fn = '%i%i%i%i%i.wav' % (sex, tal, cal, col, num)
-    x = resample(x, fs_out, _fs_binary, n_jobs=n_jobs, verbose=0)
+    if int(np.round(fs_out)) != int(np.round(_fs_binary)):
+        x = resample(x, fs_out, _fs_binary, n_jobs=n_jobs, verbose=0)
     x *= ref_rms / _rms_binary
     write_wav(join(path_out, fn), x, fs_out, overwrite=True, dtype=dtype,
               verbose=False)
@@ -220,20 +221,32 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
     """
     if path_out is None:
         path_out = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
-    path_out_fs = join(path_out, str(int(fs)))
     if n_jobs is None:
         n_jobs = cpu_count() - 1
     if n_jobs != 'cuda':
         n_jobs = min([n_jobs, cpu_count()])
     if not os.path.isdir(path_out):
         os.makedirs(path_out)
+        
+    _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs, verbose,
+                               None)
+
+
+
+def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
+                               verbose, talker_list=None):
+    """Helper function that allows prep of one talker for faster testing.
+    """
+    if talker_list is None:
+        talker_list = [dict(sex=s, talker_num=t) for s in range(_n_sexes) for
+                       t in range(_n_talkers)]
+    path_out_fs = join(path_out, str(int(fs)))
     if not os.path.isdir(path_out_fs):
         os.makedirs(path_out_fs)
     elif not overwrite:
         raise(RuntimeError('Directory already exists and overwrite=False'))
+        
     cn = [[c, n] for c in range(_n_colors) for n in range(_n_numbers)]
-    talker_list = [dict(sex=s, talker_num=t) for s in range(_n_sexes) for
-                   t in range(_n_talkers)]
     from time import time
     start_time = time()
     for sex in range(_n_sexes):
@@ -259,7 +272,7 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
                 if verbose:
                     print('')
     if verbose:
-        print('Finished in %i minutes.' % ((time() - start_time) / 60.))
+        print('Finished in %0.1f minutes.' % ((time() - start_time) / 60.))
 
 
 # Read a CRM wav file that has been prepared for use with expyfun
@@ -401,7 +414,7 @@ def crm_response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
 
 
 class CRMPreload(object):
-    """A class that stores the CRM corpus in memory for fast access
+    """A class that stores the CRM corpus in memory for fast access.
     
     Parameters
     ----------
@@ -437,7 +450,7 @@ class CRMPreload(object):
                           for sex in range(_n_sexes)}
     
     def sentence(self, sex, talker_num, callsign, color, number):
-        """Get a specific sentence from the pre-loaded data
+        """Get a specific sentence from the pre-loaded data.
         
         Parameters
         ----------
