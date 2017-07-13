@@ -83,6 +83,10 @@ def download_version(version='current', dest_dir=None):
     sys.path.insert(0, expyfun_dir)
     orig_stdout = sys.stdout
     try:
+        try:
+            from importlib import reload
+        except ImportError:
+            pass  # Python2.7
         import setup
         reload(setup)
         setup_version = setup.git_version()
