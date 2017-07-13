@@ -90,6 +90,7 @@ def download_version(version='current', dest_dir=None):
             version = version[0]
         assert version.lower() == version[:7].lower()
         sys.stdout = StringIO()
+        print(dest_dir)
         with warnings.catch_warnings(record=True):  # PEP440
             setup_package(script_args=['build', '--build-purelib', dest_dir])
     finally:
