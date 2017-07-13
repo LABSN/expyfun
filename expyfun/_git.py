@@ -100,7 +100,6 @@ def download_version(version='current', dest_dir=None):
         sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))
         os.chdir(orig_dir)
-    # check our round-trip
     print('\n'.join(['Successfully checked out expyfun version:', version,
                      'into destination directory:', op.join(dest_dir)]))
 

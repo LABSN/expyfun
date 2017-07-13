@@ -40,8 +40,9 @@ def test_version():
                 line1 = fid.readline().strip()
             got_version = line1.split(' = ')[1][-8:-1]
             ex = want_version if want_version != 'cae6bc3' else '.dev0+c'
-            assert_equal(got_version, ex, msg='File %s: %s != %s'
-                         % (got_fname, got_version, ex))
+            assert_equal(got_version, ex,
+                         msg='File {0}: {1} != {2}'.format(got_fname,
+                                                           got_version, ex))
 
             # auto dir determination
             orig_dir = os.getcwd()
