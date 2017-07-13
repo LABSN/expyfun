@@ -79,24 +79,28 @@ def download_version(version='current', dest_dir=None):
     # install
     orig_dir = os.getcwd()
     os.chdir(expyfun_dir)
-    sys.path.insert(0, expyfun_dir)  # ensure our new "setup" is imported
+    # ensure our version-specific "setup" is imported
+    sys.path.insert(0, expyfun_dir)
     orig_stdout = sys.stdout
     try:
-        from setup import git_version, setup_package
-        version = git_version()
+        import setup
+        reload(setup)
+        setup_version = setup.git_version()
         # This is necessary because for a while git_version returned
         # a tuple of (version, fork)
-        if not isinstance(version, string_types):
-            version = version[0]
-        assert version.lower() == version[:7].lower()
+        if not isinstance(setup_version, string_types):
+            setup_version = setup_version[0]
+        assert version.lower() == setup_version[:7].lower()
+        del setup_version
         sys.stdout = StringIO()
-        print(dest_dir)
         with warnings.catch_warnings(record=True):  # PEP440
-            setup_package(script_args=['build', '--build-purelib', dest_dir])
+            setup.setup_package(
+                script_args=['build', '--build-purelib', dest_dir])
     finally:
         sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))
         os.chdir(orig_dir)
+    # check our round-trip
     print('\n'.join(['Successfully checked out expyfun version:', version,
                      'into destination directory:', op.join(dest_dir)]))
 
