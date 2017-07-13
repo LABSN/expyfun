@@ -44,6 +44,7 @@ if sys.version.startswith('2'):
     string_types = basestring  # noqa
     input = raw_input  # noqa, input is raw_input in py3k
     text_type = unicode  # noqa
+    from __builtin__ import reload
     from urllib2 import urlopen  # noqa
     from cStringIO import StringIO  # noqa
 else:
@@ -52,6 +53,7 @@ else:
     from urllib.request import urlopen
     input = input
     from io import StringIO  # noqa, analysis:ignore
+    from importlib import reload  # noqa, analysis:ignore
 
 ###############################################################################
 # LOGGING

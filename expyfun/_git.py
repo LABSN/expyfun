@@ -4,7 +4,7 @@ from os import path as op
 import sys
 import warnings
 
-from ._utils import _TempDir, string_types, run_subprocess, StringIO
+from ._utils import _TempDir, string_types, run_subprocess, StringIO, reload
 from ._version import __version__
 
 this_version = __version__[-7:]
@@ -83,10 +83,6 @@ def download_version(version='current', dest_dir=None):
     sys.path.insert(0, expyfun_dir)
     orig_stdout = sys.stdout
     try:
-        try:
-            from importlib import reload
-        except ImportError:
-            pass  # Python2.7
         import setup
         reload(setup)
         setup_version = setup.git_version()
