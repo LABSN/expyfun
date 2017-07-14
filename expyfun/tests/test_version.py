@@ -23,7 +23,6 @@ def test_version():
 
     for want_version in ('090948e', 'cae6bc3', 'b6e8a81'):  # old, broken, new
         tempdir = _TempDir()
-        tempdir_2 = _TempDir()
         if not _has_git:
             assert_raises(ImportError, download_version, want_version, tempdir)
         else:
@@ -52,9 +51,11 @@ def test_version():
                 assert_raises(IOError, download_version, want_version)
             finally:
                 os.chdir(orig_dir)
-            # make sure we can get latest version
-            assert_raises(IOError, download_version, dest_dir=tempdir)
-            download_version(dest_dir=tempdir_2)
+    # make sure we can get latest version
+    tempdir_2 = _TempDir()
+    if _has_git:
+        assert_raises(IOError, download_version, dest_dir=tempdir)
+        download_version(dest_dir=tempdir_2)
 
 
 def test_integrated_version_checking():
