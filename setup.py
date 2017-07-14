@@ -42,7 +42,8 @@ def git_version():
             pass
     return GIT_REVISION[:7]
 
-FULL_VERSION = VERSION + '+' + git_version()[0]
+
+FULL_VERSION = VERSION + '+' + git_version()
 
 
 def write_version(version):
