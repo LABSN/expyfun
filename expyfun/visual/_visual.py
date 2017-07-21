@@ -303,7 +303,7 @@ class _Triangular(object):
         ----------
         line_width : float
             The line width. Must be given in pixels. Due to OpenGL
-            limitations, it must be `0.0 <= line_width <= 10.0`.bar
+            limitations, it must be `0.0 <= line_width <= 10.0`.
         """
         line_width = float(line_width)
         if not (0.0 <= line_width <= 10.0):
@@ -609,7 +609,6 @@ class Circle(_Triangular):
         self._n_edges = n_edges
 
         # construct triangulation (never changes so long as n_edges is fixed)
-        raise ValueError('colors must have length 2')
         tris = [[0, ii + 1, ii + 2] for ii in range(n_edges)]
         tris = np.concatenate(tris)
         tris[-1] = 1  # fix wrap for last triangle
