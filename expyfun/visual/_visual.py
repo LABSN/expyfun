@@ -303,7 +303,7 @@ class _Triangular(object):
         ----------
         line_width : float
             The line width. Must be given in pixels. Due to OpenGL
-            limitations, it must be `0.0 <= line_width <= 10.0`.
+            limitations, it must be `0.0 <= line_width <= 10.0`.bar
         """
         line_width = float(line_width)
         if not (0.0 <= line_width <= 10.0):
@@ -609,6 +609,7 @@ class Circle(_Triangular):
         self._n_edges = n_edges
 
         # construct triangulation (never changes so long as n_edges is fixed)
+        raise ValueError('colors must have length 2')
         tris = [[0, ii + 1, ii + 2] for ii in range(n_edges)]
         tris = np.concatenate(tris)
         tris[-1] = 1  # fix wrap for last triangle
@@ -824,6 +825,72 @@ class FixationDot(ConcentricCircles):
                                           pos=[0, 0], units='deg',
                                           colors=colors)
         self.set_radius(1, 1, units='pix')
+
+
+class ProgressBar(object):
+    """A progress bar that can be displayed between sections
+
+    This uses two rectangles, one outline, and one solid to show how much
+    progress has been made in the experiment.
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    pos : array-like
+        4-element array-like with X, Y center and width, height.
+    units : str
+        Units to use. These will apply to all spatial aspects of the drawing.
+        Must be either ''norm'' or ''pix''.
+    colors : list or tuple of matplotlib Colors
+        Colors to fill and outline the bar respectively. Defaults to green and
+        white.
+
+    Returns
+    -------
+    bar : instance of ProgressBar
+        The progress bar.
+    """
+    def __init__(self, ec, pos, units='norm', colors=('g', 'w')):
+        if len(colors) != 2:
+            raise ValueError('colors must have length 2')
+        if units != 'norm' and units != 'pix':
+            raise ValueError('units must be either ''norm'' or ''pix''')
+            
+        pos = np.array(pos)
+        self._pos = pos
+        self._width = pos[2]
+        self._units = units
+
+        # initialize the bar with zero progress
+        self._pos_bar = pos.copy()
+        self._pos_bar[0] -= self._width * 0.5
+        self._init_x = self._pos_bar[0]
+        self._pos_bar[2] = 0
+
+        self._rectangles = [Rectangle(ec, self._pos_bar, units, colors[0],
+                                      None),
+                            Rectangle(ec, self._pos, units, None, colors[1])]
+
+    def update_bar(self, percent):
+        """ Update the progress of the bar
+
+        Parameters
+        ----------
+        percent: float
+            The percentage of the bar to be filled. Must be between 0 and 1.
+        """
+        if percent > 1 or percent < 0:
+            raise ValueError('percent must be a float between 0 and 1')
+        self._pos_bar[2] = percent * self._width
+        self._pos_bar[0] = self._init_x + self._pos_bar[2] * 0.5
+        self._rectangles[0].set_pos(self._pos_bar, self._units)
+
+    def draw(self):
+        """ Draw the progress bar
+        """
+        for rectangle in self._rectangles:
+            rectangle.draw()
 
 
 ##############################################################################
