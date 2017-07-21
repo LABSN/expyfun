@@ -175,7 +175,7 @@ def _check_log(obj, func):
 
 
 class _Triangular(object):
-    """Super class for objects that use trianglulations and/or lines"""
+    """Super class for objects that use triangulations and/or lines"""
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
         self._ec = ec
         self._line_width = line_width
