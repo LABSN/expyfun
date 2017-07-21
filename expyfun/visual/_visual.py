@@ -855,7 +855,7 @@ class ProgressBar(object):
             raise ValueError('colors must have length 2')
         if units != 'norm' and units != 'pix':
             raise ValueError('units must be either ''norm'' or ''pix''')
-            
+
         pos = np.array(pos)
         self._pos = pos
         self._width = pos[2]
