@@ -75,7 +75,7 @@ def test_visuals():
         text.draw()
         text.set_color('red')
         text.draw()
-        bar = visual.ProgressBar(ec, [0, 0, 1, .2])
+        bar = visual.ProgressBar(ec, [0, 0, 1, .2], text=True)
         bar.update_bar(.5)
         bar.draw()
         assert_raises(ValueError, visual.ProgressBar, ec, [0, 0, 1, .1],
