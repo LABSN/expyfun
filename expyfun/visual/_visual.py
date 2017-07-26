@@ -860,7 +860,7 @@ class ProgressBar(object):
         if units != 'norm' and units != 'pix':
             raise ValueError('units must be either ''norm'' or ''pix''')
 
-        pos = np.array(pos)
+        pos = np.array([float(p) for p in pos])
         self._pos = pos
         self._width = pos[2]
         self._units = units
