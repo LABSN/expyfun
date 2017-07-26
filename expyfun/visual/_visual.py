@@ -878,7 +878,6 @@ class ProgressBar(object):
             self._text_pos = [pos[0], pos[1] - pos[3] * 0.5 - 0.1]
         else:
             self._text_pos = [pos[0], pos[1] - pos[3] * 0.5 - 50]
-            print self._text_pos
         self._text = text
         self._per_shown = '0 %'
 
