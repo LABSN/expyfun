@@ -903,7 +903,7 @@ class ProgressBar(object):
             rectangle.draw()
             if self._text:
                 self._ec.screen_text(self._per_shown, pos=self._text_pos,
-                                     units='pix', wrap=False)
+                                     units=self._units, wrap=False)
 
 
 ##############################################################################
