@@ -122,7 +122,8 @@ class TrackerUD(object):
     """
     def __init__(self, callback, up, down, step_size_up, step_size_down,
                  stop_reversals, stop_trials, start_value, change_indices=None,
-                 change_rule='reversals', x_min=None, x_max=None):
+                 change_rule='reversals', x_min=None, x_max=None,
+                 repeat_limit='reversals'):
         self._callback = _check_callback(callback)
         self._up = up
         self._down = down
@@ -177,7 +178,7 @@ class TrackerUD(object):
         self._n_trials = 0
         self._n_reversals = 0
         self._stopped = False
-        self._repeat_limit = 'reversal'
+        self._repeat_limit = repeat_limit
 
         # Now write the initialization data out
         self._tracker_id = id(self)
@@ -238,6 +239,20 @@ class TrackerUD(object):
                     self._n_reversals += 1
                 if self._direction <= 0:
                     self._direction = 1
+
+        if self._repeat_limit == 'reversals':
+            if self._x[-1] == self._x_min:
+                step_dir = 1
+                self._n_up = 0
+                reversal = True
+                self._n_reversals += 1
+                self._direction = 1
+            if self._x[-1] == self._x_max:
+                step_dir = -1
+                self._n_up = 0
+                reversal = True
+                self._n_reversals += 1
+                self._direction = 1
 
         if reversal:
             self._reversals = np.append(self._reversals, self._n_reversals)
