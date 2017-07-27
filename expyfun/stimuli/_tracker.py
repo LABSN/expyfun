@@ -313,9 +313,8 @@ class TrackerUD(object):
             True if none of the reversals are at x_min or x_max and False
             otherwise.
         """
-        
         idx = np.where([r != 0 for r in self._reversals])[0]
-        self._valid = not any(x in (self._x_min, self._x_max) 
+        self._valid = not any(x in (self._x_min, self._x_max)
                               for x in self._x[idx[-n_reversals:]])
         return self._valid
 
