@@ -64,6 +64,7 @@ def test_tracker_ud():
     fig, ax, lines = tr.plot(ax)
     plt.close(fig)
     tr.threshold
+    tr.check_valid(2)
 
     # bad callback type
     assert_raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, np.inf, 1)
