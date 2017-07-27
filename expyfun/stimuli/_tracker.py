@@ -293,6 +293,24 @@ class TrackerUD(object):
                     reversals=[int(s) for s in self._reversals],
                     x=[float(s) for s in self._x])))
 
+    def check_valid(self, n_reversals):
+        """See if the last reversals contain x_min/x_max reversals.
+
+        Parameters
+        ----------
+        n_reversals : int
+            Number of reversals (starting from the end to check)
+
+        Returns
+        -------
+        valid : bool
+            True if none of the reversals are at x_min or x_max and False
+            otherwise.
+        """
+        self._valid = np.invert(any([x == self._x_min or x == self._x_max
+                                     for x in self._x[-n_reversals:]]))
+        return self._valid
+
     def _stop_here(self):
         if self._n_reversals > self._stop_reversals:
             self._n_stop = True
@@ -300,8 +318,8 @@ class TrackerUD(object):
             self._n_stop = True
         else:
             self._n_stop = False
-        if self._n_stop:
-            warnings.warn('Tracker {} hit a x_min or x_max {} times'
+        if self._n_stop and self._limit_count > 0:
+            warnings.warn('Tracker {} hit a x_min or x_max {} times.'
                           ''.format(self._tracker_id, self._limit_count))
         return self._n_stop
 
