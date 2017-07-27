@@ -94,6 +94,12 @@ class TrackerUD(object):
         The minimum value that the tracker level (``x``) is allowed to take.
     x_max : float
         The maximum value that the tracker level (``x``) is allowed to take.
+    repeat_limit : str
+        How to treat trials that hit either x_min or x_max. `reversals` will
+        count these trials as reversals and increase or decrease the level
+        respectively. `ignore` does not automatically count these trials as
+        reversals and will not change the level of the tracker until a
+        correct or incorrect response respectively.
 
     Returns
     -------
@@ -299,7 +305,7 @@ class TrackerUD(object):
         Parameters
         ----------
         n_reversals : int
-            Number of reversals (starting from the end to check)
+            Number of reversals (starting from the end to check).
 
         Returns
         -------
@@ -307,8 +313,10 @@ class TrackerUD(object):
             True if none of the reversals are at x_min or x_max and False
             otherwise.
         """
-        self._valid = np.invert(any([x == self._x_min or x == self._x_max
-                                     for x in self._x[-n_reversals:]]))
+        
+        idx = np.where([r != 0 for r in self._reversals])[0]
+        self._valid = not any(x in (self._x_min, self._x_max) 
+                              for x in self._x[idx[-n_reversals:]])
         return self._valid
 
     def _stop_here(self):

@@ -29,7 +29,7 @@ slope = 0.1
 chance = 0.5
 
 # Make a tracker that uses the weighted up-down procedure to find 75%
-tr = TrackerUD(callback, 1, 1, [9, 3], [3, 1], 30, np.inf, 60, [4])
+tr = TrackerUD(callback, 1, 1, [9, 3], [3, 1], 30, np.inf, 60, [4], x_min=32)
 
 # Initialize human state
 rng = np.random.RandomState(1)
