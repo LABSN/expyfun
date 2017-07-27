@@ -8,6 +8,7 @@ import numpy as np
 import time
 from scipy.stats import binom
 import json
+import warnings
 
 from .. import ExperimentController
 
@@ -179,6 +180,7 @@ class TrackerUD(object):
         self._n_reversals = 0
         self._stopped = False
         self._repeat_limit = repeat_limit
+        self._limit_count = 0
 
         # Now write the initialization data out
         self._tracker_id = id(self)
@@ -247,12 +249,14 @@ class TrackerUD(object):
                 reversal = True
                 self._n_reversals += 1
                 self._direction = 1
+                self._limit_count += 1
             if self._x[-1] == self._x_max:
                 step_dir = -1
                 self._n_up = 0
                 reversal = True
                 self._n_reversals += 1
                 self._direction = 1
+                self._limit_count += 1
 
         if reversal:
             self._reversals = np.append(self._reversals, self._n_reversals)
@@ -296,6 +300,9 @@ class TrackerUD(object):
             self._n_stop = True
         else:
             self._n_stop = False
+        if self._n_stop:
+            warnings.warn('Tracker {} hit a x_min or x_max {} times'
+                          ''.format(self._tracker_id, self._limit_count))
         return self._n_stop
 
     def _step_index(self):
