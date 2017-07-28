@@ -3,8 +3,9 @@ import matplotlib
 matplotlib.use('Agg')  # noqa
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 from expyfun import ExperimentController
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_equal
 from expyfun._utils import _hide_window, requires_opengl21
+import warnings
 
 
 def callback(event_type, value=None, timestamp=None):
@@ -31,7 +32,7 @@ def test_tracker_ud():
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
 
-    tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1, x_min=0, x_max=1.1)
+    tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1)
     tr.threshold()
     rand = np.random.RandomState(0)
     while not tr.stopped:
@@ -73,13 +74,16 @@ def test_tracker_ud():
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
                    change_indices=[2])
     tr.respond(True)
-    tr = TrackerUD(None, 1, 1, [3, 1.5], [1, 0.5], np.inf, 5, 1,
-                   change_indices=[2], change_rule='trials', x_min=0, x_max=3)
-    responses = [True, False, True, True, False, True]
-    for r in responses:  # run long enough to encounter change_indices
-        tr.respond(r)
-    assert(tr.check_valid(3))  # make sure checking validity is good
-    assert(not tr.check_valid(4))
+    with warnings.catch_warnings(record=True) as w:
+        tr = TrackerUD(None, 1, 1, [3, 1.5], [1, 0.5], np.inf, 5, 1,
+                       change_indices=[2], change_rule='trials', x_min=0,
+                       x_max=3)
+        responses = [True, False, True, True, False, True]
+        for r in responses:  # run long enough to encounter change_indices
+            tr.respond(r)
+        assert(tr.check_valid(3))  # make sure checking validity is good
+        assert(not tr.check_valid(4))
+        assert_equal(len(w), 1)
 
     # bad stop_trials
     assert_raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 10, 'foo', 1)
