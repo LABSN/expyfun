@@ -73,11 +73,13 @@ def test_tracker_ud():
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
                    change_indices=[2])
     tr.respond(True)
-    tr = TrackerUD(None, 1, 1, [3, 1.5], [1, 0.5], np.inf, 10, 1,
+    tr = TrackerUD(None, 1, 1, [3, 1.5], [1, 0.5], np.inf, 5, 1,
                    change_indices=[2], change_rule='trials', x_min=0, x_max=3)
-    for t in np.arange(2):  # run long enough to encounter change_indices
-        tr.respond(True)
-        tr.respond(False)
+    responses = [True, False, True, True, False, True]
+    for r in responses:  # run long enough to encounter change_indices
+        tr.respond(r)
+    assert(tr.check_valid(3))  # make sure checking validity is good
+    assert(not tr.check_valid(4))
 
     # bad stop_trials
     assert_raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 10, 'foo', 1)
