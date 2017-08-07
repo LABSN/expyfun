@@ -77,7 +77,7 @@ def test_tracker_ud():
     with warnings.catch_warnings(record=True) as w:
         tr = TrackerUD(None, 1, 1, [3, 1.5], [1, 0.5], np.inf, 5, 1,
                        change_indices=[2], change_rule='trials', x_min=0,
-                       x_max=3)
+                       x_max=2)
         responses = [True, False, True, True, False, True]
         for r in responses:  # run long enough to encounter change_indices
             tr.respond(r)
