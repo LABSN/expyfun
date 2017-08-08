@@ -95,9 +95,9 @@ class TrackerUD(object):
     x_max : float
         The maximum value that the tracker level (``x``) is allowed to take.
     repeat_limit : str
-        How to treat trials that hit either x_min or x_max. `reversals` will
+        How to treat trials that hit either x_min or x_max. ``reversals`` will
         count these trials as reversals and increase or decrease the level
-        respectively. `ignore` does not automatically count these trials as
+        respectively. ``ignore`` does not automatically count these trials as
         reversals and will not change the level of the tracker until a
         correct or incorrect response respectively.
 
