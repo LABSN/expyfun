@@ -141,8 +141,8 @@ class TrackerUD(object):
             raise ValueError('stop_trials must be an integer or np.inf')
         self._stop_trials = stop_trials
         self._start_value = start_value
-        self._x_min = -np.inf if x_min is None else x_min
-        self._x_max = np.inf if x_max is None else x_max
+        self._x_min = -np.inf if x_min is None else float(x_min)
+        self._x_max = np.inf if x_max is None else float(x_max)
 
         if change_indices is None:
             change_indices = [0]
@@ -249,19 +249,9 @@ class TrackerUD(object):
                     self._direction = 1
 
         if self._repeat_limit == 'reversals':
-            if self._x[-1] == self._x_min:
-                step_dir = 1
-                self._n_up = 0
+            if float(self._x[-1]) in [self._x_min, self._x_max]:
                 reversal = True
                 self._n_reversals += 1
-                self._direction = 1
-                self._limit_count += 1
-            if self._x[-1] == self._x_max:
-                step_dir = -1
-                self._n_up = 0
-                reversal = True
-                self._n_reversals += 1
-                self._direction = 1
                 self._limit_count += 1
 
         if reversal:
@@ -314,7 +304,7 @@ class TrackerUD(object):
             otherwise.
         """
         idx = np.where([r != 0 for r in self._reversals])[0]
-        self._valid = not any(x in (self._x_min, self._x_max)
+        self._valid = not any(float(x) in (self._x_min, self._x_max)
                               for x in self._x[idx[-n_reversals:]])
         return self._valid
 
@@ -326,7 +316,7 @@ class TrackerUD(object):
         else:
             self._n_stop = False
         if self._n_stop and self._limit_count > 0:
-            warnings.warn('Tracker {} hit a x_min or x_max {} times.'
+            warnings.warn('Tracker {} hit x_min or x_max {} times.'
                           ''.format(self._tracker_id, self._limit_count))
         return self._n_stop
 
@@ -388,6 +378,10 @@ class TrackerUD(object):
     @property
     def x_max(self):
         return self._x_max
+    
+    @property
+    def repeat_limit(self):
+        return self._repeat_limit
 
     @property
     def stopped(self):
@@ -529,6 +523,10 @@ class TrackerUD(object):
         if len(rev_inds) < 1:
             return np.nan
         else:
+            if any([x in [self._x_min, self._x_max] 
+                    for x in self._x[rev_inds]]):
+                raise ValueError('Cannot calculate thresholds with reversals '
+                                 'at x_min or x_max. Try increasing n_skip.')
             return (np.mean(self._x[rev_inds[0::2]]) +
                     np.mean(self._x[rev_inds[1::2]])) / 2
 
