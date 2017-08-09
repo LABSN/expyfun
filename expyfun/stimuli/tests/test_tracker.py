@@ -85,6 +85,15 @@ def test_tracker_ud():
         assert(not tr.check_valid(2))
         assert_equal(len(w), 1)
         assert_raises(ValueError, tr.threshold, 0)
+    # run tests with ignore too--should generate warnings, but no error
+    with warnings.catch_warnings(record=True) as w:
+        tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 7, 1,
+                       x_min=0, x_max=2, repeat_limit='ignore')
+        responses = [True, False, False, False, True, True, True, False]
+        for r in responses:  # run long enough to encounter change_indices
+            tr.respond(r)
+        assert_equal(len(w), 1)
+        tr.threshold(n_skip=0)
 
     # bad stop_trials
     assert_raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 10, 'foo', 1)
