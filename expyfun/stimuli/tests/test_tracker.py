@@ -74,7 +74,7 @@ def test_tracker_ud():
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
                    change_indices=[2])
     tr.respond(True)
-        
+
     with warnings.catch_warnings(record=True) as w:
         tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 7, 1,
                        x_min=0, x_max=2)

@@ -378,7 +378,7 @@ class TrackerUD(object):
     @property
     def x_max(self):
         return self._x_max
-    
+
     @property
     def repeat_limit(self):
         return self._repeat_limit
@@ -523,7 +523,7 @@ class TrackerUD(object):
         if len(rev_inds) < 1:
             return np.nan
         else:
-            if any([x in [self._x_min, self._x_max] 
+            if any([x in [self._x_min, self._x_max]
                     for x in self._x[rev_inds]]):
                 raise ValueError('Cannot calculate thresholds with reversals '
                                  'at x_min or x_max. Try increasing n_skip.')
