@@ -218,6 +218,7 @@ class TrackerUD(object):
         if self._stopped:
             raise RuntimeError('Tracker is stopped.')
 
+        bound = False
         bad = False
         reversal = False
         self._responses = np.append(self._responses, correct)
@@ -248,6 +249,9 @@ class TrackerUD(object):
                 if self._direction <= 0:
                     self._direction = 1
 
+        if self._x[-1] in [self._x_min, self._x_max]:
+            bound = True
+
         # Update the staircase
         if step_dir == 0:
             self._x = np.append(self._x, self._x[-1])
@@ -258,20 +262,21 @@ class TrackerUD(object):
             self._x = np.append(self._x, self._x[-1] +
                                 self._current_step_size_up)
 
-        if self._x_min is not None:
-            if self._x[-1] < self._x_min:
-                self._limit_count += 1
-                bad = True
-                if self._repeat_limit == 'reversals':
-                    reversal = True
-                    self._n_reversals += 1
-        if self._x_max is not None:
-            if self._x[-1] > self._x_max:
-                self._limit_count += 1
-                bad = True
-                if self._repeat_limit == 'reversals':
-                    reversal = True
-                    self._n_reversals += 1
+        if bound:
+            if self._x_min is not None:
+                if self._x[-1] < self._x_min:
+                    self._limit_count += 1
+                    bad = True
+                    if self._repeat_limit == 'reversals':
+                        reversal = True
+                        self._n_reversals += 1
+            if self._x_max is not None:
+                if self._x[-1] > self._x_max:
+                    self._limit_count += 1
+                    bad = True
+                    if self._repeat_limit == 'reversals':
+                        reversal = True
+                        self._n_reversals += 1
 
         if reversal:
             self._reversals = np.append(self._reversals, self._n_reversals)
