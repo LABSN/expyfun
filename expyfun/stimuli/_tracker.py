@@ -272,8 +272,18 @@ class TrackerUD(object):
 
         if not self._stopped:
             if self._x_min is not None:
+                if self._x[-1] < self._x_min:
+                    self._limit_count += 1
+                    if self._repeat_limit == 'reversals':
+                        reversal = True
+                        self._n_reversals += 1  
                 self._x[-1] = max(self._x_min, self._x[-1])
             if self._x_max is not None:
+                if self._x[-1] > self._x_max:
+                    self._limit_count += 1
+                    if self._repeat_limit == 'reversals':
+                        reversal = True
+                        self._n_reversals += 1  
                 self._x[-1] = min(self._x_max, self._x[-1])
 
             self._x_current = self._x[-1]
@@ -314,7 +324,7 @@ class TrackerUD(object):
         else:
             self._n_stop = False
         if self._n_stop and self._limit_count > 0:
-            warnings.warn('Tracker {} hit x_min or x_max {} times.'
+            warnings.warn('Tracker {} exceeded x_min or x_max bounds {} times.'
                           ''.format(self._tracker_id, self._limit_count))
         return self._n_stop
 
