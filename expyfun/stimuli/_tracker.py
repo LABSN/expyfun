@@ -247,7 +247,7 @@ class TrackerUD(object):
                     self._n_reversals += 1
                 if self._direction <= 0:
                     self._direction = 1
-                    
+
         # Update the staircase
         if step_dir == 0:
             self._x = np.append(self._x, self._x[-1])
