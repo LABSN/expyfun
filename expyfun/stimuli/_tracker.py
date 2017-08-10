@@ -184,6 +184,7 @@ class TrackerUD(object):
         self._n_reversals = 0
         self._stopped = False
         self._repeat_limit = repeat_limit
+        self._bad_reversals = np.asarray([], dtype=int)
         self._limit_count = 0
 
         # Now write the initialization data out
@@ -246,16 +247,29 @@ class TrackerUD(object):
                 if self._direction <= 0:
                     self._direction = 1
 
-        if float(self._x[-1]) in [self._x_min, self._x_max]:
-            self._limit_count += 1
-            if self._repeat_limit == 'reversals':
-                reversal = True
-                self._n_reversals += 1
+        if self._x_min is not None:
+            if self._x[-1] < self._x_min:
+                self._limit_count += 1
+                if self._repeat_limit == 'reversals':
+                    reversal = True
+                    bad = True
+                    self._n_reversals += 1
+        if self._x_max is not None:
+            if self._x[-1] > self._x_max:
+                self._limit_count += 1
+                if self._repeat_limit == 'reversals':
+                    reversal = True
+                    bad = True
+                    self._n_reversals += 1
 
         if reversal:
             self._reversals = np.append(self._reversals, self._n_reversals)
         else:
             self._reversals = np.append(self._reversals, 0)
+
+        if bad:
+            self._bad_reversals = np.append(self._bad_reversals,
+                                            self._n_reversals)
 
         # Update the staircase
         if step_dir == 0:
@@ -272,18 +286,8 @@ class TrackerUD(object):
 
         if not self._stopped:
             if self._x_min is not None:
-                if self._x[-1] < self._x_min:
-                    self._limit_count += 1
-                    if self._repeat_limit == 'reversals':
-                        reversal = True
-                        self._n_reversals += 1  
                 self._x[-1] = max(self._x_min, self._x[-1])
             if self._x_max is not None:
-                if self._x[-1] > self._x_max:
-                    self._limit_count += 1
-                    if self._repeat_limit == 'reversals':
-                        reversal = True
-                        self._n_reversals += 1  
                 self._x[-1] = min(self._x_max, self._x[-1])
 
             self._x_current = self._x[-1]
@@ -531,8 +535,8 @@ class TrackerUD(object):
         if len(rev_inds) < 1:
             return np.nan
         else:
-            if any([x in [self._x_min, self._x_max] for x in
-                    self._x[rev_inds]]) and self._repeat_limit == 'reversals':
+            if any([x in self._bad_reversals for x in
+                    rev_inds]) and self._repeat_limit == 'reversals':
                 raise ValueError('Cannot calculate thresholds with reversals '
                                  'at x_min or x_max. Try increasing n_skip.')
             return (np.mean(self._x[rev_inds[0::2]]) +
