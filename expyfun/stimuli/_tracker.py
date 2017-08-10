@@ -218,6 +218,7 @@ class TrackerUD(object):
         if self._stopped:
             raise RuntimeError('Tracker is stopped.')
 
+        bad = False
         reversal = False
         self._responses = np.append(self._responses, correct)
         self._n_trials += 1
@@ -246,6 +247,16 @@ class TrackerUD(object):
                     self._n_reversals += 1
                 if self._direction <= 0:
                     self._direction = 1
+                    
+        # Update the staircase
+        if step_dir == 0:
+            self._x = np.append(self._x, self._x[-1])
+        elif step_dir < 0:
+            self._x = np.append(self._x, self._x[-1] -
+                                self._current_step_size_down)
+        elif step_dir > 0:
+            self._x = np.append(self._x, self._x[-1] +
+                                self._current_step_size_up)
 
         if self._x_min is not None:
             if self._x[-1] < self._x_min:
@@ -270,16 +281,6 @@ class TrackerUD(object):
         if bad:
             self._bad_reversals = np.append(self._bad_reversals,
                                             self._n_reversals)
-
-        # Update the staircase
-        if step_dir == 0:
-            self._x = np.append(self._x, self._x[-1])
-        elif step_dir < 0:
-            self._x = np.append(self._x, self._x[-1] -
-                                self._current_step_size_down)
-        elif step_dir > 0:
-            self._x = np.append(self._x, self._x[-1] +
-                                self._current_step_size_up)
 
         # Should we stop here?
         self._stopped = self._stop_here()
@@ -538,7 +539,8 @@ class TrackerUD(object):
             if any([x in self._bad_reversals for x in
                     rev_inds]) and self._repeat_limit == 'reversals':
                 raise ValueError('Cannot calculate thresholds with reversals '
-                                 'at x_min or x_max. Try increasing n_skip.')
+                                 'attemping to exceed x_min or x_max. Try '
+                                 'increasing n_skip.')
             return (np.mean(self._x[rev_inds[0::2]]) +
                     np.mean(self._x[rev_inds[1::2]])) / 2
 

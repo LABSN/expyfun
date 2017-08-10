@@ -84,7 +84,7 @@ def test_tracker_ud():
         assert(tr.check_valid(1))  # make sure checking validity is good
         assert(not tr.check_valid(2))
         assert_equal(len(w), 1)
-        assert_raises(ValueError, tr.threshold, 0)
+        assert_raises(ValueError, tr.threshold)
     # run tests with ignore too--should generate warnings, but no error
     with warnings.catch_warnings(record=True) as w:
         tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 7, 1,
