@@ -8,6 +8,7 @@ import numpy as np
 import time
 from scipy.stats import binom
 import json
+import warnings
 
 from .. import ExperimentController
 
@@ -93,6 +94,10 @@ class TrackerUD(object):
         The minimum value that the tracker level (``x``) is allowed to take.
     x_max : float
         The maximum value that the tracker level (``x``) is allowed to take.
+    repeat_limit : str
+        How to treat trials that try to exceed either x_min or x_max.
+        ``reversals`` will consider these trials as reversals while staying at
+        the same level. ``ignore`` does not consider these trials as reversals.
 
     Returns
     -------
@@ -122,7 +127,8 @@ class TrackerUD(object):
     """
     def __init__(self, callback, up, down, step_size_up, step_size_down,
                  stop_reversals, stop_trials, start_value, change_indices=None,
-                 change_rule='reversals', x_min=None, x_max=None):
+                 change_rule='reversals', x_min=None, x_max=None,
+                 repeat_limit='reversals'):
         self._callback = _check_callback(callback)
         self._up = up
         self._down = down
@@ -133,8 +139,8 @@ class TrackerUD(object):
             raise ValueError('stop_trials must be an integer or np.inf')
         self._stop_trials = stop_trials
         self._start_value = start_value
-        self._x_min = -np.inf if x_min is None else x_min
-        self._x_max = np.inf if x_max is None else x_max
+        self._x_min = -np.inf if x_min is None else float(x_min)
+        self._x_max = np.inf if x_max is None else float(x_max)
 
         if change_indices is None:
             change_indices = [0]
@@ -177,7 +183,9 @@ class TrackerUD(object):
         self._n_trials = 0
         self._n_reversals = 0
         self._stopped = False
-        self._repeat_limit = 'reversal'
+        self._repeat_limit = repeat_limit
+        self._bad_reversals = np.asarray([], dtype=bool)
+        self._limit_count = 0
 
         # Now write the initialization data out
         self._tracker_id = id(self)
@@ -210,6 +218,8 @@ class TrackerUD(object):
         if self._stopped:
             raise RuntimeError('Tracker is stopped.')
 
+        bound = False
+        bad = False
         reversal = False
         self._responses = np.append(self._responses, correct)
         self._n_trials += 1
@@ -239,10 +249,8 @@ class TrackerUD(object):
                 if self._direction <= 0:
                     self._direction = 1
 
-        if reversal:
-            self._reversals = np.append(self._reversals, self._n_reversals)
-        else:
-            self._reversals = np.append(self._reversals, 0)
+        if self._x[-1] in [self._x_min, self._x_max]:
+            bound = True
 
         # Update the staircase
         if step_dir == 0:
@@ -254,15 +262,36 @@ class TrackerUD(object):
             self._x = np.append(self._x, self._x[-1] +
                                 self._current_step_size_up)
 
+        if self._x_min is not -np.inf:
+            if self._x[-1] < self._x_min:
+                self._x[-1] = self._x_min
+                self._limit_count += 1
+                if bound:
+                    bad = True
+                    if self._repeat_limit == 'reversals':
+                        reversal = True
+                        self._n_reversals += 1
+        if self._x_max is not np.inf:
+            if self._x[-1] > self._x_max:
+                self._x[-1] = self._x_max
+                self._limit_count += 1
+                if bound:
+                    bad = True
+                    if self._repeat_limit == 'reversals':
+                        reversal = True
+                        self._n_reversals += 1
+
+        if reversal:
+            self._reversals = np.append(self._reversals, self._n_reversals)
+        else:
+            self._reversals = np.append(self._reversals, 0)
+
+        self._bad_reversals = np.append(self._bad_reversals, bad)
+
         # Should we stop here?
         self._stopped = self._stop_here()
 
         if not self._stopped:
-            if self._x_min is not None:
-                self._x[-1] = max(self._x_min, self._x[-1])
-            if self._x_max is not None:
-                self._x[-1] = min(self._x_max, self._x[-1])
-
             self._x_current = self._x[-1]
             self._callback('tracker_%i_respond' % self._tracker_id,
                            correct)
@@ -274,6 +303,24 @@ class TrackerUD(object):
                     reversals=[int(s) for s in self._reversals],
                     x=[float(s) for s in self._x])))
 
+    def check_valid(self, n_reversals):
+        """If last reversals contain reversals exceeding x_min or x_max.
+
+        Parameters
+        ----------
+        n_reversals : int
+            Number of reversals (starting from the end to check).
+
+        Returns
+        -------
+        valid : bool
+            True if none of the reversals are at x_min or x_max and False
+            otherwise.
+        """
+        self._valid = (not self._bad_reversals[self._reversals != 0]
+                       [-n_reversals:].any())
+        return self._valid
+
     def _stop_here(self):
         if self._n_reversals > self._stop_reversals:
             self._n_stop = True
@@ -281,6 +328,9 @@ class TrackerUD(object):
             self._n_stop = True
         else:
             self._n_stop = False
+        if self._n_stop and self._limit_count > 0:
+            warnings.warn('Tracker {} exceeded x_min or x_max bounds {} times.'
+                          ''.format(self._tracker_id, self._limit_count))
         return self._n_stop
 
     def _step_index(self):
@@ -341,6 +391,10 @@ class TrackerUD(object):
     @property
     def x_max(self):
         return self._x_max
+
+    @property
+    def repeat_limit(self):
+        return self._repeat_limit
 
     @property
     def stopped(self):
@@ -482,6 +536,10 @@ class TrackerUD(object):
         if len(rev_inds) < 1:
             return np.nan
         else:
+            if self._bad_reversals[rev_inds].any():
+                raise ValueError('Cannot calculate thresholds with reversals '
+                                 'attemping to exceed x_min or x_max. Try '
+                                 'increasing n_skip.')
             return (np.mean(self._x[rev_inds[0::2]]) +
                     np.mean(self._x[rev_inds[1::2]])) / 2
 

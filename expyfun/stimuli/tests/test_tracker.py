@@ -3,8 +3,9 @@ import matplotlib
 matplotlib.use('Agg')  # noqa
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 from expyfun import ExperimentController
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_equal
 from expyfun._utils import _hide_window, requires_opengl21
+import warnings
 
 
 def callback(event_type, value=None, timestamp=None):
@@ -31,7 +32,7 @@ def test_tracker_ud():
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
 
-    tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1, x_min=0, x_max=1.1)
+    tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1)
     tr.threshold()
     rand = np.random.RandomState(0)
     while not tr.stopped:
@@ -63,7 +64,8 @@ def test_tracker_ud():
     ax = plt.axes()
     fig, ax, lines = tr.plot(ax)
     plt.close(fig)
-    tr.threshold
+    tr.threshold()
+    tr.check_valid(2)
 
     # bad callback type
     assert_raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, np.inf, 1)
@@ -72,11 +74,28 @@ def test_tracker_ud():
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
                    change_indices=[2])
     tr.respond(True)
-    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], np.inf, 10, 1,
-                   change_indices=[2], change_rule='trials')
-    for t in np.arange(2):  # run long enough to encounter change_indices
-        tr.respond(True)
-        tr.respond(False)
+
+    with warnings.catch_warnings(record=True) as w:
+        tr = TrackerUD(None, 1, 1, 0.75, 0.75, np.inf, 8, 1,
+                       x_min=0, x_max=2)
+        responses = [True, True, True, False, False, False, False, True, False]
+        for r in responses:  # run long enough to encounter change_indices
+            tr.respond(r)
+        assert_equal(len(w), 1)
+    assert(tr.check_valid(1))  # make sure checking validity is good
+    assert(not tr.check_valid(3))
+    assert_raises(ValueError, tr.threshold, 1)
+    tr.threshold(3)
+
+    # run tests with ignore too--should generate warnings, but no error
+    with warnings.catch_warnings(record=True) as w:
+        tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 7, 1,
+                       x_min=0, x_max=2, repeat_limit='ignore')
+        responses = [False, True, False, False, True, True, False, True]
+        for r in responses:  # run long enough to encounter change_indices
+            tr.respond(r)
+        assert_equal(len(w), 1)
+    tr.threshold(0)
 
     # bad stop_trials
     assert_raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 10, 'foo', 1)
