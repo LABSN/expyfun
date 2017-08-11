@@ -263,14 +263,14 @@ class TrackerUD(object):
                                 self._current_step_size_up)
 
         if bound:
-            if self._x_min is not None:
+            if self._x_min is not -np.inf:
                 if self._x[-1] < self._x_min:
                     self._limit_count += 1
                     bad = True
                     if self._repeat_limit == 'reversals':
                         reversal = True
                         self._n_reversals += 1
-            if self._x_max is not None:
+            if self._x_max is not np.inf:
                 if self._x[-1] > self._x_max:
                     self._limit_count += 1
                     bad = True
@@ -283,17 +283,15 @@ class TrackerUD(object):
         else:
             self._reversals = np.append(self._reversals, 0)
 
-        if bad:
-            self._bad_reversals = np.append(self._bad_reversals,
-                                            self._n_reversals)
+        self._bad_reversals = np.append(self._bad_reversals, bad)
 
         # Should we stop here?
         self._stopped = self._stop_here()
 
         if not self._stopped:
-            if self._x_min is not None:
+            if self._x_min is not -np.inf:
                 self._x[-1] = max(self._x_min, self._x[-1])
-            if self._x_max is not None:
+            if self._x_max is not np.inf:
                 self._x[-1] = min(self._x_max, self._x[-1])
 
             self._x_current = self._x[-1]
@@ -321,9 +319,8 @@ class TrackerUD(object):
             True if none of the reversals are at x_min or x_max and False
             otherwise.
         """
-        idx = np.where([r != 0 for r in self._reversals])[0]
-        self._valid = not any([x in self._bad_reversals
-                               for x in self._reversals[idx[-n_reversals:]]])
+        self._valid = (not self._bad_reversals[self._reversals != 0]
+                       [-n_reversals:].any())
         return self._valid
 
     def _stop_here(self):
@@ -541,8 +538,7 @@ class TrackerUD(object):
         if len(rev_inds) < 1:
             return np.nan
         else:
-            if any([x in self._bad_reversals for x in
-                    rev_inds]) and self._repeat_limit == 'reversals':
+            if sum(self._bad_reversals[rev_inds]) > 0:
                 raise ValueError('Cannot calculate thresholds with reversals '
                                  'attemping to exceed x_min or x_max. Try '
                                  'increasing n_skip.')
