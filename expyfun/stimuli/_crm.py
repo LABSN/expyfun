@@ -14,8 +14,6 @@ from zipfile import ZipFile
 from joblib import Parallel, delayed, cpu_count
 import struct
 
-#from scipy.signal import resample
-
 _fs_binary = 40e3  # the sampling rate of the original corpus binaries
 _rms_binary = 0.099977227591239365  # the RMS of the original corpus binaries
 _rms_prepped = 0.01  # the RMS for preparation of the whole corpus at an fs
@@ -107,7 +105,18 @@ _n_colors = 4
 _n_numbers = 8
 
 
-def _check_parameter_value(param_dict, value, name):
+def _check(name, value):
+    if name.lower() == 'sex':
+        param_dict = _sexes
+    elif name.lower() == 'talker_num':
+        param_dict = _talker_nums
+    elif name.lower() == 'callsign':
+        param_dict = _callsigns
+    elif name.lower() == 'color':
+        param_dict = _colors
+    elif name.lower() == 'number':
+        param_dict = _numbers
+
     if isinstance(value, str):
         value = value.lower()
     if value in param_dict.keys():
@@ -115,16 +124,6 @@ def _check_parameter_value(param_dict, value, name):
     else:
         raise ValueError('{} is not a valid {}. Legal values are: {}'
                          .format(value, name, sorted(param_dict.keys())))
-
-
-_check_sex = lambda value: _check_parameter_value(_sexes, value, 'sex')
-_check_talker_num = lambda value: _check_parameter_value(_talker_nums, value,
-                                                         'talker_num')
-_check_callsign = lambda value: _check_parameter_value(_callsigns, value,
-                                                       'callsign')
-_check_number = lambda value: _check_parameter_value(_numbers, value,
-                                                     'numbers')
-_check_color = lambda value: _check_parameter_value(_colors, value, 'color')
 
 
 def _read_talker_zip_file(sex, talker_num):
@@ -196,7 +195,7 @@ def _prepare_stim(zip_file, path_out, sex, tal, cal, col, num, fs_out, dtype,
 
 
 def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
-                       n_jobs=None, verbose=True):
+                       n_jobs=None, verbose=True, talker_list=None):
     """Prepare the CRM corpus for a given sampling rate and convert to wav
 
     Parameters
@@ -204,8 +203,8 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
     fs : int
         The sampling rate of the prepared corpus.
     path_out : str
-        The path to write the prepared CRM corpus. In most cases this will be 
-        the ``expyfun`` data directory (default), but it allows for other 
+        The path to write the prepared CRM corpus. In most cases this will be
+        the ``expyfun`` data directory (default), but it allows for other
         options.
     overwrite : bool
         Whether or not to overwrite the files that may already exist in
@@ -218,6 +217,12 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
         If ``None`` it will use all available cores except for one.
     verbose : bool
         Whether or not to ouput status as stimuli are prepared.
+    talker_list : list of dict
+        A list of dicts to define which talkers should be prepared. Each dict
+        should have keys ``sex`` and ``talker_num``. Default is to prepare all
+        eight talkers (four female, four male), and it is strongly recommended
+        to that you do so to avoid headaches. This option is mainly for
+        expedient nose tests.
     """
     if path_out is None:
         path_out = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
@@ -227,10 +232,9 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
         n_jobs = min([n_jobs, cpu_count()])
     if not os.path.isdir(path_out):
         os.makedirs(path_out)
-        
-    _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs, verbose,
-                               None)
 
+    _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs, verbose,
+                               talker_list)
 
 
 def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
@@ -240,12 +244,16 @@ def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
     if talker_list is None:
         talker_list = [dict(sex=s, talker_num=t) for s in range(_n_sexes) for
                        t in range(_n_talkers)]
+    else:
+        talker_list = [dict(sex=_check('sex', tal['sex']),
+                            talker_num=_check('talker_num', tal['talker_num']))
+                       for tal in talker_list]
     path_out_fs = join(path_out, str(int(fs)))
     if not os.path.isdir(path_out_fs):
         os.makedirs(path_out_fs)
     elif not overwrite:
         raise(RuntimeError('Directory already exists and overwrite=False'))
-        
+
     cn = [[c, n] for c in range(_n_colors) for n in range(_n_numbers)]
     from time import time
     start_time = time()
@@ -253,8 +261,7 @@ def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
         if verbose:
             print('Preparing sex %i.' % sex)
         for tal in range(_n_talkers):
-            if (dict(sex=_sexes[sex], talker_num=_talker_nums[tal]) in
-                    talker_list):
+            if dict(sex=sex, talker_num=tal) in talker_list:
                 zf = _read_talker_zip_file(sex, tal)
                 if verbose:
                     print('    Preparing talker %i.' % tal),
@@ -279,7 +286,7 @@ def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
 def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
                  ramp_dur=0.01, stereo=False, path=None):
     """Get a specific sentence from the hard drive.
-        
+
     Parameters
     ----------
     fs : float
@@ -295,7 +302,9 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
     color : str | int
         The color of the sentence.
     number : str | int
-        The number of the sentence. See Notes below for a cautionary point.
+        The number of the sentence. Note that due to zero-indexing, a value of
+        `'3'` will cause the talker to say "three", while a value of `3` will
+        cause the talker to say "four" (see Notes below for more information).
     ref_rms : float
         The baseline RMS value to normalize the stimuli. Default is 0.01.
         Normalization is done at the corpus level, not at the sentence or
@@ -307,32 +316,37 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
     path : str
         The location of the stimulus directory. Defaults to the data directory
         where the raw CRM originals are stored.
-    
+
     Returns
     -------
     sentence : array
         The requested sentence data.
-    
+
     Notes
     -----
     Use ``crm_info`` to see allowable values.
-    
+
     When getting a CRM sentence, you can use the full word (e.g., 'male',
     'green'), the first letter of that word ('m', 'g'), or the index of
     that word in the list of options (0, 3). It should be noted that the
     index of '1' is 0, so care must be taken if using indices for the
-    number argument.    
+    number argument.
     """
     if path is None:
         path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
     path = join(path, str(int(fs)))
     if not os.path.isdir(path):
-        raise(RuntimeError('prepare_corpus() has not yet been run '
+        raise(RuntimeError('prepare_corpus has not yet been run '
                            'for sampling rate of %i' % fs))
-    fn = join(path, '%i%i%i%i%i.wav' % (_sexes[sex], _talker_nums[talker_num],
-                                        _callsigns[callsign],
-                                        _colors[color], _numbers[number]))
-    x = read_wav(fn, verbose=False)[0][0] * ref_rms / _rms_prepped
+    fn = join(path, '%i%i%i%i%i.wav' %
+              (_check('sex', sex), _check('talker_num', talker_num),
+               _check('callsign', callsign), _check('color', color),
+               _check('number', number)))
+    if os.path.isfile(fn):
+        x = read_wav(fn, verbose=False)[0][0] * ref_rms / _rms_prepped
+    else:
+        raise(RuntimeError('prepare_corpus has not yet been run for the '
+                           'requested talker'))
     if ramp_dur:
         x = window_edges(x, _fs_binary, dur=ramp_dur)
     if stereo:
@@ -342,7 +356,7 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
 
 def crm_info():
     """Get allowable options for CRM stimuli.
-    
+
     Returns
     -------
     options : dict of lists
@@ -415,7 +429,7 @@ def crm_response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
 
 class CRMPreload(object):
     """A class that stores the CRM corpus in memory for fast access.
-    
+
     Parameters
     ----------
     fs : float
@@ -438,20 +452,27 @@ class CRMPreload(object):
         if path is None:
             path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
         if not os.path.isdir(path):
-            raise(RuntimeError('prepare_corpus() has not yet been run '
+            raise(RuntimeError('prepare_corpus has not yet been run '
                                'for sampling rate of %i' % fs))
-        self._all_stim = {sex:{tal:{cal:{col:{num:
-                          crm_sentence(fs, sex, tal, cal, col, num, ref_rms,
-                                       ramp_dur, stereo, path)
-                          for num in range(_n_numbers)}
-                          for col in range(_n_colors)}
-                          for cal in range(_n_callsigns)}
-                          for tal in range(_n_talkers)}
-                          for sex in range(_n_sexes)}
-    
+        self._excluded_talkers = []
+        self._all_stim = {}
+        for sex in range(_n_sexes):
+            for tal in range(_n_talkers):
+                for cal in range(_n_callsigns):
+                    for col in range(_n_colors):
+                        for num in range(_n_numbers):
+                            stim_id = '%i%i%i%i%i' % (sex, tal, cal, col, num)
+                            try:
+                                self._all_stim[stim_id] = \
+                                    crm_sentence(fs, sex, tal, cal, col, num,
+                                                 ref_rms, ramp_dur, stereo,
+                                                 path)
+                            except:
+                                self._excluded += [stim_id]
+
     def sentence(self, sex, talker_num, callsign, color, number):
         """Get a specific sentence from the pre-loaded data.
-        
+
         Parameters
         ----------
         sex : str | int
@@ -464,24 +485,32 @@ class CRMPreload(object):
         color : str | int
             The color of the sentence.
         number : str | int
-            The number of the sentence. See Notes below for a cautionary point.
-            
+            The number of the sentence. Note that due to zero-indexing, a value
+            of `'3'` will cause the talker to say "three", while a value of `3`
+            will cause the talker to say "four" (see Notes below for more
+            information).
+
         Returns
         -------
         sentence : array
             The requested sentence data.
-        
+
         Notes
         -----
         Use ``crm_info`` to see allowable values.
-        
+
         When getting a CRM sentence, you can use the full word (e.g., 'male',
         'green'), the first letter of that word ('m', 'g'), or the index of
         that word in the list of options (0, 3). It should be noted that the
         index of '1' is 0, so care must be taken if using indices for the
         number argument.
         """
-        return np.copy(self._all_stim[_sexes[sex]][_talker_nums[talker_num]]
-                                     [_callsigns[callsign]][_colors[color]]
-                                     [_numbers[number]])
-    
+        stim_id = stim_id = '%i%i%i%i%i' % (
+                _check('sex', sex), _check('talker_num', talker_num),
+                _check('callsign', callsign), _check('color', color),
+                _check('number', number))
+        if stim_id not in self._excluded:
+            return np.copy(self._all_stim[stim_id])
+        else:
+            raise(RuntimeError('prepare_corpus has not yet been run for the '
+                               'requested talker'))
