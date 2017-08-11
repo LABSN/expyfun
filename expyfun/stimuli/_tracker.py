@@ -262,16 +262,19 @@ class TrackerUD(object):
             self._x = np.append(self._x, self._x[-1] +
                                 self._current_step_size_up)
 
-        if bound:
-            if self._x_min is not -np.inf:
-                if self._x[-1] < self._x_min:
+        if self._x_min is not -np.inf:
+            if self._x[-1] < self._x_min:
+                self._x[-1] = self._x_min
+                if bound:
                     self._limit_count += 1
                     bad = True
                     if self._repeat_limit == 'reversals':
                         reversal = True
                         self._n_reversals += 1
-            if self._x_max is not np.inf:
-                if self._x[-1] > self._x_max:
+        if self._x_max is not np.inf:
+            if self._x[-1] > self._x_max:
+                self._x[-1] = self._x_max
+                if bound:
                     self._limit_count += 1
                     bad = True
                     if self._repeat_limit == 'reversals':
@@ -289,11 +292,6 @@ class TrackerUD(object):
         self._stopped = self._stop_here()
 
         if not self._stopped:
-            if self._x_min is not -np.inf:
-                self._x[-1] = max(self._x_min, self._x[-1])
-            if self._x_max is not np.inf:
-                self._x[-1] = min(self._x_max, self._x[-1])
-
             self._x_current = self._x[-1]
             self._callback('tracker_%i_respond' % self._tracker_id,
                            correct)
