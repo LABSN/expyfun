@@ -184,7 +184,7 @@ class TrackerUD(object):
         self._n_reversals = 0
         self._stopped = False
         self._repeat_limit = repeat_limit
-        self._bad_reversals = np.asarray([], dtype=int)
+        self._bad_reversals = np.asarray([], dtype=bool)
         self._limit_count = 0
 
         # Now write the initialization data out
@@ -536,7 +536,7 @@ class TrackerUD(object):
         if len(rev_inds) < 1:
             return np.nan
         else:
-            if sum(self._bad_reversals[rev_inds]) > 0:
+            if self._bad_reversals[rev_inds].any():
                 raise ValueError('Cannot calculate thresholds with reversals '
                                  'attemping to exceed x_min or x_max. Try '
                                  'increasing n_skip.')
