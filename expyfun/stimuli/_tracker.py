@@ -265,8 +265,8 @@ class TrackerUD(object):
         if self._x_min is not -np.inf:
             if self._x[-1] < self._x_min:
                 self._x[-1] = self._x_min
+                self._limit_count += 1
                 if bound:
-                    self._limit_count += 1
                     bad = True
                     if self._repeat_limit == 'reversals':
                         reversal = True
@@ -274,8 +274,8 @@ class TrackerUD(object):
         if self._x_max is not np.inf:
             if self._x[-1] > self._x_max:
                 self._x[-1] = self._x_max
+                self._limit_count += 1
                 if bound:
-                    self._limit_count += 1
                     bad = True
                     if self._repeat_limit == 'reversals':
                         reversal = True
