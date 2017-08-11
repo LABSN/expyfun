@@ -11,7 +11,8 @@ from ._stimuli import window_edges
 from ..io import read_wav, write_wav
 from .._utils import fetch_data_file, _get_user_home_path
 from zipfile import ZipFile
-from joblib import Parallel, delayed, cpu_count
+from expyfun._parallel import parallel_func
+from multiprocessing import cpu_count
 import struct
 
 _fs_binary = 40e3  # the sampling rate of the original corpus binaries
@@ -233,7 +234,8 @@ def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
                 if verbose:
                     print('    Preparing talker %i.' % tal),
                 if n_jobs != 'cuda':
-                    Parallel(n_jobs=n_jobs)(delayed(_prepare_stim)(
+                    parallel, p_fun, _ = parallel_func(_prepare_stim, n_jobs)
+                    parallel(p_fun(
                         zf, path_out_fs, sex, tal, cal, col, num, fs, dtype,
                         _rms_prepped, n_jobs=1) for
                         col, num in cn for cal in range(_n_callsigns))
