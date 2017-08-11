@@ -148,39 +148,6 @@ def _read_binary(zip_file, callsign, color, number,
         return x
 
 
-def _pad_zeros(stims, axis=-1, alignment='start', return_array=True):
-    """Add zeros to make a list of arrays the same length along a given axis.
-    """
-    if not np.all(np.array([s.ndim for s in stims]) == stims[0].ndim):
-        raise(ValueError('All arrays must have the same number of dimensions'))
-    lens = np.array([s.shape[axis] for s in stims])
-    len_max = lens.max()
-    for si, s in enumerate(stims):
-        if alignment == 'start':
-            n_pre = 0
-            n_post = len_max - s.shape[axis]
-        elif alignment == 'center':
-            n_pre = (len_max - s.shape[axis]) // 2
-            n_post = len_max - s.shape[axis] - n_pre
-        elif alignment == 'end':
-            n_pre = len_max - s.shape[axis]
-            n_post = 0
-        pre_shape = list(s.shape)
-        pre_shape[axis] = n_pre
-        post_shape = list(s.shape)
-        post_shape[axis] = n_post
-        stims[si] = np.concatenate((np.zeros(pre_shape), s,
-                                    np.zeros(post_shape)), axis=axis)
-    if return_array:
-        if not np.all([np.array_equal(s.shape, stims[0].shape)
-                       for s in stims]):
-            raise(ValueError('Arrays must be the same shape' +
-                             'to return an array'))
-        return np.array(stims)
-    else:
-        return stims
-
-
 def _prepare_stim(zip_file, path_out, sex, tal, cal, col, num, fs_out, dtype,
                   ref_rms, n_jobs):
     """Read in a binary CRM file and write out a scaled resampled wav.
@@ -303,8 +270,9 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
         The color of the sentence.
     number : str | int
         The number of the sentence. Note that due to zero-indexing, a value of
-        `'3'` will cause the talker to say "three", while a value of `3` will
-        cause the talker to say "four" (see Notes below for more information).
+        ``'3'`` will cause the talker to say "three", while a value of ``3``
+        will cause the talker to say "four" (see Notes below for more
+        information).
     ref_rms : float
         The baseline RMS value to normalize the stimuli. Default is 0.01.
         Normalization is done at the corpus level, not at the sentence or
@@ -329,7 +297,7 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
     When getting a CRM sentence, you can use the full word (e.g., 'male',
     'green'), the first letter of that word ('m', 'g'), or the index of
     that word in the list of options (0, 3). It should be noted that the
-    index of '1' is 0, so care must be taken if using indices for the
+    index of ``'1'`` is 0, so care must be taken if using indices for the
     number argument.
     """
     if path is None:
@@ -486,8 +454,8 @@ class CRMPreload(object):
             The color of the sentence.
         number : str | int
             The number of the sentence. Note that due to zero-indexing, a value
-            of `'3'` will cause the talker to say "three", while a value of `3`
-            will cause the talker to say "four" (see Notes below for more
+            of ``'3'`` will cause the talker to say "three", while a value of
+            ``3`` will cause the talker to say "four" (see Notes below for more
             information).
 
         Returns
@@ -502,7 +470,7 @@ class CRMPreload(object):
         When getting a CRM sentence, you can use the full word (e.g., 'male',
         'green'), the first letter of that word ('m', 'g'), or the index of
         that word in the list of options (0, 3). It should be noted that the
-        index of '1' is 0, so care must be taken if using indices for the
+        index of ``'1'`` is 0, so care must be taken if using indices for the
         number argument.
         """
         stim_id = stim_id = '%i%i%i%i%i' % (
