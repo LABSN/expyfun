@@ -9,7 +9,9 @@ from scipy.signal import butter, lfilter
 
 from expyfun._utils import _TempDir, requires_lib, _hide_window
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
-                             vocode, texture_ERB)
+                             vocode, texture_ERB, crm_info, crm_prepare_corpus,
+                             crm_sentence, crm_response_menu, CRMPreload,
+                             add_pad)
 
 warnings.simplefilter('always')
 
@@ -139,3 +141,50 @@ def test_rms():
     sin = np.sin(2 * np.pi * 1000 * np.arange(10000, dtype=float) / 10000.)
     assert_array_almost_equal(rms(sin), 1. / np.sqrt(2))
     assert_array_almost_equal(rms(np.ones((100, 2)) * 2, 0), [2, 2])
+
+
+def test_crm():
+    """Test CRM Corpus functions."""
+    fs = 40000  # native rate, to avoid large resampling delay in testing
+    crm_info()
+
+    # corpus prep
+    talkers = [dict(sex='f', talker_num=0)]
+    crm_prepare_corpus(fs, talker_list=talkers, n_jobs=np.inf)
+    crm_prepare_corpus(fs, talker_list=talkers, overwrite=True)
+    # no overwrite
+    assert_raises(RuntimeError, crm_prepare_corpus, fs)
+
+    # load sentence from hard drive
+    crm_sentence(fs, 'f', 0, 0, 0, 0, 0, ramp_dur=0)
+    crm_sentence(fs, '1', '0', 'charlie', 'red', '5', stereo=True)
+    # bad value requested
+    assert_raises(ValueError, crm_sentence, fs, 1, 0, 0, 'periwinkle', 0)
+    # unprepared talker
+    assert_raises(RuntimeError, crm_sentence, fs, 'm', 0, 0, 0, 0)
+    # unprepared sampling rate
+    assert_raises(RuntimeError, crm_sentence, fs + 1, 0, 0, 0, 0, 0)
+
+    # CRMPreload class
+    crm = CRMPreload(fs)
+    # unprepared sampling rate
+    assert_raises(RuntimeError, CRMPreload, fs + 1)
+    crm.sentence(fs, 'f', 0, 0, 0, 0, 0, ramp_dur=0)
+    crm.sentence(fs, '1', '0', 'charlie', 'red', '5', stereo=True)
+    # bad value requested
+    assert_raises(ValueError, crm.sentence, fs, 1, 0, 0, 'periwinkle', 0)
+    # unprepared talker
+    assert_raises(RuntimeError, crm.sentence, fs, 'm', 0, 0, 0, 0)
+
+    # CRM response function
+
+
+    # add_pad
+    x1 = np.zeros(10)
+    x2 = np.ones((2, 5))
+    x = add_pad(x1, x2)
+    assert_true(np.sum(x[..., -1] == 0))
+    x = add_pad(x1, x2, 'center')
+    assert_true(np.sum(x[..., -1] == 0) and np.sum(x[..., 0] == 0))
+    x = add_pad(x1, x2, 'end')
+    assert_true(np.sum(x[..., 0] == 0))

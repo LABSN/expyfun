@@ -330,7 +330,8 @@ def crm_info():
     Returns
     -------
     options : dict of lists
-        Keys are sex, talker number, callsign, color, number.
+        Keys are ``sex``, ``talker_number``, ``callsign``, ``color``,
+        ``number``.
     """
     sex = ['male', 'female']
     tal = ['0', '1', '2', '3']
