@@ -475,10 +475,10 @@ class CRMPreload(object):
         index of ``'1'`` is 0, so care must be taken if using indices for the
         number argument.
         """
-        stim_id = stim_id = '%i%i%i%i%i' % (
-                _check('sex', sex), _check('talker_num', talker_num),
-                _check('callsign', callsign), _check('color', color),
-                _check('number', number))
+        stim_id = '%i%i%i%i%i' % (
+            _check('sex', sex), _check('talker_num', talker_num),
+            _check('callsign', callsign), _check('color', color),
+            _check('number', number))
         if stim_id not in self._excluded:
             return np.copy(self._all_stim[stim_id])
         else:
