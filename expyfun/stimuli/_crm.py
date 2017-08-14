@@ -129,16 +129,17 @@ def _check(name, value):
                          .format(value, name, sorted(param_dict.keys())))
 
 
-def _read_talker_zip_file(sex, talker_num):
+def _get_talker_zip_file(sex, talker_num):
     talker_num_raw = _n_talkers * _sexes[sex] + _talker_nums[talker_num]
     fn = fetch_data_file('crm/Talker%i.zip' % talker_num_raw)
-    return ZipFile(fn)
+    return fn
 
 
 # Read a raw binary CRM file
 def _read_binary(zip_file, callsign, color, number,
                  ramp_dur=0.01):
     talk_path = zip_file.filelist[0].orig_filename[:8]
+    print(talk_path)
     raw = zip_file.read(join(talk_path, '%02i%02i%02i.BIN' % (
         _callsigns[callsign], _colors[color], _numbers[number])))
     x = np.zeros(len(raw) / 2)
@@ -151,12 +152,12 @@ def _read_binary(zip_file, callsign, color, number,
         return x
 
 
-def _prepare_stim(path_out, sex, tal, cal, col, num, fs_out, dtype,
+def _prepare_stim(zfn, path_out, sex, tal, cal, col, num, fs_out, dtype,
                   ref_rms, n_jobs):
     """Read in a binary CRM file and write out a scaled resampled wav.
     """
     from mne.filter import resample
-    zip_file = _read_talker_zip_file(sex, tal)
+    zip_file = ZipFile(zfn)
     x = _read_binary(zip_file, cal, col, num, 0)
     fn = '%i%i%i%i%i.wav' % (sex, tal, cal, col, num)
     if int(np.round(fs_out)) != int(np.round(_fs_binary)):
@@ -234,18 +235,19 @@ def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
             print('Preparing sex %i.' % sex)
         for tal in range(_n_talkers):
             if dict(sex=sex, talker_num=tal) in talker_list:
+                zfn = _get_talker_zip_file(sex, tal)
                 if verbose:
                     print('    Preparing talker %i.' % tal),
                 if n_jobs != 'cuda':
                     parallel, p_fun, _ = parallel_func(_prepare_stim, n_jobs)
                     parallel(p_fun(
-                        path_out_fs, sex, tal, cal, col, num, fs, dtype,
+                        zfn, path_out_fs, sex, tal, cal, col, num, fs, dtype,
                         _rms_prepped, n_jobs=1) for
                         col, num in cn for cal in range(_n_callsigns))
                 else:
                     for cal in range(_n_callsigns):
                         for col, num in cn:
-                            _prepare_stim(path_out_fs, sex, tal, cal, col,
+                            _prepare_stim(zfn, path_out_fs, sex, tal, cal, col,
                                           num, fs, dtype, _rms_prepped,
                                           n_jobs='cuda')
                 if verbose:

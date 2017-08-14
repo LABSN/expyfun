@@ -178,10 +178,7 @@ def add_pad(sounds, alignment='start'):
             elif alignment == 'end':
                 n_pre = len_max - length
                 n_post = 0
-            x[xi] = np.concatenate((np.zeros((ch, n_pre)),
-                                    x[xi],
-                                    np.zeros((ch, n_post))),
-                                   axis=1)
+            x[xi] = np.pad(x[xi], ((0, 0), (n_pre, n_post)), 'constant')
         if ch < ch_max:
             x[xi] = np.tile(x[xi], [ch_max, 1])
     return np.sum(x, 0)
