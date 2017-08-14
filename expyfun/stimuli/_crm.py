@@ -126,7 +126,9 @@ def _check(name, value):
         return param_dict[value]
     else:
         raise ValueError('{} is not a valid {}. Legal values are: {}'
-                         .format(value, name, sorted(param_dict.keys())))
+                         .format(value, name,
+                                 sorted(k for k in param_dict.keys()
+                                        if isinstance(k, int))))
 
 
 def _get_talker_zip_file(sex, talker_num):
@@ -139,9 +141,8 @@ def _get_talker_zip_file(sex, talker_num):
 def _read_binary(zip_file, callsign, color, number,
                  ramp_dur=0.01):
     talk_path = zip_file.filelist[0].orig_filename[:8]
-    print(talk_path)
-    raw = zip_file.read(join(talk_path, '%02i%02i%02i.BIN' % (
-        _callsigns[callsign], _colors[color], _numbers[number])))
+    raw = zip_file.read(talk_path + '/%02i%02i%02i.BIN' % (
+        _callsigns[callsign], _colors[color], _numbers[number]))
     x = np.zeros(int(len(raw) / 2))
     for bi in np.arange(0, len(raw), 2, dtype=int):
         x[int(bi / 2)] = struct.unpack('<h', raw[bi:bi + 2])[0]
