@@ -76,7 +76,7 @@ def test_tracker_ud():
     tr.respond(True)
 
     with warnings.catch_warnings(record=True) as w:
-        tr = TrackerUD(None, 1, 1, 0.75, 0.75, np.inf, 8, 1,
+        tr = TrackerUD(None, 1, 1, 0.75, 0.75, np.inf, 9, 1,
                        x_min=0, x_max=2)
         responses = [True, True, True, False, False, False, False, True, False]
         for r in responses:  # run long enough to encounter change_indices
@@ -89,7 +89,7 @@ def test_tracker_ud():
 
     # run tests with ignore too--should generate warnings, but no error
     with warnings.catch_warnings(record=True) as w:
-        tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 7, 1,
+        tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 8, 1,
                        x_min=0, x_max=2, repeat_limit='ignore')
         responses = [False, True, False, False, True, True, False, True]
         for r in responses:  # run long enough to encounter change_indices
