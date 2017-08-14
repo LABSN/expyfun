@@ -8,7 +8,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 from scipy.signal import butter, lfilter
 
 from expyfun._utils import (_TempDir, requires_lib, _hide_window,
-                            requires_opengl21, fake_mouse_click)
+                            requires_opengl21)
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
                              vocode, texture_ERB, crm_info, crm_prepare_corpus,
                              crm_sentence, crm_response_menu, CRMPreload,
