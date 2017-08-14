@@ -361,6 +361,7 @@ class Mouse(object):
         while (self.master_clock() - start_time < max_wait and
                index is None):
             clicked = self._retrieve_events(live_buttons)
+            self._check_force_quit()
             while ci < len(clicked) and index is None:  # clicks first
                 oi = 0
                 while oi < len(objects) and index is None:  # then objects

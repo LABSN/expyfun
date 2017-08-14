@@ -1,6 +1,9 @@
-# -*- coding: utf-8 -*-
 """Functions for using the Coordinate Response Measure (CRM) corpus.
 """
+
+# Author: Ross Maddox <ross.maddox@rochester.edu>
+#
+# License: BSD (3-clause)
 
 import os
 from os.path import join
@@ -129,7 +132,7 @@ def _check(name, value):
 
 def _read_talker_zip_file(sex, talker_num):
     talker_num_raw = _n_talkers * _sexes[sex] + _talker_nums[talker_num]
-    fn = fetch_data_file(join('crm', 'Talker %i.zip' % talker_num_raw))
+    fn = fetch_data_file(join('crm', 'Talker%i.zip' % talker_num_raw))
     return ZipFile(fn)
 
 
@@ -330,8 +333,8 @@ def crm_info():
     Returns
     -------
     options : dict of lists
-        Keys are ``sex``, ``talker_number``, ``callsign``, ``color``,
-        ``number``.
+        Keys are ``'sex'``, ``'talker_number'``, ``'callsign'``, ``'color'``,
+        ``'number'``.
     """
     sex = ['male', 'female']
     tal = ['0', '1', '2', '3']
@@ -343,29 +346,57 @@ def crm_info():
                 number=num)
 
 
-def crm_response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
-                      colors=['blue', 'red', 'white', 'green'],
-                      min_wait=0.0, max_wait=np.inf):
+def crm_response_menu(ec, colors=['blue', 'red', 'white', 'green'],
+                      numbers=['1', '2', '3', '4', '5', '6', '7', '8'],
+                      max_wait=np.inf, min_wait=0.0):
+    """Create a mouse-driven CRM response menu.
+
+    Parameters
+    ----------
+    ec : instance of ExperimentController
+        Parent EC.
+    colors : list
+        The colors to include in the menu.
+    numbers : list
+        The numbers to include in the menu. Note that this follows the same
+        conventions as other CRM functions, so that ``'1'`` and ``1`` have
+        different behavior.
+    max_wait : float
+        Duration after which control is returned if no button is clicked.
+    min_wait : float
+        Duration for which to ignore button clicks.
+
+    Returns
+    -------
+    Response : tuple
+        A tuple containing the color and number selected as ``str``. If the
+        menu times out, (None, None) will be returned.
+    """
     # Set it all up
+    if min_wait > max_wait:
+        raise(ValueError, 'min_wait must be <= max_wait')
+    start_time = ec.current_time
     mouse_cursor = ec.window._mouse_cursor
     cursor = ec.window.get_system_mouse_cursor(ec.window.CURSOR_HAND)
-    ec.window.set_mouse_cursor(cursor)
+
     colors = [c.lower() for c in colors]
     units = 'norm'
-    vert = float(ec.monitor_size_pix[0]) / ec.monitor_size_pix[1]
+    vert = float(ec.window_size_pix[0]) / ec.window_size_pix[1]
     h_spacing = 0.1
     v_spacing = h_spacing * vert
     width = h_spacing * 0.8
     height = v_spacing * 0.8
-    colors_rgb = {'blue': [0, 0, 1], 'red': [1, 0, 0],
-                  'white': [1, 1, 1], 'green': [0, 0.85, 0]}
+    colors_rgb = [[0, 0, 1], [1, 0, 0], [1, 1, 1], [0, 0.85, 0]]
     n_numbers = len(numbers)
     n_colors = len(colors)
     h_start = -(n_numbers - 1) * h_spacing / 2.
     v_start = (n_colors - 1) * v_spacing / 2.
-    font_size = (72 / ec.dpi) * height * 1080 / 2  # same height as box
+    font_size = (72 / ec.dpi) * height * ec.window_size_pix[1] / 2
     h_nudge = h_spacing / 8.
-    v_nudge = v_spacing / 12.5
+    v_nudge = v_spacing / 20.
+
+    colors = [_check('color', color) for color in colors]
+    numbers = [str(_check('number', number) + 1) for number in numbers]
 
     # Draw the buttons
     rects = []
@@ -374,23 +405,28 @@ def crm_response_menu(ec, numbers=[1, 2, 3, 4, 5, 6, 7, 8],
             pos = [ni * h_spacing + h_start,
                    -ci * v_spacing + v_start,
                    width, height]
-            rects += [vis.Rectangle(ec, pos, units=units,
-                                    fill_color=colors_rgb[color])]
+            rects += [vis.Rectangle(
+                ec, pos, units=units,
+                fill_color=colors_rgb[color])]
             rects[-1].draw()
-            ec.screen_text(str(number), [pos[0] + h_nudge, pos[1] + v_nudge],
+            ec.screen_text(number, [pos[0] + h_nudge, pos[1] + v_nudge],
                            color='black',
                            wrap=False, units=units, font_size=font_size)
     ec.flip()
     ec.write_data_line('crm_menu')
 
-    # Get the click
-    but = ec.wait_for_click_on(rects, min_wait=min_wait, max_wait=max_wait,
+    # Wait for min_wait and get the click
+    while ec.current_time - start_time < min_wait:
+        ec.check_force_quit()
+    ec.window.set_mouse_cursor(cursor)
+    max_wait = np.maximum(0, max_wait - (ec.current_time - start_time))
+    but = ec.wait_for_click_on(rects, max_wait=max_wait,
                                live_buttons='left')[1]
     ec.flip()
     ec.window.set_mouse_cursor(mouse_cursor)
     if but is not None:
         sub = np.unravel_index(but, (n_numbers, n_colors))
-        resp = [colors[sub[1]], str(numbers[sub[0]])]
+        resp = [colors[sub[1]], numbers[sub[0]]]
         ec.write_data_line('crm_response', resp[0] + ',' + resp[1])
         return resp
     else:
@@ -422,10 +458,10 @@ class CRMPreload(object):
                  path=None):
         if path is None:
             path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
-        if not os.path.isdir(path):
+        if not os.path.isdir(join(path, str(fs))):
             raise(RuntimeError('prepare_corpus has not yet been run '
                                'for sampling rate of %i' % fs))
-        self._excluded_talkers = []
+        self._excluded = []
         self._all_stim = {}
         for sex in range(_n_sexes):
             for tal in range(_n_talkers):

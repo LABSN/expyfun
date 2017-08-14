@@ -7,15 +7,22 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
 from scipy.signal import butter, lfilter
 
-from expyfun._utils import _TempDir, requires_lib, _hide_window
+from expyfun._utils import (_TempDir, requires_lib, _hide_window,
+                            requires_opengl21, fake_mouse_click)
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
                              vocode, texture_ERB, crm_info, crm_prepare_corpus,
                              crm_sentence, crm_response_menu, CRMPreload,
                              add_pad)
+from expyfun import ExperimentController
+
 
 warnings.simplefilter('always')
 
 tempdir = _TempDir()
+
+std_kwargs = dict(output_dir=None, full_screen=False, window_size=(340, 480),
+                  participant='foo', session='01', stim_db=0.0, noise_db=0.0,
+                  verbose=True, version='dev')
 
 
 def test_textures():
@@ -157,7 +164,7 @@ def test_crm():
 
     # load sentence from hard drive
     crm_sentence(fs, 'f', 0, 0, 0, 0, 0, ramp_dur=0)
-    crm_sentence(fs, '1', '0', 'charlie', 'red', '5', stereo=True)
+    crm_sentence(fs, 1, '0', 'charlie', 'red', '5', stereo=True)
     # bad value requested
     assert_raises(ValueError, crm_sentence, fs, 1, 0, 0, 'periwinkle', 0)
     # unprepared talker
@@ -167,24 +174,37 @@ def test_crm():
 
     # CRMPreload class
     crm = CRMPreload(fs)
+    crm.sentence('f', 0, 0, 0, 0)
     # unprepared sampling rate
     assert_raises(RuntimeError, CRMPreload, fs + 1)
-    crm.sentence(fs, 'f', 0, 0, 0, 0, 0, ramp_dur=0)
-    crm.sentence(fs, '1', '0', 'charlie', 'red', '5', stereo=True)
     # bad value requested
-    assert_raises(ValueError, crm.sentence, fs, 1, 0, 0, 'periwinkle', 0)
+    assert_raises(ValueError, crm.sentence, 1, 0, 0, 'periwinkle', 0)
     # unprepared talker
-    assert_raises(RuntimeError, crm.sentence, fs, 'm', 0, 0, 0, 0)
-
-    # CRM response function
-
+    assert_raises(RuntimeError, crm.sentence, 'm', 0, 0, 0, 0)
+    # try to specify parameters like fs, stereo, etc.
+    assert_raises(TypeError, crm.sentence, fs, '1', '0', 'charlie', 'red', '5')
 
     # add_pad
     x1 = np.zeros(10)
     x2 = np.ones((2, 5))
-    x = add_pad(x1, x2)
+    x = add_pad([x1, x2])
     assert_true(np.sum(x[..., -1] == 0))
-    x = add_pad(x1, x2, 'center')
+    x = add_pad((x1, x2), 'center')
     assert_true(np.sum(x[..., -1] == 0) and np.sum(x[..., 0] == 0))
-    x = add_pad(x1, x2, 'end')
+    x = add_pad((x1, x2), 'end')
     assert_true(np.sum(x[..., 0] == 0))
+
+
+@_hide_window
+@requires_opengl21
+def test_crm_response_menu():
+    """Test the CRM Response menu function."""
+    with ExperimentController('crm_menu', **std_kwargs) as ec:
+        resp = crm_response_menu(ec, max_wait=0.05)
+        crm_response_menu(ec, numbers=[0, 1, 2], max_wait=0.05)
+        crm_response_menu(ec, colors=['blue'], max_wait=0.05)
+        crm_response_menu(ec, colors=['r'], numbers=['7'], max_wait=0.05)
+
+        assert_equal(resp, (None, None))
+        assert_raises(ValueError, crm_response_menu, ec,
+                      max_wait=0, min_wait=1)
