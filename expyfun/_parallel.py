@@ -26,19 +26,24 @@ def parallel_func(func, n_jobs):
     n_jobs: int
         Number of jobs >= 0
     """
-    # for a single job, we don't need joblib
+    # let it error out if the user tries to do parallel w/o joblib
+    if n_jobs > 1:
+        try:
+            from joblib import Parallel, delayed
+            # create keyword arguments for Parallel
+            n_jobs = _check_n_jobs(n_jobs)
+            parallel = Parallel(n_jobs, verbose=0)
+            my_func = delayed(func)
+        except:
+            n_jobs = 1
+
+    # for a single job, or if we don't have joblib, don't use joblib
     if n_jobs == 1:
         n_jobs = 1
         my_func = func
         parallel = list
         return parallel, my_func, n_jobs
 
-    # let it error out if the user tries to do parallel w/o joblib
-    from joblib import Parallel, delayed
-    # create keyword arguments for Parallel
-    n_jobs = _check_n_jobs(n_jobs)
-    parallel = Parallel(n_jobs, verbose=0)
-    my_func = delayed(func)
     return parallel, my_func, n_jobs
 
 

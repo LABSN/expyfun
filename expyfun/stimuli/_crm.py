@@ -8,13 +8,12 @@
 import os
 from os.path import join
 import numpy as np
-from mne.filter import resample
 import expyfun.visual as vis
 from ._stimuli import window_edges
 from ..io import read_wav, write_wav
 from .._utils import fetch_data_file, _get_user_home_path
 from zipfile import ZipFile
-from expyfun._parallel import parallel_func
+from .._parallel import parallel_func
 from multiprocessing import cpu_count
 import struct
 
@@ -152,10 +151,12 @@ def _read_binary(zip_file, callsign, color, number,
         return x
 
 
-def _prepare_stim(zip_file, path_out, sex, tal, cal, col, num, fs_out, dtype,
+def _prepare_stim(path_out, sex, tal, cal, col, num, fs_out, dtype,
                   ref_rms, n_jobs):
     """Read in a binary CRM file and write out a scaled resampled wav.
     """
+    from mne.filter import resample
+    zip_file = _read_talker_zip_file(sex, tal)
     x = _read_binary(zip_file, cal, col, num, 0)
     fn = '%i%i%i%i%i.wav' % (sex, tal, cal, col, num)
     if int(np.round(fs_out)) != int(np.round(_fs_binary)):
@@ -223,7 +224,7 @@ def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
     if not os.path.isdir(path_out_fs):
         os.makedirs(path_out_fs)
     elif not overwrite:
-        raise(RuntimeError('Directory already exists and overwrite=False'))
+        raise RuntimeError('Directory already exists and overwrite=False')
 
     cn = [[c, n] for c in range(_n_colors) for n in range(_n_numbers)]
     from time import time
@@ -233,19 +234,18 @@ def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
             print('Preparing sex %i.' % sex)
         for tal in range(_n_talkers):
             if dict(sex=sex, talker_num=tal) in talker_list:
-                zf = _read_talker_zip_file(sex, tal)
                 if verbose:
                     print('    Preparing talker %i.' % tal),
                 if n_jobs != 'cuda':
                     parallel, p_fun, _ = parallel_func(_prepare_stim, n_jobs)
                     parallel(p_fun(
-                        zf, path_out_fs, sex, tal, cal, col, num, fs, dtype,
+                        path_out_fs, sex, tal, cal, col, num, fs, dtype,
                         _rms_prepped, n_jobs=1) for
                         col, num in cn for cal in range(_n_callsigns))
                 else:
                     for cal in range(_n_callsigns):
                         for col, num in cn:
-                            _prepare_stim(zf, path_out_fs, sex, tal, cal, col,
+                            _prepare_stim(path_out_fs, sex, tal, cal, col,
                                           num, fs, dtype, _rms_prepped,
                                           n_jobs='cuda')
                 if verbose:
@@ -309,8 +309,8 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
         path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
     path = join(path, str(int(fs)))
     if not os.path.isdir(path):
-        raise(RuntimeError('prepare_corpus has not yet been run '
-                           'for sampling rate of %i' % fs))
+        raise RuntimeError('prepare_corpus has not yet been run '
+                           'for sampling rate of %i' % fs)
     fn = join(path, '%i%i%i%i%i.wav' %
               (_check('sex', sex), _check('talker_num', talker_num),
                _check('callsign', callsign), _check('color', color),
@@ -318,8 +318,8 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
     if os.path.isfile(fn):
         x = read_wav(fn, verbose=False)[0][0] * ref_rms / _rms_prepped
     else:
-        raise(RuntimeError('prepare_corpus has not yet been run for the '
-                           'requested talker'))
+        raise RuntimeError('prepare_corpus has not yet been run for the '
+                           'requested talker')
     if ramp_dur:
         x = window_edges(x, _fs_binary, dur=ramp_dur)
     if stereo:
@@ -374,7 +374,7 @@ def crm_response_menu(ec, colors=['blue', 'red', 'white', 'green'],
     """
     # Set it all up
     if min_wait > max_wait:
-        raise(ValueError, 'min_wait must be <= max_wait')
+        raise ValueError('min_wait must be <= max_wait')
     start_time = ec.current_time
     mouse_cursor = ec.window._mouse_cursor
     cursor = ec.window.get_system_mouse_cursor(ec.window.CURSOR_HAND)
@@ -459,8 +459,8 @@ class CRMPreload(object):
         if path is None:
             path = join(_get_user_home_path(), '.expyfun', 'data', 'crm')
         if not os.path.isdir(join(path, str(fs))):
-            raise(RuntimeError('prepare_corpus has not yet been run '
-                               'for sampling rate of %i' % fs))
+            raise RuntimeError('prepare_corpus has not yet been run '
+                               'for sampling rate of %i' % fs)
         self._excluded = []
         self._all_stim = {}
         for sex in range(_n_sexes):
@@ -519,5 +519,5 @@ class CRMPreload(object):
         if stim_id not in self._excluded:
             return np.copy(self._all_stim[stim_id])
         else:
-            raise(RuntimeError('prepare_corpus has not yet been run for the '
-                               'requested talker'))
+            raise RuntimeError('prepare_corpus has not yet been run for the '
+                               'requested talker')

@@ -161,7 +161,7 @@ def add_pad(sounds, alignment='start'):
         raise(ValueError("alignment must be either 'start', 'center', "
                          "or 'end'"))
     x = [np.atleast_2d(y) for y in sounds]
-    if not np.all([y.ndim == 2 for y in x]):
+    if not np.all(y.ndim == 2 for y in x):
         raise ValueError('Sound data must have no more than 2 dimensions.')
     shapes = [y.shape for y in x]
     ch_max, len_max = np.max(shapes, axis=0)
@@ -184,4 +184,4 @@ def add_pad(sounds, alignment='start'):
                                    axis=1)
         if ch < ch_max:
             x[xi] = np.tile(x[xi], [ch_max, 1])
-    return np.array(x).sum(0)
+    return np.sum(x, 0)
