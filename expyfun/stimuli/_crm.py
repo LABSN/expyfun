@@ -132,7 +132,7 @@ def _check(name, value):
 
 def _read_talker_zip_file(sex, talker_num):
     talker_num_raw = _n_talkers * _sexes[sex] + _talker_nums[talker_num]
-    fn = 'crm/Talker%i.zip' % talker_num_raw
+    fn = fetch_data_file('crm/Talker%i.zip' % talker_num_raw)
     return ZipFile(fn)
 
 
