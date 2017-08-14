@@ -144,7 +144,7 @@ def _read_binary(zip_file, callsign, color, number,
         _callsigns[callsign], _colors[color], _numbers[number])))
     x = np.zeros(int(len(raw) / 2))
     for bi in np.arange(0, len(raw), 2, dtype=int):
-        x[bi / 2] = struct.unpack('<h', raw[bi:bi + 2])[0]
+        x[int(bi / 2)] = struct.unpack('<h', raw[bi:bi + 2])[0]
     x /= 16384.
     if ramp_dur:
         return window_edges(x, _fs_binary, dur=ramp_dur)
