@@ -322,9 +322,9 @@ class TrackerUD(object):
         return self._valid
 
     def _stop_here(self):
-        if self._n_reversals > self._stop_reversals:
+        if self._n_reversals == self._stop_reversals:
             self._n_stop = True
-        elif self._n_trials > self._stop_trials:
+        elif self._n_trials == self._stop_trials:
             self._n_stop = True
         else:
             self._n_stop = False

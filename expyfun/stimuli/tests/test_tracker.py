@@ -27,10 +27,11 @@ def test_tracker_ud():
     tr = TrackerUD(callback, 3, 1, 1, 1, np.inf, 10, 1)
     with ExperimentController('test', **std_kwargs) as ec:
         tr = TrackerUD(ec, 3, 1, 1, 1, np.inf, 10, 1)
-    tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1)
+    tr = TrackerUD(None, 3, 1, 1, 1, 10, np.inf, 1)
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
+    assert_equal(tr.n_reversals, tr.stop_reversals)
 
     tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1)
     tr.threshold()
@@ -76,7 +77,7 @@ def test_tracker_ud():
     tr.respond(True)
 
     with warnings.catch_warnings(record=True) as w:
-        tr = TrackerUD(None, 1, 1, 0.75, 0.75, np.inf, 8, 1,
+        tr = TrackerUD(None, 1, 1, 0.75, 0.75, np.inf, 9, 1,
                        x_min=0, x_max=2)
         responses = [True, True, True, False, False, False, False, True, False]
         for r in responses:  # run long enough to encounter change_indices
@@ -86,10 +87,11 @@ def test_tracker_ud():
     assert(not tr.check_valid(3))
     assert_raises(ValueError, tr.threshold, 1)
     tr.threshold(3)
+    assert_equal(tr.n_trials, tr.stop_trials)
 
     # run tests with ignore too--should generate warnings, but no error
     with warnings.catch_warnings(record=True) as w:
-        tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 7, 1,
+        tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 8, 1,
                        x_min=0, x_max=2, repeat_limit='ignore')
         responses = [False, True, False, False, True, True, False, True]
         for r in responses:  # run long enough to encounter change_indices
