@@ -3,7 +3,7 @@ import matplotlib
 matplotlib.use('Agg')  # noqa
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 from expyfun import ExperimentController
-from nose.tools import assert_raises, assert_equal
+from nose.tools import assert_raises, assert_equal, assert_true
 from expyfun._utils import _hide_window, requires_opengl21
 import warnings
 
@@ -27,10 +27,11 @@ def test_tracker_ud():
     tr = TrackerUD(callback, 3, 1, 1, 1, np.inf, 10, 1)
     with ExperimentController('test', **std_kwargs) as ec:
         tr = TrackerUD(ec, 3, 1, 1, 1, np.inf, 10, 1)
-    tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1)
+    tr = TrackerUD(None, 3, 1, 1, 1, 10, np.inf, 1)
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
+    assert_true(tr.n_reversals==tr.stop_reversals)
 
     tr = TrackerUD(None, 3, 1, 1, 1, np.inf, 10, 1)
     tr.threshold()
@@ -86,6 +87,7 @@ def test_tracker_ud():
     assert(not tr.check_valid(3))
     assert_raises(ValueError, tr.threshold, 1)
     tr.threshold(3)
+    assert_true(tr.n_trials==tr.stop_trials)
 
     # run tests with ignore too--should generate warnings, but no error
     with warnings.catch_warnings(record=True) as w:
