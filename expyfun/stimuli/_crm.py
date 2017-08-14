@@ -142,7 +142,7 @@ def _read_binary(zip_file, callsign, color, number,
     print(talk_path)
     raw = zip_file.read(join(talk_path, '%02i%02i%02i.BIN' % (
         _callsigns[callsign], _colors[color], _numbers[number])))
-    x = np.zeros(len(raw) / 2)
+    x = np.zeros(int(len(raw) / 2))
     for bi in np.arange(0, len(raw), 2, dtype=int):
         x[bi / 2] = struct.unpack('<h', raw[bi:bi + 2])[0]
     x /= 16384.
