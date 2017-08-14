@@ -515,6 +515,7 @@ def fetch_data_file(fname):
         os.makedirs(op.dirname(fname_out))
     fname_url = ('https://github.com/LABSN/expyfun-data/raw/master/{0}'
                  ''.format(fname))
+    fname_url.replace('\\', '/')
     try:
         # until we get proper certificates
         context = ssl._create_unverified_context()
