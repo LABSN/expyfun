@@ -30,12 +30,13 @@ def parallel_func(func, n_jobs):
     if n_jobs > 1:
         try:
             from joblib import Parallel, delayed
+        except ImportError:
+            n_jobs = 1
+        else:
             # create keyword arguments for Parallel
             n_jobs = _check_n_jobs(n_jobs)
             parallel = Parallel(n_jobs, verbose=0)
             my_func = delayed(func)
-        except:
-            n_jobs = 1
 
     # for a single job, or if we don't have joblib, don't use joblib
     if n_jobs == 1:
