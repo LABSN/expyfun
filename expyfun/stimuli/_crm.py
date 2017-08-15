@@ -5,16 +5,18 @@
 #
 # License: BSD (3-clause)
 
+from multiprocessing import cpu_count
 import os
 from os.path import join
-import numpy as np
-import expyfun.visual as vis
-from ._stimuli import window_edges
-from ..io import read_wav, write_wav
-from .._utils import fetch_data_file, _get_user_home_path
 from zipfile import ZipFile
+
+import numpy as np
+
+from ..io import read_wav, write_wav
 from .._parallel import parallel_func
-from multiprocessing import cpu_count
+from ._stimuli import window_edges
+from .. import visual as vis
+from .._utils import fetch_data_file, _get_user_home_path
 
 _fs_binary = 40e3  # the sampling rate of the original corpus binaries
 _rms_binary = 0.099977227591239365  # the RMS of the original corpus binaries
@@ -178,7 +180,7 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
         options.
     overwrite : bool
         Whether or not to overwrite the files that may already exist in
-        ``path_out``.
+        ``path_out``. Can also be 'skip' to skip any existing files.
     dtype : type
         The data type for saving the data. ``np.float64`` is the default for
         maintaining fidelity. ``np.int16`` is standard for wav files.
@@ -262,12 +264,13 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
     ----------
     fs : float
         The sampling rate of the corpus to load. You must have run
-        ``prepare_corpus`` for that sampling rate first.
+        :func:`expyfun.stimuli.crm_prepare_corpus` for that sampling
+        rate first.
     sex : str | int
         The sex of the talker
     talker_num : str | int
         The zero-indexed talker number. Note that, obviously, male 2 is a
-        different talker than female 2.
+        different talker from female 2.
     callsign : str | int
         The callsign of the sentence.
     color : str | int
@@ -294,9 +297,14 @@ def crm_sentence(fs, sex, talker_num, callsign, color, number, ref_rms=0.01,
     sentence : array
         The requested sentence data.
 
+    See Also
+    --------
+    crm_info
+    crm_prepare_corpus
+
     Notes
     -----
-    Use ``crm_info`` to see allowable values.
+    Use :func:`expyfun.stimuli.crm_info` to see allowable values.
 
     When getting a CRM sentence, you can use the full word (e.g., 'male',
     'green'), the first letter of that word ('m', 'g'), or the index of
@@ -332,8 +340,7 @@ def crm_info():
     Returns
     -------
     options : dict of lists
-        Keys are ``'sex'``, ``'talker_number'``, ``'callsign'``, ``'color'``,
-        ``'number'``.
+        Keys are ``['sex', 'talker_number', 'callsign', 'color', 'number']``.
     """
     sex = ['male', 'female']
     tal = ['0', '1', '2', '3']
@@ -434,7 +441,7 @@ def crm_response_menu(ec, colors=['blue', 'red', 'white', 'green'],
 
 
 class CRMPreload(object):
-    """A class that stores the CRM corpus in memory for fast access.
+    """Store the CRM corpus in memory for fast access.
 
     Parameters
     ----------
@@ -473,7 +480,7 @@ class CRMPreload(object):
                                     crm_sentence(fs, sex, tal, cal, col, num,
                                                  ref_rms, ramp_dur, stereo,
                                                  path)
-                            except:
+                            except Exception:
                                 self._excluded += [stim_id]
 
     def sentence(self, sex, talker_num, callsign, color, number):
@@ -501,9 +508,13 @@ class CRMPreload(object):
         sentence : array
             The requested sentence data.
 
+        See Also
+        --------
+        expyfun.stimuli.crm_info
+
         Notes
         -----
-        Use ``crm_info`` to see allowable values.
+        Use :func:`expyfun.stimuli.crm_info` to see allowable values.
 
         When getting a CRM sentence, you can use the full word (e.g., 'male',
         'green'), the first letter of that word ('m', 'g'), or the index of
@@ -515,8 +526,7 @@ class CRMPreload(object):
             _check('sex', sex), _check('talker_num', talker_num),
             _check('callsign', callsign), _check('color', color),
             _check('number', number))
-        if stim_id not in self._excluded:
-            return np.copy(self._all_stim[stim_id])
-        else:
+        if stim_id in self._excluded:
             raise RuntimeError('prepare_corpus has not yet been run for the '
                                'requested talker')
+        return self._all_stim[stim_id].copy()
