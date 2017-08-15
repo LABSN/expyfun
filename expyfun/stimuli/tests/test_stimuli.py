@@ -18,8 +18,6 @@ from expyfun import ExperimentController
 
 warnings.simplefilter('always')
 
-tempdir = _TempDir()
-
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(340, 480),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
                   verbose=True, version='dev')
@@ -154,27 +152,33 @@ def test_crm():
     """Test CRM Corpus functions."""
     fs = 40000  # native rate, to avoid large resampling delay in testing
     crm_info()
+    tempdir = _TempDir()
 
     # corpus prep
     talkers = [dict(sex='f', talker_num=0)]
 
-    crm_prepare_corpus(fs, talker_list=talkers, n_jobs=np.inf)
-    crm_prepare_corpus(fs, talker_list=talkers, overwrite=True)
+    crm_prepare_corpus(fs, path_out=tempdir, talker_list=talkers,
+                       n_jobs=np.inf)
+    crm_prepare_corpus(fs, path_out=tempdir, talker_list=talkers,
+                       overwrite=True)
     # no overwrite
-    assert_raises(RuntimeError, crm_prepare_corpus, fs)
+    assert_raises(RuntimeError, crm_prepare_corpus, fs, path_out=tempdir)
 
     # load sentence from hard drive
-    crm_sentence(fs, 'f', 0, 0, 0, 0, 0, ramp_dur=0)
-    crm_sentence(fs, 1, '0', 'charlie', 'red', '5', stereo=True)
+    crm_sentence(fs, 'f', 0, 0, 0, 0, 0, ramp_dur=0, path=tempdir)
+    crm_sentence(fs, 1, '0', 'charlie', 'red', '5', stereo=True, path=tempdir)
     # bad value requested
-    assert_raises(ValueError, crm_sentence, fs, 1, 0, 0, 'periwinkle', 0)
+    assert_raises(ValueError, crm_sentence, fs, 1, 0, 0, 'periwinkle', 0,
+                  path=tempdir)
     # unprepared talker
-    assert_raises(RuntimeError, crm_sentence, fs, 'm', 0, 0, 0, 0)
+    assert_raises(RuntimeError, crm_sentence, fs, 'm', 0, 0, 0, 0,
+                  path=tempdir)
     # unprepared sampling rate
-    assert_raises(RuntimeError, crm_sentence, fs + 1, 0, 0, 0, 0, 0)
+    assert_raises(RuntimeError, crm_sentence, fs + 1, 0, 0, 0, 0, 0,
+                  path=tempdir)
 
     # CRMPreload class
-    crm = CRMPreload(fs)
+    crm = CRMPreload(fs, path=tempdir)
     crm.sentence('f', 0, 0, 0, 0)
     # unprepared sampling rate
     assert_raises(RuntimeError, CRMPreload, fs + 1)
