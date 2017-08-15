@@ -180,7 +180,7 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
         options.
     overwrite : bool
         Whether or not to overwrite the files that may already exist in
-        ``path_out``. Can also be 'skip' to skip any existing files.
+        ``path_out``.
     dtype : type
         The data type for saving the data. ``np.float64`` is the default for
         maintaining fidelity. ``np.int16`` is standard for wav files.
