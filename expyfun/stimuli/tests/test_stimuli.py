@@ -213,3 +213,5 @@ def test_crm_response_menu():
         assert_equal(resp, (None, None))
         assert_raises(ValueError, crm_response_menu, ec,
                       max_wait=0, min_wait=1)
+        assert_raises(ValueError, crm_response_menu, ec,
+                      colors=['g', 'g'])

@@ -404,6 +404,11 @@ def crm_response_menu(ec, colors=['blue', 'red', 'white', 'green'],
     colors = [_check('color', color) for color in colors]
     numbers = [str(_check('number', number) + 1) for number in numbers]
 
+    if (len(colors) != len(np.unique(colors))
+            or len(numbers) != len(np.unique(numbers))):
+        raise ValueError('There can be no repeated colors or numbers in the '
+                         'menu.')
+
     # Draw the buttons
     rects = []
     for ni, number in enumerate(numbers):
@@ -432,7 +437,7 @@ def crm_response_menu(ec, colors=['blue', 'red', 'white', 'green'],
     ec.window.set_mouse_cursor(mouse_cursor)
     if but is not None:
         sub = np.unravel_index(but, (n_numbers, n_colors))
-        resp = [colors[sub[1]], numbers[sub[0]]]
+        resp = ('brwg'[colors[sub[1]]], numbers[sub[0]])
         ec.write_data_line('crm_response', resp[0] + ',' + resp[1])
         return resp
     else:
