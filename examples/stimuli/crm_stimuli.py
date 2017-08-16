@@ -18,7 +18,6 @@ print(__doc__)
 
 crm_path = _TempDir()
 fs = 40000
-ec_args = dict()
 
 ###############################################################################
 # Prepare the corpus
@@ -33,8 +32,8 @@ ec_args = dict()
 #           using fs=40000 and only doing two talkers so that the stimulus
 #           preparation is very fast, and a temp directory so that we don't
 #           interfere with any other prepared corpuses. Your code will likely
-#           look like this commented line, and not appear in your
-#           actual experiment script::
+#           look like this line, and not appear in your actual experiment
+#           script::
 #
 #               >>> crm_prepare_corpus(24414)
 #
@@ -49,7 +48,7 @@ print('Valid callsigns are {0}'.format(crm_info()['callsign']))
 # read a sentence in from the hard drive
 x1 = 0.5 * crm_sentence(fs, 'm', '0', 'c', 'r', '5', path=crm_path)
 
-# preload all the talkers and get a second sentence
+# preload all the talkers and get a second sentence from memory
 crm = CRMPreload(fs, path=crm_path)
 x2 = crm.sentence('f', '0', 'ringo', 'green', '6')
 
