@@ -7,13 +7,20 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
 from scipy.signal import butter, lfilter
 
-from expyfun._utils import _TempDir, requires_lib, _hide_window
+from expyfun._utils import (_TempDir, requires_lib, _hide_window,
+                            requires_opengl21)
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
-                             vocode, texture_ERB)
+                             vocode, texture_ERB, crm_info, crm_prepare_corpus,
+                             crm_sentence, crm_response_menu, CRMPreload,
+                             add_pad)
+from expyfun import ExperimentController
+
 
 warnings.simplefilter('always')
 
-tempdir = _TempDir()
+std_kwargs = dict(output_dir=None, full_screen=False, window_size=(340, 480),
+                  participant='foo', session='01', stim_db=0.0, noise_db=0.0,
+                  verbose=True, version='dev')
 
 
 def test_textures():
@@ -139,3 +146,72 @@ def test_rms():
     sin = np.sin(2 * np.pi * 1000 * np.arange(10000, dtype=float) / 10000.)
     assert_array_almost_equal(rms(sin), 1. / np.sqrt(2))
     assert_array_almost_equal(rms(np.ones((100, 2)) * 2, 0), [2, 2])
+
+
+def test_crm():
+    """Test CRM Corpus functions."""
+    fs = 40000  # native rate, to avoid large resampling delay in testing
+    crm_info()
+    tempdir = _TempDir()
+
+    # corpus prep
+    talkers = [dict(sex='f', talker_num=0)]
+
+    crm_prepare_corpus(fs, path_out=tempdir, talker_list=talkers,
+                       n_jobs=np.inf)
+    crm_prepare_corpus(fs, path_out=tempdir, talker_list=talkers,
+                       overwrite=True)
+    # no overwrite
+    assert_raises(RuntimeError, crm_prepare_corpus, fs, path_out=tempdir)
+
+    # load sentence from hard drive
+    crm_sentence(fs, 'f', 0, 0, 0, 0, 0, ramp_dur=0, path=tempdir)
+    crm_sentence(fs, 1, '0', 'charlie', 'red', '5', stereo=True, path=tempdir)
+    # bad value requested
+    assert_raises(ValueError, crm_sentence, fs, 1, 0, 0, 'periwinkle', 0,
+                  path=tempdir)
+    # unprepared talker
+    assert_raises(RuntimeError, crm_sentence, fs, 'm', 0, 0, 0, 0,
+                  path=tempdir)
+    # unprepared sampling rate
+    assert_raises(RuntimeError, crm_sentence, fs + 1, 0, 0, 0, 0, 0,
+                  path=tempdir)
+
+    # CRMPreload class
+    crm = CRMPreload(fs, path=tempdir)
+    crm.sentence('f', 0, 0, 0, 0)
+    # unprepared sampling rate
+    assert_raises(RuntimeError, CRMPreload, fs + 1)
+    # bad value requested
+    assert_raises(ValueError, crm.sentence, 1, 0, 0, 'periwinkle', 0)
+    # unprepared talker
+    assert_raises(RuntimeError, crm.sentence, 'm', 0, 0, 0, 0)
+    # try to specify parameters like fs, stereo, etc.
+    assert_raises(TypeError, crm.sentence, fs, '1', '0', 'charlie', 'red', '5')
+
+    # add_pad
+    x1 = np.zeros(10)
+    x2 = np.ones((2, 5))
+    x = add_pad([x1, x2])
+    assert_true(np.sum(x[..., -1] == 0))
+    x = add_pad((x1, x2), 'center')
+    assert_true(np.sum(x[..., -1] == 0) and np.sum(x[..., 0] == 0))
+    x = add_pad((x1, x2), 'end')
+    assert_true(np.sum(x[..., 0] == 0))
+
+
+@_hide_window
+@requires_opengl21
+def test_crm_response_menu():
+    """Test the CRM Response menu function."""
+    with ExperimentController('crm_menu', **std_kwargs) as ec:
+        resp = crm_response_menu(ec, max_wait=0.05)
+        crm_response_menu(ec, numbers=[0, 1, 2], max_wait=0.05)
+        crm_response_menu(ec, colors=['blue'], max_wait=0.05)
+        crm_response_menu(ec, colors=['r'], numbers=['7'], max_wait=0.05)
+
+        assert_equal(resp, (None, None))
+        assert_raises(ValueError, crm_response_menu, ec,
+                      max_wait=0, min_wait=1)
+        assert_raises(ValueError, crm_response_menu, ec,
+                      colors=['g', 'g'])

@@ -58,6 +58,7 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
+   CRMPreload
    TrackerBinom
    TrackerDealer
    TrackerUD
@@ -70,6 +71,10 @@ Functions:
 
    convolve_hrtf
    compute_mls_impulse_response
+   crm_info
+   crm_prepare_corpus
+   crm_response_menu
+   crm_sentence
    play_sound
    repeated_mls
    rms

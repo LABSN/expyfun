@@ -131,3 +131,54 @@ def play_sound(sound, fs=None, norm=True, wait=False):
     if hasattr(snd, 'delete'):  # for backward compatibility
         Timer(del_wait, snd.delete).start()
     return snd
+
+
+def add_pad(sounds, alignment='start'):
+    """Add sounds of different lengths and channel counts together
+
+    Parameters
+    ----------
+    sounds : list
+        The sounds to add together. There is a maximum of two channels.
+    alignment : str
+        How to align the sounds. Either by ``'start'`` (add zeros at end),
+        ``'center'`` (add zeros on both sides), or ``'end'`` (add zeros at
+        start).
+
+    Returns
+    -------
+    y : float
+        The summed sounds. The number of channels will be equal to the maximum
+        number of channels (by appending a copy), and the length will be equal
+        to the maximum length (by appending zeros).
+
+    Notes
+    -----
+        Even if the original sounds were all 0- or 1-dimensional, the output
+        will be 2-dimensional (channels, samples).
+    """
+    if alignment not in ['start', 'center', 'end']:
+        raise(ValueError("alignment must be either 'start', 'center', "
+                         "or 'end'"))
+    x = [np.atleast_2d(y) for y in sounds]
+    if not np.all(y.ndim == 2 for y in x):
+        raise ValueError('Sound data must have no more than 2 dimensions.')
+    shapes = [y.shape for y in x]
+    ch_max, len_max = np.max(shapes, axis=0)
+    if ch_max > 2:
+        raise ValueError('Only 1- and 2-channel sounds are supported.')
+    for xi, (ch, length) in enumerate(shapes):
+        if length < len_max:
+            if alignment == 'start':
+                n_pre = 0
+                n_post = len_max - length
+            elif alignment == 'center':
+                n_pre = (len_max - length) // 2
+                n_post = len_max - length - n_pre
+            elif alignment == 'end':
+                n_pre = len_max - length
+                n_post = 0
+            x[xi] = np.pad(x[xi], ((0, 0), (n_pre, n_post)), 'constant')
+        if ch < ch_max:
+            x[xi] = np.tile(x[xi], [ch_max, 1])
+    return np.sum(x, 0)
