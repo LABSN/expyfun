@@ -404,8 +404,8 @@ def crm_response_menu(ec, colors=['blue', 'red', 'white', 'green'],
     colors = [_check('color', color) for color in colors]
     numbers = [str(_check('number', number) + 1) for number in numbers]
 
-    if (len(colors) != len(np.unique(colors))
-            or len(numbers) != len(np.unique(numbers))):
+    if (len(colors) != len(np.unique(colors)) or
+            len(numbers) != len(np.unique(numbers))):
         raise ValueError('There can be no repeated colors or numbers in the '
                          'menu.')
 
