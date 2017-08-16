@@ -59,7 +59,6 @@ x = add_pad([x1, x2], alignment='start')
 ###############################################################################
 # Now we actually run the experiment.
 
-max_wait = 0.01 if building_doc else 3
 with ExperimentController(
         exp_name='CRM corpus example', window_size=(720, 480),
         full_screen=False, participant='foo', session='foo', version='dev',
@@ -68,7 +67,7 @@ with ExperimentController(
                    'talker.', wrap=True)
     screenshot = ec.screenshot()
     ec.flip()
-    ec.wait_secs(max_wait)
+    ec.wait_secs(3)
 
     ec.load_buffer(x)
     ec.identify_trial(ec_id='', ttl_id=[])
@@ -77,9 +76,9 @@ with ExperimentController(
 
     resp = crm_response_menu(ec, max_wait=0.01 if building_doc else np.inf)
     if resp == ('g', '6'):
-        ec.screen_prompt('Correct!', max_wait=max_wait, min_wait=1)
+        ec.screen_prompt('Correct!', max_wait=3, min_wait=1)
     else:
-        ec.screen_prompt('Incorrect.', max_wait=max_wait, min_wait=1)
+        ec.screen_prompt('Incorrect.', max_wait=3, min_wait=1)
     ec.trial_ok()
 
 analyze.plot_screen(screenshot)
