@@ -75,7 +75,7 @@ with ExperimentController(
     ec.start_stimulus()
     ec.wait_secs(x.shape[-1] / float(fs))
 
-    resp = crm_response_menu(ec, max_wait=0 if building_doc else np.inf)
+    resp = crm_response_menu(ec, max_wait=0.01 if building_doc else np.inf)
     if resp == ('g', '6'):
         ec.screen_prompt('Correct!', max_wait=max_wait, min_wait=1)
     else:
