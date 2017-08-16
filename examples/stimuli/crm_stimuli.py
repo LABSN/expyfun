@@ -59,7 +59,7 @@ x = add_pad([x1, x2], alignment='start')
 ###############################################################################
 # Now we actually run the experiment.
 
-max_wait = 0 if building_doc else 3
+max_wait = 0.01 if building_doc else 3
 with ExperimentController(
         exp_name='CRM corpus example', window_size=(720, 480),
         full_screen=False, participant='foo', session='foo', version='dev',
