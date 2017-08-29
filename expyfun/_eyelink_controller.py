@@ -547,7 +547,7 @@ class EyelinkController(object):
         --------
         EyelinkController.calibrate
         """
-        allowed_types = ['HV5', 'HV9', 'H3']
+        allowed_types = ['HV5', 'HV9', 'H3', 'HV13']
         if ctype not in allowed_types:
             raise ValueError('ctype cannot be "{0}", but must be one of {1}'
                              ''.format(ctype, allowed_types))
@@ -568,6 +568,10 @@ class EyelinkController(object):
                             [-1, -1], [1, -1], [-1, 1]])
         elif ctype == 'H3':
             mat = np.array([[0, 0], [1, 0], [-1, 0]])
+        elif ctype == 'HV13':
+            mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1],
+                            [-1, -1], [1, -1], [-1, 1], [.5, .5], [-.5, -.5],
+                            [.5, -.5], [-.5, .5]])
         offsets = mat * np.array([h_pix, v_pix])
         coords = (self._size / 2. + offsets)
         n_samples = coords.shape[0]
