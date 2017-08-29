@@ -853,7 +853,7 @@ class ProgressBar(object):
     bar : instance of ProgressBar
         The progress bar.
     """
-    def __init__(self, ec, pos, units='norm', colors=('g', 'w'), text=False):
+    def __init__(self, ec, pos, units='norm', colors=('g', 'w')):
         self._ec = ec
         if len(colors) != 2:
             raise ValueError('colors must have length 2')
@@ -874,12 +874,6 @@ class ProgressBar(object):
         self._rectangles = [Rectangle(ec, self._pos_bar, units, colors[0],
                                       None),
                             Rectangle(ec, self._pos, units, None, colors[1])]
-        if units == 'norm':
-            self._text_pos = [pos[0], pos[1] - pos[3] * 0.5 - 0.1]
-        else:
-            self._text_pos = [pos[0], pos[1] - pos[3] * 0.5 - 50]
-        self._text = text
-        self._per_shown = '0 %'
 
     def update_bar(self, percent):
         """ Update the progress of the bar
@@ -894,16 +888,12 @@ class ProgressBar(object):
         self._pos_bar[2] = percent * self._width
         self._pos_bar[0] = self._init_x + self._pos_bar[2] * 0.5
         self._rectangles[0].set_pos(self._pos_bar, self._units)
-        self._per_shown = '{} %'.format(np.round(percent * 100))
 
     def draw(self):
         """ Draw the progress bar
         """
         for rectangle in self._rectangles:
             rectangle.draw()
-            if self._text:
-                self._ec.screen_text(self._per_shown, pos=self._text_pos,
-                                     units=self._units, wrap=False)
 
 
 ##############################################################################
