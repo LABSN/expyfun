@@ -535,7 +535,8 @@ class EyelinkController(object):
         Parameters
         ----------
         ctype : str
-            Type of calibration. Currently only 'HV5' is supported.
+            Type of calibration. Currently 'H3', 'HV5', 'HV9', and 'HV13'
+            are supported.
         horiz : float
             Horizontal distance (left and right, each) to use.
         vert : float
@@ -547,7 +548,7 @@ class EyelinkController(object):
         --------
         EyelinkController.calibrate
         """
-        allowed_types = ['HV5', 'HV9', 'H3', 'HV13']
+        allowed_types = ['H3', 'HV5', 'HV9', 'HV13']
         if ctype not in allowed_types:
             raise ValueError('ctype cannot be "{0}", but must be one of {1}'
                              ''.format(ctype, allowed_types))
