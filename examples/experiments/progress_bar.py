@@ -5,7 +5,7 @@
 ProgressBar demo
 ================
 
-This example shows how to display progress between trials using 
+This example shows how to display progress between trials using
 :class:`expyfun.visual.ProgressBar`.
 """
 from expyfun import ExperimentController
@@ -17,13 +17,13 @@ n_trials = 6
 with ExperimentController('name', version='dev', window_size=[500, 500],
                           full_screen=False, session='foo',
                           participant='foo') as ec:
-    
+
     # initialize the progress bar
     pb = ProgressBar(ec, [0, -.1, 1.5, .1], units='norm')
 
     ec.screen_prompt('Press the number shown on the screen. Start by pressing'
                      ' 1.', font_size=12, live_keys=[1])
-    
+
     for n in np.arange(n_trials) + 1:
         # subject does some task
         number = np.random.randint(1, 5)
@@ -39,7 +39,7 @@ with ExperimentController('name', version='dev', window_size=[500, 500],
             pb.update_bar(percent)
             # display the progress bar with some text
             ec.screen_text('You\'ve completed {} %. Press any key to proceed.'
-                           ''.format(percent), [0, .1], wrap=False, 
+                           ''.format(percent), [0, .1], wrap=False,
                            font_size=12)
             pb.draw()
             ec.flip()
@@ -48,4 +48,3 @@ with ExperimentController('name', version='dev', window_size=[500, 500],
     ec.screen_text('This example is complete.')
     ec.flip()
     ec.wait_secs(1)
-        
