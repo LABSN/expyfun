@@ -840,27 +840,22 @@ class ProgressBar(object):
         4-element array-like with X, Y center and width, height.
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
-        Must be either ''norm'' or ''pix''.
+        Must be either ``'norm'`` or ``'pix'``.
     colors : list or tuple of matplotlib Colors
         Colors to fill and outline the bar respectively. Defaults to green and
         white.
     text : bool
-        Whether to show the percent done as text below the bar. If ''True'',
+        Whether to show the percent done as text below the bar. If ``True``,
         leave room on the screen below the bar
-
-    Returns
-    -------
-    bar : instance of ProgressBar
-        The progress bar.
     """
     def __init__(self, ec, pos, units='norm', colors=('g', 'w')):
         self._ec = ec
         if len(colors) != 2:
             raise ValueError('colors must have length 2')
-        if units != 'norm' and units != 'pix':
-            raise ValueError('units must be either ''norm'' or ''pix''')
+        if units not in ['norm', 'pix']:
+            raise ValueError('units must be either \'norm\' or \'pix\'')
 
-        pos = np.array([float(p) for p in pos])
+        pos = np.array(pos, dtype=float)
         self._pos = pos
         self._width = pos[2]
         self._units = units
@@ -883,9 +878,9 @@ class ProgressBar(object):
         percent: float
             The percentage of the bar to be filled. Must be between 0 and 1.
         """
-        if percent > 1 or percent < 0:
-            raise ValueError('percent must be a float between 0 and 1')
-        self._pos_bar[2] = percent * self._width
+        if percent > 100 or percent < 0:
+            raise ValueError('percent must be a float between 0 and 100')
+        self._pos_bar[2] = percent * self._width / 100
         self._pos_bar[0] = self._init_x + self._pos_bar[2] * 0.5
         self._rectangles[0].set_pos(self._pos_bar, self._units)
 

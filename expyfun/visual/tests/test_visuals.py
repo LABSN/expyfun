@@ -83,7 +83,7 @@ def test_visuals():
                       units='deg')
         assert_raises(ValueError, visual.ProgressBar, ec, [0, 0, 1, .1],
                       colors=['w'])
-        assert_raises(ValueError, bar.update_bar, 5)
+        assert_raises(ValueError, bar.update_bar, 500)
 
 
 @_hide_window
