@@ -597,9 +597,9 @@ class EyelinkController(object):
             if sample.isBinocular():
                 eye_pos = (np.array(sample.getLeftEye().getGaze()) +
                            np.array(sample.getRightEye().getGaze())) / 2.
-            elif sample.isLeftSample:
+            elif sample.isLeftSample():
                 eye_pos = np.array(sample.getLeftEye().getGaze())
-            elif sample.isRightSample:
+            elif sample.isRightSample():
                 eye_pos = np.array(sample.getRightEye().getGaze())
             else:
                 eye_pos = np.array([np.inf, np.inf])
