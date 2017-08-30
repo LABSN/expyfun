@@ -455,7 +455,8 @@ class Rectangle(_Triangular):
     ec : instance of ExperimentController
         Parent EC.
     pos : array-like
-        4-element array-like with X, Y center and width, height.
+        4-element array-like with X, Y center and width, height where x and y
+        are coordinates of the center.
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
         shape e.g. size, position. See ``check_units`` for options.
@@ -515,7 +516,8 @@ class Diamond(_Triangular):
     ec : instance of ExperimentController
         Parent EC.
     pos : array-like
-        4-element array-like with X, Y center and width, height.
+        4-element array-like with X, Y center and width, height where x and y
+        are coordinates of the center.
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
         shape e.g. size, position. See ``check_units`` for options.
@@ -837,7 +839,8 @@ class ProgressBar(object):
     ec : instance of ExperimentController
         Parent EC.
     pos : array-like
-        4-element array-like with X, Y center and width, height.
+        4-element array-like with X, Y center and width, height where x and y
+        are coordinates of the box center.
     units : str
         Units to use. These will apply to all spatial aspects of the drawing.
         Must be either ``'norm'`` or ``'pix'``.
