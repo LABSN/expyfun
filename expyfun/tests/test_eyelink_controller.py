@@ -21,7 +21,9 @@ def test_eyelink_methods():
         el = EyelinkController(ec)
         assert_raises(RuntimeError, EyelinkController, ec)  # can't have 2 open
         assert_raises(ValueError, el.custom_calibration, ctype='hey')
-        el.custom_calibration()
+        el.custom_calibration('H3')
+        el.custom_calibration('HV9')
+        el.custom_calibration('HV13')
         el._open_file()
         assert_raises(RuntimeError, el._open_file)
         el._start_recording()

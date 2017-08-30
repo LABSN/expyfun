@@ -535,7 +535,8 @@ class EyelinkController(object):
         Parameters
         ----------
         ctype : str
-            Type of calibration. Currently only 'HV5' is supported.
+            Type of calibration. Currently 'H3', 'HV5', 'HV9', and 'HV13'
+            are supported.
         horiz : float
             Horizontal distance (left and right, each) to use.
         vert : float
@@ -547,7 +548,7 @@ class EyelinkController(object):
         --------
         EyelinkController.calibrate
         """
-        allowed_types = ['HV5']
+        allowed_types = ['H3', 'HV5', 'HV9', 'HV13']
         if ctype not in allowed_types:
             raise ValueError('ctype cannot be "{0}", but must be one of {1}'
                              ''.format(ctype, allowed_types))
@@ -561,7 +562,17 @@ class EyelinkController(object):
                 raise ValueError('{0} too large ({1} > {2})'
                                  ''.format(s, p, m))
         # make the locations
-        mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
+        if ctype == 'HV5':
+            mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
+        elif ctype == 'HV9':
+            mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1],
+                            [-1, -1], [1, -1], [-1, 1]])
+        elif ctype == 'H3':
+            mat = np.array([[0, 0], [1, 0], [-1, 0]])
+        elif ctype == 'HV13':
+            mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1],
+                            [-1, -1], [1, -1], [-1, 1], [.5, .5], [-.5, -.5],
+                            [.5, -.5], [-.5, .5]])
         offsets = mat * np.array([h_pix, v_pix])
         coords = (self._size / 2. + offsets)
         n_samples = coords.shape[0]
