@@ -38,7 +38,7 @@ with ExperimentController('name', version='dev', window_size=[500, 500],
         # only show progress bar every other trial
         if n % 2 == 0:
             # calculate percent done and update the bar object
-            percent = n * 100 / n_trials
+            percent = int(n * 100 / n_trials)
             pb.update_bar(percent)
             # display the progress bar with some text
             ec.screen_text('You\'ve completed {} %. Press any key to proceed.'
