@@ -883,7 +883,7 @@ class ProgressBar(object):
         """
         if percent > 100 or percent < 0:
             raise ValueError('percent must be a float between 0 and 100')
-        self._pos_bar[2] = percent * self._width / 100
+        self._pos_bar[2] = percent * self._width / 100.
         self._pos_bar[0] = self._init_x + self._pos_bar[2] * 0.5
         self._rectangles[0].set_pos(self._pos_bar, self._units)
 
