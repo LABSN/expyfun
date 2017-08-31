@@ -45,11 +45,12 @@ with ExperimentController('name', version='dev', window_size=[500, 500],
                            ''.format(percent), [0, .1], wrap=False,
                            font_size=12)
             pb.draw()
+            if n == 4:
+                screenshot = ec.screenshot()
             ec.flip()
             # subject uses any key press to proceed
             ec.wait_one_press(max_wait=max_wait)
     ec.screen_text('This example is complete.')
-    screenshot = ec.screenshot()
     ec.flip()
     ec.wait_secs(1)
 
