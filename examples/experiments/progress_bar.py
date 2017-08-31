@@ -8,7 +8,7 @@ ProgressBar demo
 This example shows how to display progress between trials using
 :class:`expyfun.visual.ProgressBar`.
 """
-from expyfun import ExperimentController
+from expyfun import ExperimentController, building_doc
 from expyfun.visual import ProgressBar
 import numpy as np
 
@@ -29,9 +29,11 @@ with ExperimentController('name', version='dev', window_size=[500, 500],
         number = np.random.randint(1, 5)
         ec.screen_text(str(number), wrap=False)
         ec.flip()
-        ec.wait_one_press(live_keys=[number])
+        if not building_doc:
+            ec.wait_one_press(live_keys=[number])
         ec.flip()
-        ec.wait_secs(0.5)
+        if not building_doc:
+            ec.wait_secs(0.5)
         # only show progress bar every other trial
         if n % 2 == 0:
             # calculate percent done and update the bar object
@@ -44,7 +46,8 @@ with ExperimentController('name', version='dev', window_size=[500, 500],
             pb.draw()
             ec.flip()
             # subject uses any key press to proceed
-            ec.wait_one_press()
+            if not building_doc:
+                ec.wait_one_press()
     ec.screen_text('This example is complete.')
     ec.flip()
     ec.wait_secs(1)
