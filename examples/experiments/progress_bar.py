@@ -10,9 +10,12 @@ This example shows how to display progress between trials using
 """
 from expyfun import ExperimentController, building_doc
 from expyfun.visual import ProgressBar
+import expyfun.analyze as ea
 import numpy as np
 
 n_trials = 6
+max_wait = 0.1 if building_doc else np.inf
+wait_dur = 0.1 if building_doc else 0.5
 
 with ExperimentController('name', version='dev', window_size=[500, 500],
                           full_screen=False, session='foo',
@@ -22,18 +25,16 @@ with ExperimentController('name', version='dev', window_size=[500, 500],
     pb = ProgressBar(ec, [0, -.1, 1.5, .1], units='norm')
 
     ec.screen_prompt('Press the number shown on the screen. Start by pressing'
-                     ' 1.', font_size=12, live_keys=[1])
+                     ' 1.', font_size=12, live_keys=[1], max_wait=max_wait)
 
     for n in np.arange(n_trials) + 1:
         # subject does some task
         number = np.random.randint(1, 5)
         ec.screen_text(str(number), wrap=False)
         ec.flip()
-        if not building_doc:
-            ec.wait_one_press(live_keys=[number])
+        ec.wait_one_press(live_keys=[number], max_wait=max_wait)
         ec.flip()
-        if not building_doc:
-            ec.wait_secs(0.5)
+        ec.wait_secs(wait_dur)
         # only show progress bar every other trial
         if n % 2 == 0:
             # calculate percent done and update the bar object
@@ -46,8 +47,10 @@ with ExperimentController('name', version='dev', window_size=[500, 500],
             pb.draw()
             ec.flip()
             # subject uses any key press to proceed
-            if not building_doc:
-                ec.wait_one_press()
+            ec.wait_one_press(max_wait=max_wait)
     ec.screen_text('This example is complete.')
+    screenshot = ec.screenshot()
     ec.flip()
     ec.wait_secs(1)
+
+ea.plot_screen(screenshot)
