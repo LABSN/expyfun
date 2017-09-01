@@ -1,4 +1,3 @@
-import json
 import warnings
 import numpy as np
 from nose.tools import assert_equal, assert_in, assert_raises, assert_true
@@ -45,15 +44,11 @@ def test_parse():
         assert_in(key, keys)
     assert_equal(len(data[0]['misc']), 1)
     assert_equal(len(data[1]['misc']), 1)
-    data = read_tab(ec.data_fname, group_end=None)
+    data, params = read_tab(ec.data_fname, group_end=None, return_params=True)
     assert_equal(len(data[0]['misc']), 2)  # includes between-trials stuff
     assert_equal(len(data[1]['misc']), 2)
-
-    with open(ec.data_fname, 'r') as fid:
-        line = fid.readline().strip()
-    assert_true(line.startswith('# '))
-    params = json.loads(line[2:].replace("'", '"'))
     assert_equal(params['version_used'], __version__)
+    assert_equal(params['version_kwarg'], 'dev')
 
 
 @_hide_window

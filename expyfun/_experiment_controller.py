@@ -6,12 +6,14 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
+import json
 import os
 import warnings
 from os import path as op
 from functools import partial
 import traceback as tb
+
+import numpy as np
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
@@ -209,7 +211,7 @@ class ExperimentController(object):
                 # initialize data file
                 self._data_file = open(self._output_dir + '.tab', 'a')
                 self._extra_cleanup_fun.append(self._data_file.close)
-                self._data_file.write('# ' + str(self._exp_info) + '\n')
+                self._data_file.write('# ' + json.dumps(self._exp_info) + '\n')
                 self.write_data_line('event', 'value', 'timestamp')
 
             #
