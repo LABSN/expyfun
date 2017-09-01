@@ -22,7 +22,7 @@ from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
 from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .visual import Text, Rectangle, Video, _convert_color
-from ._git import assert_version
+from ._git import assert_version, __version__
 
 # Note: ec._trial_progress has three values:
 # 1. 'stopped', which ec.identify_trial turns into...
@@ -171,7 +171,9 @@ class ExperimentController(object):
 
             # dictionary for experiment metadata
             self._exp_info = {'participant': participant, 'session': session,
-                              'exp_name': exp_name, 'date': date_str()}
+                              'exp_name': exp_name, 'date': date_str(),
+                              'version_used': __version__,
+                              'version_kwarg': version}
 
             # session start dialog, if necessary
             fixed_list = ['exp_name', 'date']  # things not editable in GUI
@@ -190,6 +192,8 @@ class ExperimentController(object):
             #
             self._output_dir = None
             set_log_file(None)
+            logger.info('Expyfun: Using version %s (requested %s)'
+                        % (__version__, version))
             if output_dir is not None:
                 output_dir = op.abspath(output_dir)
                 if not op.isdir(output_dir):

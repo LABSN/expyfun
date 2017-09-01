@@ -1,8 +1,9 @@
-import numpy as np
+import json
 import warnings
+import numpy as np
 from nose.tools import assert_equal, assert_in, assert_raises, assert_true
 
-from expyfun import ExperimentController
+from expyfun import ExperimentController, __version__
 from expyfun.io import read_tab, reconstruct_tracker, reconstruct_dealer
 from expyfun._utils import _TempDir, _hide_window
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
@@ -47,6 +48,12 @@ def test_parse():
     data = read_tab(ec.data_fname, group_end=None)
     assert_equal(len(data[0]['misc']), 2)  # includes between-trials stuff
     assert_equal(len(data[1]['misc']), 2)
+
+    with open(ec.data_fname, 'r') as fid:
+        line = fid.readline().strip()
+    assert_true(line.startswith('# '))
+    params = json.loads(line[2:].replace("'", '"'))
+    assert_equal(params['version_used'], __version__)
 
 
 @_hide_window
