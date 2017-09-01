@@ -75,6 +75,15 @@ def test_visuals():
         text.draw()
         text.set_color('red')
         text.draw()
+        bar = visual.ProgressBar(ec, [0, 0, 1, .2])
+        bar = visual.ProgressBar(ec, [0, 0, 1, 1], units='pix')
+        bar.update_bar(.5)
+        bar.draw()
+        assert_raises(ValueError, visual.ProgressBar, ec, [0, 0, 1, .1],
+                      units='deg')
+        assert_raises(ValueError, visual.ProgressBar, ec, [0, 0, 1, .1],
+                      colors=['w'])
+        assert_raises(ValueError, bar.update_bar, 500)
 
 
 @_hide_window
