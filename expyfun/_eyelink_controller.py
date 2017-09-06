@@ -482,7 +482,7 @@ class EyelinkController(object):
         Parameters
         ----------
         fix_pos : tuple (length 2)
-            The screen position (in pixels) required.
+            The screen position (in specified units) required.
         fix_time : float
             Amount of time required to call a fixation.
         tol : float
@@ -528,19 +528,82 @@ class EyelinkController(object):
 
         return fix_success
 
+    def maintain_fix(self, fix_pos, check_duration, tol=100., period=.250,
+                     check_interval=0.001, units='norm'):
+        """Check to see if subject is fixating in a region.
+        
+        This checks to make sure that the subjects gaze falls within a region
+        at least once in any given period. In other words it checks to make
+        sure that the gaze falls in the target region at least every
+        `period` seconds.
+        
+        Parameters
+        ----------
+        fix_pos : tuple (length 2)
+            The screen position (in specified units) required.
+        check_duration : float
+            Total amount of time to check.
+        tol : float
+            The tolerance (in pixels) to consider the target hit.
+        max_wait : float
+            Maximum time to wait (seconds) before returning.
+        period : float
+            Maximum time between gazes in region
+        check_interval : float
+            Time to use between position checks (seconds).
+        units : str
+            Units for `fix_pos`. See ``check_units`` for options.
+
+        Returns
+        -------
+        fix_success : bool
+            Whether or not the subject successfully fixated throughout the
+            `check_duration`.
+        """
+        fix_success = True
+
+        time_start = time.time()
+        time_end = time_start + check_duration
+        check_len = int(period / check_interval)
+
+        fix_pos = np.array(fix_pos)
+        if not (fix_pos.ndim == 1 and fix_pos.size == 2):
+            raise ValueError('fix_pos must be a 2-element array-like vector')
+        fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
+        fix_pos = fix_pos[:, 0]
+        check = []
+        while time.time() < time_end:
+            if fix_success:
+                # sample eye position
+                eye_pos = self.get_eye_position()  # in pixels
+                if _within_distance(eye_pos, fix_pos, tol):
+                    check.append(True)
+                else:
+                    check.append(False)
+                fix_success = any(check[-check_len:])
+                if len(check) >= check_len:
+                    self._ec._response_handler.check_force_quit()
+            self._ec.wait_secs(check_interval)
+        return fix_success
+        
+        
+
     def custom_calibration(self, ctype='HV5', horiz=2./3., vert=2./3.,
-                           units='norm'):
+                           coordinates=None, units='norm'):
         """Set Eyetracker to use a custom calibration sequence
 
         Parameters
         ----------
         ctype : str
             Type of calibration. Currently 'H3', 'HV5', 'HV9', and 'HV13'
-            are supported.
+            are supported. If 'custom' coordinates can be directly input.
         horiz : float
             Horizontal distance (left and right, each) to use.
         vert : float
             Vertical distance (up and down, each) to use.
+        coordinates : list of list of float or int
+            List of coordinates to use for calibration. Each entry in the list
+            must be a list with 2 elements corresponding to x and y position.
         units : str
             Units to use. See ``check_units`` for options.
 
@@ -548,10 +611,13 @@ class EyelinkController(object):
         --------
         EyelinkController.calibrate
         """
-        allowed_types = ['H3', 'HV5', 'HV9', 'HV13']
+        allowed_types = ['H3', 'HV5', 'HV9', 'HV13', 'custom']
         if ctype not in allowed_types:
             raise ValueError('ctype cannot be "{0}", but must be one of {1}'
                              ''.format(ctype, allowed_types))
+        if ctype != 'custom' and not coordinates == None:
+            raise ValueError('If ctype is \'custom\' coordinates must be '
+                             'specified.')
         horiz, vert = float(horiz), float(vert)
         xx = np.array(([0., horiz], [0., vert]))
         h_pix, v_pix = np.diff(self._ec._convert_units(xx, units, 'pix'),
@@ -573,6 +639,8 @@ class EyelinkController(object):
             mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1],
                             [-1, -1], [1, -1], [-1, 1], [.5, .5], [-.5, -.5],
                             [.5, -.5], [-.5, .5]])
+        elif ctype == 'custom':
+            mat = np.array(coordinates)
         offsets = mat * np.array([h_pix, v_pix])
         coords = (self._size / 2. + offsets)
         n_samples = coords.shape[0]
