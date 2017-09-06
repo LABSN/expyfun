@@ -184,7 +184,6 @@ class ExperimentController(object):
             # session start dialog, if necessary
             show_list = ['exp_name', 'date', 'participant', 'session']
             edit_list = ['participant', 'session']  # things editable in GUI
-            need_list = []
             for key in show_list:
                 value = self._exp_info[key]
                 if key in edit_list and value is not None and \
@@ -202,8 +201,6 @@ class ExperimentController(object):
             #
             self._output_dir = None
             set_log_file(None)
-            logger.info('Expyfun: Using version %s (requested %s)'
-                        % (__version__, version))
             if output_dir is not None:
                 output_dir = op.abspath(output_dir)
                 if not op.isdir(output_dir):
@@ -221,6 +218,8 @@ class ExperimentController(object):
                 self._extra_cleanup_fun.append(self._data_file.close)
                 self._data_file.write('# ' + json.dumps(self._exp_info) + '\n')
                 self.write_data_line('event', 'value', 'timestamp')
+            logger.info('Expyfun: Using version %s (requested %s)'
+                        % (__version__, version))
 
             #
             # set up monitor
