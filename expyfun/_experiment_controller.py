@@ -6,6 +6,7 @@
 #
 # License: BSD (3-clause)
 
+from collections import OrderedDict
 import json
 import os
 import warnings
@@ -18,7 +19,7 @@ import numpy as np
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
                      check_units, set_log_file, flush_logger,
-                     string_types, _fix_audio_dims, input)
+                     string_types, _fix_audio_dims, input, _get_args)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import PygletSoundController, SoundPlayer
@@ -172,22 +173,29 @@ class ExperimentController(object):
             self._time_correction_maxs = dict()  # optional, defaults to 10e-6
 
             # dictionary for experiment metadata
-            self._exp_info = {'participant': participant, 'session': session,
-                              'exp_name': exp_name, 'date': date_str(),
-                              'version_used': __version__,
-                              'version_kwarg': version}
+            self._exp_info = OrderedDict()
+
+            for name in _get_args(self.__init__):
+                if name != 'self':
+                    self._exp_info[name] = locals()[name]
+            self._exp_info['date'] = date_str()
+            self._exp_info['version_used'] = __version__
 
             # session start dialog, if necessary
-            fixed_list = ['exp_name', 'date']  # things not editable in GUI
-            for key, value in self._exp_info.items():
-                if key not in fixed_list and value is not None:
-                    if not isinstance(value, string_types):
-                        raise TypeError('{} must be string or None'
-                                        ''.format(value))
-                    fixed_list.append(key)
-
-            if len(fixed_list) < len(self._exp_info):
-                _get_items(self._exp_info, fixed=fixed_list, title=exp_name)
+            show_list = ['exp_name', 'date', 'participant', 'session']
+            edit_list = ['participant', 'session']  # things editable in GUI
+            need_list = []
+            for key in show_list:
+                value = self._exp_info[key]
+                if key in edit_list and value is not None and \
+                        not isinstance(value, string_types):
+                    raise TypeError('{} must be string or None'
+                                    ''.format(value))
+                if key in edit_list and value is None:
+                    self._exp_info[key] = get_keyboard_input(
+                        '{0}: '.format(key))
+                else:
+                    print('{0}: {1}'.format(key, value))
 
             #
             # initialize log file
@@ -1884,16 +1892,6 @@ class ExperimentController(object):
         """Quantify if sample rates substantively differ.
         """
         return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.5)
-
-
-def _get_items(d, fixed, title):
-    """Helper to get items for an experiment"""
-    print(title)
-    for key, val in d.items():
-        if key in fixed:
-            print('{0}: {1}'.format(key, val))
-        else:
-            d[key] = get_keyboard_input('{0}: '.format(key))
 
 
 def get_keyboard_input(prompt, default=None, out_type=str, valid=None):

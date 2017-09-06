@@ -2,10 +2,12 @@
 """File parsing functions
 """
 
-import numpy as np
-import csv
 import ast
+from collections import OrderedDict
+import csv
 import json
+
+import numpy as np
 
 
 def read_tab_raw(fname, return_params=False):
@@ -37,7 +39,10 @@ def read_tab_raw(fname, return_params=False):
 
     # first two lines are headers
     assert len(lines[0]) == 1 and lines[0][0].startswith('# ')
-    params = json.loads(lines[0][0][2:]) if return_params else None
+    if return_params:
+        params = json.loads(lines[0][0][2:], object_pairs_hook=OrderedDict)
+    else:
+        params = None
     assert lines[1] == ['timestamp', 'event', 'value']
     lines = lines[2:]
 

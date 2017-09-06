@@ -47,8 +47,8 @@ def test_parse():
     data, params = read_tab(ec.data_fname, group_end=None, return_params=True)
     assert_equal(len(data[0]['misc']), 2)  # includes between-trials stuff
     assert_equal(len(data[1]['misc']), 2)
+    assert_equal(params['version'], 'dev')
     assert_equal(params['version_used'], __version__)
-    assert_equal(params['version_kwarg'], 'dev')
 
 
 @_hide_window
