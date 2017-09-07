@@ -49,6 +49,7 @@ def test_parse():
     assert_equal(len(data[1]['misc']), 2)
     assert_equal(params['version'], 'dev')
     assert_equal(params['version_used'], __version__)
+    assert_true(params['file'].endswith('test_parse.py'))
 
 
 @_hide_window

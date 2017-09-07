@@ -7,8 +7,10 @@
 # License: BSD (3-clause)
 
 from collections import OrderedDict
+import inspect
 import json
 import os
+import sys
 import warnings
 from os import path as op
 from functools import partial
@@ -179,10 +181,13 @@ class ExperimentController(object):
                 if name != 'self':
                     self._exp_info[name] = locals()[name]
             self._exp_info['date'] = date_str()
+            # skip verbose decorator frames
+            self._exp_info['file'] = \
+                op.abspath(inspect.getfile(sys._getframe(3)))
             self._exp_info['version_used'] = __version__
 
             # session start dialog, if necessary
-            show_list = ['exp_name', 'date', 'participant', 'session']
+            show_list = ['exp_name', 'date', 'file', 'participant', 'session']
             edit_list = ['participant', 'session']  # things editable in GUI
             for key in show_list:
                 value = self._exp_info[key]
