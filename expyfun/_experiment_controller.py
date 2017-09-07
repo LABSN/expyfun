@@ -388,7 +388,7 @@ class ExperimentController(object):
 
             # finish initialization
             logger.info('Expyfun: Initialization complete')
-            logger.exp('Expyfun: Subject: {0}'
+            logger.exp('Expyfun: Participant: {0}'
                        ''.format(self._exp_info['participant']))
             logger.exp('Expyfun: Session: {0}'
                        ''.format(self._exp_info['session']))
