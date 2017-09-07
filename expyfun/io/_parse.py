@@ -2,25 +2,32 @@
 """File parsing functions
 """
 
-import numpy as np
-import csv
 import ast
+from collections import OrderedDict
+import csv
 import json
 
+import numpy as np
 
-def read_tab_raw(fname):
+
+def read_tab_raw(fname, return_params=False):
     """Read .tab file from expyfun output without segmenting into trials.
 
     Parameters
     ----------
     fname : str
         Input filename.
+    return_params : bool
+        If True, return the JSON-parsed comment header.
 
     Returns
     -------
     data : list of tuple
         The data with each line from the tab file being a tuple in a list.
         Each tuple is of the form (``timestamp``, ``key``, ``value``).
+    params : dict
+        The JSON-parsed comment header. Only returned if
+        ``return_params=True``.
 
     See Also
     --------
@@ -31,8 +38,11 @@ def read_tab_raw(fname):
         lines = [c for c in csvr]
 
     # first two lines are headers
-    assert (len(lines[0]) == 1 and lines[0][0][0] == '#')
-    #metadata = ast.literal_eval(lines[0][0][2:])
+    assert len(lines[0]) == 1 and lines[0][0].startswith('# ')
+    if return_params:
+        params = json.loads(lines[0][0][2:], object_pairs_hook=OrderedDict)
+    else:
+        params = None
     assert lines[1] == ['timestamp', 'event', 'value']
     lines = lines[2:]
 
@@ -40,10 +50,11 @@ def read_tab_raw(fname):
     keys = [line[1] for line in lines]
     vals = [line[2] for line in lines]
     data = list(zip(times, keys, vals))
-    return data
+    return (data, params) if return_params else data
 
 
-def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
+def read_tab(fname, group_start='trial_id', group_end='trial_ok',
+             return_params=False):
     """Read .tab file from expyfun output and segment into trials.
 
     Parameters
@@ -55,6 +66,8 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
     group_end : str | None
         Key to use to end a trial/row. If None, the next ``group_start``
         will end the current group.
+    return_params : bool
+        If True, return the JSON-parsed comment header.
 
     Returns
     -------
@@ -62,13 +75,17 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
         The data, with a dict for each trial. Each value in the dict
         is a list of tuples (event, time) for each occurrence of that
         key.
+    params : dict
+        The JSON-parsed comment header. Only returned if
+        ``return_params=True``.
 
     See Also
     --------
     read_tab_raw
     """
     # load everything into memory for ease of use
-    lines = read_tab_raw(fname)
+    out = read_tab_raw(fname, return_params=return_params)
+    lines = out[0] if return_params else out
 
     # determine the event fields
     header = list(set([l[1] for l in lines]))
@@ -105,7 +122,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok'):
             idx = np.where(key == np.array(these_keys))[0]
             d[key] = [(these_vals[ii], these_times[ii]) for ii in idx]
         data.append(d)
-    return data
+    return (data, out[1]) if return_params else data
 
 
 def reconstruct_tracker(fname):

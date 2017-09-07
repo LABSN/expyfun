@@ -1,8 +1,8 @@
-import numpy as np
 import warnings
+import numpy as np
 from nose.tools import assert_equal, assert_in, assert_raises, assert_true
 
-from expyfun import ExperimentController
+from expyfun import ExperimentController, __version__
 from expyfun.io import read_tab, reconstruct_tracker, reconstruct_dealer
 from expyfun._utils import _TempDir, _hide_window
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
@@ -44,9 +44,12 @@ def test_parse():
         assert_in(key, keys)
     assert_equal(len(data[0]['misc']), 1)
     assert_equal(len(data[1]['misc']), 1)
-    data = read_tab(ec.data_fname, group_end=None)
+    data, params = read_tab(ec.data_fname, group_end=None, return_params=True)
     assert_equal(len(data[0]['misc']), 2)  # includes between-trials stuff
     assert_equal(len(data[1]['misc']), 2)
+    assert_equal(params['version'], 'dev')
+    assert_equal(params['version_used'], __version__)
+    assert_true(params['file'].endswith('test_parse.py'))
 
 
 @_hide_window

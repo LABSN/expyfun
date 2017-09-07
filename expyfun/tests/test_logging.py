@@ -33,7 +33,8 @@ def test_logging(ac='pyglet'):
             data = '\n'.join(fid.readlines())
 
         # check for various expected log messages (TODO: add more)
-        should_have = ['Subject: foo', 'Session: 01', 'wait_until was called',
+        should_have = ['Participant: foo', 'Session: 01',
+                       'wait_until was called',
                        'Stimulus max RMS (']
         if ac == 'pyglet':
             should_have.append('Pyglet')
