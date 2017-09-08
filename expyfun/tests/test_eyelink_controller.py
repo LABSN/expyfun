@@ -41,6 +41,8 @@ def test_eyelink_methods():
         print(el.file_list)
         assert_true(len(el.file_list) > 0)
         print(el.fs)
+        x = el.maintain_fix([-10000, -10000], 0.1, period=0.01)
+        assert_true(x is False)
         # run much of the calibration code, but don't *actually* do it
         el._fake_calibration = True
         el.calibrate(beep=False, prompt=False)

@@ -529,7 +529,7 @@ class EyelinkController(object):
         return fix_success
 
     def maintain_fix(self, fix_pos, check_duration, tol=100., period=.250,
-                     check_interval=0.001, units='norm'):
+                     check_interval=0.001, units='norm', stop_early=False):
         """Check to see if subject is fixating in a region.
         
         This checks to make sure that the subjects gaze falls within a region
@@ -553,6 +553,8 @@ class EyelinkController(object):
             Time to use between position checks (seconds).
         units : str
             Units for `fix_pos`. See ``check_units`` for options.
+        stop_early : bool
+            Whether to exit the function when fix_success is False or not.
 
         Returns
         -------
@@ -572,7 +574,8 @@ class EyelinkController(object):
         fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
         fix_pos = fix_pos[:, 0]
         check = []
-        while time.time() < time_end:
+        while ((fix_success and time.time() < time_end) if stop_early else 
+               time.time() < time_end):
             if fix_success:
                 # sample eye position
                 eye_pos = self.get_eye_position()  # in pixels
