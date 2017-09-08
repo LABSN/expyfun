@@ -615,9 +615,17 @@ class EyelinkController(object):
         if ctype not in allowed_types:
             raise ValueError('ctype cannot be "{0}", but must be one of {1}'
                              ''.format(ctype, allowed_types))
-        if ctype != 'custom' and not coordinates == None:
-            raise ValueError('If ctype is \'custom\' coordinates must be '
-                             'specified.')
+        if ctype != 'custom':
+            if not coordinates == None:
+                raise ValueError('If ctype is not \'custom\' coordinates canno'
+                                 't be used to generate calibration pattern.')
+        else:
+            if isinstance(coordinates, list):
+                raise ValueError('Coordinates must be in a list.')
+            if any([not isinstance(c, list) or len(c) != 2 
+                    for c in coordinates]):
+                raise ValueError('Each coordinate must be a list with length 2'
+                                '.')
         horiz, vert = float(horiz), float(vert)
         xx = np.array(([0., horiz], [0., vert]))
         h_pix, v_pix = np.diff(self._ec._convert_units(xx, units, 'pix'),

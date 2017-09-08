@@ -24,6 +24,12 @@ def test_eyelink_methods():
         el.custom_calibration('H3')
         el.custom_calibration('HV9')
         el.custom_calibration('HV13')
+        assert_raises(ValueError, el.custom_calibration, ctype='custom',
+                      coordinates='foo')
+        assert_raises(ValueError, el.custom_calibration, ctype='custom',
+                      coordinates=[[0, 1], 0])
+        assert_raises(ValueError, el.custom_calibration, ctype='custom',
+                      coordinates=[[0, 1], [0]])
         el._open_file()
         assert_raises(RuntimeError, el._open_file)
         el._start_recording()
