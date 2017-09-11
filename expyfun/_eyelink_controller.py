@@ -587,8 +587,7 @@ class EyelinkController(object):
                 if len(check) >= check_len:
                     self._ec._response_handler.check_force_quit()
             self._ec.wait_secs(check_interval)
-        return fix_success 
-
+        return fix_success
 
     def custom_calibration(self, ctype='HV5', horiz=2./3., vert=2./3.,
                            coordinates=None, units='norm'):
@@ -618,7 +617,7 @@ class EyelinkController(object):
             raise ValueError('ctype cannot be "{0}", but must be one of {1}'
                              ''.format(ctype, allowed_types))
         if ctype != 'custom':
-            if not coordinates is None:
+            if coordinates is not None:
                 raise ValueError('If ctype is not \'custom\' coordinates canno'
                                  't be used to generate calibration pattern.')
         else:
