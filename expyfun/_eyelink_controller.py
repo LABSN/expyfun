@@ -531,12 +531,12 @@ class EyelinkController(object):
     def maintain_fix(self, fix_pos, check_duration, tol=100., period=.250,
                      check_interval=0.001, units='norm', stop_early=False):
         """Check to see if subject is fixating in a region.
-        
+
         This checks to make sure that the subjects gaze falls within a region
         at least once in any given period. In other words it checks to make
         sure that the gaze falls in the target region at least every
         `period` seconds.
-        
+
         Parameters
         ----------
         fix_pos : tuple (length 2)
@@ -574,7 +574,7 @@ class EyelinkController(object):
         fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
         fix_pos = fix_pos[:, 0]
         check = []
-        while ((fix_success and time.time() < time_end) if stop_early else 
+        while ((fix_success and time.time() < time_end) if stop_early else
                time.time() < time_end):
             if fix_success:
                 # sample eye position
@@ -587,9 +587,8 @@ class EyelinkController(object):
                 if len(check) >= check_len:
                     self._ec._response_handler.check_force_quit()
             self._ec.wait_secs(check_interval)
-        return fix_success
-        
-        
+        return fix_success 
+
 
     def custom_calibration(self, ctype='HV5', horiz=2./3., vert=2./3.,
                            coordinates=None, units='norm'):
@@ -619,16 +618,16 @@ class EyelinkController(object):
             raise ValueError('ctype cannot be "{0}", but must be one of {1}'
                              ''.format(ctype, allowed_types))
         if ctype != 'custom':
-            if not coordinates == None:
+            if not coordinates is None:
                 raise ValueError('If ctype is not \'custom\' coordinates canno'
                                  't be used to generate calibration pattern.')
         else:
             if isinstance(coordinates, list):
                 raise ValueError('Coordinates must be in a list.')
-            if any([not isinstance(c, list) or len(c) != 2 
+            if any([not isinstance(c, list) or len(c) != 2
                     for c in coordinates]):
                 raise ValueError('Each coordinate must be a list with length 2'
-                                '.')
+                                 '.')
         horiz, vert = float(horiz), float(vert)
         xx = np.array(([0., horiz], [0., vert]))
         h_pix, v_pix = np.diff(self._ec._convert_units(xx, units, 'pix'),
