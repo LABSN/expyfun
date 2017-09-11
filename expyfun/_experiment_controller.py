@@ -442,9 +442,9 @@ class ExperimentController(object):
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
-                      click=False, timestamp=False, clear_after=True,
-                      pos=[0, 0], color='white', font_name='Arial',
-                      font_size=24, wrap=True, units='norm', attr=True):
+                      timestamp=False, clear_after=True, pos=[0, 0],
+                      color='white', font_name='Arial', font_size=24,
+                      wrap=True, units='norm', attr=True, click=False):
         """Display text and (optionally) wait for user continuation
 
         Parameters
