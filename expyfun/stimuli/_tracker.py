@@ -130,10 +130,10 @@ class TrackerUD(object):
                  change_rule='reversals', x_min=None, x_max=None,
                  repeat_limit='reversals'):
         self._callback = _check_callback(callback)
-        if type(up) != int:
+        if not isinstance(up, int):
             raise ValueError('up must be an integer')
         self._up = up
-        if type(down) != int:
+        if not isinstance(down, int):
             raise ValueError('down must be an integer')
         self._down = down
         if stop_reversals != np.inf and type(stop_reversals) != int:
