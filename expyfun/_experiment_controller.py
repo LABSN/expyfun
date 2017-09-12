@@ -220,6 +220,7 @@ class ExperimentController(object):
                 self._extra_cleanup_fun.append(closer)
                 # initialize data file
                 self._data_file = open(self._output_dir + '.tab', 'a')
+                self._extra_cleanup_fun.append(self.flush)  # flush then close
                 self._extra_cleanup_fun.append(self._data_file.close)
                 self._data_file.write('# ' + json.dumps(self._exp_info) + '\n')
                 self.write_data_line('event', 'value', 'timestamp')
@@ -1842,14 +1843,6 @@ class ExperimentController(object):
             except Exception:
                 tb.print_exc()
                 pass
-
-        # clean up our API
-        try:
-            self.flush()
-        except Exception:
-            tb.print_exc()
-            pass
-
         if any([x is not None for x in (err_type, value, traceback)]):
             return False
         return True
