@@ -934,6 +934,8 @@ class ExperimentController(object):
         logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
         if visible and flip:
             self.flip()
+            # it seems like newer Pyglet sometimes messes up without two flips
+            self.flip()
 
 # ############################## KEYPRESS METHODS #############################
     def listen_presses(self):
