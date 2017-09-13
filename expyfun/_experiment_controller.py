@@ -140,7 +140,7 @@ class ExperimentController(object):
         self._on_next_flip = []
         self._on_trial_ok = []
         # placeholder for extra actions to run on close
-        self._extra_cleanup_fun = []
+        self._extra_cleanup_fun = []  # be aware of order when adding to this
         self._id_call_dict = dict(ec_id=self._stamp_ec_id)
         self._ac = None
         self._data_file = None
@@ -217,10 +217,11 @@ class ExperimentController(object):
                 self._log_file = self._output_dir + '.log'
                 set_log_file(self._log_file)
                 closer = partial(set_log_file, None)
-                self._extra_cleanup_fun.append(closer)
                 # initialize data file
                 self._data_file = open(self._output_dir + '.tab', 'a')
-                self._extra_cleanup_fun.append(self._data_file.close)
+                self._extra_cleanup_fun.append(self.flush)  # flush
+                self._extra_cleanup_fun.append(self._data_file.close)  # close
+                self._extra_cleanup_fun.append(closer)  # un-set log file
                 self._data_file.write('# ' + json.dumps(self._exp_info) + '\n')
                 self.write_data_line('event', 'value', 'timestamp')
             logger.info('Expyfun: Using version %s (requested %s)'
@@ -301,7 +302,7 @@ class ExperimentController(object):
             else:
                 raise ValueError('audio_controller[\'TYPE\'] must be '
                                  '\'pyglet\' or \'tdt\'.')
-            self._extra_cleanup_fun.append(self._ac.halt)
+            self._extra_cleanup_fun.insert(0, self._ac.halt)
             # audio scaling factor; ensure uniform intensity across devices
             self.set_stim_db(self._stim_db)
             self.set_noise_db(self._noise_db)
@@ -372,7 +373,7 @@ class ExperimentController(object):
                 out = ParallelTrigger(trigger_controller['type'],
                                       trigger_controller.get('address'))
                 self._stamp_ttl_triggers = out.stamp_triggers
-                self._extra_cleanup_fun.append(out.close)
+                self._extra_cleanup_fun.insert(0, out.close)
             else:
                 raise ValueError('trigger_controller type must be '
                                  '"parallel", "dummy", or "tdt", not '
@@ -932,6 +933,8 @@ class ExperimentController(object):
         self._win.set_visible(visible)
         logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
         if visible and flip:
+            self.flip()
+            # it seems like newer Pyglet sometimes messes up without two flips
             self.flip()
 
 # ############################## KEYPRESS METHODS #############################
@@ -1832,24 +1835,17 @@ class ExperimentController(object):
         logger.debug('Expyfun: Exiting cleanly')
 
         # do external cleanups
-        cleanup_actions = [self.stop_noise, self.stop]
-        cleanup_actions.extend(self._extra_cleanup_fun)
+        cleanup_actions = []
         if hasattr(self, '_win'):
-            cleanup_actions = [self._win.close] + cleanup_actions
+            cleanup_actions.append(self._win.close)
+        cleanup_actions.extend([self.stop_noise, self.stop])
+        cleanup_actions.extend(self._extra_cleanup_fun)
         for action in cleanup_actions:
             try:
                 action()
             except Exception:
                 tb.print_exc()
                 pass
-
-        # clean up our API
-        try:
-            self.flush()
-        except Exception:
-            tb.print_exc()
-            pass
-
         if any([x is not None for x in (err_type, value, traceback)]):
             return False
         return True
