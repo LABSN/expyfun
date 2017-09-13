@@ -53,10 +53,15 @@ def test_visuals():
         fix_2 = visual.FixationDot(ec)
         fix_2.draw()
         assert_raises(ValueError, rect.set_pos, [0, 1, 2])
-        img = visual.RawImage(ec, np.ones((3, 3, 4)))
-        print(img.bounds)  # test bounds
-        assert_equal(img.scale, 1)
-        img.draw()
+        for shape in ((3, 3, 3), (3, 3, 4), (3, 3), (3,), (3,) * 4):
+            data = np.ones(shape)
+            if len(shape) not in (2, 3):
+                assert_raises(RuntimeError, visual.RawImage, ec, data)
+            else:
+                img = visual.RawImage(ec, data)
+            print(img.bounds)  # test bounds
+            assert_equal(img.scale, 1)
+            img.draw()
         line = visual.Line(ec, [[0, 1], [1, 0]])
         line.draw()
         assert_raises(ValueError, line.set_line_width, 100)

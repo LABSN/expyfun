@@ -905,7 +905,7 @@ class RawImage(object):
     ec : instance of ExperimentController
         Parent EC.
     image_buffer : array
-        N x M x 3 (or 4) array. Color values should range between 0 and 1.
+        Array, shape (N, M[, 3/4]). Color values should range between 0 and 1.
     pos : array-like
         2-element array-like with X, Y (center) arguments.
     scale : float
@@ -944,6 +944,8 @@ class RawImage(object):
             if image_buffer.max() > 1 or image_buffer.min() < 0:
                 raise ValueError('all float values must be between 0 and 1')
             image_buffer = (image_buffer * 255).astype('uint8')
+        if image_buffer.ndim == 2:  # grayscale
+            image_buffer = np.tile(image_buffer[..., np.newaxis], (1, 1, 3))
         if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
             raise RuntimeError('image_buffer incorrect size: {}'
                                ''.format(image_buffer.shape))
