@@ -140,7 +140,7 @@ class ExperimentController(object):
         self._on_next_flip = []
         self._on_trial_ok = []
         # placeholder for extra actions to run on close
-        self._extra_cleanup_fun = []  # we aware of order when adding to this
+        self._extra_cleanup_fun = []  # be aware of order when adding to this
         self._id_call_dict = dict(ec_id=self._stamp_ec_id)
         self._ac = None
         self._data_file = None
