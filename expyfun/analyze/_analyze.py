@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Analysis functions (mostly for psychophysics data).
 """
 
@@ -314,8 +315,8 @@ def rt_chisq(x, axis=None, warn=True):
     return peak
 
 
-def dprime(hmfc, zero_correction=True):
-    """Estimates d-prime, with optional correction factor to avoid infinites.
+def dprime(hmfc, zero_correction=True, return_bias=False):
+    u"""Estimate d′ and bias.
 
     Parameters
     ----------
@@ -325,14 +326,27 @@ def dprime(hmfc, zero_correction=True):
     zero_correction : bool
         Whether to add a correction factor of 0.5 to each category to prevent
         division-by-zero leading to infinite d-prime values.
+    return_bias : bool
+        If True, also return the bias.
 
     Returns
     -------
     dp : array-like
         Array of dprimes with shape ``hmfc.shape[:-1]``.
+    bias : array-like
+        Array of bias values with shape ``hmfc.shape[:-1]``.
+        Only returned if ``return_bias=True``.
 
     Notes
     -----
+    The traditional d′ is given by::
+
+        Z(hit_rate) - Z(false_alarm_rate)
+
+    And the bias::
+
+        -(Z(hit_rate) + Z(false_alarm_rate)) / 2.
+
     For two-alternative forced-choice tasks, it is recommended to enter correct
     trials as hits and incorrect trials as false alarms, and enter misses and
     correct rejections as 0. An alternative is to use ``dprime_2afc()``, which
@@ -340,11 +354,13 @@ def dprime(hmfc, zero_correction=True):
     """
     hmfc = _check_dprime_inputs(hmfc)
     a = 0.5 if zero_correction else 0.0
-    dp = ss.norm.ppf((hmfc[..., 0] + a) /
-                     (hmfc[..., 0] + hmfc[..., 1] + 2 * a)) - \
-        ss.norm.ppf((hmfc[..., 2] + a) /
-                    (hmfc[..., 2] + hmfc[..., 3] + 2 * a))
-    return dp
+    z_hr = ss.norm.ppf((hmfc[..., 0] + a) /
+                       (hmfc[..., 0] + hmfc[..., 1] + 2 * a))
+    z_fr = ss.norm.ppf((hmfc[..., 2] + a) /
+                       (hmfc[..., 2] + hmfc[..., 3] + 2 * a))
+    dp = z_hr - z_fr
+    bias = (z_hr + z_fr) / -2.
+    return (dp, bias) if return_bias else dp
 
 
 def dprime_2afc(hm, zero_correction=True):
