@@ -1069,6 +1069,10 @@ class ExperimentController(object):
     def check_force_quit(self):
         """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
+    
+    def check_interrupts(self):
+        """Check to see if any interrupt keys were pressed."""
+        self._response_handler.check_interrupts()
 
 # ############################## MOUSE METHODS ################################
     def listen_clicks(self):

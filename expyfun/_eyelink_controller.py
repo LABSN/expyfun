@@ -621,12 +621,11 @@ class EyelinkController(object):
                 raise ValueError('If ctype is not \'custom\' coordinates canno'
                                  't be used to generate calibration pattern.')
         else:
-            if isinstance(coordinates, list):
+            if not isinstance(coordinates, list):
                 raise ValueError('Coordinates must be in a list.')
             if any([not isinstance(c, list) or len(c) != 2
                     for c in coordinates]):
-                raise ValueError('Each coordinate must be a list with length 2'
-                                 '.')
+                
         horiz, vert = float(horiz), float(vert)
         xx = np.array(([0., horiz], [0., vert]))
         h_pix, v_pix = np.diff(self._ec._convert_units(xx, units, 'pix'),
@@ -649,7 +648,12 @@ class EyelinkController(object):
                             [-1, -1], [1, -1], [-1, 1], [.5, .5], [-.5, -.5],
                             [.5, -.5], [-.5, .5]])
         elif ctype == 'custom':
-            mat = np.array(coordinates)
+            if not isinstance(coordinates, list):
+                raise ValueError('Coordinates must be in a list.')
+            mat = np.array(coordinates, float)
+            if mat.shape[-1] != 2:
+                raise ValueError('Each coordinate must be a list with length 2'
+                                 '.')
         offsets = mat * np.array([h_pix, v_pix])
         coords = (self._size / 2. + offsets)
         n_samples = coords.shape[0]
