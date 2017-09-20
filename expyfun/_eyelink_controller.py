@@ -623,9 +623,7 @@ class EyelinkController(object):
         else:
             if not isinstance(coordinates, list):
                 raise ValueError('Coordinates must be in a list.')
-            if any([not isinstance(c, list) or len(c) != 2
-                    for c in coordinates]):
-                
+
         horiz, vert = float(horiz), float(vert)
         xx = np.array(([0., horiz], [0., vert]))
         h_pix, v_pix = np.diff(self._ec._convert_units(xx, units, 'pix'),
