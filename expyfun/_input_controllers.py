@@ -167,7 +167,7 @@ class Keyboard(object):
                                 ' list of strings, not a {}.'
                                 ''.format(type(keys)))
         if len(keys):
-            raise RuntimeError('Quit key pressed')
+            raise RuntimeError('Quit key pressed') 
 
     def _correct_presses(self, events, timestamp, relative_to, kind='presses'):
         """Correct timing of presses and check for quit press."""
