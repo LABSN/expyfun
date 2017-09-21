@@ -644,7 +644,7 @@ class EyelinkController(object):
                             [.5, -.5], [-.5, .5]])
         elif ctype == 'custom':
             mat = np.array(coordinates, float)
-            if  mat.ndim != 2 or mat.shape[-1] != 2:
+            if mat.ndim != 2 or mat.shape[-1] != 2:
                 raise ValueError('Each coordinate must be a list with length 2'
                                  '.')
         offsets = mat * np.array([h_pix, v_pix])
