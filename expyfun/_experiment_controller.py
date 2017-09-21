@@ -509,11 +509,8 @@ class ExperimentController(object):
                              font_size=font_size, wrap=wrap, units=units,
                              attr=attr)
             self.flip()
-            if click:
-                out = self.wait_one_click(max_wait, min_wait, live_keys,
-                                          timestamp)
-            else:
-                out = self.wait_one_press(max_wait, min_wait, live_keys,
+            fun = self.wait_one_click if click else self.wait_one_press
+            out = fun(max_wait, min_wait, live_keys,
                                           timestamp)
         if clear_after:
             self.flip()
