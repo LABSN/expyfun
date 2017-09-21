@@ -510,8 +510,7 @@ class ExperimentController(object):
                              attr=attr)
             self.flip()
             fun = self.wait_one_click if click else self.wait_one_press
-            out = fun(max_wait, min_wait, live_keys,
-                                          timestamp)
+            out = fun(max_wait, min_wait, live_keys, timestamp)
         if clear_after:
             self.flip()
         return out
