@@ -18,6 +18,7 @@ dependencies:
     # Get Anaconda and conda-based requirements
     - wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
     - chmod +x ~/miniconda.sh;
+    - rm -rf /home/ubuntu/miniconda;
     - ~/miniconda.sh -b -p /home/ubuntu/miniconda;
     - conda update --yes --quiet conda;
     - conda create -n circleenv --yes pip python=2.7 pip;
