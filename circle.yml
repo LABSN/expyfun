@@ -27,7 +27,7 @@ dependencies:
     - conda install -n circleenv --yes numpy scipy matplotlib sphinx pillow six pandas traits h5py;
     - python -c "import h5py"
     - pip install git+https://github.com/sphinx-gallery/sphinx-gallery.git
-    - pip install sphinx_bootstrap_theme numpydoc mne pyglet;
+    - pip install sphinx_bootstrap_theme numpydoc mne pyglet=1.2.4;
 
   override:
     - cd /home/ubuntu/expyfun && python setup.py develop;
