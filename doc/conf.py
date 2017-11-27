@@ -236,7 +236,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy-dev/', None),
     'scipy': ('https://scipy.github.io/devdocs/', None),
-    'sklearn': ('https://scikit-learn.org/stable/', None),
+    'sklearn': ('http://scikit-learn.org/stable/', None),
     'matplotlib': ('https://matplotlib.org/', None),
 }
 

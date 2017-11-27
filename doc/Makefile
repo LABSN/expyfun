@@ -41,7 +41,7 @@ html_stable:
 	@echo "Build finished. The HTML pages are in _build/html_stable."
 
 html_dev:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D -b html $(ALLSPHINXOPTS) _build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
