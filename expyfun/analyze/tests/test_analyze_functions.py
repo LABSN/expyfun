@@ -121,8 +121,7 @@ def test_dprime():
             ((0, 0, 1, 1), [0, 0]),
             ((1, 0, 1, 0), [0, -0.67449]),
             ((0, 1, 1, 0), [-1.34898, 0.]),
-            ((0, 1, 1, 0), [-1.34898, 0.]),
-            ):
+            ((0, 1, 1, 0), [-1.34898, 0.])):
         assert_allclose(ea.dprime(resp, return_bias=True),
                         want, atol=1e-5)
     assert_allclose([np.inf, -np.inf], ea.dprime((1, 0, 2, 1), False, True))
