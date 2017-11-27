@@ -2,7 +2,8 @@ machine:
   environment:
     # We need to set this variable to let Anaconda take precedence
     PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
-    _EXPYFUN_SILENT: true
+    _EXPYFUN_SILENT: "true"
+    DISPLAY: ":99.0"
 
 dependencies:
   # Various dependencies
