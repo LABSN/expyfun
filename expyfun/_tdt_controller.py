@@ -189,7 +189,7 @@ class TDTController(Keyboard):
                 time.sleep(0.25)
                 if not self.rpcox.LoadCOF(self.circuit):
                     raise RuntimeError('Second loading attempt failed')
-            except:
+            except Exception:
                 raise IOError('Expyfun: Problem loading circuit.')
         logger.info('Expyfun: Circuit loaded to {1} via {2}:\n{0}'
                     ''.format(self.circuit, self.model, self.interface))
