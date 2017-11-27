@@ -463,7 +463,7 @@ class ExperimentController(object):
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
                       timestamp=False, clear_after=True, pos=[0, 0],
                       color='white', font_name='Arial', font_size=24,
-                      wrap=True, units='norm', attr=True):
+                      wrap=True, units='norm', attr=True, click=False):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -481,6 +481,8 @@ class ExperimentController(object):
             The acceptable list of buttons or keys to use to advance the trial.
             If None, all buttons / keys will be accepted.  If an empty list,
             the prompt displays until max_wait seconds have passed.
+        click : bool
+            Whether to use clicks to advance rather than key presses.
         clear_after : bool
             If True, the screen will be cleared before returning.
         pos : list | tuple
@@ -526,8 +528,8 @@ class ExperimentController(object):
                              font_size=font_size, wrap=wrap, units=units,
                              attr=attr)
             self.flip()
-            out = self.wait_one_press(max_wait, min_wait, live_keys,
-                                      timestamp)
+            fun = self.wait_one_click if click else self.wait_one_press
+            out = fun(max_wait, min_wait, live_keys, timestamp)
         if clear_after:
             self.flip()
         return out

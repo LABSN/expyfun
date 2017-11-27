@@ -191,6 +191,7 @@ def test_ec(ac=None, rd=None):
         ec.screen_prompt('test', 0.01, 0, None)
         ec.screen_prompt('test', 0.01, 0, ['1'])
         ec.screen_prompt(['test', 'ing'], 0.01, 0, ['1'])
+        ec.screen_prompt('test', 1e-3, click=True)
         assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
         assert_raises(TypeError, ec.screen_prompt, 3, 0.01, 0, None)
         assert_equal(ec.wait_one_press(0.01), (None, None))
