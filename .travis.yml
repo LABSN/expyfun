@@ -1,4 +1,10 @@
 language: python
+dist: trusty
+sudo: false
+cache:
+  apt: true
+env:
+    global: _EXPYFUN_SILENT=true DISPLAY=:99.0
 
 addons:
   apt:
@@ -26,7 +32,7 @@ matrix:
     - os: linux
       env:
         # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
-        - PYTHON=3.5 DEPS=full TEST=standard CONDA_OS=Linux _EXPYFUN_SILENT=true
+        - PYTHON=3.6 DEPS=full TEST=standard CONDA_OS=Linux
 
 before_install:
     # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
@@ -46,7 +52,6 @@ before_install:
         curl https://cloud.github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
         sudo installer -pkg AVbin10.pkg -target /;
       else
-        export DISPLAY=:99.0;
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         dbus-launch pulseaudio --start;
       fi;

@@ -1616,8 +1616,13 @@ class ExperimentController(object):
             timestamp = self._master_clock()
         ll = '\t'.join(_sanitize(x) for x in [timestamp, event_type,
                                               value]) + '\n'
-        if self._data_file is not None and not self._data_file.closed:
-            self._data_file.write(ll)
+        if self._data_file is not None:
+            if self._data_file.closed:
+                logger.warn('Data line not written due to closed file %s:\n%s'
+                            % (self.data_fname, ll[:-1]))
+            else:
+                self._data_file.write(ll)
+            self.flush()
 
     def _get_time_correction(self, clock_type):
         """Clock correction (sec) for different devices (screen, bbox, etc.)
@@ -1832,14 +1837,14 @@ class ExperimentController(object):
         -----
         err_type, value and traceback will be None when called by self.close()
         """
-        logger.debug('Expyfun: Exiting cleanly')
-
+        logger.info('Expyfun: Exiting')
         # do external cleanups
         cleanup_actions = []
         if hasattr(self, '_win'):
             cleanup_actions.append(self._win.close)
         cleanup_actions.extend([self.stop_noise, self.stop])
         cleanup_actions.extend(self._extra_cleanup_fun)
+        cleanup_actions.append(self.flush)  # probably shouldn't be necessary
         for action in cleanup_actions:
             try:
                 action()

@@ -419,7 +419,7 @@ def verbose_dec(function, *args, **kwargs):
         # set it back if we get an exception
         try:
             ret = function(*args, **kwargs)
-        except:
+        except Exception:
             set_log_level(old_level)
             raise
         set_log_level(old_level)

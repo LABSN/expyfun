@@ -237,7 +237,7 @@ intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy-dev/', None),
     'scipy': ('https://scipy.github.io/devdocs/', None),
     'sklearn': ('http://scikit-learn.org/stable/', None),
-    'matplotlib': ('http://matplotlib.org/', None),
+    'matplotlib': ('https://matplotlib.org/', None),
 }
 
 examples_dirs = ['../examples']
@@ -245,12 +245,7 @@ gallery_dirs = ['auto_examples']
 
 sphinx_gallery_conf = {
     'doc_module': ('expyfun',),
-    'reference_url': {
-        'expyfun': None,
-        'matplotlib': 'http://matplotlib.org',
-        'numpy': 'http://docs.scipy.org/doc/numpy/reference',
-        'scipy': 'http://docs.scipy.org/doc/scipy/reference',
-        'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
+    'reference_url': {'expyfun': None},
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
     'find_mayavi_figures': False,
