@@ -35,6 +35,9 @@ class ParallelTrigger(object):
 
     Notes
     -----
+    Parallel port activation is enabled by using the ``trigger_controller``
+    argument of :class:`expyfun.ExperimentController`.
+
     On Linux, parallel port may require some combination of the following:
 
         1. ``sudo modprobe ppdev``
@@ -45,9 +48,7 @@ class ParallelTrigger(object):
     The ``parallel`` module must also be installed.
 
     On Windows, you may need to download ``inpout32.dll`` from someplace
-    like:
-
-        http://logix4u.net/InpOutBinaries.zip
+    like http://www.highrez.co.uk/downloads/inpout32/.
     """
     @verbose_dec
     def __init__(self, mode='dummy', address=None, high_duration=0.001,
