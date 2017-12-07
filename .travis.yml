@@ -54,7 +54,7 @@ before_install:
     - pip install -q coveralls
     # install AVbin
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        curl https://cloud.github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
+        curl https://github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
         sudo installer -pkg AVbin10.pkg -target /;
       else
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
