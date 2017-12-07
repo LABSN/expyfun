@@ -35,6 +35,11 @@ matrix:
         - PYTHON=3.6 DEPS=full TEST=standard CONDA_OS=Linux
 
 before_install:
+    # Rvm overrides cd with a function so that it can hook into it to run
+    # some scripts, see https://github.com/travis-ci/travis-ci/issues/8703
+    - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        unset -f cd;
+      fi;
     # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
     # Only use Pulseaudio on 2.7 because on Travis 3.4 causes some strange error...
     - SRC_DIR=${PWD}
