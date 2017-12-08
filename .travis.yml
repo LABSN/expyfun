@@ -35,6 +35,11 @@ matrix:
         - PYTHON=3.6 DEPS=full TEST=standard CONDA_OS=Linux
 
 before_install:
+    # Rvm overrides cd with a function so that it can hook into it to run
+    # some scripts, see https://github.com/travis-ci/travis-ci/issues/8703
+    - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        unset -f cd;
+      fi;
     # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
     # Only use Pulseaudio on 2.7 because on Travis 3.4 causes some strange error...
     - SRC_DIR=${PWD}
@@ -49,7 +54,7 @@ before_install:
     - pip install -q coveralls
     # install AVbin
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        curl https://cloud.github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
+        curl -L https://github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
         sudo installer -pkg AVbin10.pkg -target /;
       else
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
