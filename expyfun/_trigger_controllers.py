@@ -51,7 +51,7 @@ class ParallelTrigger(object):
     like http://www.highrez.co.uk/downloads/inpout32/.
     """
     @verbose_dec
-    def __init__(self, mode='dummy', address=None, high_duration=0.001,
+    def __init__(self, mode='dummy', address=None, high_duration=0.005,
                  verbose=None):
         if mode == 'parallel':
             self._stamp_trigger = self._parallel_trigger

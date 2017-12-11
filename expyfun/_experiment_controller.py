@@ -89,8 +89,8 @@ class ExperimentController(object):
         If ``None``, the type will be read from the system configuration file.
         If a string, must be 'dummy', 'parallel', or 'tdt'. Note that by
         default the mode is 'dummy', since setting up the parallel port
-        can be a pain. Can also be a dict with entries 'type' ('parallel')
-        and 'address' (e.g., '/dev/parport0').
+        can be a pain. Can also be a dict with entries 'type' ('parallel'),
+        'address' (None), and 'high_duration' (0.005).
     check_rms : str | None
         Method to use in checking stimulus RMS to ensure appropriate levels.
         Possible values are ``None``, ``wholefile``, and ``windowed`` (the
@@ -371,7 +371,9 @@ class ExperimentController(object):
                     addr = get_config('TRIGGER_ADDRESS')
                     trigger_controller['address'] = addr
                 out = ParallelTrigger(trigger_controller['type'],
-                                      trigger_controller.get('address'))
+                                      trigger_controller.get('address'),
+                                      trigger_controller.get('high_duration',
+                                                             0.005))
                 self._stamp_ttl_triggers = out.stamp_triggers
                 self._extra_cleanup_fun.insert(0, out.close)
             else:
