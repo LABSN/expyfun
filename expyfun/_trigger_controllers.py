@@ -8,7 +8,7 @@
 import sys
 import numpy as np
 
-from ._utils import wait_secs, verbose_dec
+from ._utils import wait_secs, verbose_dec, string_types
 
 
 class ParallelTrigger(object):
@@ -23,10 +23,10 @@ class ParallelTrigger(object):
     ----------
     mode : str
         'parallel' for real use. 'dummy', passes all calls.
-    address : str | None
-        The address to use. On Linux this should be a path like
-        '/dev/parport0', on Windows it should be an address like
-        888 (a.k.a. 0x0378).
+    address : str | int | None
+        The address to use. On Linux this should be a string path like
+        ``'/dev/parport0'`` (equivalent to None), on Windows it should be an
+        integer address like ``888`` or ``0x378`` (equivalent to None).
     high_duration : float
         Amount of time (seconds) to leave the trigger high whenever
         sending a trigger.
@@ -57,6 +57,9 @@ class ParallelTrigger(object):
             self._stamp_trigger = self._parallel_trigger
             if sys.platform.startswith('linux'):
                 address = '/dev/parport0' if address is None else address
+                if not isinstance(address, string_types):
+                    raise ValueError('addrss must be a string or None, got %s '
+                                     'of type %s' % (address, type(address)))
                 import parallel as _p
                 self._port = _p.Parallel(address)
                 self._set_data = self._port.setData
@@ -67,8 +70,10 @@ class ParallelTrigger(object):
                         'Must have inpout32 installed, see:\n\n'
                         'http://www.highrez.co.uk/downloads/inpout32/')
 
-                addr = 0x0378 if address is None else address
-                base = int(addr, 16) if addr[:2] == '0x' else addr
+                base = 0x378 if address is None else address
+                if not isinstance(base, int):
+                    raise ValueError('address must be int or None, got %s of '
+                                     'type %s' % (base, type(base)))
                 self._port = windll.inpout32
                 mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
                 # Use ECP to put the port into byte mode
