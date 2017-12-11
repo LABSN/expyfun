@@ -1053,7 +1053,8 @@ class Video(object):
         self._ec = ec
         self._source = load(file_name)
         self._player = Player()
-        self._player.queue(self._source)
+        with warnings.catch_warnings(record=True):  # deprecated eos_action
+            self._player.queue(self._source)
         self._player._audio_player = None
         frame_rate = self.frame_rate
         if frame_rate is None:

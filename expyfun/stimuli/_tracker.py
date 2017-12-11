@@ -188,12 +188,12 @@ class TrackerUD(object):
         self._limit_count = 0
 
         # Now write the initialization data out
-        self._tracker_id = id(self)
+        self._tracker_id = '%s-%s' % (id(self), int(round(time.time() * 1e6)))
         self._callback('tracker_identify', json.dumps(dict(
             tracker_id=self._tracker_id,
             tracker_type='TrackerUD')))
 
-        self._callback('tracker_%i_init' % self._tracker_id, json.dumps(dict(
+        self._callback('tracker_%s_init' % self._tracker_id, json.dumps(dict(
             callback=None,
             up=self._up,
             down=self._down,
@@ -293,12 +293,12 @@ class TrackerUD(object):
 
         if not self._stopped:
             self._x_current = self._x[-1]
-            self._callback('tracker_%i_respond' % self._tracker_id,
+            self._callback('tracker_%s_respond' % self._tracker_id,
                            correct)
         else:
             self._x = self._x[:-1]
             self._callback(
-                'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
+                'tracker_%s_stop' % self._tracker_id, json.dumps(dict(
                     responses=[int(s) for s in self._responses],
                     reversals=[int(s) for s in self._reversals],
                     x=[float(s) for s in self._x])))
@@ -626,7 +626,7 @@ class TrackerBinom(object):
             tracker_id=self._tracker_id,
             tracker_type='TrackerBinom')))
 
-        self._callback('tracker_%i_init' % self._tracker_id, json.dumps(dict(
+        self._callback('tracker_%s_init' % self._tracker_id, json.dumps(dict(
             callback=None,
             alpha=self._alpha,
             chance=self._chance,
@@ -666,12 +666,12 @@ class TrackerBinom(object):
 
         if self._stopped:
             self._callback(
-                'tracker_%i_stop' % self._tracker_id, json.dumps(dict(
+                'tracker_%s_stop' % self._tracker_id, json.dumps(dict(
                     responses=[int(s) for s in self._responses],
                     p_val=self._p_val,
                     success=int(self.success))))
         else:
-            self._callback('tracker_%i_respond' % self._tracker_id, correct)
+            self._callback('tracker_%s_respond' % self._tracker_id, correct)
 
     # =========================================================================
     # Define all the public properties
@@ -842,7 +842,7 @@ class TrackerDealer(object):
         self._callback('dealer_identify', json.dumps(dict(
             dealer_id=self._dealer_id)))
 
-        self._callback('dealer_%i_init' % self._dealer_id, json.dumps(dict(
+        self._callback('dealer_%s_init' % self._dealer_id, json.dumps(dict(
             trackers=[s._tracker_id for s in self._trackers.ravel()],
             shape=self._shape,
             max_lag=self._max_lag,
@@ -918,7 +918,7 @@ class TrackerDealer(object):
         self._response_history = np.append(self._response_history, correct)
         if self.stopped:
             self._callback(
-                'dealer_%i_stop' % self._dealer_id, json.dumps(dict(
+                'dealer_%s_stop' % self._dealer_id, json.dumps(dict(
                     tracker_history=[int(s) for s in self._tracker_history],
                     response_history=[float(s) for s in
                                       self._response_history],

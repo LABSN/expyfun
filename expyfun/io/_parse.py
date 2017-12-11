@@ -150,22 +150,30 @@ def reconstruct_tracker(fname):
     if len(tracker_idx) == 0:
         raise ValueError('There are no Trackers in this file.')
     tr = []
+    used_dict_idx = []  # they can have repeat names!
+    used_stop_idx = []
     for ii in tracker_idx:
         tracker_id = ast.literal_eval(raw[ii][2])['tracker_id']
         tracker_type = ast.literal_eval(raw[ii][2])['tracker_type']
         # find tracker_ID_init lines and get dict
         init_str = 'tracker_' + str(tracker_id) + '_init'
-        tracker_dict_idx = np.where([r[1] == init_str for r in raw])[0][0]
+        tracker_dict_idx = np.where([r[1] == init_str for r in raw])[0]
+        tracker_dict_idx = np.setdiff1d(tracker_dict_idx, used_dict_idx)
+        tracker_dict_idx = tracker_dict_idx[0]
+        used_dict_idx.append(tracker_dict_idx)
         tracker_dict = json.loads(raw[tracker_dict_idx][2])
         td = dict(TrackerUD=TrackerUD, TrackerBinom=TrackerBinom)
         tr.append(td[tracker_type](**tracker_dict))
         tr[-1]._tracker_id = tracker_id  # make sure tracker has original ID
         stop_str = 'tracker_' + str(tracker_id) + '_stop'
         tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
+        tracker_stop_idx = np.setdiff1d(tracker_stop_idx, used_stop_idx)
         if len(tracker_stop_idx) == 0:
             raise ValueError('Tracker {} has not stopped. All Trackers '
                              'must be stopped.'.format(tracker_id))
-        responses = json.loads(raw[tracker_stop_idx[0]][2])['responses']
+        tracker_stop_idx = tracker_stop_idx[0]
+        used_stop_idx.append(tracker_stop_idx)
+        responses = json.loads(raw[tracker_stop_idx][2])['responses']
         # feed in responses from tracker_ID_stop
         for r in responses:
             tr[-1].respond(r)
