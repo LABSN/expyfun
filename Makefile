@@ -3,7 +3,7 @@
 # caution: testing won't work on windows, see README
 
 PYTHON ?= python
-NOSETESTS ?= nosetests
+PYTEST ?= pytest
 CTAGS ?= ctags
 
 all: clean inplace test test-doc
@@ -42,12 +42,12 @@ inplace:
 
 nosetests:
 	rm -f .coverage
-	$(NOSETESTS) expyfun
+	$(PYTEST) expyfun
 
 test: clean nosetests flake
 
 test-doc:
-	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/
+	$(PYTEST) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/
 
 version:
 	@expr substr `git rev-parse HEAD` 1 7

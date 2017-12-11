@@ -222,7 +222,7 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(np.zeros((100, 2)))
         ec.load_buffer(np.zeros((1, 100)))
         ec.load_buffer(np.zeros((2, 100)))
-        data = np.empty(int(5e6), np.float32)  # too long for TDT
+        data = np.zeros(int(5e6), np.float32)  # too long for TDT
         if this_fs == get_tdt_rates()['25k']:
             assert_raises(RuntimeError, ec.load_buffer, data)
         else:
@@ -277,7 +277,7 @@ def test_ec(ac=None, rd=None):
         #
         # First: identify_trial
         #
-        noise = np.random.normal(scale=0.03, size=(int(ec.fs),))
+        noise = np.random.normal(scale=0.01, size=(int(ec.fs),))
         ec.load_buffer(noise)
         assert_raises(RuntimeError, ec.start_stimulus)  # order violation
         assert_true(ec._playing is False)

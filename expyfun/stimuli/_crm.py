@@ -144,7 +144,7 @@ def _read_binary(zip_file, callsign, color, number,
     talk_path = zip_file.filelist[0].orig_filename[:8]
     raw = zip_file.read(talk_path + '/%02i%02i%02i.BIN' % (
         _callsigns[callsign], _colors[color], _numbers[number]))
-    x = np.fromstring(raw, '<h') / 16384.
+    x = np.frombuffer(raw, '<h') / 16384.
     if ramp_dur:
         return window_edges(x, _fs_binary, dur=ramp_dur)
     else:
