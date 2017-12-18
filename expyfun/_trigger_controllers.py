@@ -14,14 +14,10 @@ from ._utils import wait_secs, verbose_dec, string_types
 class ParallelTrigger(object):
     """Parallel port and dummy triggering support
 
-    .. note:: When using the parallel port, calling
-              :meth:`expyfun.ExperimentController.start_stimulus`
-              will automatically invoke a stamping of the 1 trigger, which
-              will in turn cause a delay equal to that of ``high_duration``.
-
-    .. warning:: When using the parallel port, all other ``_ofp_critical_funs``
-                 when doing :meth:`ExperimentController.start_stimulus()`` will
-                 be delayed by roughly the duration of the 1 trigger.
+    .. warning:: When using the parallel port, calling
+                 :meth:`expyfun.ExperimentController.start_stimulus`
+                 will automatically invoke a stamping of the 1 trigger, which
+                 will in turn cause a delay equal to that of ``high_duration``.
                  This can effect e.g. :class:`EyelinkController` timing.
 
     Parameters
@@ -64,8 +60,8 @@ class ParallelTrigger(object):
                 if not isinstance(address, string_types):
                     raise ValueError('addrss must be a string or None, got %s '
                                      'of type %s' % (address, type(address)))
-                import parallel as _p
-                self._port = _p.Parallel(address)
+                from parallel import Parallel
+                self._port = Parallel(address)
                 self._portname = address
                 self._set_data = self._port.setData
             elif sys.platform.startswith('win'):
