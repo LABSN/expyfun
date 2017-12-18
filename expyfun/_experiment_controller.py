@@ -355,6 +355,7 @@ class ExperimentController(object):
             #
             # set up trigger controller
             #
+            self._ofp_critical_funs = list()
             if trigger_controller is None:
                 trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
             if isinstance(trigger_controller, string_types):
@@ -365,21 +366,26 @@ class ExperimentController(object):
                 if not isinstance(self._ac, TDTController):
                     raise ValueError('trigger_controller can only be "tdt" if '
                                      'tdt is used for audio')
-                self._stamp_ttl_triggers = self._ac.stamp_triggers
+                self._tc = self._ac
             elif trigger_controller['type'] in ['parallel', 'dummy']:
                 if 'address' not in trigger_controller['type']:
                     addr = get_config('TRIGGER_ADDRESS')
                     trigger_controller['address'] = addr
-                out = ParallelTrigger(trigger_controller['type'],
-                                      trigger_controller.get('address'),
-                                      trigger_controller.get('high_duration',
-                                                             0.005))
-                self._stamp_ttl_triggers = out.stamp_triggers
-                self._extra_cleanup_fun.insert(0, out.close)
+                self._tc = ParallelTrigger(
+                    trigger_controller['type'],
+                    trigger_controller.get('address'),
+                    trigger_controller.get('high_duration', 0.005))
+                self._extra_cleanup_fun.insert(0, self._tc.close)
+                # The TDT always stamps "1" on stimulus onset. Here we need
+                # to manually mimic that behavior.
+                self._ofp_critical_funs.insert(
+                    0, lambda: self._tc.stamp_triggers(
+                        [1], wait_for_last=False))
             else:
                 raise ValueError('trigger_controller type must be '
                                  '"parallel", "dummy", or "tdt", not '
                                  '{0}'.format(trigger_controller['type']))
+            self._stamp_ttl_triggers = self._tc.stamp_triggers
             self._id_call_dict['ttl_id'] = self._stamp_binary_id
 
             # other basic components
@@ -399,7 +405,6 @@ class ExperimentController(object):
             self._on_trial_ok.append(ok_log)
             self._on_trial_ok.append(self.flush)
             self._trial_progress = 'stopped'
-            self._ofp_critical_funs = list()
         except Exception:
             self.close()
             raise

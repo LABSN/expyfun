@@ -19,6 +19,11 @@ class ParallelTrigger(object):
               will automatically invoke a stamping of the 1 trigger, which
               will in turn cause a delay equal to that of ``high_duration``.
 
+    .. warning:: When using the parallel port, all other ``_ofp_critical_funs``
+                 when doing :meth:`ExperimentController.start_stimulus()`` will
+                 be delayed by roughly the duration of the 1 trigger.
+                 This can effect e.g. :class:`EyelinkController` timing.
+
     Parameters
     ----------
     mode : str
@@ -54,7 +59,6 @@ class ParallelTrigger(object):
     def __init__(self, mode='dummy', address=None, high_duration=0.005,
                  verbose=None):
         if mode == 'parallel':
-            self._stamp_trigger = self._parallel_trigger
             if sys.platform.startswith('linux'):
                 address = '/dev/parport0' if address is None else address
                 if not isinstance(address, string_types):
@@ -62,6 +66,7 @@ class ParallelTrigger(object):
                                      'of type %s' % (address, type(address)))
                 import parallel as _p
                 self._port = _p.Parallel(address)
+                self._portname = address
                 self._set_data = self._port.setData
             elif sys.platform.startswith('win'):
                 from ctypes import windll
@@ -84,24 +89,24 @@ class ParallelTrigger(object):
                 # sure that bit 5 of the control register is not set
                 val = int(self._port.Inp32(base + 2) & ~np.uint8(1 << 5))
                 self._port.Out32(base + 2, val)
-
-                def _set_data(data):
-                    return self._port.Out32(base, data)
-                self._set_data = _set_data
+                self._set_data = lambda data: self._port.Out32(base, data)
+                self._portname = str(base)
             else:
                 raise NotImplementedError('Parallel port triggering only '
                                           'supported on Linux and Windows')
         else:  # mode == 'dummy':
-            self._stamp_trigger = self._dummy_trigger
-            self._port = None
+            self._port = self._portname = None
+            self._trigger_list = list()
+            self._set_data = lambda x: (self._trigger_list.append(x)
+                                        if x != 0 else None)
         self.high_duration = high_duration
+        self.mode = mode
 
-    def _dummy_trigger(self, trig):
+    def __repr__(self):
+        return '<ParallelTrigger : %s (%s)>' % (self.mode, self._portname)
+
+    def _stamp_trigger(self, trig):
         """Fake stamping"""
-        pass
-
-    def _parallel_trigger(self, trig):
-        """Stamp a single byte via parallel port"""
         self._set_data(int(trig))
         wait_secs(self.high_duration)
         self._set_data(0)

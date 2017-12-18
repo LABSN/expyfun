@@ -233,9 +233,15 @@ def test_ec(ac=None, rd=None):
         assert_raises(ValueError, ec.stamp_triggers, 0)
         assert_raises(ValueError, ec.stamp_triggers, 3)
         assert_raises(ValueError, ec.stamp_triggers, 1, check='foo')
+        print(ec._tc)  # test __repr__
+        if this_tc == 'dummy':
+            assert_equal(ec._tc._trigger_list, [])
         ec.stamp_triggers(3, check='int4')
         ec.stamp_triggers(2)
         ec.stamp_triggers([2, 4, 8])
+        if this_tc == 'dummy':
+            assert_equal(ec._tc._trigger_list, [3, 2, 2, 4, 8])
+            ec._tc._trigger_list = list()
         assert_raises(ValueError, ec.load_buffer, np.zeros((100, 3)))
         assert_raises(ValueError, ec.load_buffer, np.zeros((3, 100)))
         assert_raises(ValueError, ec.load_buffer, np.zeros((1, 1, 1)))
@@ -281,7 +287,11 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(noise)
         assert_raises(RuntimeError, ec.start_stimulus)  # order violation
         assert_true(ec._playing is False)
+        if this_tc == 'dummy':
+            assert_equal(ec._tc._trigger_list, [])
         ec.start_stimulus(start_of_trial=False)         # should work
+        if this_tc == 'dummy':
+            assert_equal(ec._tc._trigger_list, [1])
         ec.wait_secs(0.05)
         assert_true(ec._playing is True)
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
@@ -292,6 +302,8 @@ def test_ec(ac=None, rd=None):
         assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
         assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
         assert_true(ec._playing is False)
+        if this_tc == 'dummy':
+            ec._tc._trigger_list = list()
         ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
         assert_true(ec._playing is False)
         #
@@ -302,6 +314,8 @@ def test_ec(ac=None, rd=None):
         assert_raises(RuntimeError, ec.trial_ok)        # order violation
         assert_true(ec._playing is False)
         ec.start_stimulus(flip=False, when=-1)
+        if this_tc == 'dummy':
+            assert_equal(ec._tc._trigger_list, [4, 8, 1])
         if ac != 'tdt':
             # dummy TDT version won't do this check properly, as
             # ec._ac._playing -> GetTagVal('playing') always gives False
