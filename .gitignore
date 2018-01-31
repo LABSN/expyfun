@@ -63,3 +63,6 @@ env/
 
 # pytest
 .cache
+
+# pycharm
+.idea/
