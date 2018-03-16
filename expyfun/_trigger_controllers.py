@@ -5,27 +5,29 @@
 #
 # License: BSD (3-clause)
 
+import sys
 import numpy as np
 
-from ._utils import wait_secs, verbose_dec
+from ._utils import wait_secs, verbose_dec, string_types
 
 
 class ParallelTrigger(object):
     """Parallel port and dummy triggering support
 
-    IMPORTANT: When using the parallel port, note that calling
-    ec.start_stimulus() will automatically invoke a stamping of
-    the 1 trigger, which will cause a delay equal to that of
-    high_duration.
+    .. warning:: When using the parallel port, calling
+                 :meth:`expyfun.ExperimentController.start_stimulus`
+                 will automatically invoke a stamping of the 1 trigger, which
+                 will in turn cause a delay equal to that of ``high_duration``.
+                 This can effect e.g. :class:`EyelinkController` timing.
 
     Parameters
     ----------
     mode : str
         'parallel' for real use. 'dummy', passes all calls.
-    address : str | None
-        The address to use. On Linux this should be a path like
-        '/dev/parport0', on Windows it should be an address like
-        888 (a.k.a. 0x0378).
+    address : str | int | None
+        The address to use. On Linux this should be a string path like
+        ``'/dev/parport0'`` (equivalent to None), on Windows it should be an
+        integer address like ``888`` or ``0x378`` (equivalent to None).
     high_duration : float
         Amount of time (seconds) to leave the trigger high whenever
         sending a trigger.
@@ -34,6 +36,9 @@ class ParallelTrigger(object):
 
     Notes
     -----
+    Parallel port activation is enabled by using the ``trigger_controller``
+    argument of :class:`expyfun.ExperimentController`.
+
     On Linux, parallel port may require some combination of the following:
 
         1. ``sudo modprobe ppdev``
@@ -44,58 +49,63 @@ class ParallelTrigger(object):
     The ``parallel`` module must also be installed.
 
     On Windows, you may need to download ``inpout32.dll`` from someplace
-    like:
-
-        http://logix4u.net/InpOutBinaries.zip
+    like http://www.highrez.co.uk/downloads/inpout32/.
     """
     @verbose_dec
-    def __init__(self, mode='dummy', address=None, high_duration=0.001,
+    def __init__(self, mode='dummy', address=None, high_duration=0.005,
                  verbose=None):
         if mode == 'parallel':
-            raise NotImplementedError('Parallel port triggering has not '
-                                      'been sufficiently tested')
-            #self._stamp_trigger = self._parallel_trigger
-            #if 'Linux' in platform.system():
-            #    address = '/dev/parport0' if address is None else address
-            #    import parallel as _p
-            #    self._port = _p.Parallel(address)
-            #    self._set_data = self._port.setData
-            #elif 'Windows' in platform.system():
-            #    from ctypes import windll
-            #    if not hasattr(windll, 'inpout32'):
-            #        raise SystemError('Must have inpout32 installed')
+            if sys.platform.startswith('linux'):
+                address = '/dev/parport0' if address is None else address
+                if not isinstance(address, string_types):
+                    raise ValueError('addrss must be a string or None, got %s '
+                                     'of type %s' % (address, type(address)))
+                from parallel import Parallel
+                self._port = Parallel(address)
+                self._portname = address
+                self._set_data = self._port.setData
+            elif sys.platform.startswith('win'):
+                from ctypes import windll
+                if not hasattr(windll, 'inpout32'):
+                    raise SystemError(
+                        'Must have inpout32 installed, see:\n\n'
+                        'http://www.highrez.co.uk/downloads/inpout32/')
 
-            #    addr = 0x0378 if address is None else address
-            #    base = int(addr, 16) if addr[:2] == '0x' else addr
-            #    self._port = windll.inpout32
-            #    mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
-            #    # Use ECP to put the port into byte mode
-            #    val = int((self._port.Inp32(base + 0x402) & ~mask) | (1 << 5))
-            #    self.port.Out32(base + 0x402, val)
+                base = 0x378 if address is None else address
+                if not isinstance(base, int):
+                    raise ValueError('address must be int or None, got %s of '
+                                     'type %s' % (base, type(base)))
+                self._port = windll.inpout32
+                mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
+                # Use ECP to put the port into byte mode
+                val = int((self._port.Inp32(base + 0x402) & ~mask) | (1 << 5))
+                self._port.Out32(base + 0x402, val)
 
-            #    # Now to make sure the port is in output mode we need to make
-            #    # sure that bit 5 of the control register is not set
-            #    val = int(self._port.Inp32(base + 2) & ~np.uint8(1 << 5))
-            #    self._port.Out32(base + 2, val)
-
-            #    def _set_data(data):
-            #        return self._port.Out32(base, data)
-            #    self._set_data = _set_data
-            #else:
-            #    raise NotImplementedError
+                # Now to make sure the port is in output mode we need to make
+                # sure that bit 5 of the control register is not set
+                val = int(self._port.Inp32(base + 2) & ~np.uint8(1 << 5))
+                self._port.Out32(base + 2, val)
+                self._set_data = lambda data: self._port.Out32(base, data)
+                self._portname = str(base)
+            else:
+                raise NotImplementedError('Parallel port triggering only '
+                                          'supported on Linux and Windows')
         else:  # mode == 'dummy':
-            self._stamp_trigger = self._dummy_trigger
+            self._port = self._portname = None
+            self._trigger_list = list()
+            self._set_data = lambda x: (self._trigger_list.append(x)
+                                        if x != 0 else None)
         self.high_duration = high_duration
+        self.mode = mode
 
-    def _dummy_trigger(self, trig):
+    def __repr__(self):
+        return '<ParallelTrigger : %s (%s)>' % (self.mode, self._portname)
+
+    def _stamp_trigger(self, trig):
         """Fake stamping"""
-        pass
-
-    #def _parallel_trigger(self, trig):
-    #    """Stamp a single byte via parallel port"""
-    #    self._set_data(int(trig))
-    #    wait_secs(self.high_duration)
-    #    self._set_data(0)
+        self._set_data(int(trig))
+        wait_secs(self.high_duration)
+        self._set_data(0)
 
     def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
         """Stamp a list of triggers with a given inter-trigger delay
@@ -120,6 +130,9 @@ class ParallelTrigger(object):
         """
         if hasattr(self, '_port'):
             del self._port
+
+    def __del__(self):
+        return self.close()
 
 
 def decimals_to_binary(decimals, n_bits):

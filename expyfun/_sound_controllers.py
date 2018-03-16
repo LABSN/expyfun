@@ -116,7 +116,6 @@ class PygletSoundController(object):
 
     def play(self):
         self.audio.play()
-        self.ec._stamp_ttl_triggers([1])
 
     def stop(self):
         self.audio.stop()

@@ -30,6 +30,7 @@ Classes:
 
    ExperimentController
    EyelinkController
+   ParallelTrigger
    TDTController
 
 Functions:
