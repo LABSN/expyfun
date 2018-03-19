@@ -368,7 +368,7 @@ class ExperimentController(object):
                                      'tdt is used for audio')
                 self._tc = self._ac
             elif trigger_controller['type'] in ['parallel', 'dummy']:
-                if 'address' not in trigger_controller['type']:
+                if 'address' not in trigger_controller:
                     addr = get_config('TRIGGER_ADDRESS')
                     trigger_controller['address'] = addr
                 self._tc = ParallelTrigger(

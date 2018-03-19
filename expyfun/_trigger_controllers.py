@@ -72,6 +72,8 @@ class ParallelTrigger(object):
                         'http://www.highrez.co.uk/downloads/inpout32/')
 
                 base = 0x378 if address is None else address
+                if isinstance(base, string_types):
+                    base = int(base, 16)
                 if not isinstance(base, int):
                     raise ValueError('address must be int or None, got %s of '
                                      'type %s' % (base, type(base)))
