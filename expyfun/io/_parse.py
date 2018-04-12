@@ -107,7 +107,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok',
         header.append(header.pop(header.index(group_end)))
         b2s = np.where([line[1] == group_end for line in lines])[0]
     if len(b1s) != len(b2s) or not np.all(b1s < b2s):
-        raise RuntimeError('bad bounds in %s:\n{0}\n{1}'
+        raise RuntimeError('bad bounds in {0}:\n{1}\n{2}'
                            .format(fname, b1s, b2s))
     data = []
     for b1, b2 in zip(b1s, b2s):
