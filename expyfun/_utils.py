@@ -19,7 +19,10 @@ import json
 from functools import partial
 from distutils.version import LooseVersion
 from numpy import sqrt, convolve, ones
-from numpy.testing.decorators import skipif
+try:
+    from numpy.testing import skipif
+except ImportError:
+    from numpy.testing.decorators import skipif
 import logging
 import datetime
 from timeit import default_timer as clock
