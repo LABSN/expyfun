@@ -315,7 +315,7 @@ def rt_chisq(x, axis=None, warn=True):
     return peak
 
 
-def dprime(hmfc, zero_correction=True, return_bias=False):
+def dprime(hmfc, zero_correction=True, return_bias=False, two_interval=False):
     u"""Estimate d′ and bias.
 
     Parameters
@@ -328,6 +328,9 @@ def dprime(hmfc, zero_correction=True, return_bias=False):
         division-by-zero leading to infinite d-prime values.
     return_bias : bool
         If True, also return the bias.
+    two_interval : bool
+    	If True, apply a correction factor for two-interval two-alternative
+    	forced choice paradigms (see Notes).
 
     Returns
     -------
@@ -347,10 +350,18 @@ def dprime(hmfc, zero_correction=True, return_bias=False):
 
         -(Z(hit_rate) + Z(false_alarm_rate)) / 2.
 
-    For two-alternative forced-choice tasks, it is recommended to enter correct
-    trials as hits and incorrect trials as false alarms, and enter misses and
-    correct rejections as 0. An alternative is to use ``dprime_2afc()``, which
-    wraps to ``dprime()`` and does this assignment for you.
+    where ``Z`` is the inverse of the cumulative distribution function for a
+    standard normal distribution (AKA the percent point function). For two-
+    interval two-alternative forced-choice tasks, Macmillan & Creelman [1]_
+    recommend modifying the d′ calculation to account for the presentation of
+    two stimuli per trial (one in each interval) by dividing by ``sqrt(2)``::
+
+        (Z(hit_rate) - Z(false_alarm_rate)) / sqrt(2)
+
+    References
+    ----------
+    Macmillan & Creelman (2005). Detection theory: a user’s guide (2nd ed.).
+    Mahwah, NJ: Lawrence Erlbaum Associates, pp. 166-170.
     """
     hmfc = _check_dprime_inputs(hmfc)
     a = 0.5 if zero_correction else 0.0
@@ -358,53 +369,23 @@ def dprime(hmfc, zero_correction=True, return_bias=False):
                        (hmfc[..., 0] + hmfc[..., 1] + 2 * a))
     z_fr = ss.norm.ppf((hmfc[..., 2] + a) /
                        (hmfc[..., 2] + hmfc[..., 3] + 2 * a))
-    dp = z_hr - z_fr
+    cf = 1. / np.sqrt(2) if two_interval else 1.
+    dp = cf * (z_hr - z_fr)
     bias = (z_hr + z_fr) / -2.
     return (dp, bias) if return_bias else dp
 
 
-def dprime_2afc(hm, zero_correction=True):
-    """Estimates d-prime for two-alternative forced-choice paradigms.
-
-    Parameters
-    ----------
-    hm : array-like
-        Correct trials (hits) and incorrect trials (misses), in that order, as
-        array-like data with last dimension having size 4.
-    zero_correction : bool
-        Whether to add a correction factor of 0.5 to each category to prevent
-        division-by-zero leading to infinite d-prime values.
-
-    Returns
-    -------
-    dp : array-like
-        Array of dprimes with shape ``hmfc.shape[:-1]``.
-    """
-    hmfc = _check_dprime_inputs(hm, True)
-    return dprime(hmfc, zero_correction)
-
-
-def _check_dprime_inputs(hmfc, tafc=False):
-    """Formats input to dprime() and dprime_2afc().
+def _check_dprime_inputs(hmfc):
+    """Formats input to dprime().
 
     Parameters
     ----------
     hmfc : array-like
         Hit, miss, false-alarm, correct-rejection; or hit, miss for 2AFC.
-    tafc : bool
-        Is this a 2AFC design?
     """
     hmfc = np.asarray(hmfc)
-    if tafc:
-        if hmfc.shape[-1] != 2:
-            raise ValueError('Array must have last dimension 2.')
-    else:
-        if hmfc.shape[-1] != 4:
-            raise ValueError('Array must have last dimension 4')
-    if tafc:
-        z = np.zeros(hmfc.shape[:-1] + (4,), hmfc.dtype)
-        z[..., [0, 2]] = hmfc
-        hmfc = z
+    if hmfc.shape[-1] != 4:
+        raise ValueError('Array must have last dimension 4')
     if hmfc.dtype not in (np.int64, np.int32):
         warnings.warn('Argument (%s) to dprime() cast to np.int64; floating '
                       'point values will have been truncated.' % hmfc.dtype)
