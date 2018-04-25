@@ -250,6 +250,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             err_kwargs['ecolor'] = 'k'
         if 'color' not in bracket_kwargs.keys():
             bracket_kwargs['color'] = '0.3'
+    # fix bar alignment (defaults to 'center' in more recent versions of MPL)
+    if 'align' not in bar_kwargs.keys():
+        bar_kwargs['align'] = 'edge'
     # parse heights
     h = np.array(h)
     if len(h.shape) > 2:
