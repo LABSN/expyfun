@@ -381,7 +381,7 @@ def _check_dprime_inputs(hmfc):
     Parameters
     ----------
     hmfc : array-like
-        Hit, miss, false-alarm, correct-rejection; or hit, miss for 2AFC.
+        Hits, misses, false-alarms, correct-rejections.
     """
     hmfc = np.asarray(hmfc)
     if hmfc.shape[-1] != 4:
