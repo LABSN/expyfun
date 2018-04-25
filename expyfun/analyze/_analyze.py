@@ -360,8 +360,8 @@ def dprime(hmfc, zero_correction=True, return_bias=False, two_interval=False):
 
     References
     ----------
-    Macmillan & Creelman (2005). Detection theory: a user’s guide (2nd ed.).
-    Mahwah, NJ: Lawrence Erlbaum Associates, pp. 166-170.
+    .. [1] Macmillan & Creelman (2005). Detection theory: a user's guide (2nd
+    ed.). Mahwah, NJ: Lawrence Erlbaum Associates, pp. 166-170.
     """
     hmfc = _check_dprime_inputs(hmfc)
     a = 0.5 if zero_correction else 0.0
