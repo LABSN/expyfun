@@ -329,8 +329,8 @@ def dprime(hmfc, zero_correction=True, return_bias=False, two_interval=False):
     return_bias : bool
         If True, also return the bias.
     two_interval : bool
-    	If True, apply a correction factor for two-interval two-alternative
-    	forced choice paradigms (see Notes).
+        If True, apply a correction factor for two-interval two-alternative
+        forced choice paradigms (see Notes).
 
     Returns
     -------
