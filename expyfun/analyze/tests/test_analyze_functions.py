@@ -109,7 +109,8 @@ def test_presses_to_hmfc():
 
 def test_dprime():
     """Test dprime accuracy."""
-    assert_raises(TypeError, ea.dprime, ['foo', 0, 0, 0])
+    assert_raises(IndexError, ea.dprime, 'foo')
+    assert_raises(ValueError, ea.dprime, ['foo', 0, 0, 0])
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         ea.dprime((1.1, 0, 0, 0))
