@@ -108,8 +108,9 @@ def test_presses_to_hmfc():
 
 
 def test_dprime():
-    """Test dprime and dprime_2afc accuracy."""
-    assert_raises(TypeError, ea.dprime, 'foo', 0, 0, 0)
+    """Test dprime accuracy."""
+    assert_raises(IndexError, ea.dprime, 'foo')
+    assert_raises(ValueError, ea.dprime, ['foo', 0, 0, 0])
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         ea.dprime((1.1, 0, 0, 0))
@@ -125,11 +126,8 @@ def test_dprime():
         assert_allclose(ea.dprime(resp, return_bias=True),
                         want, atol=1e-5)
     assert_allclose([np.inf, -np.inf], ea.dprime((1, 0, 2, 1), False, True))
-    assert_equal(ea.dprime((5, 0, 1, 0)), ea.dprime_2afc((5, 1)))
     assert_raises(ValueError, ea.dprime, np.ones((5, 4, 3)))
     assert_raises(ValueError, ea.dprime, (1, 2, 3))
-    assert_raises(ValueError, ea.dprime_2afc, (1, 2, 3))
-    assert_equal(np.sum(ea.dprime_2afc([[5, 1], [1, 5]])), 0)
     # test simple larger dimensionality support
     assert_equal(ea.dprime((5, 0, 1, 0)), ea.dprime([[[5, 0, 1, 0]]])[0][0])
 
