@@ -5,7 +5,8 @@ Analysis demo
 =============
 
 This example simulates some 2AFC data and demonstrates the analysis
-functions ``dprime()`` and ``barplot()``.
+functions :func:`expyfun.analyze.dprime` and
+:func:`expyfun.analyze.barplot()`.
 """
 # Author: Dan McCloy <drmccloy@uw.edu>
 #
