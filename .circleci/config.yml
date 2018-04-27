@@ -49,7 +49,7 @@ jobs:
       - image: circleci/python:3.6-stretch
     steps:
       - attach_workspace:
-          at: /tmp/build
+          at: /tmp/_build
       - run:
           name: upload
           command: |
@@ -61,7 +61,7 @@ jobs:
             git checkout master
             git pull origin master
             rm -Rf ~/labsn.github.io/expyfun
-            cp -a /tmp/build/html ~/labsn.github.io/expyfun
+            cp -a /tmp/_build/html ~/labsn.github.io/expyfun
             git add -A
             git commit -m "CircleCI update of docs (${CIRCLE_BUILD_NUM})."
             git push origin master

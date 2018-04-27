@@ -11,7 +11,7 @@ from expyfun._utils import _TempDir
 from expyfun._git import _has_git
 
 
-def test_version():
+def test_version_assertions():
     """Test version assertions."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -21,7 +21,8 @@ def test_version():
         assert_version(__version__[-7:])
     assert all('actual' in str(ww.message) for ww in w)
 
-    for want_version in ('090948e', 'cae6bc3', 'b6e8a81'):  # old, broken, new
+    # old, broken, new
+    for wi, want_version in enumerate(('090948e', 'cae6bc3', 'b6e8a81')):
         print('Running %s' % want_version)
         tempdir = _TempDir()
         if not _has_git:

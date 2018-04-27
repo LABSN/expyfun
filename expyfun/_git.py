@@ -83,6 +83,9 @@ def download_version(version='current', dest_dir=None):
     sys.path.insert(0, expyfun_dir)
     orig_stdout = sys.stdout
     try:
+        # on pytest with Py3k this can be problematic
+        if 'setup' in sys.modules:
+            del sys.modules['setup']
         import setup
         reload(setup)
         setup_version = setup.git_version()
