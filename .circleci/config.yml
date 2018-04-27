@@ -26,7 +26,6 @@ jobs:
           command: |
             conda update --yes --quiet conda;
             conda create -n circleenv --yes pip python=3.6 pip
-            sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python3.6/site.py
             conda install -n circleenv --yes numpy scipy matplotlib sphinx pillow six pandas traits h5py
             python -c "import h5py"
             pip install https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
