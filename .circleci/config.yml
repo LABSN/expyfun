@@ -1,0 +1,80 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6-stretch
+    steps:
+      # Get our data and merge with upstream
+      - checkout
+      - run: echo $(git log -1 --pretty=%B) | tee gitlog.txt
+      - run: echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+      - run:
+         command: |
+           if [[ $(cat merge.txt) != "" ]]; then
+             echo "Merging $(cat merge.txt)";
+             git pull --ff-only origin "refs/pull/$(cat merge.txt)/merge";
+           fi
+      - run: sudo apt-get install libavbin-dev libavbin0;
+      - run: echo "export DISPLAY=:99" >> $BASH_ENV
+      - run: echo "export PATH=~/miniconda/envs/circleenv/bin:~/miniconda/bin:$PATH" >> $BASH_ENV
+      - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      - run:
+          command: |
+            wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
+            chmod +x ~/miniconda.sh;
+            ~/miniconda.sh -b -p ~/miniconda;
+      - run:
+          command: |
+            conda update --yes --quiet conda;
+            conda create -n circleenv --yes pip python=3.6 pip
+            sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python3.6/site.py
+            conda install -n circleenv --yes numpy scipy matplotlib sphinx pillow six pandas traits h5py
+            python -c "import h5py"
+            pip install https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
+            pip install sphinx_bootstrap_theme numpydoc mne pyglet==1.2.4;
+      - run: python -c "import mne; mne.sys_info()"
+      - run: python setup.py develop
+      - run: cd doc && make html
+
+      - store_artifacts:
+          path: doc/_build/html/
+          destination: html
+
+      - persist_to_workspace:
+          root: doc/_build
+          paths:
+            - html
+
+
+  deploy:
+    docker:
+      - image: circleci/python:3.6-stretch
+    steps:
+      - attach_workspace:
+          at: /tmp/build
+      - run:
+          name: upload
+          command: |
+            echo "Deploying docs."
+            git clone https://github.com/LABSN/labsn.github.io.git ~/labsn.github.io --depth=1
+            git config --global user.email "circle@labsn.github.io"
+            git config --global user.name "Circle CI"
+            cd ~/labsn.github.io
+            git checkout master
+            git pull origin master
+            rm -Rf ~/labsn.github.io/expyfun
+            cp -a /tmp/build/html ~/labsn.github.io/expyfun
+            git add -A
+            git commit -m "CircleCI update of docs (${CIRCLE_BUILD_NUM})."
+            git push origin master
+
+workflows:
+  build_and_deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master

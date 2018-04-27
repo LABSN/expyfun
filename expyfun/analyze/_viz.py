@@ -493,7 +493,5 @@ def plot_screen(screen, ax=None):
         plt.figure()
         ax = plt.axes([0, 0, 1, 1])
     ax.imshow(screen)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    plt.box('off')
+    ax.axis('off')
     return ax
