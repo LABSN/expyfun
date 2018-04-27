@@ -50,8 +50,8 @@ before_install:
     - conda update --yes conda
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
-    - conda install --yes scipy matplotlib nose coverage setuptools
-    - pip install -q coveralls
+    - conda install --yes scipy matplotlib nose coverage setuptools pytest pytest-cov
+    - pip install -q coveralls pytest-sugar
     # install AVbin
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         curl -L https://github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
@@ -61,7 +61,7 @@ before_install:
         dbus-launch pulseaudio --start;
       fi;
     # Only install these deps if necessary (slow on Py3k)
-    - pip install -q nose-timer flake8 pyglet mne six;  # mne is a dependency now that resample is taken from it
+    - pip install -q flake8 pyglet mne six;  # mne is a dependency now that resample is taken from it
     # Full dependencies (pandas, mne-python, h5py, joblib)
     - if [ "${DEPS}" == "full" ]; then
         conda install --yes --quiet pandas h5py;
@@ -72,7 +72,7 @@ install:
     - python setup.py develop
 
 script:
-    - nosetests --with-timer --timer-top-n=10 --with-coverage
+    - pytest expyfun
     - make flake
 
 after_success:
