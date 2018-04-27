@@ -532,7 +532,7 @@ def fetch_data_file(fname):
             with open(fname_out, 'wb') as fid:
                 www = this_urlopen(fname_url, timeout=30.0)
                 try:
-                    fid.write(www.read(timeout=30.0))
+                    fid.write(www.read())
                 finally:
                     www.close()
         except Exception:
