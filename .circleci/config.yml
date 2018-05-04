@@ -41,6 +41,9 @@ jobs:
     docker:
       - image: circleci/python:3.6-stretch
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - d4:4f:25:af:ed:5f:61:01:dc:b6:3a:9e:b5:d6:8d:d1
       - attach_workspace:
           at: /tmp/_build
       - run:
