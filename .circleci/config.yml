@@ -50,7 +50,7 @@ jobs:
           name: upload
           command: |
             echo "Deploying docs."
-            git clone https://github.com/LABSN/labsn.github.io.git ~/labsn.github.io --depth=1
+            git clone git@github.com:/LABSN/labsn.github.io.git ~/labsn.github.io --depth=1
             git config --global user.email "circle@labsn.github.io"
             git config --global user.name "Circle CI"
             cd ~/labsn.github.io
