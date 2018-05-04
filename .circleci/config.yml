@@ -50,6 +50,7 @@ jobs:
           name: upload
           command: |
             echo "Deploying docs."
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:/LABSN/labsn.github.io.git ~/labsn.github.io --depth=1
             git config --global user.email "circle@labsn.github.io"
             git config --global user.name "Circle CI"
