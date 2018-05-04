@@ -15,9 +15,8 @@ ALLSPHINXOPTS   = -d _build/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  html_stable      to make standalone HTML files (stable version)"
-	@echo "  html_dev         to make standalone HTML files (dev version)"
-	@echo "  html_dev-pattern to make standalone HTML files for one example dir (dev version)"
+	@echo "  html             to make standalone HTML files"
+	@echo "  html-pattern     to make standalone HTML files for one example"
 	@echo "  *-noplot     	  to make standalone HTML files without plotting"
 	@echo "  dirhtml          to make HTML files named index.html in directories"
 	@echo "  pickle           to make pickle files"
@@ -35,25 +34,17 @@ clean:
 	-rm -rf auto_tutorials
 	-rm -rf generated
 
-html_stable:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html_stable
+html:
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
-	@echo "Build finished. The HTML pages are in _build/html_stable."
+	@echo "Build finished. The HTML pages are in _build/html."
 
-html_dev:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
-	@echo
-	@echo "Build finished. The HTML pages are in _build/html"
-
-html_dev-pattern:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
+html-pattern:
+	$(SPHINXBUILD) -D plot_gallery=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
-html_dev-noslow:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=fast -b html $(ALLSPHINXOPTS) _build/html
-
-html_dev-noplot:
+html-noplot:
 	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."

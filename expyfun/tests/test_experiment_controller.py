@@ -12,8 +12,6 @@ from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
 
-warnings.simplefilter('always')
-
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
@@ -176,12 +174,10 @@ def test_ec(ac=None, rd=None):
                                       stim_fs=100., suppress_resamp=suppress,
                                       **std_kwargs) as ec:
                 pass
-    warnings.simplefilter('ignore')  # ignore dummy TDT warning
     with ExperimentController(*std_args, audio_controller=this_ac,
                               response_device=this_rd,
                               trigger_controller=this_tc,
                               stim_fs=this_fs, **std_kwargs) as ec:
-        warnings.simplefilter('always')
         assert_true(ec.participant == std_kwargs['participant'])
         assert_true(ec.session == std_kwargs['session'])
         assert_true(ec.exp_name == std_args[0])
@@ -259,7 +255,6 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(noise)  # should go unchecked
         ec.set_rms_checking('wholefile')
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             ec.load_buffer(click)  # should pass
             assert_equal(len(w), 0)
             ec.load_buffer(noise)
@@ -395,13 +390,11 @@ def test_tdtpy_failure(ac=None, rd=None):
 @_hide_window
 def test_button_presses_and_window_size():
     """Test EC window_size=None and button press capture."""
-    warnings.simplefilter('ignore')  # esc as quit key
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
                               output_dir=None, full_screen=False, session='01',
                               participant='foo', trigger_controller='dummy',
                               force_quit='escape', version='dev') as ec:
-        warnings.simplefilter('always')
         ec.listen_presses()
         ec.get_presses()
         assert_equal(ec.get_presses(), [])

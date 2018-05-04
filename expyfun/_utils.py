@@ -530,9 +530,11 @@ def fetch_data_file(fname):
     if not op.isfile(fname_out):
         try:
             with open(fname_out, 'wb') as fid:
-                www = this_urlopen(fname_url, timeout=10.0)
-                fid.write(www.read())
-                www.close()
+                www = this_urlopen(fname_url, timeout=30.0)
+                try:
+                    fid.write(www.read())
+                finally:
+                    www.close()
         except Exception:
             os.remove(fname_out)
             raise

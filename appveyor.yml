@@ -8,7 +8,7 @@ environment:
   global:
     PYTHON: "C:\\conda"
     MINICONDA_VERSION: "latest"
-    CONDA_DEPENDENCIES: "numpy scipy matplotlib coverage nose setuptools h5py pandas"
+    CONDA_DEPENDENCIES: "numpy scipy matplotlib coverage nose setuptools h5py pandas pytest pytest-cov"
     PIP_DEPENDENCIES: "pyglet mne tdtpy"
 
   matrix:
@@ -35,4 +35,4 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the project tests
-  - "nosetests.exe"
+  - "pytest expyfun"
