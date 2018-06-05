@@ -6,7 +6,7 @@ function DownloadAVBin () {
     Write-Host "Arch:" $Env:PYTHON_ARCH
     if ($Env:PYTHON_ARCH -eq "32") {
         $url = "https://staff.washington.edu/larsoner/avbin.dll"
-        $filepath = "C:\Windows\system32\avbin.dll"
+        $filepath = "C:\Windows\SysWOW64\avbin.dll"
     } else {
         $url = "https://staff.washington.edu/larsoner/avbin64.dll"
         $filepath = "C:\Windows\system32\avbin64.dll"

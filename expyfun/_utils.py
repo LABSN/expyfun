@@ -436,7 +436,6 @@ def _has_avbin():
     has = True
     try:
         from pyglet.media.avbin import AVbinSource  # noqa
-        del AVbinSource
     except ImportError:
         try:
             from pyglet.media.sources.avbin import AVbinSource  # noqa
