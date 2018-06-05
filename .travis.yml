@@ -40,7 +40,7 @@ before_install:
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         unset -f cd;
       fi;
-    # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, coveralls, flake8)
+    # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, codecov, flake8)
     # Only use Pulseaudio on 2.7 because on Travis 3.4 causes some strange error...
     - SRC_DIR=${PWD}
     - wget http://repo.continuum.io/miniconda/Miniconda3-latest-${CONDA_OS}-x86_64.sh -O miniconda.sh
@@ -51,7 +51,7 @@ before_install:
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
     - conda install --yes scipy matplotlib nose coverage setuptools pytest pytest-cov
-    - pip install -q coveralls pytest-sugar
+    - pip install -q codecov pytest-sugar
     # install AVbin
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         curl -L https://github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
@@ -77,4 +77,4 @@ script:
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands
-    - coveralls
+    - codecov
