@@ -19,6 +19,7 @@ install:
   - "pip install numpy scipy matplotlib coverage nose setuptools h5py pandas pytest pytest-cov codecov"
   - "pip install pyglet mne tdtpy"
   - "python setup.py develop"
+  - "python -c \"import pyglet; print(pyglet.gl.lib_wgl.gl_lib)\""
 
 build: false  # Not a C# project, build stuff at the test step instead.
 

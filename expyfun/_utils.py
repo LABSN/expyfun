@@ -19,10 +19,6 @@ import json
 from functools import partial
 from distutils.version import LooseVersion
 from numpy import sqrt, convolve, ones
-try:
-    from numpy.testing import skipif
-except ImportError:
-    from numpy.testing.decorators import skipif
 import logging
 import datetime
 from timeit import default_timer as clock
@@ -445,19 +441,29 @@ def _has_avbin():
 
 
 def requires_avbin():
-    return skipif(not _has_avbin(), 'Requires AVbin')
+    import pytest
+    return pytest.mark.skipif(not _has_avbin(), reason='Requires AVbin')
 
 
-requires_opengl21 = skipif(False, 'Appveyor OpenGL too old')
+def requires_opengl21(func):
+    import pytest
+    import pyglet.gl
+    vendor = pyglet.gl.gl_info.get_vendor()
+    version = pyglet.gl.gl_info.get_version()
+    sufficient = pyglet.gl.gl_info.have_version(2, 0)
+    return pytest.mark.skipif(not sufficient,
+                              reason='OpenGL too old: %s %s'
+                              % (vendor, version,))(func)
 
 
 def requires_lib(lib):
+    import pytest
     val = False
     try:
         importlib.import_module(lib)
     except Exception:
         val = True
-    return skipif(val, 'Needs %s' % lib)
+    return pytest.mark.skipif(val, reason='Needs %s' % (lib,))
 
 
 def _has_scipy_version(version):

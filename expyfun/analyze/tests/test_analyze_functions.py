@@ -1,4 +1,5 @@
 from nose.tools import assert_raises, assert_equal, assert_true
+import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 try:
     from scipy.special import logit as splogit
@@ -109,8 +110,9 @@ def test_presses_to_hmfc():
 
 def test_dprime():
     """Test dprime accuracy."""
-    assert_raises(IndexError, ea.dprime, 'foo')
-    assert_raises(ValueError, ea.dprime, ['foo', 0, 0, 0])
+    with pytest.warns(RuntimeWarning, match='cast to'):
+        assert_raises(IndexError, ea.dprime, 'foo')
+        assert_raises(ValueError, ea.dprime, ['foo', 0, 0, 0])
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         ea.dprime((1.1, 0, 0, 0))
