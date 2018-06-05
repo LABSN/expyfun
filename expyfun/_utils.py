@@ -448,8 +448,7 @@ def requires_avbin():
     return skipif(not _has_avbin(), 'Requires AVbin')
 
 
-_is_appveyor = (os.getenv('APPVEYOR', 'False').lower() == 'true')
-requires_opengl21 = skipif(_is_appveyor, 'Appveyor OpenGL too old')
+requires_opengl21 = skipif(False, 'Appveyor OpenGL too old')
 
 
 def requires_lib(lib):
