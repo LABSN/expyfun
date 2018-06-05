@@ -11,16 +11,13 @@ platform:
     -x64
 
 install:
-  - "SET PATH=%APPVEYOR_BUILD_FOLDER%;%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "SET _EXPYFUN_SILENT=true"
-  - "powershell Get-Childitem –Path C:\\ -Include *opengl* -Recurse -ErrorAction SilentlyContinue"
   - "python --version"
   - "powershell make/get_avbin.ps1"
-  - "powershell make/get_opengl.ps1"
   - "pip install numpy scipy matplotlib coverage nose setuptools h5py pandas pytest pytest-cov codecov"
   - "pip install pyglet mne tdtpy"
   - "python setup.py develop"
-  - "python -c \"import pyglet; print(pyglet.gl.lib_wgl.gl_lib)\""
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
