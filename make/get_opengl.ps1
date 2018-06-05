@@ -16,7 +16,7 @@ function DownloadMesaOpenGL ($architecture) {
     if ($architecture -eq "32") {
         $filepath = "C:\Windows\system32\opengl32.dll"
     } else {
-        $filepath = "C:\Windows\SysWOW64\opengl32.dll"
+        $filepath = "C:\Windows\system32\opengl32.dll"
     }
     # Download and retry up to 3 times in case of network transient errors.
     $url = $MESA_GL_URL + "opengl32_mingw_" + $architecture + ".dll"
