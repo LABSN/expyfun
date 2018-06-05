@@ -432,14 +432,21 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
-def requires_avbin():
+def _has_avbin():
+    has = True
     try:
-        from pyglet.media.avbin import AVbinSource
+        from pyglet.media.avbin import AVbinSource  # noqa
         del AVbinSource
-        _has_avbin = True
     except ImportError:
-        _has_avbin = False
-    return skipif(not _has_avbin, 'Requires AVbin')
+        try:
+            from pyglet.media.sources.avbin import AVbinSource  # noqa
+        except ImportError:
+            has = False
+    return has
+
+
+def requires_avbin():
+    return skipif(not _has_avbin(), 'Requires AVbin')
 
 
 _is_appveyor = (os.getenv('APPVEYOR', 'False').lower() == 'true')
@@ -548,7 +555,7 @@ def get_config_path():
     -------
     config_path : str
         The path to the expyfun configuration file. On windows, this
-        will be '%APPDATA%\.expyfun\expyfun.json'. On every other
+        will be '%APPDATA%\\.expyfun\\expyfun.json'. On every other
         system, this will be $HOME/.expyfun/expyfun.json.
     """
     val = op.join(_get_user_home_path(), '.expyfun', 'expyfun.json')

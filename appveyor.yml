@@ -23,7 +23,7 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Ensure that AVBin works
-  - "python -c \"from pyglet.media.avbin import AVbinSource\""
+  - "python -c \"import expyfun; assert expyfun._utils._has_avbin()\""
   # Run the project tests
   - "pytest expyfun --cov=expyfun"
 
