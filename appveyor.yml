@@ -13,7 +13,7 @@ platform:
 install:
   - "SET PATH=%APPVEYOR_BUILD_FOLDER%;%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "SET _EXPYFUN_SILENT=true"
-  - "powershell Get-Childitem –Path C:\\ -Include *opengl* -File -Recurse -ErrorAction SilentlyContinue"
+  - "powershell Get-Childitem –Path C:\\\\ -Include *opengl* -Recurse -ErrorAction SilentlyContinue"
   - "python --version"
   - "powershell make/get_avbin.ps1"
   - "powershell make/get_opengl.ps1"
