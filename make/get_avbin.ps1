@@ -1,5 +1,3 @@
-$AVBIN_32_URL = "https://staff.washington.edu/larsoner/avbin.dll"
-
 function DownloadAVBin () {
     $webclient = New-Object System.Net.WebClient
     $basedir = $pwd.Path + "\"
