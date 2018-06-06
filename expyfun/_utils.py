@@ -19,10 +19,6 @@ import json
 from functools import partial
 from distutils.version import LooseVersion
 from numpy import sqrt, convolve, ones
-try:
-    from numpy.testing import skipif
-except ImportError:
-    from numpy.testing.decorators import skipif
 import logging
 import datetime
 from timeit import default_timer as clock
@@ -432,27 +428,42 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
-def requires_avbin():
+def _has_avbin():
+    has = True
     try:
-        from pyglet.media.avbin import AVbinSource
-        del AVbinSource
-        _has_avbin = True
+        from pyglet.media.avbin import AVbinSource  # noqa
     except ImportError:
-        _has_avbin = False
-    return skipif(not _has_avbin, 'Requires AVbin')
+        try:
+            from pyglet.media.sources.avbin import AVbinSource  # noqa
+        except ImportError:
+            has = False
+    return has
 
 
-_is_appveyor = (os.getenv('APPVEYOR', 'False').lower() == 'true')
-requires_opengl21 = skipif(_is_appveyor, 'Appveyor OpenGL too old')
+def requires_avbin():
+    import pytest
+    return pytest.mark.skipif(not _has_avbin(), reason='Requires AVbin')
+
+
+def requires_opengl21(func):
+    import pytest
+    import pyglet.gl
+    vendor = pyglet.gl.gl_info.get_vendor()
+    version = pyglet.gl.gl_info.get_version()
+    sufficient = pyglet.gl.gl_info.have_version(2, 0)
+    return pytest.mark.skipif(not sufficient,
+                              reason='OpenGL too old: %s %s'
+                              % (vendor, version,))(func)
 
 
 def requires_lib(lib):
+    import pytest
     val = False
     try:
         importlib.import_module(lib)
     except Exception:
         val = True
-    return skipif(val, 'Needs %s' % lib)
+    return pytest.mark.skipif(val, reason='Needs %s' % (lib,))
 
 
 def _has_scipy_version(version):
@@ -548,7 +559,7 @@ def get_config_path():
     -------
     config_path : str
         The path to the expyfun configuration file. On windows, this
-        will be '%APPDATA%\.expyfun\expyfun.json'. On every other
+        will be '%APPDATA%\\.expyfun\\expyfun.json'. On every other
         system, this will be $HOME/.expyfun/expyfun.json.
     """
     val = op.join(_get_user_home_path(), '.expyfun', 'expyfun.json')

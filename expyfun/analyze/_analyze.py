@@ -388,6 +388,7 @@ def _check_dprime_inputs(hmfc):
         raise ValueError('Array must have last dimension 4')
     if hmfc.dtype not in (np.int64, np.int32):
         warnings.warn('Argument (%s) to dprime() cast to np.int64; floating '
-                      'point values will have been truncated.' % hmfc.dtype)
+                      'point values will have been truncated.' % hmfc.dtype,
+                      RuntimeWarning, stacklevel=3)
         hmfc = hmfc.astype(np.int64)
     return hmfc

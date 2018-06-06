@@ -1,38 +1,31 @@
-# CI on Windows via appveyor
-# This file was based on Olivier Grisel's python-appveyor-demo
-
-# USE PYTHON2.7 OTHERWISE PYGLET INSTALL IS TOO SLOW
-
 environment:
-
-  global:
-    PYTHON: "C:\\conda"
-    MINICONDA_VERSION: "latest"
-    CONDA_DEPENDENCIES: "numpy scipy matplotlib coverage nose setuptools h5py pandas pytest pytest-cov"
-    PIP_DEPENDENCIES: "pyglet mne tdtpy"
-
   matrix:
-    - PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Python27"
       PYTHON_ARCH: "32"
-    - PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "64"
-    - PYTHON_VERSION: "3.5"
+    - PYTHON: "C:\\Python36"
       PYTHON_ARCH: "32"
-    - PYTHON_VERSION: "3.5"
+    - PYTHON: "C:\\Python36-x64"
       PYTHON_ARCH: "64"
 
 platform:
     -x64
 
 install:
-    - "git clone git://github.com/astropy/ci-helpers.git"
-    - "powershell ci-helpers/appveyor/install-miniconda.ps1"
-    - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-    - "activate test"
-    - "SET _EXPYFUN_SILENT=true"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "SET _EXPYFUN_SILENT=true"
+  - "python --version"
+  - "powershell make/get_avbin.ps1"
+  - "pip install numpy scipy matplotlib coverage nose setuptools h5py pandas pytest pytest-cov codecov"
+  - "pip install pyglet mne tdtpy"
+  - "python setup.py develop"
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
+  # Ensure that AVBin works
+  - "python -c \"import expyfun; assert expyfun._utils._has_avbin()\""
   # Run the project tests
-  - "pytest expyfun"
+  - "pytest expyfun --cov=expyfun"
+
+on_success:
+  - "codecov"
