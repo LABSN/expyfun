@@ -1102,7 +1102,8 @@ class ExperimentController(object):
         self._response_handler.check_force_quit()
 
     def text_input(self, stop_key='return', pos=[0, 0], color='white',
-                   font_name='Arial', font_size=24, wrap=False, units='norm'):
+                   font_name='Arial', font_size=24, wrap=False, units='norm',
+                   all_caps=True):
         """Allows participant to input text and view on the screen.
         
         Parameters
@@ -1118,7 +1119,11 @@ class ExperimentController(object):
             else:
                 if letter == 'backspace':
                     text = text[:-1]
+                elif letter == 'space':
+                    text = text.ljust(len(text) + 1)
                 else:
+                    if all_caps:
+                        letter = str.upper(letter)
                     text += letter
                 self.screen_text(text + '|', pos=pos, color=color,
                                  font_name=font_name, font_size=font_size,
