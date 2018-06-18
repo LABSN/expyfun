@@ -1101,6 +1101,31 @@ class ExperimentController(object):
         """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
 
+    def text_input(self, stop_key='return', pos=[0, 0], color='white',
+                   font_name='Arial', font_size=24, wrap=False, units='norm'):
+        """Allows participant to input text and view on the screen.
+        
+        Parameters
+        ----------
+        """
+        stop = False
+        text = str('')
+        while not stop:
+            letter = self.wait_one_press(timestamp=False)
+   
+            if letter == stop_key:
+                stop = True
+            else:
+                if letter == 'backspace':
+                    text = text[:-1]
+                else:
+                    text += letter
+                self.screen_text(text + '|', pos=pos, color=color,
+                                 font_name=font_name, font_size=font_size,
+                                 wrap=wrap, units=units)
+            self.flip()
+        
+
 # ############################## MOUSE METHODS ################################
     def listen_clicks(self):
         """Start listening for mouse clicks.
