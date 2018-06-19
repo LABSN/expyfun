@@ -1113,13 +1113,33 @@ class ExperimentController(object):
         
         Parameters
         ----------
+        stop_key : str
+            The key to exit text input mode.
+        pos : list | tuple
+            x, y position of the text. In the default units (-1 to 1, with
+            positive going up and right) the default is dead center (0, 0).
+        color : matplotlib color
+            The text color.
+        font_name : str
+            The name of the font to use.
+        font_size : float
+            The font size (in points) to use.
+        wrap : bool
+            Whether or not the text will wrap to fit in screen, appropriate
+            for multi-line text. Inappropriate for text requiring
+            precise positioning or centering.
+        units : str
+            Units for `pos`. See `check_units` for options. Applies to
+            `pos` but not `font_size`.
+        all_caps : bool
+            Whether the text should be displayed in all caps.
         """
         letters = string.ascii_letters
         stop = False
         text = str('')
         while not stop:
             letter = self.wait_one_press(timestamp=False)
-   
+
             if letter == stop_key:
                 stop = True
             else:
@@ -1136,7 +1156,7 @@ class ExperimentController(object):
                                  font_name=font_name, font_size=font_size,
                                  wrap=wrap, units=units, log_data=False)
             self.flip()
-        
+
 
 # ############################## MOUSE METHODS ################################
     def listen_clicks(self):
