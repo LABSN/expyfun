@@ -1139,7 +1139,8 @@ class ExperimentController(object):
         text = str('')
         while not stop:
             letter = self.wait_one_press(timestamp=False)
-
+            if letter in letters and all_caps:
+                letter = str.upper(letter)
             if letter == stop_key:
                 stop = True
             else:
@@ -1147,10 +1148,7 @@ class ExperimentController(object):
                     text = text[:-1]
                 elif letter == 'space':
                     text = text.ljust(len(text) + 1)
-                else:
-                    if all_caps:
-                        letter = str.upper(letter)
-                    if letter in letters:
+                elif letter in letters:
                         text += letter
                 self.screen_text(text + '|', pos=pos, color=color,
                                  font_name=font_name, font_size=font_size,
