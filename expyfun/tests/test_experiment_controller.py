@@ -439,6 +439,15 @@ def test_button_presses_and_window_size():
         fake_button_press(ec, '1', 0.3)
         out = ec.wait_for_presses(1.5, live_keys=['1'], timestamp=False)
         assert_equal(out[0], '1')
+        fake_button_press(ec, 'a', 0.3)
+        fake_button_press(ec, 'return', 0.5)
+        ec.text_input()
+        fake_button_press(ec, 'a', 0.3)
+        fake_button_press(ec, 'space', 0.35)
+        fake_button_press(ec, 'backspace', 0.4)
+        fake_button_press(ec, 'comma', 0.45)
+        fake_button_press(ec, 'return', 0.5)
+        ec.text_input()
 
 
 @_hide_window
