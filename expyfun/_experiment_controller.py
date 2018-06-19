@@ -1135,24 +1135,21 @@ class ExperimentController(object):
             Whether the text should be displayed in all caps.
         """
         letters = string.ascii_letters
-        stop = False
         text = str('')
-        while not stop:
+        while True:
             letter = self.wait_one_press(timestamp=False)
-            if letter in letters and all_caps:
-                letter = str.upper(letter)
             if letter == stop_key:
-                stop = True
+                self.flip()
+                break
+            if letter == 'backspace':
+                text = text[:-1]
             else:
-                if letter == 'backspace':
-                    text = text[:-1]
-                elif letter == 'space':
-                    text = text.ljust(len(text) + 1)
-                elif letter in letters:
-                    text += letter
-                self.screen_text(text + '|', pos=pos, color=color,
-                                 font_name=font_name, font_size=font_size,
-                                 wrap=wrap, units=units, log_data=False)
+                letter = ' ' if letter == 'space' else letter
+                letter = letter.upper() if all_caps else letter
+                text += letter if letter in letters or letter == ' ' else ''
+            self.screen_text(text + '|', pos=pos, color=color,
+                             font_name=font_name, font_size=font_size,
+                             wrap=wrap, units=units, log_data=False)
             self.flip()
         return text
 
