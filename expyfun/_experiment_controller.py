@@ -1148,9 +1148,8 @@ class ExperimentController(object):
                 elif letter == 'space':
                     text = text.ljust(len(text) + 1)
                 else:
-                    if all_caps:
+                    if all_caps and letter in letters:
                         letter = str.upper(letter)
-                    if letter in letters:
                         text += letter
                 self.screen_text(text + '|', pos=pos, color=color,
                                  font_name=font_name, font_size=font_size,
