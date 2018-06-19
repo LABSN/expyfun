@@ -15,6 +15,7 @@ import warnings
 from os import path as op
 from functools import partial
 import traceback as tb
+import string
 
 import numpy as np
 
@@ -423,7 +424,8 @@ class ExperimentController(object):
 
 # ############################### SCREEN METHODS ##############################
     def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
-                    font_size=24, wrap=True, units='norm', attr=True):
+                    font_size=24, wrap=True, units='norm', attr=True,
+                    log_data=True):
         """Show some text on the screen.
 
         Parameters
@@ -450,6 +452,8 @@ class ExperimentController(object):
             Should the text be interpreted with pyglet's ``decode_attributed``
             method? This allows inline formatting for text color, e.g.,
             ``'This is {color (255, 0, 0, 255)}red text'``.
+        log_data : bool
+            Whether or not to write a line in the log file.
 
         Returns
         -------
@@ -463,8 +467,9 @@ class ExperimentController(object):
         scr_txt = Text(self, text, pos, color, font_name, font_size,
                        wrap=wrap, units=units, attr=attr)
         scr_txt.draw()
-        self.call_on_next_flip(partial(self.write_data_line, 'screen_text',
-                                       text))
+        if log_data:
+            self.call_on_next_flip(partial(self.write_data_line, 'screen_text',
+                                           text))
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
@@ -1102,13 +1107,14 @@ class ExperimentController(object):
         self._response_handler.check_force_quit()
 
     def text_input(self, stop_key='return', pos=[0, 0], color='white',
-                   font_name='Arial', font_size=24, wrap=False, units='norm',
+                   font_name='Arial', font_size=24, wrap=True, units='norm',
                    all_caps=True):
         """Allows participant to input text and view on the screen.
         
         Parameters
         ----------
         """
+        letters = string.ascii_letters
         stop = False
         text = str('')
         while not stop:
@@ -1124,10 +1130,11 @@ class ExperimentController(object):
                 else:
                     if all_caps:
                         letter = str.upper(letter)
-                    text += letter
+                    if letter in letters:
+                        text += letter
                 self.screen_text(text + '|', pos=pos, color=color,
                                  font_name=font_name, font_size=font_size,
-                                 wrap=wrap, units=units)
+                                 wrap=wrap, units=units, log_data=False)
             self.flip()
         
 
