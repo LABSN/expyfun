@@ -15,6 +15,7 @@ import warnings
 from os import path as op
 from functools import partial
 import traceback as tb
+import string
 
 import numpy as np
 
@@ -423,7 +424,8 @@ class ExperimentController(object):
 
 # ############################### SCREEN METHODS ##############################
     def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
-                    font_size=24, wrap=True, units='norm', attr=True):
+                    font_size=24, wrap=True, units='norm', attr=True,
+                    log_data=True):
         """Show some text on the screen.
 
         Parameters
@@ -450,6 +452,8 @@ class ExperimentController(object):
             Should the text be interpreted with pyglet's ``decode_attributed``
             method? This allows inline formatting for text color, e.g.,
             ``'This is {color (255, 0, 0, 255)}red text'``.
+        log_data : bool
+            Whether or not to write a line in the log file.
 
         Returns
         -------
@@ -463,8 +467,9 @@ class ExperimentController(object):
         scr_txt = Text(self, text, pos, color, font_name, font_size,
                        wrap=wrap, units=units, attr=attr)
         scr_txt.draw()
-        self.call_on_next_flip(partial(self.write_data_line, 'screen_text',
-                                       text))
+        if log_data:
+            self.call_on_next_flip(partial(self.write_data_line, 'screen_text',
+                                           text))
         return scr_txt
 
     def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
@@ -1100,6 +1105,54 @@ class ExperimentController(object):
     def check_force_quit(self):
         """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
+
+    def text_input(self, stop_key='return', pos=[0, 0], color='white',
+                   font_name='Arial', font_size=24, wrap=True, units='norm',
+                   all_caps=True):
+        """Allows participant to input text and view on the screen.
+
+        Parameters
+        ----------
+        stop_key : str
+            The key to exit text input mode.
+        pos : list | tuple
+            x, y position of the text. In the default units (-1 to 1, with
+            positive going up and right) the default is dead center (0, 0).
+        color : matplotlib color
+            The text color.
+        font_name : str
+            The name of the font to use.
+        font_size : float
+            The font size (in points) to use.
+        wrap : bool
+            Whether or not the text will wrap to fit in screen, appropriate
+            for multi-line text. Inappropriate for text requiring
+            precise positioning or centering.
+        units : str
+            Units for `pos`. See `check_units` for options. Applies to
+            `pos` but not `font_size`.
+        all_caps : bool
+            Whether the text should be displayed in all caps.
+        """
+        letters = string.ascii_letters + ' '
+        text = str()
+        while True:
+            letter = self.wait_one_press(timestamp=False)
+            if letter == stop_key:
+                self.flip()
+                break
+            if letter == 'backspace':
+                text = text[:-1]
+            else:
+                letter = ' ' if letter == 'space' else letter
+                letter = letter.upper() if all_caps else letter
+                text += letter if letter in letters else ''
+            self.screen_text(text + '|', pos=pos, color=color,
+                             font_name=font_name, font_size=font_size,
+                             wrap=wrap, units=units, log_data=False)
+            self.flip()
+        return text
+
 
 # ############################## MOUSE METHODS ################################
     def listen_clicks(self):
