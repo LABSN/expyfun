@@ -441,13 +441,13 @@ def test_button_presses_and_window_size():
         assert_equal(out[0], '1')
         fake_button_press(ec, 'a', 0.3)
         fake_button_press(ec, 'return', 0.5)
-        ec.text_input()
+        assert_equal(ec.text_input(), 'A')
         fake_button_press(ec, 'a', 0.3)
         fake_button_press(ec, 'space', 0.35)
         fake_button_press(ec, 'backspace', 0.4)
         fake_button_press(ec, 'comma', 0.45)
         fake_button_press(ec, 'return', 0.5)
-        ec.text_input()
+        assert_equal(ec.text_input(all_caps=False), 'a')
 
 
 @_hide_window
