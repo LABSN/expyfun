@@ -1134,8 +1134,8 @@ class ExperimentController(object):
         all_caps : bool
             Whether the text should be displayed in all caps.
         """
-        letters = string.ascii_letters
-        text = str('')
+        letters = string.ascii_letters + ' '
+        text = str()
         while True:
             letter = self.wait_one_press(timestamp=False)
             if letter == stop_key:
@@ -1146,7 +1146,7 @@ class ExperimentController(object):
             else:
                 letter = ' ' if letter == 'space' else letter
                 letter = letter.upper() if all_caps else letter
-                text += letter if letter in letters or letter == ' ' else ''
+                text += letter if letter in letters else ''
             self.screen_text(text + '|', pos=pos, color=color,
                              font_name=font_name, font_size=font_size,
                              wrap=wrap, units=units, log_data=False)
