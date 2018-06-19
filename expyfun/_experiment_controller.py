@@ -1110,7 +1110,7 @@ class ExperimentController(object):
                    font_name='Arial', font_size=24, wrap=True, units='norm',
                    all_caps=True):
         """Allows participant to input text and view on the screen.
-        
+
         Parameters
         ----------
         stop_key : str
