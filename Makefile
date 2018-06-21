@@ -6,6 +6,9 @@ PYTHON ?= python
 PYTEST ?= pytest
 CTAGS ?= ctags
 
+CODESPELL_SKIPS ?= "*.log,*.doctree,*.pickle,*.png,*.js,*.html,*.orig"
+CODESPELL_DIRS ?= expyfun/ doc/ examples/
+
 all: clean inplace test test-doc
 
 clean-pyc:
@@ -44,7 +47,13 @@ nosetests:
 	rm -f .coverage
 	$(PYTEST) expyfun
 
-test: clean nosetests flake
+codespell:  # running manually
+	@codespell -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
+
+codespell-error:  # running on travis
+	@codespell -i 0 -q 7 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
+
+test: clean nosetests flake codespell-error
 
 test-doc:
 	$(PYTEST) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/

@@ -285,7 +285,7 @@ def rt_chisq(x, axis=None, warn=True):
         >>> import matplotlib.pyplot as plt
         >>> plt.ion()
         >>> x = np.abs(np.random.randn(10000) + 1)
-        >>> lsp = np.linspace(np.floor(np.amin(x)), np.ceil(np.amax(x)), 100)
+        >>> lsp = np.linspace(np.floor(np.min(x)), np.ceil(np.max(x)), 100)
         >>> df, loc, scale = ss.chi2.fit(x, floc=0)
         >>> pdf = ss.chi2.pdf(lsp, df, scale=scale)
         >>> plt.plot(lsp, pdf)

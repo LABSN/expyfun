@@ -593,7 +593,7 @@ def get_config(key, default=None, raise_error=False):
     Parameters
     ----------
     key : str
-        The preference key to look for. The os evironment is searched first,
+        The preference key to look for. The os environment is searched first,
         then the expyfun config file is parsed.
     default : str | None
         Value to return if the key is not found.

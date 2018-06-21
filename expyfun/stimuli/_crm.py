@@ -188,7 +188,7 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
         Number of cores to use. The fastest option, if enabled, is ``'cuda'``.
         If ``None`` it will use all available cores except for one.
     verbose : bool
-        Whether or not to ouput status as stimuli are prepared.
+        Whether or not to output status as stimuli are prepared.
     talker_list : list of dict
         A list of dicts to define which talkers should be prepared. Each dict
         should have keys ``sex`` and ``talker_num``. Default is to prepare all

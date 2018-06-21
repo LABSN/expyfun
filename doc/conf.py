@@ -146,7 +146,7 @@ html_theme_options = {
     'navbar_links': [
         ("API reference", "python_reference"),
         ("Examples", "auto_examples/index"),
-        ("Whats new", "whats_new"),
+        ("What's new", "whats_new"),
     ],
     }
 

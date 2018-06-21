@@ -216,7 +216,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
              'continue.'.format(targstr))
     if prompt:
         notes = [('We will now determine the response of your pupil to sound '
-                  'changes.\n\nYour job is to press the repsonse button '
+                  'changes.\n\nYour job is to press the response button '
                   'as quickly as possible when you hear a "{1}" instead '
                   'of a "{0}".\n\nPress a button to hear the "{0}".'
                   ''.format(tonestr, targstr)),
