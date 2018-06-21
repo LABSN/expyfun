@@ -1133,6 +1133,11 @@ class ExperimentController(object):
             `pos` but not `font_size`.
         all_caps : bool
             Whether the text should be displayed in all caps.
+
+        Returns
+        -------
+        text : str
+            The final input string.
         """
         letters = string.ascii_letters + ' '
         text = str()
@@ -1151,6 +1156,8 @@ class ExperimentController(object):
                              font_name=font_name, font_size=font_size,
                              wrap=wrap, units=units, log_data=False)
             self.flip()
+        self.call_on_next_flip(partial(self.write_data_line, 'text_input',
+                                       text))
         return text
 
 
