@@ -51,7 +51,7 @@ before_install:
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
     - conda install --yes scipy matplotlib nose coverage setuptools pytest pytest-cov
-    - pip install -q codecov pytest-sugar
+    - pip install -q codecov pytest-sugar codespell
     # install AVbin
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         curl -L https://github.com/downloads/AVbin/AVbin/AVbin10.pkg -o AVbin10.pkg;
@@ -74,6 +74,7 @@ install:
 script:
     - pytest expyfun
     - make flake
+    - make codespell-error
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands

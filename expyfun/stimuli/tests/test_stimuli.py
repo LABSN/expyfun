@@ -114,7 +114,7 @@ def test_window_edges():
 
 
 def _voc_similarity(orig, voc):
-    """Quantify envelope similiarity after vocoding."""
+    """Quantify envelope similarity after vocoding."""
     return np.correlate(orig, voc, mode='full').max()
 
 

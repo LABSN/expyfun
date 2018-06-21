@@ -202,7 +202,7 @@ def reconstruct_dealer(fname):
     from ..stimuli import TrackerDealer
     raw = read_tab_raw(fname)
 
-    # find infor on dealer
+    # find info on dealer
     dealer_idx = np.where([r[1] == 'dealer_identify' for r in raw])[0]
     if len(dealer_idx) == 0:
         raise ValueError('There are no TrackerDealers in this file.')

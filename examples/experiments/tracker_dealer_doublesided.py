@@ -30,8 +30,8 @@ chance = 0.5
 # defined such that the step sizes vary for both up v. down (the up step size
 # is larger by a factor of 3) and based on the number of reversals (the first
 # element in each list is the step size until the number of reversals dictated
-# by the second element in change_criteria have occured (i.e. the up step size
-# will be 9 until 5 reversals have occured, then the up step size will be 3.))
+# by the second element in change_criteria have occurred (i.e. the up step size
+# will be 9 until 5 reversals have occurred, then the up step size will be 3.))
 up = 1
 down = 1
 step_size_up = [9, 3]
