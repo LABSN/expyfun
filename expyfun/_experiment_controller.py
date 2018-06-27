@@ -104,7 +104,7 @@ class ExperimentController(object):
         the expected version of the expyfun codebase is being used when running
         experiments. To override version checking (e.g., during development)
         use ``version='dev'``.
-    safe_flipping : bool
+    safe_flipping : bool | None
         If False, do not use ``glFinish`` when flipping. This can restore
         60 Hz on Linux systems where 30 Hz framerates occur, but the timing
         is not necessarily guaranteed, as the `flip` may return before the
@@ -131,7 +131,7 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  check_rms='windowed', suppress_resamp=False, version=None,
-                 enable_video=False, safe_flipping=True, verbose=None):
+                 enable_video=False, safe_flipping=None, verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -153,10 +153,6 @@ class ExperimentController(object):
         self._data_file = None
         self._clock = ZeroClock()
         self._master_clock = self._clock.get_time
-        self.safe_flipping = safe_flipping
-        if not self.safe_flipping:
-            logger.warning('Unsafe flipping mode enabled, flip timing not '
-                           'guaranteed')
 
         # put anything that could fail in this block to ensure proper cleanup!
         try:
@@ -241,6 +237,14 @@ class ExperimentController(object):
             #
             # set up monitor
             #
+            if safe_flipping is None:
+                safe_flipping = not (get_config('SAFE_FLIPPING', '').lower() ==
+                                     'false')
+            if not safe_flipping:
+                logger.warning('Expyfun: Unsafe flipping mode enabled, flip '
+                               'timing not guaranteed')
+            self.safe_flipping = safe_flipping
+
             if screen_num is None:
                 screen_num = int(get_config('SCREEN_NUM', '0'))
             if monitor is None:
