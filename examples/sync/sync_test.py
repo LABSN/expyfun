@@ -5,8 +5,8 @@ A-V sync test
 
 This example tests synchronization between the screen and the audio playback.
 
-.. note: On Linux (w/NVIDIA), XFCE has been observed to give consistent
-         timings, whereas Compiz WMs did not (doubled timings).
+.. note:: On Linux (w/NVIDIA), XFCE has been observed to give consistent
+          timings, whereas Compiz WMs did not (doubled timings).
 """
 # Author: Dan McCloy <drmccloy@uw.edu>
 #
@@ -25,7 +25,7 @@ print(__doc__)
 with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None,
-                          version='dev') as ec:
+                          version='dev', safe_flipping=True) as ec:
     ec.load_buffer(np.r_[0.1, np.zeros(99)])  # RMS == 0.01
     pressed = None
     screenshot = None
