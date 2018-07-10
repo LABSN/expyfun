@@ -1106,8 +1106,9 @@ class ExperimentController(object):
         """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
 
-    def text_input(self, stop_key='return', pos=[0, 0], color='white',
-                   font_name='Arial', font_size=24, wrap=True, units='norm',
+    def text_input(self, stop_key='return', instruction_string='Type '
+                   ' response below', pos=[0, 0], color='white',
+                   font_name='Arial', font_size=24,  wrap=True, units='norm',
                    all_caps=True):
         """Allows participant to input text and view on the screen.
 
@@ -1115,6 +1116,8 @@ class ExperimentController(object):
         ----------
         stop_key : str
             The key to exit text input mode.
+        instruction_string : str
+            A string after the text entry to tell the participant what to do.
         pos : list | tuple
             x, y position of the text. In the default units (-1 to 1, with
             positive going up and right) the default is dead center (0, 0).
@@ -1142,6 +1145,11 @@ class ExperimentController(object):
         letters = string.ascii_letters + ' '
         text = str()
         while True:
+            self.screen_text(instruction_string + '\n\n' + text + '|',
+                             pos=pos, color=color,
+                             font_name=font_name, font_size=font_size,
+                             wrap=wrap, units=units, log_data=False)
+            self.flip()
             letter = self.wait_one_press(timestamp=False)
             if letter == stop_key:
                 self.flip()
@@ -1152,10 +1160,6 @@ class ExperimentController(object):
                 letter = ' ' if letter == 'space' else letter
                 letter = letter.upper() if all_caps else letter
                 text += letter if letter in letters else ''
-            self.screen_text(text + '|', pos=pos, color=color,
-                             font_name=font_name, font_size=font_size,
-                             wrap=wrap, units=units, log_data=False)
-            self.flip()
         self.write_data_line('text_input', text)
         return text
 
