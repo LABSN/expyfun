@@ -137,6 +137,8 @@ class EyelinkController(object):
         Sample rate to use. Must be one of [250, 500, 1000, 2000].
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
+    calbration_keys : list
+        Keys that will trigger recalibration when check_recalibration.
 
     Notes
     -----
@@ -144,7 +146,7 @@ class EyelinkController(object):
     If this was `None`, data will be saved to the current working dir.
     """
     @verbose_dec
-    def __init__(self, ec, link='default', fs=1000, verbose=None):
+    def __init__(self, ec, link='default', fs=1000, verbose=None, calibration_key=['c']):
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
         if link is not None and pylink is None:
@@ -380,6 +382,25 @@ class EyelinkController(object):
         self._ec.flush()
         self._start_recording()
         return fname
+
+    def check_recalibrate(self, keys=None):
+        """Compare key buffer to recalibration keys and calibrate if matched.
+
+        This function always uses the keyboard, so is part of abstraction.
+        """
+        if keys is None:
+            keys = self._ec._response_handler._retrieve_keyboard_events(self.calibration_key)
+        else:
+            if isinstance(keys, string_types):
+                keys = [keys]
+            if isinstance(keys, list):
+                keys = [k for k in keys if k in self.calibration_key]
+            else:
+                raise TypeError('Calibration checking requires a string or '
+                                ' list of strings, not a {}.'
+                                ''.format(type(keys)))
+        if len(keys):
+            self.calibrate(prompt=False)
 
     def _stamp_trial_id(self, ids):
         """Send trial id message
