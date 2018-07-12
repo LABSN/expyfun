@@ -1106,7 +1106,7 @@ class ExperimentController(object):
         """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
 
-    def text_input(self, stop_key='return', instruction_string='Type '
+    def text_input(self, stop_key='return', instruction_string='Type'
                    ' response below', pos=[0, 0], color='white',
                    font_name='Arial', font_size=24,  wrap=True, units='norm',
                    all_caps=True):
