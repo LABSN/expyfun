@@ -450,7 +450,8 @@ def test_button_presses_and_window_size():
         fake_button_press(ec, 'comma', 0.45)
         fake_button_press(ec, 'return', 0.5)
         # XXX this fails on OSX travis for some reason
-        if os.getenv('TRAVIS', '').lower() != 'true' or sys.platform != 'darwin':
+        if (os.getenv('TRAVIS', '').lower() != 'true' or 
+            sys.platform != 'darwin'):
             assert ec.text_input(all_caps=False) == 'a'
 
 
