@@ -962,7 +962,7 @@ class RawImage(object):
             gl.glTexImage2D(
                gl.GL_TEXTURE_2D, 0, gl.GL_RGB,
                image_buffer.shape[1], image_buffer.shape[0], 0,
-               gl.GL_RGB, gl.GL_UNSIGNED_BYTE, data.ctypes.data)
+               gl.GL_RGB, gl.GL_UNSIGNED_BYTE, image_buffer.ctypes.data)
             gl.glFlush()
         else:
             self._sprite = sprite.Sprite(image.ImageData(
