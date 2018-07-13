@@ -936,7 +936,7 @@ class RawImage(object):
             If ``np.float64``, color values must range between 0 and 1.
             ``np.uint8`` is slightly more efficient.
         """
-        from pyglet import image, sprite
+        from pyglet import image, sprite, gl
         if image_buffer.dtype not in (np.float64, np.uint8):
             raise TypeError('image_buffer must be np.float64 or np.uint8')
         if image_buffer.dtype == np.float64:
@@ -952,20 +952,19 @@ class RawImage(object):
         # add alpha channel if necessary
         dims = image_buffer.shape
         fmt = 'RGB' if dims[2] == 3 else 'RGBA'
-        if self._sprite is not None:
-            # Try the faster way
-            # XXX Need to add checks for size and format equivalence!
-            from pyglet import gl
-            assert fmt == 'RGB'  # XXX eventually we should triage this
-            if hasattr(self._sprite._texture, 'owner'):
-                id_ = self._sprite._texture.owner.id
-            else:
-                id_ = self._sprite._texture.id
+        spr = self._sprite
+        if spr is not None and \
+                spr.image.height == image_buffer.shape[0] and \
+                spr.image.width == image_buffer.shape[1]:
+            # Use the faster way
+            fmt = gl.GL_RGB if fmt == 'RGB' else gl.GL_RGBA
+            id_ = getattr(self._sprite._texture, 'owner',
+                          self._sprite._texture).id
             gl.glBindTexture(gl.GL_TEXTURE_2D, id_)
             gl.glTexImage2D(
-               gl.GL_TEXTURE_2D, 0, gl.GL_RGB,
+               gl.GL_TEXTURE_2D, 0, fmt,
                image_buffer.shape[1], image_buffer.shape[0], 0,
-               gl.GL_RGB, gl.GL_UNSIGNED_BYTE, image_buffer.ctypes.data)
+               fmt, gl.GL_UNSIGNED_BYTE, image_buffer.ctypes.data)
             gl.glFlush()
         else:
             self._sprite = sprite.Sprite(image.ImageData(
