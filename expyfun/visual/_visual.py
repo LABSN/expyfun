@@ -937,7 +937,6 @@ class RawImage(object):
             ``np.uint8`` is slightly more efficient.
         """
         from pyglet import image, sprite
-        image_buffer = np.ascontiguousarray(image_buffer)
         if image_buffer.dtype not in (np.float64, np.uint8):
             raise TypeError('image_buffer must be np.float64 or np.uint8')
         if image_buffer.dtype == np.float64:
@@ -949,6 +948,7 @@ class RawImage(object):
         if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
             raise RuntimeError('image_buffer incorrect size: {}'
                                ''.format(image_buffer.shape))
+        image_buffer = np.ascontiguousarray(image_buffer[::-1])
         # add alpha channel if necessary
         dims = image_buffer.shape
         fmt = 'RGB' if dims[2] == 3 else 'RGBA'
@@ -967,7 +967,7 @@ class RawImage(object):
         else:
             self._sprite = sprite.Sprite(image.ImageData(
                 dims[1], dims[0], fmt, image_buffer.tostring(),
-                -dims[1] * dims[2]))
+                dims[1] * dims[2]))
 
     def set_pos(self, pos, units='norm'):
         """Set image position
