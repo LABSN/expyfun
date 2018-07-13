@@ -921,7 +921,7 @@ class RawImage(object):
     """
     def __init__(self, ec, image_buffer, pos=(0, 0), scale=1., units='norm'):
         self._ec = ec
-        self._img = None
+        self._sprite = None
         self.set_image(image_buffer)
         self.set_pos(pos, units)
         self.set_scale(scale)
@@ -952,9 +952,22 @@ class RawImage(object):
         # add alpha channel if necessary
         dims = image_buffer.shape
         fmt = 'RGB' if dims[2] == 3 else 'RGBA'
-        self._sprite = sprite.Sprite(image.ImageData(dims[1], dims[0], fmt,
-                                                     image_buffer.tostring(),
-                                                     -dims[1] * dims[2]))
+        if self._sprite is not None:
+            # Try the faster way
+            # XXX Need to add checks for size and format equivalence!
+            from pyglet import gl
+            assert fmt == 'RGB'  # XXX eventually we should triage this
+            id_ = self._sprite._texture.owner.id
+            gl.glBindTexture(gl.GL_TEXTURE_2D, id_)
+            gl.glTexImage2D(
+               gl.GL_TEXTURE_2D, 0, gl.GL_RGB,
+               image_buffer.shape[1], image_buffer.shape[0], 0,
+               gl.GL_RGB, gl.GL_UNSIGNED_BYTE, data.ctypes.data)
+            gl.glFlush()
+        else:
+            self._sprite = sprite.Sprite(image.ImageData(
+                dims[1], dims[0], fmt, image_buffer.tostring(),
+                -dims[1] * dims[2]))
 
     def set_pos(self, pos, units='norm'):
         """Set image position
