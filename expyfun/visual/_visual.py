@@ -957,7 +957,10 @@ class RawImage(object):
             # XXX Need to add checks for size and format equivalence!
             from pyglet import gl
             assert fmt == 'RGB'  # XXX eventually we should triage this
-            id_ = self._sprite._texture.owner.id
+            if hasattr(self._sprite._texture, 'owner'):
+                id_ = self._sprite._texture.owner.id
+            else:
+                id_ = self._sprite._texture.id
             gl.glBindTexture(gl.GL_TEXTURE_2D, id_)
             gl.glTexImage2D(
                gl.GL_TEXTURE_2D, 0, gl.GL_RGB,
