@@ -146,7 +146,8 @@ class EyelinkController(object):
     If this was `None`, data will be saved to the current working dir.
     """
     @verbose_dec
-    def __init__(self, ec, link='default', fs=1000, verbose=None, calibration_key=['c']):
+    def __init__(self, ec, link='default', fs=1000, verbose=None,
+                 calibration_key=['c']):
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
         if link is not None and pylink is None:
@@ -390,7 +391,8 @@ class EyelinkController(object):
         This function always uses the keyboard, so is part of abstraction.
         """
         if keys is None:
-            keys = self._ec._response_handler._retrieve_keyboard_events(self.calibration_key)
+            check = self.calibration_key
+            keys = self._ec._response_handler._retrieve_keyboard_events(check)
         else:
             if isinstance(keys, string_types):
                 keys = [keys]

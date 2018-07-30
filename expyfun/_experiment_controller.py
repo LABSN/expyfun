@@ -1131,9 +1131,6 @@ class ExperimentController(object):
     def check_force_quit(self):
         """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
-    
-    def check_calibration(self):
-        """Check if calibration interrupt keys were pressed."""
 
     def text_input(self, stop_key='return', pos=[0, 0], color='white',
                    font_name='Arial', font_size=24, wrap=True, units='norm',
