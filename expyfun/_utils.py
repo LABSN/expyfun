@@ -749,6 +749,8 @@ def wait_secs(secs, ec=None):
             win.dispatch_events()
         if ec is not None:
             ec.check_force_quit()
+            for function in ec._on_every_wait:
+                function()
 
 
 def running_rms(signal, win_length):

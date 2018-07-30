@@ -191,6 +191,7 @@ class EyelinkController(object):
         self._current_open_file = None
         logger.debug('EyeLink: Setup complete')
         self._ec.flush()
+        self.calibration_key = calibration_key
 
     def _setup(self, fs=1000):
         """Start up Eyelink
@@ -400,7 +401,7 @@ class EyelinkController(object):
                                 ' list of strings, not a {}.'
                                 ''.format(type(keys)))
         if len(keys):
-            self.calibrate(prompt=False)
+            self.calibrate()
 
     def _stamp_trial_id(self, ids):
         """Send trial id message
