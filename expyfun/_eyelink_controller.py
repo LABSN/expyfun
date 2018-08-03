@@ -147,7 +147,7 @@ class EyelinkController(object):
     """
     @verbose_dec
     def __init__(self, ec, link='default', fs=1000, verbose=None,
-                 calibration_key=('c',):
+                 calibration_key=('c',)):
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
         if link is not None and pylink is None:
