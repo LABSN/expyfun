@@ -389,7 +389,15 @@ class EyelinkController(object):
         """Compare key buffer to recalibration keys and calibrate if matched.
 
         This function always uses the keyboard, so is part of abstraction.
+        
+        Parameters
+        ----------
+        keys : list or string
+            keys to check if prompt recalibration
+        prompt : bool
+            Whether to show the calibration prompt or not
         """
+        calibrate = False
         if keys is None:
             check = self.calibration_key
             keys = self._ec._response_handler._retrieve_keyboard_events(check)
@@ -404,6 +412,8 @@ class EyelinkController(object):
                                 ''.format(type(keys)))
         if len(keys):
             self.calibrate(prompt=prompt)
+            calibrate = True
+        return calibrate
 
     def _stamp_trial_id(self, ids):
         """Send trial id message
@@ -529,7 +539,7 @@ class EyelinkController(object):
         """
         # initialize eye position to be outside of target
         fix_success = False
-
+        calibrate = False
         # sample eye position for el.fix_hold seconds
         time_in = time.time()
         time_out = time_in + max_wait
@@ -538,7 +548,7 @@ class EyelinkController(object):
             raise ValueError('fix_pos must be a 2-element array-like vector')
         fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
         fix_pos = fix_pos[:, 0]
-        while (time.time() < time_out and not
+        while (time.time() < time_out and not calibrate and not
                (fix_success and time.time() - time_in >= fix_time)):
             # sample eye position
             eye_pos = self.get_eye_position()  # in pixels
@@ -549,7 +559,10 @@ class EyelinkController(object):
                 time_in = time.time()
             self._ec._response_handler.check_force_quit()
             self._ec.wait_secs(check_interval)
-
+            calibrate = self.check_recalibrate()
+        # rerun wait_for_fix if recalibrated
+        if calibrate:
+            fix_success = False
         return fix_success
 
     def maintain_fix(self, fix_pos, check_duration, tol=100., period=.250,
