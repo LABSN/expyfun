@@ -389,7 +389,7 @@ class EyelinkController(object):
         """Compare key buffer to recalibration keys and calibrate if matched.
 
         This function always uses the keyboard, so is part of abstraction.
-        
+
         Parameters
         ----------
         keys : list or string
