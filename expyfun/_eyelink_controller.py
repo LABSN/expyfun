@@ -385,7 +385,7 @@ class EyelinkController(object):
         self._start_recording()
         return fname
 
-    def check_recalibrate(self, keys=None):
+    def check_recalibrate(self, keys=None, prompt=True):
         """Compare key buffer to recalibration keys and calibrate if matched.
 
         This function always uses the keyboard, so is part of abstraction.
@@ -403,7 +403,7 @@ class EyelinkController(object):
                                 ' list of strings, not a {}.'
                                 ''.format(type(keys)))
         if len(keys):
-            self.calibrate()
+            self.calibrate(prompt=prompt)
 
     def _stamp_trial_id(self, ids):
         """Send trial id message

@@ -2,7 +2,8 @@ from nose.tools import assert_raises, assert_true
 import warnings
 
 from expyfun import EyelinkController, ExperimentController
-from expyfun._utils import _TempDir, _hide_window, requires_opengl21
+from expyfun._utils import (_TempDir, _hide_window, requires_opengl21,
+                            fake_button_press)
 
 warnings.simplefilter('always')
 
@@ -46,6 +47,9 @@ def test_eyelink_methods():
         # run much of the calibration code, but don't *actually* do it
         el._fake_calibration = True
         el.calibrate(beep=False, prompt=False)
+        fake_button_press(ec, 'c')
+        el.check_recalibrate(prompt=False)
+        el.check_recalibrate('k', prompt=False)
         el._fake_calibration = False
         # missing el_id
         assert_raises(KeyError, ec.identify_trial, ec_id='foo', ttl_id=[0])
