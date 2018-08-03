@@ -689,17 +689,6 @@ class ExperimentController(object):
         function : function | None
             The function to call. If ``None``, all the "on every flip"
             functions will be cleared.
-
-        See Also
-        --------
-        ExperimentController.call_on_next_flip
-
-        Notes
-        -----
-        See `flip_and_play` for order of operations. Can be called multiple
-        times to add multiple functions to the queue. If the function must be
-        called with arguments, use `functools.partial` before passing to
-        `call_on_every_flip`.
         """
         if function is not None:
             self._on_every_wait.append(function)

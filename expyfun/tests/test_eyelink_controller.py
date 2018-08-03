@@ -48,7 +48,7 @@ def test_eyelink_methods():
         el._fake_calibration = True
         el.calibrate(beep=False, prompt=False)
         fake_button_press(ec, 'c')
-        el.check_recalibrate(prompt=False)
+        assert el.check_recalibrate(prompt=False)
         el.check_recalibrate('k', prompt=False)
         el._fake_calibration = False
         # missing el_id
