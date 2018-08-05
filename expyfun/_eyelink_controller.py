@@ -137,8 +137,9 @@ class EyelinkController(object):
         Sample rate to use. Must be one of [250, 500, 1000, 2000].
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
-    calbration_keys : list
-        Keys that will trigger recalibration when check_recalibration.
+    calbration_key : iterable
+        Keys that can be pressed to trigger recalibration when
+        ``EyelinkController.check_recalibrate'' is called.
 
     Notes
     -----
@@ -388,14 +389,20 @@ class EyelinkController(object):
     def check_recalibrate(self, keys=None, prompt=True):
         """Compare key buffer to recalibration keys and calibrate if matched.
 
-        This function always uses the keyboard, so is part of abstraction.
+        The function takes key presses from the key buffer and compares them
+        to EyelinkController 'calibration_keys'. If one of the calibration keys
+        has been pressed prior to calling this function, a new calibration will
+        start. Instead of using the key buffer, keys can also be manually input
+        into the function.
 
         Parameters
         ----------
-        keys : list or string
-            keys to check if prompt recalibration
+        keys : list or string or None
+            Keys to check against the set of calibration keys that trigger a
+            calibration. None if using keys from the key buffer.
         prompt : bool
-            Whether to show the calibration prompt or not
+            Whether to show the calibration prompt screen before starting the
+            calibation procedure,
         """
         calibrate = False
         if keys is None:

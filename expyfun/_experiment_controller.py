@@ -687,7 +687,7 @@ class ExperimentController(object):
         Parameters
         ----------
         function : function | None
-            The function to call. If ``None``, all the "on every flip"
+            The function to call. If ``None``, all the "on every wait"
             functions will be cleared.
         """
         if function is not None:
