@@ -209,7 +209,8 @@ class TrackerUD(object):
             change_indices=[int(s) for s in self._change_indices],
             change_rule=self._change_rule,
             x_min=self._x_min,
-            x_max=self._x_max)))
+            x_max=self._x_max,
+            repeat_limit=self._repeat_limit)))
 
     def respond(self, correct):
         """Update the tracker based on the last response.
