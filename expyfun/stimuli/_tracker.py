@@ -130,7 +130,11 @@ class TrackerUD(object):
                  change_rule='reversals', x_min=None, x_max=None,
                  repeat_limit='reversals'):
         self._callback = _check_callback(callback)
+        if not isinstance(up, int):
+            raise ValueError('up must be an integer')
         self._up = up
+        if not isinstance(down, int):
+            raise ValueError('down must be an integer')
         self._down = down
         if stop_reversals != np.inf and type(stop_reversals) != int:
             raise ValueError('stop_reversals must be an integer or np.inf')
@@ -205,7 +209,8 @@ class TrackerUD(object):
             change_indices=[int(s) for s in self._change_indices],
             change_rule=self._change_rule,
             x_min=self._x_min,
-            x_max=self._x_max)))
+            x_max=self._x_max,
+            repeat_limit=self._repeat_limit)))
 
     def respond(self, correct):
         """Update the tracker based on the last response.
