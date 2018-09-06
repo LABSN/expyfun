@@ -42,6 +42,7 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
         screenshot = ec.screenshot() if screenshot is None else screenshot
         ec.flip()
         ec.stamp_triggers([2, 4, 8])
+        ec.refocus()
         pressed = ec.wait_one_press(0.5)[0] if not building_doc else '8'
         ec.stop()
 
