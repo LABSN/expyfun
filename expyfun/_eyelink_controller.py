@@ -137,6 +137,9 @@ class EyelinkController(object):
         Sample rate to use. Must be one of [250, 500, 1000, 2000].
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
+    calbration_key : iterable
+        Keys that can be pressed to trigger recalibration when
+        ``EyelinkController.check_recalibrate'' is called.
 
     Notes
     -----
@@ -144,7 +147,8 @@ class EyelinkController(object):
     If this was `None`, data will be saved to the current working dir.
     """
     @verbose_dec
-    def __init__(self, ec, link='default', fs=1000, verbose=None):
+    def __init__(self, ec, link='default', fs=1000, verbose=None,
+                 calibration_key=('c',)):
         if link == 'default':
             link = get_config('EXPYFUN_EYELINK', None)
         if link is not None and pylink is None:
@@ -189,6 +193,7 @@ class EyelinkController(object):
         self._current_open_file = None
         logger.debug('EyeLink: Setup complete')
         self._ec.flush()
+        self.calibration_key = calibration_key
 
     def _setup(self, fs=1000):
         """Start up Eyelink
@@ -381,6 +386,42 @@ class EyelinkController(object):
         self._start_recording()
         return fname
 
+    def check_recalibrate(self, keys=None, prompt=True):
+        """Compare key buffer to recalibration keys and calibrate if matched.
+
+        The function takes key presses from the key buffer and compares them
+        to EyelinkController 'calibration_keys'. If one of the calibration keys
+        has been pressed prior to calling this function, a new calibration will
+        start. Instead of using the key buffer, keys can also be manually input
+        into the function.
+
+        Parameters
+        ----------
+        keys : list or string or None
+            Keys to check against the set of calibration keys that trigger a
+            calibration. None if using keys from the key buffer.
+        prompt : bool
+            Whether to show the calibration prompt screen before starting the
+            calibation procedure,
+        """
+        calibrate = False
+        if keys is None:
+            check = self.calibration_key
+            keys = self._ec._response_handler._retrieve_keyboard_events(check)
+        else:
+            if isinstance(keys, string_types):
+                keys = [keys]
+            if isinstance(keys, list):
+                keys = [k for k in keys if k in self.calibration_key]
+            else:
+                raise TypeError('Calibration checking requires a string or '
+                                ' list of strings, not a {}.'
+                                ''.format(type(keys)))
+        if len(keys):
+            self.calibrate(prompt=prompt)
+            calibrate = True
+        return calibrate
+
     def _stamp_trial_id(self, ids):
         """Send trial id message
 
@@ -505,7 +546,7 @@ class EyelinkController(object):
         """
         # initialize eye position to be outside of target
         fix_success = False
-
+        calibrate = False
         # sample eye position for el.fix_hold seconds
         time_in = time.time()
         time_out = time_in + max_wait
@@ -514,7 +555,7 @@ class EyelinkController(object):
             raise ValueError('fix_pos must be a 2-element array-like vector')
         fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
         fix_pos = fix_pos[:, 0]
-        while (time.time() < time_out and not
+        while (time.time() < time_out and not calibrate and not
                (fix_success and time.time() - time_in >= fix_time)):
             # sample eye position
             eye_pos = self.get_eye_position()  # in pixels
@@ -525,7 +566,10 @@ class EyelinkController(object):
                 time_in = time.time()
             self._ec._response_handler.check_force_quit()
             self._ec.wait_secs(check_interval)
-
+            calibrate = self.check_recalibrate()
+        # rerun wait_for_fix if recalibrated
+        if calibrate:
+            fix_success = False
         return fix_success
 
     def maintain_fix(self, fix_pos, check_duration, tol=100., period=.250,

@@ -139,6 +139,7 @@ class ExperimentController(object):
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
         self._on_next_flip = []
+        self._on_every_wait = []
         self._on_trial_ok = []
         # placeholder for extra actions to run on close
         self._extra_cleanup_fun = []  # be aware of order when adding to this
@@ -679,6 +680,20 @@ class ExperimentController(object):
             self._on_every_flip.append(function)
         else:
             self._on_every_flip = []
+
+    def call_on_every_wait(self, function):
+        """Add a function to be executed on every wait.
+
+        Parameters
+        ----------
+        function : function | None
+            The function to call. If ``None``, all the "on every wait"
+            functions will be cleared.
+        """
+        if function is not None:
+            self._on_every_wait.append(function)
+        else:
+            self._on_every_wait = []
 
     def _convert_units(self, verts, fro, to):
         """Convert between different screen units"""
