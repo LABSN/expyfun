@@ -332,7 +332,7 @@ def test_ec(ac=None, rd=None):
         ec.stop()
         assert_true(ec._playing is False)
 
-        ec.call_on_every_wait(ec.write_data_line('waiting'))
+        ec.call_on_every_wait(ec.check_force_quit)
         ec.wait_secs(0.05)
         ec.call_on_every_wait(None)
 
