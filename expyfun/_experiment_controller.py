@@ -1947,18 +1947,18 @@ class ExperimentController(object):
             from pyglet.libs.win32 import _user32
             m_hWnd = self._win._hwnd
             hCurWnd = _user32.GetForegroundWindow()
-            dwMyID = _user32.GetWindowThreadProcessId(m_hWnd, 0)
-            dwCurID = _user32.GetWindowThreadProcessId(hCurWnd, 0)
-            _user32.AttachThreadInput(dwCurID, dwMyID, True)
-            self._win.activate()
-            # _user32.SetWindowPos(m_hWnd, HWND_TOPMOST, 0, 0, 0, 0,
-            #                      SWP_NOSIZE | SWP_NOMOVE)
-            # _user32.SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-            #                      SWP_NOSIZE | SWP_NOMOVE)
-            # _user32.SetForegroundWindow(m_hWnd)
-            # _user32.AttachThreadInput(dwCurID, dwMyID, False)
-            # _user32.SetFocus(m_hWnd)
-            # _user32.SetActiveWindow(m_hWnd)
+            if hCurWnd != m_hWnd:
+                dwMyID = _user32.GetWindowThreadProcessId(m_hWnd, 0)
+                dwCurID = _user32.GetWindowThreadProcessId(hCurWnd, 0)
+                _user32.AttachThreadInput(dwCurID, dwMyID, True)
+                # _user32.SetWindowPos(m_hWnd, HWND_TOPMOST, 0, 0, 0, 0,
+                #                      SWP_NOSIZE | SWP_NOMOVE)
+                # _user32.SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                #                      SWP_NOSIZE | SWP_NOMOVE)
+                self._win.activate()  # _user32.SetForegroundWindow(m_hWnd)
+                _user32.AttachThreadInput(dwCurID, dwMyID, False)
+                _user32.SetFocus(m_hWnd)
+                _user32.SetActiveWindow(m_hWnd)
 
 # ############################## READ-ONLY PROPERTIES #########################
     @property
