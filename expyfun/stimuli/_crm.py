@@ -194,7 +194,7 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
         should have keys ``sex`` and ``talker_num``. Default is to prepare all
         eight talkers (four female, four male), and it is strongly recommended
         to that you do so to avoid headaches. This option is mainly for
-        expedient nose tests.
+        expedient unit tests.
     """
     if path_out is None:
         path_out = join(_get_user_home_path(), '.expyfun', 'data', 'crm')

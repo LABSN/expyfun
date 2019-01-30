@@ -1,4 +1,3 @@
-from nose.tools import assert_raises, assert_equal, assert_true
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 try:
@@ -6,6 +5,7 @@ try:
 except ImportError:
     splogit = None
 import numpy as np
+from numpy.testing import assert_equal
 import warnings
 
 import expyfun.analyze as ea
@@ -15,10 +15,10 @@ warnings.simplefilter('always')
 
 def assert_rts_equal(actual, desired):
     """Helper to assert RTs are equal."""
-    assert_true(isinstance(actual, tuple))
-    assert_true(isinstance(desired, (list, tuple)))
-    assert_equal(len(actual), 2)
-    assert_equal(len(desired), 2)
+    assert isinstance(actual, tuple)
+    assert isinstance(desired, (list, tuple))
+    assert len(actual) == 2
+    assert len(desired) == 2
     kinds = ['hits', 'fas']
     for act, des, kind in zip(actual, desired, kinds):
         assert_allclose(act, des, atol=1e-7,
@@ -102,17 +102,17 @@ def test_presses_to_hmfc():
     assert_hmfc(presses, targets, foils, hmfco, rts)
 
     # Bad inputs
-    assert_raises(ValueError, ea.press_times_to_hmfc,
+    pytest.raises(ValueError, ea.press_times_to_hmfc,
                   presses, targets, foils, tmin, 1.1)
-    assert_raises(ValueError, ea.press_times_to_hmfc,
+    pytest.raises(ValueError, ea.press_times_to_hmfc,
                   presses, targets, foils, tmin, tmax, 'foo')
 
 
 def test_dprime():
     """Test dprime accuracy."""
     with pytest.warns(RuntimeWarning, match='cast to'):
-        assert_raises(IndexError, ea.dprime, 'foo')
-        assert_raises(ValueError, ea.dprime, ['foo', 0, 0, 0])
+        pytest.raises(IndexError, ea.dprime, 'foo')
+        pytest.raises(ValueError, ea.dprime, ['foo', 0, 0, 0])
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         ea.dprime((1.1, 0, 0, 0))
@@ -128,21 +128,21 @@ def test_dprime():
         assert_allclose(ea.dprime(resp, return_bias=True),
                         want, atol=1e-5)
     assert_allclose([np.inf, -np.inf], ea.dprime((1, 0, 2, 1), False, True))
-    assert_raises(ValueError, ea.dprime, np.ones((5, 4, 3)))
-    assert_raises(ValueError, ea.dprime, (1, 2, 3))
+    pytest.raises(ValueError, ea.dprime, np.ones((5, 4, 3)))
+    pytest.raises(ValueError, ea.dprime, (1, 2, 3))
     # test simple larger dimensionality support
-    assert_equal(ea.dprime((5, 0, 1, 0)), ea.dprime([[[5, 0, 1, 0]]])[0][0])
+    assert ea.dprime((5, 0, 1, 0)) == ea.dprime([[[5, 0, 1, 0]]])[0][0]
 
 
 def test_logit():
     """Test logit calculations."""
-    assert_raises(ValueError, ea.logit, 2)
+    pytest.raises(ValueError, ea.logit, 2)
     # On some versions, this throws warnings about divide-by-zero
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        assert_equal(ea.logit(0), -np.inf)
-        assert_equal(ea.logit(1), np.inf)
-    assert_true(ea.logit(1, max_events=1) < np.inf)
+        assert ea.logit(0) == -np.inf
+        assert ea.logit(1) == np.inf
+    assert ea.logit(1, max_events=1) < np.inf
     assert_equal(ea.logit(0.5), 0)
     if splogit is not None:
         # Travis doesn't support scipy.special.logit, but this passes locally:
@@ -150,10 +150,10 @@ def test_logit():
         assert_allclose(ea.logit(foo), splogit(foo))
     foo = np.array([[0, 0.5, 1], [1, 0.5, 0]])
     bar = np.ones_like(foo).astype(int)
-    assert_true(np.all(np.equal(ea.logit(foo, 1), np.zeros_like(foo))))
-    assert_true(np.all(np.equal(ea.logit(foo, [1, 1, 1]), np.zeros_like(foo))))
-    assert_true(np.all(np.equal(ea.logit(foo, bar), np.zeros_like(foo))))
-    assert_raises(ValueError, ea.logit, foo, [1, 1])  # can't broadcast
+    assert_array_equal(ea.logit(foo, 1), np.zeros_like(foo))
+    assert_array_equal(ea.logit(foo, [1, 1, 1]), np.zeros_like(foo))
+    assert_array_equal(ea.logit(foo, bar), np.zeros_like(foo))
+    pytest.raises(ValueError, ea.logit, foo, [1, 1])  # can't broadcast
 
 
 def test_sigmoid():
@@ -162,7 +162,7 @@ def test_sigmoid():
     x = np.random.randn(n_pts)
     p0 = (0., 1., 0., 1.)
     y = ea.sigmoid(x, *p0)
-    assert_true(np.all(np.logical_and(y <= 1, y >= 0)))
+    assert np.all(np.logical_and(y <= 1, y >= 0))
     p = ea.fit_sigmoid(x, y)
     assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
     p = ea.fit_sigmoid(x, y, (0, 1, None, None), ('upper', 'lower'))
@@ -177,14 +177,13 @@ def test_rt_chisq():
     """Test reaction time chi-square fitting."""
     # 1D should return single float
     foo = np.random.rand(30)
-    assert_raises(ValueError, ea.rt_chisq, foo - 1.)
+    pytest.raises(ValueError, ea.rt_chisq, foo - 1.)
     assert_equal(np.array(ea.rt_chisq(foo)).shape, ())
     # 2D should return array with shape of input but without ``axis`` dimension
     foo = np.random.rand(30).reshape((2, 3, 5))
     for axis in range(-1, foo.ndim):
         bar = ea.rt_chisq(foo, axis=axis)
-        assert_true(np.all(np.equal(np.delete(foo.shape, axis),
-                                    np.array(bar.shape))))
+        assert_array_equal(np.delete(foo.shape, axis), np.array(bar.shape))
     foo_bad = np.concatenate((np.random.rand(30), [100.]))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')

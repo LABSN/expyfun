@@ -1002,7 +1002,10 @@ class RawImage(object):
         """Draw the image to the buffer"""
         self._sprite.scale = self._scale
         pos = self._pos - [self._sprite.width / 2., self._sprite.height / 2.]
-        self._sprite.set_position(pos[0], pos[1])
+        try:
+            self._sprite.position = (pos[0], pos[1])
+        except AttributeError:
+            self._sprite.set_position(pos[0], pos[1])
         self._sprite.draw()
 
 

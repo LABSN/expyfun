@@ -9,11 +9,13 @@ import subprocess
 import importlib
 import os
 import os.path as op
+from functools import wraps
 import inspect
 import sys
 import tempfile
 import ssl
 from shutil import rmtree
+from unittest import SkipTest
 import atexit
 import json
 from functools import partial
@@ -472,7 +474,6 @@ def _has_scipy_version(version):
 
 def _hide_window(function):
     """Decorator to hide expyfun Pyglet windows during testing."""
-    import nose
     import pyglet
 
     def dec(*args, **kwargs):
@@ -482,17 +483,10 @@ def _hide_window(function):
             if Player is object:
                 raise RuntimeError
         except Exception:
-            raise nose.plugins.skip.SkipTest('Pyglet windowing unavailable')
-        orig_val = os.getenv('_EXPYFUN_WIN_INVISIBLE')
-        try:
-            os.environ['_EXPYFUN_WIN_INVISIBLE'] = 'true'
-            return function(*args, **kwargs)
-        finally:
-            if orig_val is None:
-                del os.environ['_EXPYFUN_WIN_INVISIBLE']
-            else:
-                os.environ['_EXPYFUN_WIN_INVISIBLE'] = orig_val
-    return nose.tools.make_decorator(function)(dec)
+            raise SkipTest('Pyglet windowing unavailable')
+        return function(*args, **kwargs)
+
+    return wraps(function)(dec)
 
 
 ###############################################################################

@@ -43,7 +43,7 @@ in: inplace # just a shortcut
 inplace:
 	$(PYTHON) setup.py build_ext -i
 
-nosetests:
+pytest:
 	rm -f .coverage
 	$(PYTEST) expyfun
 
@@ -53,7 +53,7 @@ codespell:  # running manually
 codespell-error:  # running on travis
 	@codespell -i 0 -q 7 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
 
-test: clean nosetests flake codespell-error
+test: clean pytest flake codespell-error
 
 test-doc:
 	$(PYTEST) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/

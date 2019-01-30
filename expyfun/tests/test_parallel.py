@@ -2,7 +2,7 @@
 
 import numpy as np
 import warnings
-from nose.tools import assert_raises
+import pytest
 from numpy.testing import assert_array_equal
 
 from expyfun._parallel import parallel_func, _check_n_jobs
@@ -18,7 +18,7 @@ def fun(x):
 @requires_lib('joblib')
 def test_parallel():
     """Test parallel support."""
-    assert_raises(TypeError, _check_n_jobs, 'foo')
+    pytest.raises(TypeError, _check_n_jobs, 'foo')
     parallel, p_fun, _ = parallel_func(fun, 1)
     a = np.array(parallel(p_fun(x) for x in range(10)))
     parallel, p_fun, _ = parallel_func(fun, 2)

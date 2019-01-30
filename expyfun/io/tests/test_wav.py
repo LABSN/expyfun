@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from nose.tools import assert_equal, assert_raises
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+import pytest
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
 from os import path as op
 import warnings
 
@@ -26,7 +27,7 @@ def test_read_write_wav():
     assert_array_almost_equal(data[np.newaxis, :], data_read, 4)
 
     # test our overwrite check
-    assert_raises(IOError, write_wav, fname, data, fs)
+    pytest.raises(IOError, write_wav, fname, data, fs)
 
     # test forcing fs dtype to int
     with warnings.catch_warnings(record=True) as w:
@@ -35,7 +36,7 @@ def test_read_write_wav():
         assert_equal(len(w), 1)
 
     # Use 64-bit int: not supported
-    assert_raises(RuntimeError, write_wav, fname, data, fs, dtype=np.int64,
+    pytest.raises(RuntimeError, write_wav, fname, data, fs, dtype=np.int64,
                   overwrite=True)
 
     # Use 32-bit int: better
@@ -57,7 +58,7 @@ def test_read_write_wav():
         assert_equal(fs_read, fs)
         assert_array_equal(data[np.newaxis, :], data_read)
     else:
-        assert_raises(RuntimeError, write_wav, fname, data, fs,
+        pytest.raises(RuntimeError, write_wav, fname, data, fs,
                       dtype=np.float32, overwrite=True)
 
     # Now try multi-dimensional data
@@ -68,4 +69,4 @@ def test_read_write_wav():
     assert_array_almost_equal(data, data_read, 4)
 
     # Make sure our bound check works
-    assert_raises(ValueError, write_wav, fname, data * 2, fs, overwrite=True)
+    pytest.raises(ValueError, write_wav, fname, data * 2, fs, overwrite=True)

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 from os import path as op
-import warnings
 
 import pytest
 
@@ -11,15 +10,13 @@ from expyfun._utils import _TempDir
 from expyfun._git import _has_git
 
 
+@pytest.mark.timeout(15)  # can be slow to download
 def test_version_assertions():
     """Test version assertions."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        pytest.raises(TypeError, assert_version, 1)
-        pytest.raises(TypeError, assert_version, '1' * 8)
-        pytest.raises(AssertionError, assert_version, 'x' * 7)
-        assert_version(__version__[-7:])
-    assert all('actual' in str(ww.message) for ww in w)
+    pytest.raises(TypeError, assert_version, 1)
+    pytest.raises(TypeError, assert_version, '1' * 8)
+    pytest.raises(AssertionError, assert_version, 'x' * 7)
+    assert_version(__version__[-7:])
 
     # old, broken, new
     for wi, want_version in enumerate(('090948e', 'cae6bc3', 'b6e8a81')):
@@ -33,7 +30,8 @@ def test_version_assertions():
             pytest.raises(RuntimeError, download_version, 'x' * 7, tempdir)
             ex_dir = op.join(tempdir, 'expyfun')
             assert not op.isdir(ex_dir)
-            download_version(want_version, tempdir)
+            with pytest.warns(None):  # Sometimes warns
+                download_version(want_version, tempdir)
             assert op.isdir(ex_dir)
             assert op.isfile(op.join(ex_dir, '__init__.py'))
             got_fname = op.join(ex_dir, '_version.py')

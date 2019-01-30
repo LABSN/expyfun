@@ -1163,8 +1163,8 @@ class ExperimentController(object):
         self.write_data_line('text_input', text)
         return text
 
-
 # ############################## MOUSE METHODS ################################
+
     def listen_clicks(self):
         """Start listening for mouse clicks.
 
