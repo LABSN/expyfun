@@ -67,6 +67,9 @@ before_install:
         conda install --yes --quiet pandas h5py;
         pip install -q joblib;
       fi;
+    # Import matplotlib ahead of time so it doesn't affect test timings
+    # (e.g., building fc-cache)
+    - python -c "import matplotlib.pyplot as plt"
 
 install:
     - python setup.py develop
