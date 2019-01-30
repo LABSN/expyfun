@@ -50,7 +50,7 @@ before_install:
     - conda update --yes conda
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
-    - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov
+    - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout
     - pip install -q codecov pytest-sugar codespell
     # install AVbin
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then

@@ -476,6 +476,7 @@ def _hide_window(function):
     """Decorator to hide expyfun Pyglet windows during testing."""
     import pyglet
 
+    @wraps(function)
     def dec(*args, **kwargs):
         try:
             pyglet.window.get_platform().get_default_display()
@@ -486,7 +487,7 @@ def _hide_window(function):
             raise SkipTest('Pyglet windowing unavailable')
         return function(*args, **kwargs)
 
-    return wraps(function)(dec)
+    return dec
 
 
 ###############################################################################

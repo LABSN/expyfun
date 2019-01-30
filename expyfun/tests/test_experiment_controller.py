@@ -101,8 +101,8 @@ def test_data_line():
     assert (np.all(ts[1:] >= ts[:-1]))
 
 
-@_hide_window
 @pytest.mark.parametrize('ac, rd', ((None, None), ('tdt', 'tdt')))
+@_hide_window
 def test_ec(ac, rd):
     """Test EC methods."""
     if ac is None:

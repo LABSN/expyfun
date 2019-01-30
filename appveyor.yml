@@ -13,7 +13,7 @@ install:
   - "SET _EXPYFUN_SILENT=true"
   - "python --version"
   - "powershell make/get_avbin.ps1"
-  - "pip install numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov codecov pyglet mne tdtpy"
+  - "pip install numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy"
   - "python setup.py develop"
 
 build: false  # Not a C# project, build stuff at the test step instead.

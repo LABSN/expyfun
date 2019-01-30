@@ -9,8 +9,8 @@ std_kwargs = dict(participant='foo', session='01', full_screen=False,
                   window_size=(1, 1), verbose=True, noise_db=0, version='dev')
 
 
-@_hide_window
 @pytest.mark.parametrize('ac', ('pyglet', 'tdt'))
+@_hide_window
 def test_logging(ac, tmpdir):
     """Test logging to file (Pyglet)."""
     orig_dir = os.getcwd()
