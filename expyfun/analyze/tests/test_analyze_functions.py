@@ -6,11 +6,8 @@ except ImportError:
     splogit = None
 import numpy as np
 from numpy.testing import assert_equal
-import warnings
 
 import expyfun.analyze as ea
-
-warnings.simplefilter('always')
 
 
 def assert_rts_equal(actual, desired):
@@ -113,10 +110,8 @@ def test_dprime():
     with pytest.warns(RuntimeWarning, match='cast to'):
         pytest.raises(IndexError, ea.dprime, 'foo')
         pytest.raises(ValueError, ea.dprime, ['foo', 0, 0, 0])
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='truncated'):
         ea.dprime((1.1, 0, 0, 0))
-    assert_equal(len(w), 1)
     for resp, want in (
             ((1, 1, 1, 1), [0, 0]),
             ((1, 0, 0, 1), [1.34898, 0.]),
@@ -138,12 +133,11 @@ def test_logit():
     """Test logit calculations."""
     pytest.raises(ValueError, ea.logit, 2)
     # On some versions, this throws warnings about divide-by-zero
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
+    with np.errstate(divide='ignore'):
         assert ea.logit(0) == -np.inf
         assert ea.logit(1) == np.inf
     assert ea.logit(1, max_events=1) < np.inf
-    assert_equal(ea.logit(0.5), 0)
+    assert ea.logit(0.5) == 0
     if splogit is not None:
         # Travis doesn't support scipy.special.logit, but this passes locally:
         foo = np.random.rand(5)
@@ -165,7 +159,8 @@ def test_sigmoid():
     assert np.all(np.logical_and(y <= 1, y >= 0))
     p = ea.fit_sigmoid(x, y)
     assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
-    p = ea.fit_sigmoid(x, y, (0, 1, None, None), ('upper', 'lower'))
+    with pytest.warns(None):  # scipy convergence
+        p = ea.fit_sigmoid(x, y, (0, 1, None, None), ('upper', 'lower'))
     assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
 
     y += np.random.rand(n_pts) * 0.01
@@ -185,7 +180,5 @@ def test_rt_chisq():
         bar = ea.rt_chisq(foo, axis=axis)
         assert_array_equal(np.delete(foo.shape, axis), np.array(bar.shape))
     foo_bad = np.concatenate((np.random.rand(30), [100.]))
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(UserWarning, match='1 likely bad'):
         bar = ea.rt_chisq(foo_bad)
-    assert_equal(len(w), 1)  # warn that there was a likely bad value

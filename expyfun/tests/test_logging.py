@@ -1,10 +1,8 @@
 import os
-import warnings
 
-from expyfun._utils import _TempDir, _hide_window
+import pytest
+from expyfun._utils import _hide_window
 from expyfun import ExperimentController
-
-warnings.simplefilter('always')
 
 std_args = ['test']
 std_kwargs = dict(participant='foo', session='01', full_screen=False,
@@ -12,11 +10,11 @@ std_kwargs = dict(participant='foo', session='01', full_screen=False,
 
 
 @_hide_window
-def test_logging(ac='pyglet'):
+@pytest.mark.parametrize('ac', ('pyglet', 'tdt'))
+def test_logging(ac, tmpdir):
     """Test logging to file (Pyglet)."""
-    tempdir = _TempDir()
     orig_dir = os.getcwd()
-    os.chdir(tempdir)
+    os.chdir(str(tmpdir))
     try:
         with ExperimentController(*std_args, audio_controller=ac,
                                   response_device='keyboard',
@@ -25,8 +23,7 @@ def test_logging(ac='pyglet'):
             test_name = ec._log_file
             stamp = ec.current_time
             ec.wait_until(stamp)  # wait_until called w/already passed timest.
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter('always')
+            with pytest.warns(UserWarning, match='RMS'):
                 ec.load_buffer([1., -1., 1., -1., 1., -1.])  # RMS warning
 
         with open(test_name) as fid:
@@ -47,9 +44,3 @@ def test_logging(ac='pyglet'):
                                  ''.format(s, data))
     finally:
         os.chdir(orig_dir)
-
-
-def test_logging_tdt():
-    """Test logging to file (TDT)
-    """
-    test_logging(ac='tdt')

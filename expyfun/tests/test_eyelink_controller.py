@@ -1,10 +1,7 @@
 import pytest
-import warnings
 
 from expyfun import EyelinkController, ExperimentController
 from expyfun._utils import _TempDir, _hide_window, requires_opengl21
-
-warnings.simplefilter('always')
 
 std_args = ['test']
 temp_dir = _TempDir()

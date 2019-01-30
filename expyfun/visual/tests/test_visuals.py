@@ -1,12 +1,9 @@
-import warnings
 import numpy as np
 import pytest
 from numpy.testing import assert_equal
 
 from expyfun import ExperimentController, visual, fetch_data_file
 from expyfun._utils import _hide_window, requires_opengl21, requires_avbin
-
-warnings.simplefilter('always')
 
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,

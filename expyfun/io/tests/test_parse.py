@@ -1,4 +1,3 @@
-import warnings
 import numpy as np
 import pytest
 from numpy.testing import assert_equal
@@ -7,8 +6,6 @@ from expyfun import ExperimentController, __version__
 from expyfun.io import read_tab, reconstruct_tracker, reconstruct_dealer
 from expyfun._utils import _TempDir, _hide_window
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
-
-warnings.simplefilter('always')
 
 temp_dir = _TempDir()
 std_args = ['test']  # experiment name

@@ -2,16 +2,10 @@ import numpy as np
 from os import path as op
 import pytest
 from numpy.testing import assert_equal
-import warnings
-
-import matplotlib
 
 import expyfun.analyze as ea
 from expyfun._utils import _TempDir, requires_lib
 
-matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')
 temp_dir = _TempDir()
 
 
@@ -86,7 +80,7 @@ def test_barplot():
     extns = ['pdf']  # jpg, tif not supported; 'png', 'raw', 'svg' not tested
     for ext in extns:
         fname = op.join(temp_dir, 'temp.' + ext)
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(None) as w:
             ea.barplot(tmp, groups=[[0, 1, 2], [3]], err_bars='sd', axis=0,
                        fname=fname)
             plt.close()
