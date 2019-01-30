@@ -142,6 +142,7 @@ def test_rms():
     assert_array_almost_equal(rms(np.ones((100, 2)) * 2, 0), [2, 2])
 
 
+@pytest.mark.timeout(15)  # can be slow to load on CIs
 def test_crm(tmpdir):
     """Test CRM Corpus functions."""
     fs = 40000  # native rate, to avoid large resampling delay in testing
