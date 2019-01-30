@@ -25,6 +25,7 @@ def test_barplot_with_pandas():
     ea.barplot(tmp, axis=0, lines=True)
 
 
+@pytest.mark.timeout(15)
 def test_barplot():
     """Test bar plot function."""
     import matplotlib.pyplot as plt

@@ -98,6 +98,7 @@ def test_data_line(hide_window):
     assert (np.all(ts[1:] >= ts[:-1]))
 
 
+@pytest.mark.timeout(10)
 @pytest.mark.parametrize('ac, rd', ((None, None), ('tdt', 'tdt')))
 def test_ec(ac, rd, hide_window):
     """Test EC methods."""
@@ -378,6 +379,7 @@ def test_tdtpy_failure(hide_window):
                   suppress_resamp=True, **std_kwargs)
 
 
+@pytest.mark.timeout(10)
 def test_button_presses_and_window_size(hide_window):
     """Test EC window_size=None and button press capture."""
     with ExperimentController(*std_args, audio_controller='pyglet',
@@ -443,6 +445,7 @@ def test_button_presses_and_window_size(hide_window):
             assert ec.text_input(all_caps=False) == 'a'
 
 
+@pytest.mark.timeout(10)
 @requires_opengl21
 def test_mouse_clicks(hide_window):
     """Test EC mouse click support."""

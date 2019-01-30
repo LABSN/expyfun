@@ -171,7 +171,7 @@ def test_sigmoid():
 def test_rt_chisq():
     """Test reaction time chi-square fitting."""
     # 1D should return single float
-    foo = np.random.rand(30)
+    foo = np.random.RandomState(0).rand(30)
     pytest.raises(ValueError, ea.rt_chisq, foo - 1.)
     assert_equal(np.array(ea.rt_chisq(foo)).shape, ())
     # 2D should return array with shape of input but without ``axis`` dimension
