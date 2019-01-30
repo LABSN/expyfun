@@ -1,16 +1,11 @@
 import numpy as np
 from os import path as op
-from nose.tools import assert_raises, assert_equal
-import warnings
-
-import matplotlib
+import pytest
+from numpy.testing import assert_equal
 
 import expyfun.analyze as ea
 from expyfun._utils import _TempDir, requires_lib
 
-matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')
 temp_dir = _TempDir()
 
 
@@ -30,6 +25,7 @@ def test_barplot_with_pandas():
     ea.barplot(tmp, axis=0, lines=True)
 
 
+@pytest.mark.timeout(15)
 def test_barplot():
     """Test bar plot function."""
     import matplotlib.pyplot as plt
@@ -38,20 +34,20 @@ def test_barplot():
     tmp = np.ones(4) + rng.rand(4)
     err = 0.1 + tmp / 5.
     # too many data dimensions:
-    assert_raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
+    pytest.raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
     # gap_size > 1:
-    assert_raises(ValueError, ea.barplot, tmp, gap_size=1.1)
+    pytest.raises(ValueError, ea.barplot, tmp, gap_size=1.1)
     # shape mismatch between data & error bars:
-    assert_raises(ValueError, ea.barplot, tmp, err_bars=np.arange(3))
+    pytest.raises(ValueError, ea.barplot, tmp, err_bars=np.arange(3))
     # bad err_bar string:
-    assert_raises(ValueError, ea.barplot, tmp, err_bars='foo')
+    pytest.raises(ValueError, ea.barplot, tmp, err_bars='foo')
     # cannot calculate 'sd' error bars with only 1 value per bar:
-    assert_raises(ValueError, ea.barplot, tmp, err_bars='sd')
+    pytest.raises(ValueError, ea.barplot, tmp, err_bars='sd')
     # mismatched lengths of brackets & bracket_text:
-    assert_raises(ValueError, ea.barplot, tmp, brackets=[(0, 1)],
+    pytest.raises(ValueError, ea.barplot, tmp, brackets=[(0, 1)],
                   bracket_text=['foo', 'bar'])
     # bad bracket spec:
-    assert_raises(ValueError, ea.barplot, tmp, brackets=[(1,)],
+    pytest.raises(ValueError, ea.barplot, tmp, brackets=[(1,)],
                   bracket_text=['foo'])
 
     # TEST WITH SINGLE DATA POINT & SINGLE ERROR BAR SPEC.
@@ -85,7 +81,7 @@ def test_barplot():
     extns = ['pdf']  # jpg, tif not supported; 'png', 'raw', 'svg' not tested
     for ext in extns:
         fname = op.join(temp_dir, 'temp.' + ext)
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(None) as w:
             ea.barplot(tmp, groups=[[0, 1, 2], [3]], err_bars='sd', axis=0,
                        fname=fname)
             plt.close()
@@ -95,7 +91,7 @@ def test_barplot():
 def test_plot_screen():
     """Test screen plotting function."""
     tmp = np.ones((10, 20, 2))
-    assert_raises(ValueError, ea.plot_screen, tmp)
+    pytest.raises(ValueError, ea.plot_screen, tmp)
     tmp = np.ones((10, 20, 3))
     ea.plot_screen(tmp)
 

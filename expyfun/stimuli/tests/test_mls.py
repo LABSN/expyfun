@@ -1,5 +1,5 @@
 import numpy as np
-from nose.tools import assert_raises
+import pytest
 from numpy.testing import assert_allclose
 
 from expyfun.stimuli import repeated_mls, compute_mls_impulse_response
@@ -25,12 +25,12 @@ def test_mls_ir():
         assert_allclose(kernel_pad, est_kernel, atol=1e-5, rtol=1e-5)
 
     # failure modes
-    assert_raises(TypeError, repeated_mls, 'foo', n_repeats)
-    assert_raises(ValueError, compute_mls_impulse_response, resp[:-1], mls,
+    pytest.raises(TypeError, repeated_mls, 'foo', n_repeats)
+    pytest.raises(ValueError, compute_mls_impulse_response, resp[:-1], mls,
                   n_repeats)
-    assert_raises(ValueError, compute_mls_impulse_response, resp, mls[:-1],
+    pytest.raises(ValueError, compute_mls_impulse_response, resp, mls[:-1],
                   n_repeats)
-    assert_raises(ValueError, compute_mls_impulse_response, resp,
+    pytest.raises(ValueError, compute_mls_impulse_response, resp,
                   mls * 2. - 1., n_repeats)
-    assert_raises(ValueError, compute_mls_impulse_response, resp,
+    pytest.raises(ValueError, compute_mls_impulse_response, resp,
                   mls[np.newaxis, :], n_repeats)

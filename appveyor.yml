@@ -2,9 +2,7 @@ environment:
   matrix:
     - PYTHON: "C:\\Python27"
       PYTHON_ARCH: "32"
-    - PYTHON: "C:\\Python36"
-      PYTHON_ARCH: "32"
-    - PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python37-x64"
       PYTHON_ARCH: "64"
 
 platform:
@@ -15,8 +13,7 @@ install:
   - "SET _EXPYFUN_SILENT=true"
   - "python --version"
   - "powershell make/get_avbin.ps1"
-  - "pip install numpy scipy matplotlib coverage nose setuptools h5py pandas pytest pytest-cov codecov"
-  - "pip install pyglet mne tdtpy"
+  - "pip install numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy"
   - "python setup.py develop"
 
 build: false  # Not a C# project, build stuff at the test step instead.
@@ -25,7 +22,7 @@ test_script:
   # Ensure that AVBin works
   - "python -c \"import expyfun; assert expyfun._utils._has_avbin()\""
   # Run the project tests
-  - "pytest expyfun --cov=expyfun"
+  - "pytest expyfun"
 
 on_success:
   - "codecov"

@@ -470,35 +470,6 @@ def _has_scipy_version(version):
     return (LooseVersion(sp.__version__) >= LooseVersion(version))
 
 
-def _hide_window(function):
-    """Decorator to hide expyfun Pyglet windows during testing."""
-    import nose
-    import pyglet
-
-    def dec(*args, **kwargs):
-        try:
-            pyglet.window.get_platform().get_default_display()
-            from ._sound_controllers import Player
-            if Player is object:
-                raise RuntimeError
-        except Exception:
-            raise nose.plugins.skip.SkipTest('Pyglet windowing unavailable')
-        orig_val = os.getenv('_EXPYFUN_WIN_INVISIBLE')
-        try:
-            os.environ['_EXPYFUN_WIN_INVISIBLE'] = 'true'
-            return function(*args, **kwargs)
-        finally:
-            if orig_val is None:
-                del os.environ['_EXPYFUN_WIN_INVISIBLE']
-            else:
-                os.environ['_EXPYFUN_WIN_INVISIBLE'] = orig_val
-    return nose.tools.make_decorator(function)(dec)
-
-
-###############################################################################
-# CONFIG / PREFS
-
-
 def _get_user_home_path():
     """Return standard preferences path"""
     # this has been checked on OSX64, Linux64, and Win32

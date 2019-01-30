@@ -32,7 +32,7 @@ matrix:
     - os: linux
       env:
         # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
-        - PYTHON=3.6 DEPS=full TEST=standard CONDA_OS=Linux
+        - PYTHON=3.7 DEPS=full TEST=standard CONDA_OS=Linux
 
 before_install:
     # Rvm overrides cd with a function so that it can hook into it to run
@@ -40,7 +40,7 @@ before_install:
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         unset -f cd;
       fi;
-    # Easy dependencies (pulseaudio, scipy, matplotlib, nose, coverage, codecov, flake8)
+    # Easy dependencies (pulseaudio, scipy, matplotlib, pytest, coverage, codecov, flake8)
     # Only use Pulseaudio on 2.7 because on Travis 3.4 causes some strange error...
     - SRC_DIR=${PWD}
     - wget http://repo.continuum.io/miniconda/Miniconda3-latest-${CONDA_OS}-x86_64.sh -O miniconda.sh
@@ -50,7 +50,7 @@ before_install:
     - conda update --yes conda
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
-    - conda install --yes scipy matplotlib nose coverage setuptools pytest pytest-cov
+    - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout
     - pip install -q codecov pytest-sugar codespell
     # install AVbin
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
@@ -67,6 +67,9 @@ before_install:
         conda install --yes --quiet pandas h5py;
         pip install -q joblib;
       fi;
+    # Import matplotlib ahead of time so it doesn't affect test timings
+    # (e.g., building fc-cache)
+    - python -c "import matplotlib.pyplot as plt"
 
 install:
     - python setup.py develop

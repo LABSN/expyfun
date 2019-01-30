@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from nose.tools import assert_equal, assert_raises
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+import pytest
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
 from os import path as op
-import warnings
 
-from expyfun._utils import _TempDir, _has_scipy_version
+from expyfun._utils import _has_scipy_version
 from expyfun.io import read_wav, write_wav
 
-warnings.simplefilter('always')
-tempdir = _TempDir()
 
-
-def test_read_write_wav():
-    """Test reading and writing WAV files
-    """
-    fname = op.join(tempdir, 'temp.wav')
+def test_read_write_wav(tmpdir):
+    """Test reading and writing WAV files."""
+    fname = op.join(str(tmpdir), 'temp.wav')
     data = np.r_[np.random.rand(1000), 1, -1]
     fs = 44100
 
@@ -26,16 +22,14 @@ def test_read_write_wav():
     assert_array_almost_equal(data[np.newaxis, :], data_read, 4)
 
     # test our overwrite check
-    assert_raises(IOError, write_wav, fname, data, fs)
+    pytest.raises(IOError, write_wav, fname, data, fs)
 
     # test forcing fs dtype to int
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(UserWarning, match='rate is being cast'):
         write_wav(fname, data, float(fs), overwrite=True)
-        assert_equal(len(w), 1)
 
     # Use 64-bit int: not supported
-    assert_raises(RuntimeError, write_wav, fname, data, fs, dtype=np.int64,
+    pytest.raises(RuntimeError, write_wav, fname, data, fs, dtype=np.int64,
                   overwrite=True)
 
     # Use 32-bit int: better
@@ -57,7 +51,7 @@ def test_read_write_wav():
         assert_equal(fs_read, fs)
         assert_array_equal(data[np.newaxis, :], data_read)
     else:
-        assert_raises(RuntimeError, write_wav, fname, data, fs,
+        pytest.raises(RuntimeError, write_wav, fname, data, fs,
                       dtype=np.float32, overwrite=True)
 
     # Now try multi-dimensional data
@@ -68,4 +62,4 @@ def test_read_write_wav():
     assert_array_almost_equal(data, data_read, 4)
 
     # Make sure our bound check works
-    assert_raises(ValueError, write_wav, fname, data * 2, fs, overwrite=True)
+    pytest.raises(ValueError, write_wav, fname, data * 2, fs, overwrite=True)

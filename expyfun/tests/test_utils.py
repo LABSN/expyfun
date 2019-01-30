@@ -1,4 +1,5 @@
-from nose.tools import assert_true, assert_raises, assert_equal
+from numpy.testing import assert_equal
+import pytest
 import os
 import warnings
 
@@ -13,22 +14,22 @@ def test_config():
     value = '123456'
     old_val = os.getenv(key, None)
     os.environ[key] = value
-    assert_true(get_config(key) == value)
+    assert (get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # warnings raised only when setting key
         set_config(key, None)
-        assert_true(get_config(key) is None)
-        assert_raises(KeyError, get_config, key, raise_error=True)
+        assert (get_config(key) is None)
+        pytest.raises(KeyError, get_config, key, raise_error=True)
         set_config(key, value)
         assert_equal(get_config(key), value)
         set_config(key, None)
     assert_equal(len(w), 3)
     if old_val is not None:
         os.environ[key] = old_val
-    assert_raises(ValueError, get_config, 1)
+    pytest.raises(ValueError, get_config, 1)
     get_config(None)
     set_config(None, '0')
 
@@ -50,11 +51,11 @@ def test_deprecated():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         deprecated_func()
-    assert_true(len(w) == 1)
+    assert (len(w) == 1)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         deprecated_class()
-    assert_true(len(w) == 1)
+    assert (len(w) == 1)
 
 
 def test_audio_dims():
@@ -68,7 +69,7 @@ def test_audio_dims():
     y2 = _fix_audio_dims(x, 2)
     _fix_audio_dims(y2)
     _fix_audio_dims(y2, 2)
-    assert_raises(ValueError, _fix_audio_dims, y2, 1)
-    assert_raises(ValueError, _fix_audio_dims, y1, 3)
+    pytest.raises(ValueError, _fix_audio_dims, y2, 1)
+    pytest.raises(ValueError, _fix_audio_dims, y1, 3)
     from numpy import zeros
-    assert_raises(ValueError, _fix_audio_dims, zeros((2, 2, 2)))
+    pytest.raises(ValueError, _fix_audio_dims, zeros((2, 2, 2)))

@@ -1,5 +1,5 @@
 from numpy.testing import assert_array_equal
-from nose.tools import assert_raises
+import pytest
 
 from expyfun import decimals_to_binary, binary_to_decimals
 
@@ -7,16 +7,16 @@ from expyfun import decimals_to_binary, binary_to_decimals
 def test_conversion():
     """Test decimal<->binary conversion
     """
-    assert_raises(ValueError, decimals_to_binary, [1], [0])
-    assert_raises(ValueError, decimals_to_binary, [-1], [1])
-    assert_raises(ValueError, decimals_to_binary, [1, 1], [1])
-    assert_raises(ValueError, decimals_to_binary, [2], [1])
-    assert_raises(ValueError, binary_to_decimals, [2], [1])
-    assert_raises(ValueError, binary_to_decimals, [0.5], [1])
-    assert_raises(ValueError, binary_to_decimals, [-1], [1])
-    assert_raises(ValueError, binary_to_decimals, [[1]], [1])
-    assert_raises(ValueError, binary_to_decimals, [1], [-1])
-    assert_raises(ValueError, binary_to_decimals, [1], [2])
+    pytest.raises(ValueError, decimals_to_binary, [1], [0])
+    pytest.raises(ValueError, decimals_to_binary, [-1], [1])
+    pytest.raises(ValueError, decimals_to_binary, [1, 1], [1])
+    pytest.raises(ValueError, decimals_to_binary, [2], [1])
+    pytest.raises(ValueError, binary_to_decimals, [2], [1])
+    pytest.raises(ValueError, binary_to_decimals, [0.5], [1])
+    pytest.raises(ValueError, binary_to_decimals, [-1], [1])
+    pytest.raises(ValueError, binary_to_decimals, [[1]], [1])
+    pytest.raises(ValueError, binary_to_decimals, [1], [-1])
+    pytest.raises(ValueError, binary_to_decimals, [1], [2])
     # test cases
     decs = [[1],
             [1, 0, 1, 4, 5],

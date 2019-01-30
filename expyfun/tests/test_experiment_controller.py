@@ -1,14 +1,14 @@
 from copy import deepcopy
 from functools import partial
-import warnings
 
 import numpy as np
-from nose.tools import assert_raises, assert_true, assert_equal
-from nose.plugins.skip import SkipTest
+from numpy.testing import assert_equal
+import pytest
+from unittest import SkipTest
 from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
+from expyfun._utils import (_TempDir, fake_button_press,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
 import sys
@@ -24,10 +24,8 @@ def dummy_print(string):
     print(string)
 
 
-@_hide_window
-def test_unit_conversions():
-    """Test unit conversions
-    """
+def test_unit_conversions(hide_window):
+    """Test unit conversions."""
     for ws in [(2, 1), (1, 1)]:
         kwargs = deepcopy(std_kwargs)
         kwargs['stim_fs'] = 44100
@@ -48,12 +46,11 @@ def test_unit_conversions():
         v1 = ec._convert_units(verts, 'deg', 'pix')
         v2 = v0 - v1  # must check deviation from zero position
         assert_allclose(v2[0], v2[1])
-        assert_raises(ValueError, ec._convert_units, verts, 'deg', 'nothing')
-        assert_raises(RuntimeError, ec._convert_units, verts[0], 'deg', 'pix')
+        pytest.raises(ValueError, ec._convert_units, verts, 'deg', 'nothing')
+        pytest.raises(RuntimeError, ec._convert_units, verts[0], 'deg', 'pix')
 
 
-@_hide_window
-def test_data_line():
+def test_data_line(hide_window):
     """Test writing of data lines
     """
     entries = [['foo'],
@@ -76,12 +73,12 @@ def test_data_line():
     assert_equal(len(lines), len(entries) + 4)  # header, colnames, flip, stop
     assert_equal(lines[0][0], '#')  # first line is a comment
     for x in ['timestamp', 'event', 'value']:  # second line is col header
-        assert_true(x in lines[1])
-    assert_true('flip' in lines[2])  # ec.__init__ ends with a flip
-    assert_true('stop' in lines[-1])  # last line is stop (from __exit__)
+        assert (x in lines[1])
+    assert ('flip' in lines[2])  # ec.__init__ ends with a flip
+    assert ('stop' in lines[-1])  # last line is stop (from __exit__)
     outs = lines[1].strip().split('\t')
-    assert_true(all(l1 == l2 for l1, l2 in zip(outs, ['timestamp',
-                                                      'event', 'value'])))
+    assert (all(l1 == l2 for l1, l2 in zip(outs, ['timestamp',
+                                                  'event', 'value'])))
     # check the entries
     ts = []
     for line, ent, gv in zip(lines[3:], entries, goal_vals):
@@ -98,58 +95,53 @@ def test_data_line():
         assert_equal(outs[2], gv)
     # make sure we got monotonically increasing timestamps
     ts = np.array(ts)
-    assert_true(np.all(ts[1:] >= ts[:-1]))
+    assert (np.all(ts[1:] >= ts[:-1]))
 
 
-@_hide_window
-def test_tdt():
-    """Test EC with TDT."""
-    test_ec('tdt', 'tdt')
-
-
-@_hide_window
-def test_ec(ac=None, rd=None):
+@pytest.mark.timeout(10)
+@pytest.mark.parametrize('ac, rd', ((None, None), ('tdt', 'tdt')))
+def test_ec(ac, rd, hide_window):
     """Test EC methods."""
     if ac is None:
         # test type/value checking for audio_controller
-        assert_raises(TypeError, ExperimentController, *std_args,
+        pytest.raises(TypeError, ExperimentController, *std_args,
                       audio_controller=1, stim_fs=44100, **std_kwargs)
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       audio_controller='foo', stim_fs=44100, **std_kwargs)
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       audio_controller=dict(TYPE='foo'), stim_fs=44100,
                       **std_kwargs)
         # monitor, etc.
-        assert_raises(TypeError, ExperimentController, *std_args,
+        pytest.raises(TypeError, ExperimentController, *std_args,
                       monitor='foo', **std_kwargs)
-        assert_raises(KeyError, ExperimentController, *std_args,
+        pytest.raises(KeyError, ExperimentController, *std_args,
                       monitor=dict(), **std_kwargs)
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       response_device='foo', **std_kwargs)
         std_kwargs.update(window_size=10.)
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       **std_kwargs)
         std_kwargs.update(window_size=(1, 1))
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       audio_controller='pyglet', response_device='tdt',
                       **std_kwargs)
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       audio_controller='pyglet', response_device='keyboard',
                       trigger_controller='tdt', **std_kwargs)
 
         # test type checking for 'session'
         std_kwargs['session'] = 1
-        assert_raises(TypeError, ExperimentController, *std_args,
+        pytest.raises(TypeError, ExperimentController, *std_args,
                       audio_controller='pyglet', stim_fs=44100, **std_kwargs)
         std_kwargs['session'] = '01'
 
         # test value checking for trigger controller
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       audio_controller='pyglet', trigger_controller='foo',
                       stim_fs=44100, **std_kwargs)
 
         # test value checking for RMS checker
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       audio_controller='pyglet', check_rms=True, stim_fs=44100,
                       **std_kwargs)
 
@@ -165,24 +157,25 @@ def test_ec(ac=None, rd=None):
         this_rd = rd
         this_tc = ac
         this_fs = get_tdt_rates()['25k']
-        assert_raises(ValueError, ExperimentController, *std_args,
+        pytest.raises(ValueError, ExperimentController, *std_args,
                       audio_controller=dict(TYPE=this_ac, TDT_MODEL='foo'),
                       **std_kwargs)
-    with warnings.catch_warnings(record=True) as w:
-        for suppress in (True, False):
+    for suppress in (True, False):
+        with pytest.warns(None) as w:
             with ExperimentController(*std_args, audio_controller=this_ac,
                                       response_device=this_rd,
                                       trigger_controller=this_tc,
                                       stim_fs=100., suppress_resamp=suppress,
                                       **std_kwargs) as ec:
                 pass
+        assert len(w) == (1 if ac == 'tdt' else 0)
     with ExperimentController(*std_args, audio_controller=this_ac,
                               response_device=this_rd,
                               trigger_controller=this_tc,
                               stim_fs=this_fs, **std_kwargs) as ec:
-        assert_true(ec.participant == std_kwargs['participant'])
-        assert_true(ec.session == std_kwargs['session'])
-        assert_true(ec.exp_name == std_args[0])
+        assert (ec.participant == std_kwargs['participant'])
+        assert (ec.session == std_kwargs['session'])
+        assert (ec.exp_name == std_args[0])
         stamp = ec.current_time
         ec.write_data_line('hello')
         ec.wait_until(stamp + 0.02)
@@ -190,22 +183,22 @@ def test_ec(ac=None, rd=None):
         ec.screen_prompt('test', 0.01, 0, ['1'])
         ec.screen_prompt(['test', 'ing'], 0.01, 0, ['1'])
         ec.screen_prompt('test', 1e-3, click=True)
-        assert_raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
-        assert_raises(TypeError, ec.screen_prompt, 3, 0.01, 0, None)
+        pytest.raises(ValueError, ec.screen_prompt, 'foo', np.inf, 0, [])
+        pytest.raises(TypeError, ec.screen_prompt, 3, 0.01, 0, None)
         assert_equal(ec.wait_one_press(0.01), (None, None))
-        assert_true(ec.wait_one_press(0.01, timestamp=False) is None)
+        assert (ec.wait_one_press(0.01, timestamp=False) is None)
         assert_equal(ec.wait_for_presses(0.01), [])
         assert_equal(ec.wait_for_presses(0.01, timestamp=False), [])
-        assert_raises(ValueError, ec.get_presses)
+        pytest.raises(ValueError, ec.get_presses)
         ec.listen_presses()
         assert_equal(ec.get_presses(), [])
         assert_equal(ec.get_presses(kind='presses'), [])
-        assert_raises(ValueError, ec.get_presses, kind='foo')
+        pytest.raises(ValueError, ec.get_presses, kind='foo')
         if this_rd == 'tdt':
             # TDT does not have key release events, so should raise an
             # exception if asked for them:
-            assert_raises(RuntimeError, ec.get_presses, kind='releases')
-            assert_raises(RuntimeError, ec.get_presses, kind='both')
+            pytest.raises(RuntimeError, ec.get_presses, kind='releases')
+            pytest.raises(RuntimeError, ec.get_presses, kind='both')
         else:
             assert_equal(ec.get_presses(kind='both'), [])
             assert_equal(ec.get_presses(kind='releases'), [])
@@ -214,7 +207,7 @@ def test_ec(ac=None, rd=None):
         # test buffer data handling
         ec.set_rms_checking(None)
         ec.load_buffer([0, 0, 0, 0, 0, 0])
-        assert_raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
+        pytest.raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
         ec.load_buffer(np.zeros((100,)))
         ec.load_buffer(np.zeros((100, 1)))
         ec.load_buffer(np.zeros((100, 2)))
@@ -222,15 +215,15 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(np.zeros((2, 100)))
         data = np.zeros(int(5e6), np.float32)  # too long for TDT
         if this_fs == get_tdt_rates()['25k']:
-            assert_raises(RuntimeError, ec.load_buffer, data)
+            pytest.raises(RuntimeError, ec.load_buffer, data)
         else:
             ec.load_buffer(data)
         ec.load_buffer(np.zeros(2))
         del data
-        assert_raises(ValueError, ec.stamp_triggers, 'foo')
-        assert_raises(ValueError, ec.stamp_triggers, 0)
-        assert_raises(ValueError, ec.stamp_triggers, 3)
-        assert_raises(ValueError, ec.stamp_triggers, 1, check='foo')
+        pytest.raises(ValueError, ec.stamp_triggers, 'foo')
+        pytest.raises(ValueError, ec.stamp_triggers, 0)
+        pytest.raises(ValueError, ec.stamp_triggers, 3)
+        pytest.raises(ValueError, ec.stamp_triggers, 1, check='foo')
         print(ec._tc)  # test __repr__
         if this_tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [])
@@ -240,12 +233,12 @@ def test_ec(ac=None, rd=None):
         if this_tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [3, 2, 2, 4, 8])
             ec._tc._trigger_list = list()
-        assert_raises(ValueError, ec.load_buffer, np.zeros((100, 3)))
-        assert_raises(ValueError, ec.load_buffer, np.zeros((3, 100)))
-        assert_raises(ValueError, ec.load_buffer, np.zeros((1, 1, 1)))
+        pytest.raises(ValueError, ec.load_buffer, np.zeros((100, 3)))
+        pytest.raises(ValueError, ec.load_buffer, np.zeros((3, 100)))
+        pytest.raises(ValueError, ec.load_buffer, np.zeros((1, 1, 1)))
 
         # test RMS checking
-        assert_raises(ValueError, ec.set_rms_checking, 'foo')
+        pytest.raises(ValueError, ec.set_rms_checking, 'foo')
         # click: RMS 0.0135, should pass 'fullfile' and fail 'windowed'
         click = np.zeros((int(ec.fs / 4),))  # 250 ms
         click[len(click) // 2] = 1.
@@ -256,16 +249,14 @@ def test_ec(ac=None, rd=None):
         ec.load_buffer(click)  # should go unchecked
         ec.load_buffer(noise)  # should go unchecked
         ec.set_rms_checking('wholefile')
-        with warnings.catch_warnings(record=True) as w:
-            ec.load_buffer(click)  # should pass
-            assert_equal(len(w), 0)
+        ec.load_buffer(click)  # should pass
+        with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(noise)
-            assert_equal(len(w), 1)
-            ec.set_rms_checking('windowed')
+        ec.set_rms_checking('windowed')
+        with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(click)
-            assert_equal(len(w), 2)
+        with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(noise)
-            assert_equal(len(w), 3)
 
         ec.stop()
         ec.set_visible()
@@ -282,70 +273,70 @@ def test_ec(ac=None, rd=None):
         #
         noise = np.random.normal(scale=0.01, size=(int(ec.fs),))
         ec.load_buffer(noise)
-        assert_raises(RuntimeError, ec.start_stimulus)  # order violation
-        assert_true(ec._playing is False)
+        pytest.raises(RuntimeError, ec.start_stimulus)  # order violation
+        assert (ec._playing is False)
         if this_tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [])
         ec.start_stimulus(start_of_trial=False)         # should work
         if this_tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [1])
         ec.wait_secs(0.05)
-        assert_true(ec._playing is True)
-        assert_raises(RuntimeError, ec.trial_ok)        # order violation
+        assert (ec._playing is True)
+        pytest.raises(RuntimeError, ec.trial_ok)        # order violation
         ec.stop()
-        assert_true(ec._playing is False)
+        assert (ec._playing is False)
         # only binary for TTL
-        assert_raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
-        assert_raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
-        assert_raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
-        assert_true(ec._playing is False)
+        pytest.raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
+        pytest.raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
+        pytest.raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
+        assert (ec._playing is False)
         if this_tc == 'dummy':
             ec._tc._trigger_list = list()
         ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
-        assert_true(ec._playing is False)
+        assert (ec._playing is False)
         #
         # Second: start_stimuli
         #
-        assert_raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
-        assert_true(ec._playing is False)
-        assert_raises(RuntimeError, ec.trial_ok)        # order violation
-        assert_true(ec._playing is False)
+        pytest.raises(RuntimeError, ec.identify_trial, ec_id='foo', ttl_id=[0])
+        assert (ec._playing is False)
+        pytest.raises(RuntimeError, ec.trial_ok)        # order violation
+        assert (ec._playing is False)
         ec.start_stimulus(flip=False, when=-1)
         if this_tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [4, 8, 1])
         if ac != 'tdt':
             # dummy TDT version won't do this check properly, as
             # ec._ac._playing -> GetTagVal('playing') always gives False
-            assert_raises(RuntimeError, ec.play)  # already played, must stop
+            pytest.raises(RuntimeError, ec.play)  # already played, must stop
         ec.wait_secs(0.05)
         ec.stop()
-        assert_true(ec._playing is False)
+        assert (ec._playing is False)
         #
         # Third: trial_ok
         #
-        assert_raises(RuntimeError, ec.start_stimulus)  # order violation
-        assert_raises(RuntimeError, ec.identify_trial)  # order violation
+        pytest.raises(RuntimeError, ec.start_stimulus)  # order violation
+        pytest.raises(RuntimeError, ec.identify_trial)  # order violation
         ec.trial_ok()
         # double-check
-        assert_raises(RuntimeError, ec.start_stimulus)  # order violation
+        pytest.raises(RuntimeError, ec.start_stimulus)  # order violation
         ec.start_stimulus(start_of_trial=False)         # should work
-        assert_raises(RuntimeError, ec.trial_ok)        # order violation
+        pytest.raises(RuntimeError, ec.trial_ok)        # order violation
         ec.wait_secs(0.05)
         ec.stop()
-        assert_true(ec._playing is False)
+        assert (ec._playing is False)
 
         ec.flip(-np.inf)
-        assert_true(ec._playing is False)
+        assert (ec._playing is False)
         ec.estimate_screen_fs()
-        assert_true(ec._playing is False)
+        assert (ec._playing is False)
         ec.play()
         ec.wait_secs(0.05)
-        assert_true(ec._playing is True)
+        assert (ec._playing is True)
         ec.call_on_every_flip(None)
         ec.call_on_next_flip(ec.start_noise())
         ec.wait_secs(0.05)
         ec.stop()
-        assert_true(ec._playing is False)
+        assert (ec._playing is False)
         ec.start_stimulus(start_of_trial=False)
         ec.call_on_next_flip(ec.stop_noise)
         ec.stop()
@@ -373,8 +364,7 @@ def test_ec(ac=None, rd=None):
     del ec
 
 
-@_hide_window
-def test_tdtpy_failure(ac=None, rd=None):
+def test_tdtpy_failure(hide_window):
     """Test that failed TDTpy import raises ImportError."""
     try:
         from tdt.util import connect_rpcox  # noqa, analysis:ignore
@@ -383,14 +373,14 @@ def test_tdtpy_failure(ac=None, rd=None):
     else:
         raise SkipTest('Cannot test TDT import failure')
     ac = dict(TYPE='tdt', TDT_MODEL='RP2')
-    assert_raises(ImportError, ExperimentController,
+    pytest.raises(ImportError, ExperimentController,
                   *std_args, audio_controller=ac, response_device='keyboard',
                   trigger_controller='tdt', stim_fs=100.,
                   suppress_resamp=True, **std_kwargs)
 
 
-@_hide_window
-def test_button_presses_and_window_size():
+@pytest.mark.timeout(10)
+def test_button_presses_and_window_size(hide_window):
     """Test EC window_size=None and button press capture."""
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
@@ -415,7 +405,7 @@ def test_button_presses_and_window_size():
         assert_equal(len(presses), 1)
         assert_equal(len(presses[0]), 2)
         assert_equal(presses[0][0], '1')
-        assert_true(isinstance(presses[0][1], float))
+        assert (isinstance(presses[0][1], float))
 
         ec.listen_presses()
         fake_button_press(ec, '1')
@@ -424,7 +414,7 @@ def test_button_presses_and_window_size():
         assert_equal(len(presses), 1)
         assert_equal(len(presses[0]), 3)
         assert_equal(presses[0][::2], ('1', 'press'))
-        assert_true(isinstance(presses[0][1], float))
+        assert (isinstance(presses[0][1], float))
 
         ec.listen_presses()
         fake_button_press(ec, '1')
@@ -455,9 +445,9 @@ def test_button_presses_and_window_size():
             assert ec.text_input(all_caps=False) == 'a'
 
 
-@_hide_window
+@pytest.mark.timeout(10)
 @requires_opengl21
-def test_mouse_clicks():
+def test_mouse_clicks(hide_window):
     """Test EC mouse click support."""
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
@@ -465,49 +455,47 @@ def test_mouse_clicks():
         fake_mouse_click(ec, [1, 2], delay=0.3)
         assert_equal(ec.wait_for_click_on(rect, 1.5, timestamp=False)[0],
                      ('left', 1, 2))
-        assert_raises(TypeError, ec.wait_for_click_on, (rect, rect), 1.5)
+        pytest.raises(TypeError, ec.wait_for_click_on, (rect, rect), 1.5)
         fake_mouse_click(ec, [2, 1], 'middle', delay=0.3)
         out = ec.wait_one_click(1.5, 0., ['middle'], timestamp=True)
-        assert_true(out[3] < 1.5)
+        assert (out[3] < 1.5)
         assert_equal(out[:3], ('middle', 2, 1))
         fake_mouse_click(ec, [3, 2], 'left', delay=0.3)
         fake_mouse_click(ec, [4, 5], 'right', delay=0.3)
         out = ec.wait_for_clicks(1.5, timestamp=False)
         assert_equal(len(out), 2)
-        assert_true(any(o == ('left', 3, 2) for o in out))
-        assert_true(any(o == ('right', 4, 5) for o in out))
+        assert (any(o == ('left', 3, 2) for o in out))
+        assert (any(o == ('right', 4, 5) for o in out))
         out = ec.wait_for_clicks(0.1)
         assert_equal(len(out), 0)
 
 
-@_hide_window
 @requires_opengl21
-def test_background_color():
+def test_background_color(hide_window):
     """Test setting background color"""
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
         ec.set_background_color('red')
         ss = ec.screenshot()[:, :, :3]
         red_mask = (ss == [255, 0, 0]).all(axis=-1)
-        assert_true(red_mask.all())
+        assert (red_mask.all())
         ec.set_background_color('white')
         ss = ec.screenshot()[:, :, :3]
         white_mask = (ss == [255] * 3).all(axis=-1)
-        assert_true(white_mask.all())
+        assert (white_mask.all())
         ec.flip()
         ec.set_background_color('0.5')
         visual.Rectangle(ec, [0, 0, 1, 1], fill_color='black').draw()
         ss = ec.screenshot()[:, :, :3]
         gray_mask = ((ss == [127] * 3).all(axis=-1) |
                      (ss == [128] * 3).all(axis=-1))
-        assert_true(gray_mask.any())
+        assert (gray_mask.any())
         black_mask = (ss == [0] * 3).all(axis=-1)
-        assert_true(black_mask.any())
-        assert_true(np.logical_or(gray_mask, black_mask).all())
+        assert (black_mask.any())
+        assert (np.logical_or(gray_mask, black_mask).all())
 
 
-@_hide_window
-def test_tdt_delay():
+def test_tdt_delay(hide_window):
     """test the tdt_delay parameter"""
     with ExperimentController(*std_args,
                               audio_controller=dict(TYPE='tdt', TDT_DELAY=0),
@@ -517,15 +505,15 @@ def test_tdt_delay():
                               audio_controller=dict(TYPE='tdt', TDT_DELAY=1),
                               **std_kwargs) as ec:
         assert_equal(ec._ac._used_params['TDT_DELAY'], 1)
-    assert_raises(ValueError, ExperimentController, *std_args,
+    pytest.raises(ValueError, ExperimentController, *std_args,
                   audio_controller=dict(TYPE='tdt', TDT_DELAY='foo'),
                   **std_kwargs)
-    assert_raises(OverflowError, ExperimentController, *std_args,
+    pytest.raises(OverflowError, ExperimentController, *std_args,
                   audio_controller=dict(TYPE='tdt', TDT_DELAY=np.inf),
                   **std_kwargs)
-    assert_raises(TypeError, ExperimentController, *std_args,
+    pytest.raises(TypeError, ExperimentController, *std_args,
                   audio_controller=dict(TYPE='tdt', TDT_DELAY=np.ones(2)),
                   **std_kwargs)
-    assert_raises(ValueError, ExperimentController, *std_args,
+    pytest.raises(ValueError, ExperimentController, *std_args,
                   audio_controller=dict(TYPE='tdt', TDT_DELAY=-1),
                   **std_kwargs)
