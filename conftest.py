@@ -5,6 +5,7 @@
 
 import os
 import pytest
+from unittest import SkipTest
 
 
 @pytest.fixture(scope='session')
@@ -20,3 +21,16 @@ def matplotlib_config():
     plt.ioff()
     plt.rcParams['figure.dpi'] = 100
     os.environ['_EXPYFUN_WIN_INVISIBLE'] = 'true'
+
+
+@pytest.fixture(scope='function')
+def hide_window():
+    """Hide the expyfun window."""
+    import pyglet
+    try:
+        pyglet.window.get_platform().get_default_display()
+        from expyfun._sound_controllers import Player
+        if Player is object:
+            raise RuntimeError('Player is object')
+    except Exception as exp:
+        raise SkipTest('Pyglet windowing unavailable (%s)' % exp)

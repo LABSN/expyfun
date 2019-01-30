@@ -8,7 +8,7 @@ from unittest import SkipTest
 from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import (_TempDir, _hide_window, fake_button_press,
+from expyfun._utils import (_TempDir, fake_button_press,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
 import sys
@@ -24,10 +24,8 @@ def dummy_print(string):
     print(string)
 
 
-@_hide_window
-def test_unit_conversions():
-    """Test unit conversions
-    """
+def test_unit_conversions(hide_window):
+    """Test unit conversions."""
     for ws in [(2, 1), (1, 1)]:
         kwargs = deepcopy(std_kwargs)
         kwargs['stim_fs'] = 44100
@@ -52,8 +50,7 @@ def test_unit_conversions():
         pytest.raises(RuntimeError, ec._convert_units, verts[0], 'deg', 'pix')
 
 
-@_hide_window
-def test_data_line():
+def test_data_line(hide_window):
     """Test writing of data lines
     """
     entries = [['foo'],
@@ -102,8 +99,7 @@ def test_data_line():
 
 
 @pytest.mark.parametrize('ac, rd', ((None, None), ('tdt', 'tdt')))
-@_hide_window
-def test_ec(ac, rd):
+def test_ec(ac, rd, hide_window):
     """Test EC methods."""
     if ac is None:
         # test type/value checking for audio_controller
@@ -367,8 +363,7 @@ def test_ec(ac, rd):
     del ec
 
 
-@_hide_window
-def test_tdtpy_failure(ac=None, rd=None):
+def test_tdtpy_failure(hide_window):
     """Test that failed TDTpy import raises ImportError."""
     try:
         from tdt.util import connect_rpcox  # noqa, analysis:ignore
@@ -383,8 +378,7 @@ def test_tdtpy_failure(ac=None, rd=None):
                   suppress_resamp=True, **std_kwargs)
 
 
-@_hide_window
-def test_button_presses_and_window_size():
+def test_button_presses_and_window_size(hide_window):
     """Test EC window_size=None and button press capture."""
     with ExperimentController(*std_args, audio_controller='pyglet',
                               response_device='keyboard', window_size=None,
@@ -449,9 +443,8 @@ def test_button_presses_and_window_size():
             assert ec.text_input(all_caps=False) == 'a'
 
 
-@_hide_window
 @requires_opengl21
-def test_mouse_clicks():
+def test_mouse_clicks(hide_window):
     """Test EC mouse click support."""
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
@@ -474,9 +467,8 @@ def test_mouse_clicks():
         assert_equal(len(out), 0)
 
 
-@_hide_window
 @requires_opengl21
-def test_background_color():
+def test_background_color(hide_window):
     """Test setting background color"""
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
@@ -500,8 +492,7 @@ def test_background_color():
         assert (np.logical_or(gray_mask, black_mask).all())
 
 
-@_hide_window
-def test_tdt_delay():
+def test_tdt_delay(hide_window):
     """test the tdt_delay parameter"""
     with ExperimentController(*std_args,
                               audio_controller=dict(TYPE='tdt', TDT_DELAY=0),

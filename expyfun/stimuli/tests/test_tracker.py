@@ -4,7 +4,7 @@ from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 from expyfun import ExperimentController
 import pytest
 from numpy.testing import assert_equal
-from expyfun._utils import _hide_window, requires_opengl21
+from expyfun._utils import requires_opengl21
 
 
 def callback(event_type, value=None, timestamp=None):
@@ -18,9 +18,8 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   verbose=True, version='dev')
 
 
-@_hide_window
 @requires_opengl21
-def test_tracker_ud():
+def test_tracker_ud(hide_window):
     """Test TrackerUD"""
     import matplotlib.pyplot as plt
     tr = TrackerUD(callback, 3, 1, 1, 1, np.inf, 10, 1)
@@ -129,9 +128,8 @@ def test_tracker_ud():
                    change_indices=[2, 4], change_rule='reversals')
 
 
-@_hide_window
 @requires_opengl21
-def test_tracker_binom():
+def test_tracker_binom(hide_window):
     """Test TrackerBinom"""
     tr = TrackerBinom(callback, 0.05, 0.1, 5)
     with ExperimentController('test', **std_kwargs) as ec:

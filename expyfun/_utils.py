@@ -9,13 +9,11 @@ import subprocess
 import importlib
 import os
 import os.path as op
-from functools import wraps
 import inspect
 import sys
 import tempfile
 import ssl
 from shutil import rmtree
-from unittest import SkipTest
 import atexit
 import json
 from functools import partial
@@ -470,28 +468,6 @@ def requires_lib(lib):
 
 def _has_scipy_version(version):
     return (LooseVersion(sp.__version__) >= LooseVersion(version))
-
-
-def _hide_window(function):
-    """Decorator to hide expyfun Pyglet windows during testing."""
-    import pyglet
-
-    @wraps(function)
-    def dec(*args, **kwargs):
-        try:
-            pyglet.window.get_platform().get_default_display()
-            from ._sound_controllers import Player
-            if Player is object:
-                raise RuntimeError
-        except Exception:
-            raise SkipTest('Pyglet windowing unavailable')
-        return function(*args, **kwargs)
-
-    return dec
-
-
-###############################################################################
-# CONFIG / PREFS
 
 
 def _get_user_home_path():

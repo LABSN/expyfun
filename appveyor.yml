@@ -22,7 +22,7 @@ test_script:
   # Ensure that AVBin works
   - "python -c \"import expyfun; assert expyfun._utils._has_avbin()\""
   # Run the project tests
-  - "pytest expyfun --cov=expyfun"
+  - "pytest expyfun"
 
 on_success:
   - "codecov"

@@ -1,7 +1,7 @@
 import pytest
 
 from expyfun import EyelinkController, ExperimentController
-from expyfun._utils import _TempDir, _hide_window, requires_opengl21
+from expyfun._utils import _TempDir, requires_opengl21
 
 std_args = ['test']
 temp_dir = _TempDir()
@@ -9,9 +9,8 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', noise_db=0, version='dev')
 
 
-@_hide_window
 @requires_opengl21
-def test_eyelink_methods():
+def test_eyelink_methods(hide_window):
     """Test EL methods."""
     with ExperimentController(*std_args, **std_kwargs) as ec:
         pytest.raises(ValueError, EyelinkController, ec, fs=999)

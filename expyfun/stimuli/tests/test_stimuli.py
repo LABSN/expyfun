@@ -6,8 +6,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
 from scipy.signal import butter, lfilter
 
-from expyfun._utils import (_TempDir, requires_lib, _hide_window,
-                            requires_opengl21)
+from expyfun._utils import requires_lib, requires_opengl21
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
                              vocode, texture_ERB, crm_info, crm_prepare_corpus,
                              crm_sentence, crm_response_menu, CRMPreload,
@@ -74,8 +73,7 @@ def test_hrtf_convolution():
                 assert (rmss[0] > 4 * rmss[1])
 
 
-@_hide_window  # will only work if Pyglet windowing works
-def test_play_sound():
+def test_play_sound(hide_window):  # only works if windowing works
     """Test playing a sound."""
     data = np.zeros((2, 100))
     play_sound(data).stop()
@@ -144,11 +142,11 @@ def test_rms():
     assert_array_almost_equal(rms(np.ones((100, 2)) * 2, 0), [2, 2])
 
 
-def test_crm():
+def test_crm(tmpdir):
     """Test CRM Corpus functions."""
     fs = 40000  # native rate, to avoid large resampling delay in testing
     crm_info()
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
 
     # corpus prep
     talkers = [dict(sex='f', talker_num=0)]
@@ -196,9 +194,8 @@ def test_crm():
     assert (np.sum(x[..., 0] == 0))
 
 
-@_hide_window
 @requires_opengl21
-def test_crm_response_menu():
+def test_crm_response_menu(hide_window):
     """Test the CRM Response menu function."""
     with ExperimentController('crm_menu', **std_kwargs) as ec:
         resp = crm_response_menu(ec, max_wait=0.05)

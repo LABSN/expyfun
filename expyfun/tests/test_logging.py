@@ -1,7 +1,6 @@
 import os
 
 import pytest
-from expyfun._utils import _hide_window
 from expyfun import ExperimentController
 
 std_args = ['test']
@@ -10,8 +9,7 @@ std_kwargs = dict(participant='foo', session='01', full_screen=False,
 
 
 @pytest.mark.parametrize('ac', ('pyglet', 'tdt'))
-@_hide_window
-def test_logging(ac, tmpdir):
+def test_logging(ac, tmpdir, hide_window):
     """Test logging to file (Pyglet)."""
     orig_dir = os.getcwd()
     os.chdir(str(tmpdir))

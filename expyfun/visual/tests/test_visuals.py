@@ -3,16 +3,15 @@ import pytest
 from numpy.testing import assert_equal
 
 from expyfun import ExperimentController, visual, fetch_data_file
-from expyfun._utils import _hide_window, requires_opengl21, requires_avbin
+from expyfun._utils import requires_opengl21, requires_avbin
 
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
                   verbose=True, version='dev')
 
 
-@_hide_window
 @requires_opengl21
-def test_visuals():
+def test_visuals(hide_window):
     """Test EC visual methods."""
     with ExperimentController('test', **std_kwargs) as ec:
         pytest.raises(TypeError, visual.Circle, ec, n_edges=3.5)
@@ -89,9 +88,8 @@ def test_visuals():
         pytest.raises(ValueError, bar.update_bar, 500)
 
 
-@_hide_window
 @requires_avbin()
-def test_video():
+def test_video(hide_window):
     """Test EC video methods."""
     std_kwargs.update(dict(enable_video=True, window_size=(640, 480)))
     video_path = fetch_data_file('video/example-video.mp4')

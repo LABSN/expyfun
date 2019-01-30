@@ -4,7 +4,7 @@ from numpy.testing import assert_equal
 
 from expyfun import ExperimentController, __version__
 from expyfun.io import read_tab, reconstruct_tracker, reconstruct_dealer
-from expyfun._utils import _TempDir, _hide_window
+from expyfun._utils import _TempDir
 from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
 
 temp_dir = _TempDir()
@@ -14,8 +14,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   verbose=True, version='dev')
 
 
-@_hide_window
-def test_parse():
+def test_parse(hide_window):
     """Test .tab parsing."""
     with ExperimentController(*std_args, **std_kwargs) as ec:
         ec.identify_trial(ec_id='one', ttl_id=[0])
@@ -50,8 +49,7 @@ def test_parse():
     assert (params['file'].endswith('test_parse.py'))
 
 
-@_hide_window
-def test_reconstruct():
+def test_reconstruct(hide_window):
     """Test Tracker objects reconstruction"""
 
     # test with one TrackerUD
