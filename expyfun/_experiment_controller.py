@@ -1928,6 +1928,38 @@ class ExperimentController(object):
             return False
         return True
 
+    def refocus(self):
+        """Attempt to grab operating system window manager / keyboard focus.
+
+        This implements platform-specific trickery to bring the window to the
+        top and capture keyboard focus in cases where keyboard input from a
+        subject is mandatory (e.g., when using keyboard as a response device).
+
+        Notes
+        -----
+        For Windows, the solution as adapted from:
+
+            https://stackoverflow.com/questions/916259/win32-bring-a-window-to-top#answer-34414846
+
+        This function currently does nothing on Linux and OSX.
+        """  # noqa: E501
+        if sys.platform == 'win32':
+            from pyglet.libs.win32 import _user32
+            m_hWnd = self._win._hwnd
+            hCurWnd = _user32.GetForegroundWindow()
+            if hCurWnd != m_hWnd:
+                dwMyID = _user32.GetWindowThreadProcessId(m_hWnd, 0)
+                dwCurID = _user32.GetWindowThreadProcessId(hCurWnd, 0)
+                _user32.AttachThreadInput(dwCurID, dwMyID, True)
+                # _user32.SetWindowPos(m_hWnd, HWND_TOPMOST, 0, 0, 0, 0,
+                #                      SWP_NOSIZE | SWP_NOMOVE)
+                # _user32.SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                #                      SWP_NOSIZE | SWP_NOMOVE)
+                self._win.activate()  # _user32.SetForegroundWindow(m_hWnd)
+                _user32.AttachThreadInput(dwCurID, dwMyID, False)
+                _user32.SetFocus(m_hWnd)
+                _user32.SetActiveWindow(m_hWnd)
+
 # ############################## READ-ONLY PROPERTIES #########################
     @property
     def id_types(self):

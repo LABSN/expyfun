@@ -361,6 +361,7 @@ def test_ec(ac, rd, hide_window):
         print(test_pix)
         # test __repr__
         assert all([x in repr(ec) for x in ['foo', '"test"', '01']])
+        ec.refocus()  # smoke test for refocusing
     del ec
 
 
