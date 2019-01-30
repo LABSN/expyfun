@@ -180,5 +180,5 @@ def test_rt_chisq():
         bar = ea.rt_chisq(foo, axis=axis)
         assert_array_equal(np.delete(foo.shape, axis), np.array(bar.shape))
     foo_bad = np.concatenate((np.random.rand(30), [100.]))
-    with pytest.warns(UserWarning, match='1 likely bad'):
+    with pytest.warns(UserWarning, match='likely bad'):
         bar = ea.rt_chisq(foo_bad)

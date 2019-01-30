@@ -10,7 +10,7 @@ from expyfun._utils import _TempDir
 from expyfun._git import _has_git
 
 
-@pytest.mark.timeout(15)  # can be slow to download
+@pytest.mark.timeout(30)  # can be slow to download
 def test_version_assertions():
     """Test version assertions."""
     pytest.raises(TypeError, assert_version, 1)
