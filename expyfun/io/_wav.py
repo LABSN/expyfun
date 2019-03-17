@@ -50,9 +50,11 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
         The data to save.
     fs : int
         The sample rate of the data.
-    format : numpy dtype
+    dtype : numpy dtype
         The output format to use. np.int16 is standard for many wav files,
         but np.float32 or np.float64 has higher dynamic range.
+    overwrite : bool
+        If True, overwrite the existing file.
     """
     if not overwrite and op.isfile(fname):
         raise IOError('File {} exists, overwrite=True must be '

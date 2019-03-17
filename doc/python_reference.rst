@@ -98,6 +98,7 @@ Functions:
    read_tab
    read_wav
    write_hdf5
+   write_playlist
    write_wav
    reconstruct_tracker
    reconstruct_dealer
