@@ -5,8 +5,8 @@ A-V sync test
 
 This example tests synchronization between the screen and the audio playback.
 
-.. note: On Linux (w/NVIDIA), XFCE has been observed to give consistent
-         timings, whereas Compiz WMs did not (doubled timings).
+.. note:: On Linux (w/NVIDIA), XFCE has been observed to give consistent
+          timings, whereas Compiz WMs did not (doubled timings).
 """
 # Author: Dan McCloy <drmccloy@uw.edu>
 #

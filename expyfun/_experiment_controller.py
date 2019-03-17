@@ -104,6 +104,12 @@ class ExperimentController(object):
         the expected version of the expyfun codebase is being used when running
         experiments. To override version checking (e.g., during development)
         use ``version='dev'``.
+    safe_flipping : bool | None
+        If False, do not use ``glFinish`` when flipping. This can restore
+        60 Hz on Linux systems where 30 Hz framerates occur, but the timing
+        is not necessarily guaranteed, as the `flip` may return before the
+        stimulus has actually flipped (check with
+        :ref:`sphx_glr_auto_examples_sync_sync_test.py`).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -125,7 +131,7 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  check_rms='windowed', suppress_resamp=False, version=None,
-                 enable_video=False, verbose=None):
+                 enable_video=False, safe_flipping=None, verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -231,6 +237,14 @@ class ExperimentController(object):
             #
             # set up monitor
             #
+            if safe_flipping is None:
+                safe_flipping = not (get_config('SAFE_FLIPPING', '').lower() ==
+                                     'false')
+            if not safe_flipping:
+                logger.warning('Expyfun: Unsafe flipping mode enabled, flip '
+                               'timing not guaranteed')
+            self.safe_flipping = safe_flipping
+
             if screen_num is None:
                 screen_num = int(get_config('SCREEN_NUM', '0'))
             if monitor is None:
@@ -891,7 +905,9 @@ class ExperimentController(object):
         call_list = self._on_next_flip + self._on_every_flip
         self._win.dispatch_events()
         self._win.switch_to()
-        gl.glFinish()
+        if self.safe_flipping:
+            # On NVIDIA Linux these calls cause a 2x delay (33ms instead of 16)
+            gl.glFinish()
         self._win.flip()
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
@@ -900,7 +916,8 @@ class ExperimentController(object):
             gl.glColor4f(0, 0, 0, 0)
         gl.glVertex2i(10, 10)
         gl.glEnd()
-        gl.glFinish()
+        if self.safe_flipping:
+            gl.glFinish()
         flip_time = self.get_time()
         for function in call_list:
             function()
