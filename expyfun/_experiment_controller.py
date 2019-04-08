@@ -249,9 +249,9 @@ class ExperimentController(object):
                 screen_num = int(get_config('SCREEN_NUM', '0'))
             if monitor is None:
                 import pyglet
-                mon_size = pyglet.window.get_platform().get_default_display()
-                mon_size = mon_size.get_screens()[screen_num]
-                mon_size = [mon_size.width, mon_size.height]
+                display = pyglet.window.get_platform().get_default_display()
+                screen = display.get_screens()[screen_num]
+                mon_size = [screen.width, screen.height]
                 mon_size = ','.join([str(d) for d in mon_size])
                 monitor = dict()
                 width = float(get_config('SCREEN_WIDTH', '51.0'))
@@ -353,7 +353,7 @@ class ExperimentController(object):
                                  'None')
 
             # open window and setup GL config
-            self._setup_window(window_size, exp_name, full_screen, screen_num)
+            self._setup_window(window_size, exp_name, full_screen, screen)
 
             # Keyboard
             if response_device == 'keyboard':
