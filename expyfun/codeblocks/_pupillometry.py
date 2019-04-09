@@ -23,7 +23,7 @@ def _load_raw(el, fname):
     fname = el.transfer_remote_file(fname)
     # Load and parse data
     logger.info('Pupillometry: Parsing local file "{0}"'.format(fname))
-    raw = pyeparse.Raw(fname)
+    raw = pyeparse.RawEDF(fname)
     raw.remove_blink_artifacts()
     events = raw.find_events('SYNCTIME', 1)
     return raw, events
