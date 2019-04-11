@@ -1006,8 +1006,8 @@ class RawImage(object):
             self._sprite.set_position(pos[0], pos[1])
         self._sprite.draw()
 
-    def rect(self, units='norm'):
-        """X, Y of center, Width, and Height of the image"""
+    def get_rect(self, units='norm'):
+        """X, Y center, Width, Height of image"""
         center = np.atleast_2d(self._pos).T
         wid_hei = np.array([[self._sprite.width], [self._sprite.height]])
         center = self._ec._convert_units(center, fro='pix', to=units)
