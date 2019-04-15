@@ -142,7 +142,8 @@ html_theme_options = {
     'source_link_position': "nav",  # default
     'bootswatch_theme': "yeti",
     'navbar_sidebarrel': False,  # Render the next/prev links in navbar?
-    'navbar_pagenav': False,
+    'navbar_pagenav': True,
+    'globaltoc_depth': 0,
     'navbar_class': "navbar",
     'bootstrap_version': "3",  # default
     'navbar_links': [

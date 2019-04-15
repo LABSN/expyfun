@@ -13,3 +13,7 @@ div.highlight-console div.highlight span.gp {
     max-width: unset !important;
     min-width: unset !important;
 }
+/* Global TOC */
+li.globaltoc-container {
+   visibility: hidden;
+}
