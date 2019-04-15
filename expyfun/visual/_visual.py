@@ -1026,7 +1026,18 @@ class RawImage(object):
         self._sprite.draw()
 
     def get_rect(self, units='norm'):
-        """X, Y center, Width, Height of image"""
+        """X, Y center, Width, Height of image.
+
+        Parameters
+        ----------
+        units : str
+            Units to use for the position. See ``check_units`` for options.
+
+        Returns
+        -------
+        rect : ndarray
+            The rect.
+        """
         # left,right,bottom,top
         lrbt = self._ec._convert_units(self.bounds.reshape(2, -1),
                                        fro='pix', to=units)
