@@ -6,8 +6,6 @@
 #
 # License: BSD (3-clause)
 
-# make RawImage work
-
 from ctypes import (cast, pointer, POINTER, create_string_buffer, c_char,
                     c_int, c_float)
 from functools import partial
@@ -974,7 +972,7 @@ class RawImage(object):
 
     @property
     def bounds(self):
-        """L, B, W, H (in pixels) of the image"""
+        """Left, Right, Bottom, Top (in pixels) of the image"""
         pos = np.array(self._pos, float)
         size = np.array([self._sprite.width,
                          self._sprite.height], float)
@@ -1007,6 +1005,16 @@ class RawImage(object):
         except AttributeError:
             self._sprite.set_position(pos[0], pos[1])
         self._sprite.draw()
+
+    def get_rect(self, units='norm'):
+        """X, Y center, Width, Height of image"""
+        # left,right,bottom,top
+        lrbt = self._ec._convert_units(self.bounds.reshape(2, -1),
+                                       fro='pix', to=units)
+        center = self._ec._convert_units(self._pos.reshape(2, -1),
+                                         fro='pix', to=units)
+        width_height = np.diff(lrbt, axis=-1)
+        return np.squeeze(np.concatenate([center, width_height]))
 
 
 class Video(object):
