@@ -89,7 +89,7 @@ class ExperimentController(object):
     monitor : dict | None
         Monitor properties. If dict, must include keys
         SCREEN_WIDTH, SCREEN_DISTANCE, and SCREEN_SIZE_PIX.
-        Generally this can be None if the width and distance have been
+        Generally this can be ``None`` if the width and distance have been
         set properly for the machine in use.
     trigger_controller : str | None
         If ``None``, the type will be read from the system configuration file.
@@ -2071,7 +2071,7 @@ def get_keyboard_input(prompt, default=None, out_type=str, valid=None):
         If user enters nothing, this will be used. If None, the user
         will be repeatedly prompted until a valid response is found.
     out_type : type
-        Type to coerce to. If coersion fails, the user will be prompted
+        Type to coerce to. If coercion fails, the user will be prompted
         again.
     valid : list | None
         An iterable that contains all the allowable inputs. Keeps asking until

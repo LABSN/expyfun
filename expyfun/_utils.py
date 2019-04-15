@@ -203,7 +203,7 @@ def run_subprocess(command, **kwargs):
 
 
 class ZeroClock(object):
-    """Clock that uses "clock" function but starts at zero on init"""
+    """Clock that uses "clock" function but starts at zero on init."""
 
     def __init__(self):
         self._start_time = clock()
@@ -225,7 +225,7 @@ def date_str():
 
 
 class WrapStdOut(object):
-    """Ridiculous class to work around how doctest captures stdout"""
+    """Ridiculous class to work around how doctest captures stdout."""
 
     def __getattr__(self, name):
         # Even more ridiculous than this class, this must be sys.stdout (not
@@ -290,9 +290,9 @@ class deprecated(object):
     and the docstring. Note: to use this with the default value for extra, put
     in an empty of parentheses:
 
-    >>> from expyfun.utils import deprecated
+    >>> from expyfun._utils import deprecated
     >>> deprecated() # doctest: +ELLIPSIS
-    <expyfun.utils.deprecated object at ...>
+    <expyfun._utils.deprecated object at ...>
 
     >>> @deprecated()
     ... def some_function(): pass

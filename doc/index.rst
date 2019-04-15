@@ -17,9 +17,8 @@ Purpose
 -------
 Expyfun is desigend for use by a handful of labs (e.g., LABSN and ILABS at the
 University of Washington, AMP-LAB at University of Rochester, etc.).
-We welcome contributions from other labs if they serve this mission, but at
-this time cannot work to support use cases that don't fit those of the
-above labs at this time.
+We welcome contributions from other labs if they serve this mission, but cannot
+work to support use cases that don't fit those of the above labs at this time.
 
 Design philosophy
 -----------------
@@ -35,12 +34,14 @@ Hardware support
 - Tucker-Davis Technologies (TDT) hardware (RP2, RZ6) for:
 
   - Precise auditory delivery
-  - Trigger stamping for M/EEG/pupillometry paradigms
+  - Trigger stamping for integration with eye tracker/EEG/MEG systems
+  - TDT button box responses
 
-- EyeLink integration for pupillometry
+- EyeLink integration for pupillometry and eye tracking
 - Parallel port triggering
 - Keyboard responses
 - Mouse responses
+- Cedrus response boxes
 
 .. note:: Support for high-precision sound card delivery is under development.
 

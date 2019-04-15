@@ -17,8 +17,8 @@
 
 This package is designed for audio-visual experiments with precise timing,
 and includes functionality for Eyelink control. This package is designed
-with the purpose that it be used by specific labs and is currently designed
-for public use.
+with the purpose that it be used by specific labs and is currently **not**
+designed for public use.
 
 Therefore, while we welcome bug reports and suggestions from others,
 NO SUPPORT IS GUARANTEED. Moreover, we can and will change the API as

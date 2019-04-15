@@ -47,7 +47,6 @@ development machines is to ``git clone`` the reposity then do:
 
 .. code-block:: console
 
-    $ python setup.py develop
     $ pip install -e .
 
 This allows you to stay up to date with updates, changes, and bugfixes,
@@ -60,11 +59,18 @@ macOS, or Linux) machines, and does not require additional configuration.
 In this state, the A/V/trigger timing is not guaranteed, but should be
 sufficient to work out most experiment logistics.
 
-To configure expyfun on an experimental machine designed for precise A/V
-timing, information TBD.
+To configure expyfun on an experimental machine designed for precise
+A/V/trigger timing typically requires utilizing:
 
-It is important to use :ref:`synchronization_tests` to validate your final
-system delay and jitter properties.
+- oscilloscope
+- photodiode
+- parallel port breakout or TDT trigger breakout
+- auditory connectors to go 1/4" or 1/8" output->BNC
+- Running :ref:`synchronization_tests`
+
+Once the jitter is sufficiently reduced (e.g., < 1 ms) and delays between
+components are fixed, delays can be corrected through various config
+variable(s) (details TBD).
 
 Deploying experiments
 ---------------------

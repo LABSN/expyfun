@@ -56,7 +56,7 @@ codespell-error:  # running on travis
 test: clean pytest flake codespell-error
 
 test-doc:
-	$(PYTEST) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/
+	$(PYTEST) --doctest-modules --doctest-ignore-import-errors expyfun
 
 version:
 	@expr substr `git rev-parse HEAD` 1 7

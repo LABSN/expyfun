@@ -52,7 +52,7 @@ def _init_mixer(fs, n_channels, api=None, name=None):
         if _DEFAULT_NAME is None:
             di = api['default_output_device']
             _DEFAULT_NAME = devices[di]['name']
-            print('Selected default sound device: %r' % (_DEFAULT_NAME,))
+            logger.exp('Selected default sound device: %r' % (_DEFAULT_NAME,))
         name = _DEFAULT_NAME
     possible = list()
     for di, device in enumerate(devices):
@@ -147,8 +147,8 @@ class SoundPlayer(object):
             self.pause()
             mixer, self._mixer = self._mixer, None
             stats = mixer.fetch_and_reset_stats().stats
-            print('%d underflows %d blocks'
-                  % (stats.output_underflows, stats.blocks))
+            logger.exp('%d underflows %d blocks'
+                       % (stats.output_underflows, stats.blocks))
             mixer.abort()
             mixer.close()
 

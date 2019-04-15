@@ -49,7 +49,7 @@ class SoundCardController(object):
         The sample rate to use for the sound card. The default
         lets the OS choose.
 
-    Note that the defaults are overridden on individual machines by
+    Note that the defaults are superseded on individual machines by
     the configuration file.
     """
 
@@ -64,7 +64,6 @@ class SoundCardController(object):
         logger.info('Expyfun: Setting up sound card audio using %s backend'
                     % (self.backend_name,))
         self._kwargs = dict(
-            # XXX add more kwarg translations here
             fs=params.get('SOUND_CARD_FS', None),
             api=params.get('SOUND_CARD_API', None),
             name=params.get('SOUND_CARD_NAME', None),
@@ -76,9 +75,10 @@ class SoundCardController(object):
         temp_sound.delete()
         del temp_sound
 
-        # Need to generate at RMS=1 to match TDT circuit
+        # Need to generate at RMS=1 to match TDT circuit, and use a power of
+        # 2 length for the RingBuffer (here make it >= 15 sec)
         n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.)))
-        noise = np.random.normal(0, 1.0, n_samples)  # 15 secs
+        noise = np.random.normal(0, 1.0, n_samples)
 
         # Low-pass if necessary
         if stim_fs < self.fs:
@@ -150,6 +150,7 @@ class SoundCardController(object):
         level : float
             The new level.
         """
+        self.noise_level = float(level)
         new_noise = None
         if self._noise_playing:
             self.stop_noise()

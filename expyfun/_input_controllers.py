@@ -484,7 +484,7 @@ class Mouse(object):
 
     # Define some functions for determining if a click point is in an object
     def _point_in_object(self, pos, obj):
-        """Determine if a point is within a visual objec
+        """Determine if a point is within a visual object
         """
         if isinstance(obj, (Rectangle, Circle, Diamond, Triangle)):
             return self._point_in_tris(pos, obj)

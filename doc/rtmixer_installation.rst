@@ -38,7 +38,8 @@ Here are some stub installation instructions for each OS:
     - Place it in ``C:\Windows\System32\``
 
     Because Windows support for compiling is pretty bad, ``python-rtmixer``
-    probably will not install directly using ``pip``. If you are running
+    probably will not install directly using ``pip``, because you need
+    Visual Studio (typically version 14.0+ should work). If you are running
     Python 3.7, you can use this precompiled binary for now:
 
     .. code-block:: console

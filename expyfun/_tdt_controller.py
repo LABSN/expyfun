@@ -92,7 +92,7 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         'TDT_TRIG_DELAY'
             Additional delay for the triggers (default: '0').
 
-        The defaults are overridden on individual machines by
+        The defaults are superseded on individual machines by
         the configuration file.
     """
 
