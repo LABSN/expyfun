@@ -1008,11 +1008,13 @@ class RawImage(object):
 
     def get_rect(self, units='norm'):
         """X, Y center, Width, Height of image"""
-        center = np.atleast_2d(self._pos).T
-        wid_hei = np.array([[self._sprite.width], [self._sprite.height]])
-        center = self._ec._convert_units(center, fro='pix', to=units)
-        wid_hei = self._ec._convert_units(wid_hei, fro='pix', to=units)
-        return np.concatenate([center, wid_hei])
+        # left,right,bottom,top
+        lrbt = self._ec._convert_units(self.bounds.reshape(2, -1),
+                                       fro='pix', to=units)
+        center = self._ec._convert_units(self._pos.reshape(2, -1),
+                                         fro='pix', to=units)
+        width_height = np.diff(lrbt, axis=-1)
+        return np.squeeze(np.concatenate([center, width_height]))
 
 
 class Video(object):
