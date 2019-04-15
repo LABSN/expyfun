@@ -173,11 +173,11 @@ def test_rt_chisq():
     # 1D should return single float
     foo = np.random.RandomState(0).rand(30)
     pytest.raises(ValueError, ea.rt_chisq, foo - 1.)
-    assert_equal(np.array(ea.rt_chisq(foo)).shape, ())
+    assert_equal(np.array(ea.rt_chisq(foo, warn=False)).shape, ())
     # 2D should return array with shape of input but without ``axis`` dimension
     foo = np.random.rand(30).reshape((2, 3, 5))
     for axis in range(-1, foo.ndim):
-        bar = ea.rt_chisq(foo, axis=axis)
+        bar = ea.rt_chisq(foo, axis=axis, warn=False)
         assert_array_equal(np.delete(foo.shape, axis), np.array(bar.shape))
     foo_bad = np.concatenate((np.random.rand(30), [100.]))
     with pytest.warns(UserWarning, match='likely bad'):
