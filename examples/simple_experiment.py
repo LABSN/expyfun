@@ -25,7 +25,6 @@ print(__doc__)
 set_log_level('INFO')
 
 # set configuration
-fs = 44100
 noise_db = 45  # dB for background noise
 stim_db = 65  # dB for stimuli
 min_resp_time = 0.1

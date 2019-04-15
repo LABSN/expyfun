@@ -40,7 +40,7 @@ def _check_callback(callback):
 # Define the TrackerUD Class
 # =============================================================================
 class TrackerUD(object):
-    """Up-down adaptive tracker
+    r"""Up-down adaptive tracker
 
     This class implements a standard up-down adaptive tracker object. Based on
     how it is configured, it can be used to run a fixed-step m-down n-up
@@ -125,6 +125,7 @@ class TrackerUD(object):
     and ``step_size_down`` must be scalars and ``change_indices`` must be
     None.
     """
+
     def __init__(self, callback, up, down, step_size_up, step_size_down,
                  stop_reversals, stop_trials, start_value, change_indices=None,
                  change_rule='reversals', x_min=None, x_max=None,
@@ -606,6 +607,7 @@ class TrackerBinom(object):
     confirm that the subject understands the task instructions and is capable
     of following them.
     """
+
     def __init__(self, callback, alpha, chance, max_trials, min_trials=0,
                  stop_early=True, x_current=np.nan):
         self._callback = _check_callback(callback)
@@ -779,6 +781,13 @@ class TrackerDealer(object):
 
     Parameters
     ----------
+    callback : callable | ExperimentController | None
+        The function that will be used to print the data, usually to the
+        experiment .tab file. It should follow the prototype of
+        ``ExperimentController.write_data_line``. If an instance of
+        ``ExperimentController`` is given, then it will take that object's
+        ``write_data_line`` function. If None is given, then it will not write
+        the data anywhere.
     trackers : array-like
         The trackers to use. Must be instances of
         :class:`expyfun.stimuli.TrackerUD` or
@@ -807,6 +816,7 @@ class TrackerDealer(object):
     ``stop_early`` must be ``False`` or else they cannot be ensured to keep
     pace.
     """
+
     def __init__(self, callback, trackers, max_lag=1, pace_rule='reversals',
                  rand=None):
         # dim will only be used for user output. Will be stored as 0-d

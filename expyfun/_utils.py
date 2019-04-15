@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import warnings
+from copy import deepcopy
 import subprocess
 import importlib
 import os
@@ -62,6 +63,7 @@ logging.addLevelName(EXP, 'EXP')
 
 
 def exp(self, message, *args, **kwargs):
+    """Experiment-level logging."""
     self.log(EXP, message, *args, **kwargs)
 
 
@@ -201,11 +203,13 @@ def run_subprocess(command, **kwargs):
 
 
 class ZeroClock(object):
-    """Clock that uses "clock" function but starts at zero on init"""
+    """Clock that uses "clock" function but starts at zero on init."""
+
     def __init__(self):
         self._start_time = clock()
 
     def get_time(self):
+        """Get time."""
         return clock() - self._start_time
 
 
@@ -221,7 +225,8 @@ def date_str():
 
 
 class WrapStdOut(object):
-    """Ridiculous class to work around how doctest captures stdout"""
+    """Ridiculous class to work around how doctest captures stdout."""
+
     def __getattr__(self, name):
         # Even more ridiculous than this class, this must be sys.stdout (not
         # just stdout) in order for this to work (tested on OSX and Linux)
@@ -238,6 +243,7 @@ class _TempDir(str):
     instead. Passing del_after and print_del kwargs to the constructor are
     helpful primarily for debugging purposes.
     """
+
     def __new__(self, del_after=True, print_del=False):
         new = str.__new__(self, tempfile.mkdtemp())
         self._del_after = del_after
@@ -274,10 +280,6 @@ def check_units(units):
 
 # Following deprecated class copied from scikit-learn
 
-# force show of DeprecationWarning even on python 2.7
-warnings.simplefilter('default')
-
-
 class deprecated(object):
     """Decorator to mark a function or class as deprecated.
 
@@ -288,13 +290,14 @@ class deprecated(object):
     and the docstring. Note: to use this with the default value for extra, put
     in an empty of parentheses:
 
-    >>> from expyfun.utils import deprecated
+    >>> from expyfun._utils import deprecated
     >>> deprecated() # doctest: +ELLIPSIS
-    <expyfun.utils.deprecated object at ...>
+    <expyfun._utils.deprecated object at ...>
 
     >>> @deprecated()
     ... def some_function(): pass
     """
+
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
 
@@ -312,6 +315,7 @@ class deprecated(object):
         self.extra = extra
 
     def __call__(self, obj):
+        """Call."""
         if isinstance(obj, type):
             return self._decorate_class(obj)
         else:
@@ -338,7 +342,6 @@ class deprecated(object):
 
     def _decorate_fun(self, fun):
         """Decorate function fun"""
-
         msg = "Function %s is deprecated" % fun.__name__
         if self.extra:
             msg += "; %s" % self.extra
@@ -393,7 +396,7 @@ def verbose_dec(function, *args, **kwargs):
 
     Parameters
     ----------
-    function - function
+    function : callable
         Function to be decorated by setting the verbosity level.
 
     Returns
@@ -441,11 +444,13 @@ def _has_avbin():
 
 
 def requires_avbin():
+    """Requires AVbin decorator."""
     import pytest
     return pytest.mark.skipif(not _has_avbin(), reason='Requires AVbin')
 
 
 def requires_opengl21(func):
+    """Requires OpenGL decorator."""
     import pytest
     import pyglet.gl
     vendor = pyglet.gl.gl_info.get_vendor()
@@ -457,6 +462,7 @@ def requires_opengl21(func):
 
 
 def requires_lib(lib):
+    """Requires lib decorator."""
     import pytest
     val = False
     try:
@@ -524,13 +530,13 @@ def fetch_data_file(fname):
 
 
 def get_config_path():
-    """Get path to standard expyfun config file
+    r"""Get path to standard expyfun config file.
 
     Returns
     -------
     config_path : str
         The path to the expyfun configuration file. On windows, this
-        will be '%APPDATA%\\.expyfun\\expyfun.json'. On every other
+        will be '%APPDATA%\.expyfun\expyfun.json'. On every other
         system, this will be $HOME/.expyfun/expyfun.json.
     """
     val = op.join(_get_user_home_path(), '.expyfun', 'expyfun.json')
@@ -542,10 +548,17 @@ known_config_types = ('RESPONSE_DEVICE',
                       'AUDIO_CONTROLLER',
                       'DB_OF_SINE_AT_1KHZ_1RMS',
                       'EXPYFUN_EYELINK',
-                      'TDT_MODEL',
-                      'TDT_INTERFACE',
+                      'SOUND_CARD_API',
+                      'SOUND_CARD_BACKEND',
+                      'SOUND_CARD_FS',
+                      'SOUND_CARD_NAME',
                       'TDT_CIRCUIT_PATH',
+                      'TDT_DELAY',
+                      'TDT_INTERFACE',
+                      'TDT_MODEL',
+                      'TDT_TRIG_DELAY',
                       'TRIGGER_CONTROLLER',
+                      'TRIGGER_ADDRESS',
                       'WINDOW_SIZE',
                       'SCREEN_NUM',
                       'SCREEN_WIDTH',
@@ -558,7 +571,7 @@ known_config_types = ('RESPONSE_DEVICE',
 known_config_wildcards = ()
 
 
-def get_config(key, default=None, raise_error=False):
+def get_config(key=None, default=None, raise_error=False):
     """Read expyfun preference from env, then expyfun config
 
     Parameters
@@ -577,7 +590,6 @@ def get_config(key, default=None, raise_error=False):
     value : str | None
         The preference key value.
     """
-
     if key is not None and not isinstance(key, string_types):
         raise ValueError('key must be a string')
 
@@ -623,7 +635,6 @@ def set_config(key, value):
         The value to assign to the preference key. If None, the key is
         deleted.
     """
-
     if key is None:
         return sorted(known_config_types)
     if not isinstance(key, string_types):
@@ -848,3 +859,33 @@ def object_diff(a, b, pre=''):
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
+
+
+def _check_skip_backend(backend):
+    from expyfun._sound_controllers import _import_backend
+    import pytest
+    if isinstance(backend, dict):  # actually an AC
+        backend = backend['SOUND_CARD_BACKEND']
+    try:
+        _import_backend(backend)
+    except Exception as exc:
+        pytest.skip('Skipping test for backend %s: %s' % (backend, exc))
+
+
+def _check_params(params, keys, defaults, name):
+    if not isinstance(params, dict):
+        raise TypeError('{0} must be a dict, got type {1}'
+                        .format(name, type(params)))
+    params = deepcopy(params)
+    if not isinstance(params, dict):
+        raise TypeError('{0} must be a dict, got {1}'
+                        .format(name, type(params)))
+    # Set sensible defaults for values that are not passed
+    for k in keys:
+        params[k] = params.get(k, get_config(k, defaults.get(k, None)))
+    # Check keys
+    for k in params.keys():
+        if k not in keys:
+            raise KeyError('Unrecognized key in {0}["{1}"], must be '
+                           'one of {2}'.format(name, k, ', '.join(keys)))
+    return params

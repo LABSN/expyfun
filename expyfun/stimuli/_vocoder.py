@@ -20,7 +20,8 @@ def _erbn_to_freq(e):
 
 
 @verbose_dec
-def get_band_freqs(fs, n_bands=16, freq_lims=(200., 8000.), scale='erb'):
+def get_band_freqs(fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
+                   verbose=None):
     """Calculate frequency band edges.
 
     Parameters
@@ -34,6 +35,8 @@ def get_band_freqs(fs, n_bands=16, freq_lims=(200., 8000.), scale='erb'):
     scale : str
         Scale on which to equally space the bands. Possible values are "erb",
         "log" (base-2), and "hz".
+    verbose : bool, str, int, or None
+        If not None, override default verbose level.
 
     Returns
     -------
@@ -252,6 +255,8 @@ def vocode(data, fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
         Random seed to use. If ``None``, no seeding is done.
     axis : int
         Axis to operate over.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level.
 
     Returns
     -------

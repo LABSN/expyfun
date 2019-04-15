@@ -31,6 +31,7 @@ class Keyboard(object):
         _clear_events
         _retrieve_events
     """
+
     key_event_types = {'presses': ['press'], 'releases': ['release'],
                        'both': ['press', 'release']}
 
@@ -104,7 +105,26 @@ class Keyboard(object):
 
     def get_presses(self, live_keys, timestamp, relative_to, kind='presses',
                     return_kinds=False):
-        """Get the current entire keyboard / button box buffer."""
+        """Get the current entire keyboard / button box buffer.
+
+        Parameters
+        ----------
+        live_keys : list | None
+            Keys to check.
+        timestamp : bool
+            If True, return timestamp.
+        relative_to : float
+            Time to use as a reference.
+        kind : str
+            Kind of presses.
+        return_kinds : bool
+            If True, return kinds.
+
+        Returns
+        -------
+        presses : list
+            The presses (and possibly timestamps and/or types).
+        """
         if kind not in self.key_event_types.keys():
             raise ValueError('Kind argument must be one of: '+', '.join(
                              self.key_event_types.keys()))
@@ -121,7 +141,26 @@ class Keyboard(object):
 
     def wait_one_press(self, max_wait, min_wait, live_keys, timestamp,
                        relative_to):
-        """Return the first button pressed after min_wait."""
+        """Return the first button pressed after min_wait.
+
+        Parameters
+        ----------
+        max_wait : float
+            Maxmimum time to wait.
+        min_wait : float
+            Minimum time to wait.
+        live_keys : list | None
+            Keys to consider.
+        timestamp : bool
+            If True, return timestamps.
+        relative_to : float
+            Time to use as a reference.
+
+        Returns
+        -------
+        pressed : tuple | str | None
+            The press. Will be tuple if timestamp is True.
+        """
         relative_to, start_time = self._init_wait_press(
             max_wait, min_wait, live_keys, relative_to)
         pressed = []
@@ -139,7 +178,26 @@ class Keyboard(object):
 
     def wait_for_presses(self, max_wait, min_wait, live_keys,
                          timestamp, relative_to):
-        """Return all button presses between min_wait and max_wait."""
+        """Return all button presses between min_wait and max_wait.
+
+        Parameters
+        ----------
+        max_wait : float
+            Maxmimum time to wait.
+        min_wait : float
+            Minimum time to wait.
+        live_keys : list | None
+            Keys to consider.
+        timestamp : bool
+            If True, return timestamps.
+        relative_to : float
+            Time to use as a reference.
+
+        Returns
+        -------
+        pressed : list
+            The list of presses (and possibly timestamps).
+        """
         relative_to, start_time = self._init_wait_press(
             max_wait, min_wait, live_keys, relative_to)
         pressed = []
@@ -153,6 +211,11 @@ class Keyboard(object):
         """Compare key buffer to list of force-quit keys and quit if matched.
 
         This function always uses the keyboard, so is part of abstraction.
+
+        Parameters
+        ----------
+        keys : list | None
+            Keys to check.
         """
         if keys is None:
             # only grab the force-quit keys
@@ -421,7 +484,7 @@ class Mouse(object):
 
     # Define some functions for determining if a click point is in an object
     def _point_in_object(self, pos, obj):
-        """Determine if a point is within a visual objec
+        """Determine if a point is within a visual object
         """
         if isinstance(obj, (Rectangle, Circle, Diamond, Triangle)):
             return self._point_in_tris(pos, obj)
@@ -449,11 +512,12 @@ class Mouse(object):
 
 
 class CedrusBox(Keyboard):
-    """Class for Cedrus response boxes
+    """Class for Cedrus response boxes.
 
     Note that experiments with Cedrus boxes are limited to ~4 hours due
     to the data type of their counter (milliseconds since start as integers).
     """
+
     def __init__(self, ec, force_quit_keys):
         import pyxid
         pyxid.use_response_pad_timer = True

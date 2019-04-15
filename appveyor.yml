@@ -1,7 +1,5 @@
 environment:
   matrix:
-    - PYTHON: "C:\\Python27"
-      PYTHON_ARCH: "32"
     - PYTHON: "C:\\Python37-x64"
       PYTHON_ARCH: "64"
 
@@ -10,10 +8,18 @@ platform:
 
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - "SET _EXPYFUN_SILENT=true"
   - "python --version"
+  - "pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy joblib numpydoc"
+  - "python -c \"import mne; mne.sys_info()\""
+  # RTMixer (should provide a virtual sound card / VBAudioVACWDM device)
+  - "powershell make/get_rtmixer.ps1"
+  - "pip install -q rtmixer-0.0.0-cp37-cp37m-win_amd64.whl"
+  - "python -m sounddevice"
+  # OpenGL (should provide a Gallium driver)
+  - "powershell make/install_opengl.ps1"
+  - "python -c \"import pyglet; print(pyglet.gl.gl_info.get_renderer())\""
+  # expyfun
   - "powershell make/get_avbin.ps1"
-  - "pip install numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy"
   - "python setup.py develop"
 
 build: false  # Not a C# project, build stuff at the test step instead.

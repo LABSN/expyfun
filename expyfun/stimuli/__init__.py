@@ -1,3 +1,10 @@
+"""
+Sound stimulus design
+=====================
+
+Experiment sound stimulus functions.
+"""
+
 # -*- coding: utf-8 -*-
 # Copyright (c) 2014, LABSN.
 # Distributed under the (new) BSD License. See LICENSE.txt for more info.

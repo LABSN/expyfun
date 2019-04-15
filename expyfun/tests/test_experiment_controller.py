@@ -1,14 +1,15 @@
+from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
 
 import numpy as np
 from numpy.testing import assert_equal
 import pytest
-from unittest import SkipTest
 from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._utils import (_TempDir, fake_button_press,
+from expyfun._sound_controllers import _SOUND_CARD_ACS
+from expyfun._utils import (_TempDir, fake_button_press, _check_skip_backend,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
 import sys
@@ -21,38 +22,38 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
 
 
 def dummy_print(string):
+    """Print."""
     print(string)
 
 
-def test_unit_conversions(hide_window):
+@pytest.mark.parametrize('ws', [(2, 1), (1, 1)])
+def test_unit_conversions(hide_window, ws):
     """Test unit conversions."""
-    for ws in [(2, 1), (1, 1)]:
-        kwargs = deepcopy(std_kwargs)
-        kwargs['stim_fs'] = 44100
-        kwargs['window_size'] = ws
-        with ExperimentController(*std_args, **kwargs) as ec:
-            verts = np.random.rand(2, 4)
-            for to in ['norm', 'pix', 'deg']:
-                for fro in ['norm', 'pix', 'deg']:
-                    print((ws, to, fro))
-                    v2 = ec._convert_units(verts, fro, to)
-                    v2 = ec._convert_units(v2, to, fro)
-                    assert_allclose(verts, v2)
+    kwargs = deepcopy(std_kwargs)
+    kwargs['stim_fs'] = 44100
+    kwargs['window_size'] = ws
+    with ExperimentController(*std_args, **kwargs) as ec:
+        verts = np.random.rand(2, 4)
+        for to in ['norm', 'pix', 'deg']:
+            for fro in ['norm', 'pix', 'deg']:
+                print((ws, to, fro))
+                v2 = ec._convert_units(verts, fro, to)
+                v2 = ec._convert_units(v2, to, fro)
+                assert_allclose(verts, v2)
 
-        # test that degrees yield equiv. pixels in both directions
-        verts = np.ones((2, 1))
-        v0 = ec._convert_units(verts, 'deg', 'pix')
-        verts = np.zeros((2, 1))
-        v1 = ec._convert_units(verts, 'deg', 'pix')
-        v2 = v0 - v1  # must check deviation from zero position
-        assert_allclose(v2[0], v2[1])
-        pytest.raises(ValueError, ec._convert_units, verts, 'deg', 'nothing')
-        pytest.raises(RuntimeError, ec._convert_units, verts[0], 'deg', 'pix')
+    # test that degrees yield equiv. pixels in both directions
+    verts = np.ones((2, 1))
+    v0 = ec._convert_units(verts, 'deg', 'pix')
+    verts = np.zeros((2, 1))
+    v1 = ec._convert_units(verts, 'deg', 'pix')
+    v2 = v0 - v1  # must check deviation from zero position
+    assert_allclose(v2[0], v2[1])
+    pytest.raises(ValueError, ec._convert_units, verts, 'deg', 'nothing')
+    pytest.raises(RuntimeError, ec._convert_units, verts[0], 'deg', 'pix')
 
 
 def test_data_line(hide_window):
-    """Test writing of data lines
-    """
+    """Test writing of data lines."""
     entries = [['foo'],
                ['bar', 'bar\tbar'],
                ['bar2', r'bar\tbar'],
@@ -61,12 +62,12 @@ def test_data_line(hide_window):
     goal_vals = ['None', 'bar\\tbar', 'bar\\\\tbar', 'None']
     assert_equal(len(entries), len(goal_vals))
     temp_dir = _TempDir()
-    these_kwargs = deepcopy(std_kwargs)
-    these_kwargs['output_dir'] = temp_dir
-    with ExperimentController(*std_args, stim_fs=44100, **these_kwargs) as ec:
-        for ent in entries:
-            ec.write_data_line(*ent)
-        fname = ec._data_file.name
+    with std_kwargs_changed(output_dir=temp_dir):
+        with ExperimentController(*std_args, stim_fs=44100,
+                                  **std_kwargs) as ec:
+            for ent in entries:
+                ec.write_data_line(*ent)
+            fname = ec._data_file.name
     with open(fname) as fid:
         lines = fid.readlines()
     # check the header
@@ -98,81 +99,84 @@ def test_data_line(hide_window):
     assert (np.all(ts[1:] >= ts[:-1]))
 
 
+@contextmanager
+def std_kwargs_changed(**kwargs):
+    """Use modified std_kwargs."""
+    old_vals = dict()
+    for key, val in kwargs.items():
+        old_vals[key] = std_kwargs[key]
+        std_kwargs[key] = val
+    yield
+    for key, val in old_vals.items():
+        std_kwargs[key] = val
+
+
+def test_degenerate():
+    """Test degenerate EC conditions."""
+    pytest.raises(TypeError, ExperimentController, *std_args,
+                  audio_controller=1, stim_fs=44100, **std_kwargs)
+    pytest.raises(ValueError, ExperimentController, *std_args,
+                  audio_controller='foo', stim_fs=44100, **std_kwargs)
+    pytest.raises(ValueError, ExperimentController, *std_args,
+                  audio_controller=dict(TYPE='foo'), stim_fs=44100,
+                  **std_kwargs)
+    # monitor, etc.
+    pytest.raises(TypeError, ExperimentController, *std_args,
+                  monitor='foo', **std_kwargs)
+    pytest.raises(KeyError, ExperimentController, *std_args,
+                  monitor=dict(), **std_kwargs)
+    pytest.raises(ValueError, ExperimentController, *std_args,
+                  response_device='foo', **std_kwargs)
+    with std_kwargs_changed(window_size=10.):
+        pytest.raises(ValueError, ExperimentController, *std_args,
+                      **std_kwargs)
+    pytest.raises(ValueError, ExperimentController, *std_args,
+                  audio_controller='sound_card', response_device='tdt',
+                  **std_kwargs)
+    pytest.raises(ValueError, ExperimentController, *std_args,
+                  audio_controller='pyglet', response_device='keyboard',
+                  trigger_controller='sound_card', **std_kwargs)
+
+    # test type checking for 'session'
+    with std_kwargs_changed(session=1):
+        pytest.raises(TypeError, ExperimentController, *std_args,
+                      audio_controller='sound_card', stim_fs=44100,
+                      **std_kwargs)
+
+    # test value checking for trigger controller
+    pytest.raises(ValueError, ExperimentController, *std_args,
+                  audio_controller='sound_card', trigger_controller='foo',
+                  stim_fs=44100, **std_kwargs)
+
+    # test value checking for RMS checker
+    pytest.raises(ValueError, ExperimentController, *std_args,
+                  audio_controller='sound_card', check_rms=True, stim_fs=44100,
+                  **std_kwargs)
+
+
 @pytest.mark.timeout(10)
-@pytest.mark.parametrize('ac, rd', ((None, None), ('tdt', 'tdt')))
-def test_ec(ac, rd, hide_window):
+@pytest.mark.parametrize('ac', ('tdt',) + _SOUND_CARD_ACS)
+def test_ec(ac, hide_window):
     """Test EC methods."""
-    if ac is None:
-        # test type/value checking for audio_controller
-        pytest.raises(TypeError, ExperimentController, *std_args,
-                      audio_controller=1, stim_fs=44100, **std_kwargs)
+    if ac == 'tdt':
+        rd, tc, fs = 'tdt', 'tdt', get_tdt_rates()['25k']
         pytest.raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='foo', stim_fs=44100, **std_kwargs)
-        pytest.raises(ValueError, ExperimentController, *std_args,
-                      audio_controller=dict(TYPE='foo'), stim_fs=44100,
+                      audio_controller=dict(TYPE=ac, TDT_MODEL='foo'),
                       **std_kwargs)
-        # monitor, etc.
-        pytest.raises(TypeError, ExperimentController, *std_args,
-                      monitor='foo', **std_kwargs)
-        pytest.raises(KeyError, ExperimentController, *std_args,
-                      monitor=dict(), **std_kwargs)
-        pytest.raises(ValueError, ExperimentController, *std_args,
-                      response_device='foo', **std_kwargs)
-        std_kwargs.update(window_size=10.)
-        pytest.raises(ValueError, ExperimentController, *std_args,
-                      **std_kwargs)
-        std_kwargs.update(window_size=(1, 1))
-        pytest.raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='pyglet', response_device='tdt',
-                      **std_kwargs)
-        pytest.raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='pyglet', response_device='keyboard',
-                      trigger_controller='tdt', **std_kwargs)
-
-        # test type checking for 'session'
-        std_kwargs['session'] = 1
-        pytest.raises(TypeError, ExperimentController, *std_args,
-                      audio_controller='pyglet', stim_fs=44100, **std_kwargs)
-        std_kwargs['session'] = '01'
-
-        # test value checking for trigger controller
-        pytest.raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='pyglet', trigger_controller='foo',
-                      stim_fs=44100, **std_kwargs)
-
-        # test value checking for RMS checker
-        pytest.raises(ValueError, ExperimentController, *std_args,
-                      audio_controller='pyglet', check_rms=True, stim_fs=44100,
-                      **std_kwargs)
-
-        # run rest of test with audio_controller == 'pyglet'
-        this_ac = 'pyglet'
-        this_rd = 'keyboard'
-        this_tc = 'dummy'
-        this_fs = 44100
     else:
-        assert ac == 'tdt'
-        # run rest of test with audio_controller == 'tdt'
-        this_ac = ac
-        this_rd = rd
-        this_tc = ac
-        this_fs = get_tdt_rates()['25k']
-        pytest.raises(ValueError, ExperimentController, *std_args,
-                      audio_controller=dict(TYPE=this_ac, TDT_MODEL='foo'),
-                      **std_kwargs)
+        _check_skip_backend(ac)
+        rd, tc, fs = 'keyboard', 'dummy', 44100
     for suppress in (True, False):
         with pytest.warns(None) as w:
-            with ExperimentController(*std_args, audio_controller=this_ac,
-                                      response_device=this_rd,
-                                      trigger_controller=this_tc,
-                                      stim_fs=100., suppress_resamp=suppress,
-                                      **std_kwargs) as ec:
+            with ExperimentController(
+                    *std_args, audio_controller=ac, response_device=rd,
+                    trigger_controller=tc, stim_fs=100.,
+                    suppress_resamp=suppress, **std_kwargs) as ec:
                 pass
         assert len(w) == (1 if ac == 'tdt' else 0)
-    with ExperimentController(*std_args, audio_controller=this_ac,
-                              response_device=this_rd,
-                              trigger_controller=this_tc,
-                              stim_fs=this_fs, **std_kwargs) as ec:
+    with ExperimentController(
+            *std_args, audio_controller=ac, response_device=rd,
+            trigger_controller=tc, stim_fs=fs, **std_kwargs) as ec:
         assert (ec.participant == std_kwargs['participant'])
         assert (ec.session == std_kwargs['session'])
         assert (ec.exp_name == std_args[0])
@@ -194,7 +198,7 @@ def test_ec(ac, rd, hide_window):
         assert_equal(ec.get_presses(), [])
         assert_equal(ec.get_presses(kind='presses'), [])
         pytest.raises(ValueError, ec.get_presses, kind='foo')
-        if this_rd == 'tdt':
+        if rd == 'tdt':
             # TDT does not have key release events, so should raise an
             # exception if asked for them:
             pytest.raises(RuntimeError, ec.get_presses, kind='releases')
@@ -214,7 +218,7 @@ def test_ec(ac, rd, hide_window):
         ec.load_buffer(np.zeros((1, 100)))
         ec.load_buffer(np.zeros((2, 100)))
         data = np.zeros(int(5e6), np.float32)  # too long for TDT
-        if this_fs == get_tdt_rates()['25k']:
+        if fs == get_tdt_rates()['25k']:
             pytest.raises(RuntimeError, ec.load_buffer, data)
         else:
             ec.load_buffer(data)
@@ -225,12 +229,12 @@ def test_ec(ac, rd, hide_window):
         pytest.raises(ValueError, ec.stamp_triggers, 3)
         pytest.raises(ValueError, ec.stamp_triggers, 1, check='foo')
         print(ec._tc)  # test __repr__
-        if this_tc == 'dummy':
+        if tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [])
         ec.stamp_triggers(3, check='int4')
         ec.stamp_triggers(2)
         ec.stamp_triggers([2, 4, 8])
-        if this_tc == 'dummy':
+        if tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [3, 2, 2, 4, 8])
             ec._tc._trigger_list = list()
         pytest.raises(ValueError, ec.load_buffer, np.zeros((100, 3)))
@@ -275,10 +279,10 @@ def test_ec(ac, rd, hide_window):
         ec.load_buffer(noise)
         pytest.raises(RuntimeError, ec.start_stimulus)  # order violation
         assert (ec._playing is False)
-        if this_tc == 'dummy':
+        if tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [])
         ec.start_stimulus(start_of_trial=False)         # should work
-        if this_tc == 'dummy':
+        if tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [1])
         ec.wait_secs(0.05)
         assert (ec._playing is True)
@@ -290,7 +294,7 @@ def test_ec(ac, rd, hide_window):
         pytest.raises(TypeError, ec.identify_trial, ec_id='foo', ttl_id='bar')
         pytest.raises(ValueError, ec.identify_trial, ec_id='foo', ttl_id=[2])
         assert (ec._playing is False)
-        if this_tc == 'dummy':
+        if tc == 'dummy':
             ec._tc._trigger_list = list()
         ec.identify_trial(ec_id='foo', ttl_id=[0, 1])
         assert (ec._playing is False)
@@ -302,7 +306,7 @@ def test_ec(ac, rd, hide_window):
         pytest.raises(RuntimeError, ec.trial_ok)        # order violation
         assert (ec._playing is False)
         ec.start_stimulus(flip=False, when=-1)
-        if this_tc == 'dummy':
+        if tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [4, 8, 1])
         if ac != 'tdt':
             # dummy TDT version won't do this check properly, as
@@ -365,6 +369,22 @@ def test_ec(ac, rd, hide_window):
     del ec
 
 
+@pytest.mark.parametrize('screen_num', (None, 0))
+@pytest.mark.parametrize('monitor', (
+    None,
+    dict(SCREEN_WIDTH=10, SCREEN_DISTANCE=10, SCREEN_SIZE_PIX=(1000, 1000))))
+def test_screen_monitor(screen_num, monitor):
+    """Test screen and monitor option support."""
+    with ExperimentController(
+            *std_args, screen_num=screen_num, monitor=monitor,
+            **std_kwargs):
+        pass
+    with pytest.raises(TypeError, match='must be a dict'):
+        ExperimentController(*std_args, monitor=1, **std_kwargs)
+    with pytest.raises(KeyError, match='is missing required keys'):
+        ExperimentController(*std_args, monitor={}, **std_kwargs)
+
+
 def test_tdtpy_failure(hide_window):
     """Test that failed TDTpy import raises ImportError."""
     try:
@@ -372,18 +392,19 @@ def test_tdtpy_failure(hide_window):
     except ImportError:
         pass
     else:
-        raise SkipTest('Cannot test TDT import failure')
+        pytest.skip('Cannot test TDT import failure')
     ac = dict(TYPE='tdt', TDT_MODEL='RP2')
-    pytest.raises(ImportError, ExperimentController,
-                  *std_args, audio_controller=ac, response_device='keyboard',
-                  trigger_controller='tdt', stim_fs=100.,
-                  suppress_resamp=True, **std_kwargs)
+    with pytest.raises(ImportError, match='No module named'):
+        ExperimentController(
+            *std_args, audio_controller=ac, response_device='keyboard',
+            trigger_controller='tdt', stim_fs=100.,
+            suppress_resamp=True, **std_kwargs)
 
 
 @pytest.mark.timeout(10)
 def test_button_presses_and_window_size(hide_window):
     """Test EC window_size=None and button press capture."""
-    with ExperimentController(*std_args, audio_controller='pyglet',
+    with ExperimentController(*std_args, audio_controller='sound_card',
                               response_device='keyboard', window_size=None,
                               output_dir=None, full_screen=False, session='01',
                               participant='foo', trigger_controller='dummy',
@@ -497,7 +518,7 @@ def test_background_color(hide_window):
 
 
 def test_tdt_delay(hide_window):
-    """test the tdt_delay parameter"""
+    """Test the tdt_delay parameter."""
     with ExperimentController(*std_args,
                               audio_controller=dict(TYPE='tdt', TDT_DELAY=0),
                               **std_kwargs) as ec:

@@ -1,7 +1,6 @@
 function DownloadAVBin () {
     $webclient = New-Object System.Net.WebClient
     $basedir = $pwd.Path + "\"
-    Write-Host "Arch:" $Env:PYTHON_ARCH
     if ($Env:PYTHON_ARCH -eq "32") {
         $url = "https://staff.washington.edu/larsoner/avbin.dll"
         $filepath = "C:\Windows\SysWOW64\avbin.dll"

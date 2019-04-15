@@ -82,7 +82,7 @@ def rms(data, axis=-1, keepdims=False):
     return np.sqrt(np.mean(data * data, axis=axis, keepdims=keepdims))
 
 
-def play_sound(sound, fs=None, norm=True, wait=False):
+def play_sound(sound, fs=None, norm=True, wait=False, backend='auto'):
     """Play a sound
 
     Parameters
@@ -96,6 +96,8 @@ def play_sound(sound, fs=None, norm=True, wait=False):
         If True, normalize sound to between -1 and +1.
     wait : bool
         If True, wait until the sound completes to return control.
+    backend : str
+        The backend to use.
 
     Returns
     -------
@@ -105,11 +107,11 @@ def play_sound(sound, fs=None, norm=True, wait=False):
         playing.
     """
     sound = np.array(sound)
-    fs_in = 44100
+    fs_default = 44100
     if isinstance(sound, string_types):
-        sound, fs_in = read_wav(sound)
+        sound, fs_default = read_wav(sound)
     if fs is None:
-        fs = fs_in
+        fs = fs_default
     if sound.ndim == 1:  # make it stereo
         sound = np.array((sound, sound))
     if sound.ndim != 2:
@@ -120,7 +122,10 @@ def play_sound(sound, fs=None, norm=True, wait=False):
         sound /= m
     if np.abs(sound).max() > 1.:
         warnings.warn('Sound exceeds +/-1, will clip')
-    snd = SoundPlayer(sound, fs)
+    # For rtmixer it's possible this will fail on some configurations if
+    # resampling isn't built in to the backend; when we hit this we can
+    # try/except here and do the resampling ourselves.
+    snd = SoundPlayer(sound, fs=fs, backend=backend)
     dur = sound.shape[1] / float(fs)
     snd.play()  # will clip as necessary
     del_wait = 0.5

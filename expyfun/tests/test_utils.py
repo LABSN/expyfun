@@ -9,7 +9,7 @@ warnings.simplefilter('always')
 
 
 def test_config():
-    """Test expyfun config file support"""
+    """Test expyfun config file support."""
     key = '_EXPYFUN_CONFIG_TESTING'
     value = '123456'
     old_val = os.getenv(key, None)
@@ -36,18 +36,20 @@ def test_config():
 
 @deprecated('message')
 def deprecated_func():
+    """Deprecated function."""
     pass
 
 
 @deprecated('message')
 class deprecated_class(object):
+    """Deprecated class."""
+
     def __init__(self):
         pass
 
 
 def test_deprecated():
-    """Test deprecated function
-    """
+    """Test deprecated function."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         deprecated_func()
@@ -59,7 +61,7 @@ def test_deprecated():
 
 
 def test_audio_dims():
-    """Test audio dimension fixing"""
+    """Test audio dimension fixing."""
     x = range(10)
     _fix_audio_dims(x)
     y1 = _fix_audio_dims(x, 1)

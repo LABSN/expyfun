@@ -8,6 +8,7 @@ from expyfun._utils import requires_opengl21
 
 
 def callback(event_type, value=None, timestamp=None):
+    """Callback."""
     print(event_type, value, timestamp)
 
 

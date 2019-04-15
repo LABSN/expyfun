@@ -74,7 +74,7 @@ with ExperimentController(*std_args, **std_kwargs) as ec:
     tr_ud = [TrackerUD(ec, up, down, step_size_up, step_size_down,
                        stop_reversals, stop_trials, start_value,
                        change_indices, change_rule, x_min,
-                       x_max) for i in [0, 1]]
+                       x_max) for _ in range(2)]
 
     # initialize TrackerDealer object
     td = TrackerDealer(ec, tr_ud, max_lag, pace_rule, rng_dealer)

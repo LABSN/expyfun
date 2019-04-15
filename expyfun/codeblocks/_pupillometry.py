@@ -39,9 +39,6 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         The experiment controller.
     el : instance of EyelinkController
         The Eyelink controller.
-    fname : str | None
-        If str, the filename will be used to process the data from the
-        eyelink. If None, a recording will be started.
     prompt : bool
         If True, a standard prompt message will be displayed.
     verbose : bool, str, int, or None

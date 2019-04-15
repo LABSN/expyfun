@@ -288,8 +288,9 @@ def rt_chisq(x, axis=None, warn=True):
         >>> lsp = np.linspace(np.floor(np.min(x)), np.ceil(np.max(x)), 100)
         >>> df, loc, scale = ss.chi2.fit(x, floc=0)
         >>> pdf = ss.chi2.pdf(lsp, df, scale=scale)
-        >>> plt.plot(lsp, pdf)
-        >>> plt.hist(x, normed=True)
+        >>> plt.plot(lsp, pdf)   # doctest: +ELLIPSIS
+        [<matplotlib.lines.Line2D object at ...>]
+        >>> _ = plt.hist(x, density=True)
     """
     x = np.asarray(x)
     if np.any(np.less(x, 0)):  # save the user some pain

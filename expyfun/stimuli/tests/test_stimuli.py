@@ -6,7 +6,8 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
 from scipy.signal import butter, lfilter
 
-from expyfun._utils import requires_lib, requires_opengl21
+from expyfun._sound_controllers import _BACKENDS
+from expyfun._utils import requires_lib, requires_opengl21, _check_skip_backend
 from expyfun.stimuli import (rms, play_sound, convolve_hrtf, window_edges,
                              vocode, texture_ERB, crm_info, crm_prepare_corpus,
                              crm_sentence, crm_response_menu, CRMPreload,
@@ -73,14 +74,16 @@ def test_hrtf_convolution():
                 assert (rmss[0] > 4 * rmss[1])
 
 
-def test_play_sound(hide_window):  # only works if windowing works
+@pytest.mark.parametrize('backend', ('auto',) + _BACKENDS)
+def test_play_sound(backend, hide_window):  # only works if windowing works
     """Test playing a sound."""
+    _check_skip_backend(backend)
     data = np.zeros((2, 100))
     play_sound(data).stop()
     play_sound(data[0], norm=False, wait=True)
     pytest.raises(ValueError, play_sound, data[:, :, np.newaxis])
     # Make sure Pyglet can handle a lot of sounds
-    for _ in range(100):
+    for _ in range(10):
         snd = play_sound(data)
         # we manually stop and delete here, because we don't want to
         # have to wait for our Timer instances to get around to doing
@@ -195,6 +198,7 @@ def test_crm(tmpdir):
     assert (np.sum(x[..., 0] == 0))
 
 
+@pytest.mark.timeout(15)
 @requires_opengl21
 def test_crm_response_menu(hide_window):
     """Test the CRM Response menu function."""

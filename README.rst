@@ -17,8 +17,8 @@
 
 This package is designed for audio-visual experiments with precise timing,
 and includes functionality for Eyelink control. This package is designed
-with the purpose that it be used by LABS^N at the University of Washington.
-It is not designed for public use.
+with the purpose that it be used by specific labs and is currently **not**
+designed for public use.
 
 Therefore, while we welcome bug reports and suggestions from others,
 NO SUPPORT IS GUARANTEED. Moreover, we can and will change the API as
@@ -29,24 +29,6 @@ Note that lab calibration logs can be stored `here
 
 `The API documentation and examples can be found here
 <https://labsn.github.io/expyfun>`_.
-
-Requirements:
-
-- numpy/scipy/matplotlib
-- pyglet 1.2.0 or later
-- TDTpy (if using TDT on Windows)
-- mne-python (filtering/resampling -- with CUDA if mne dependencies installed)
-
-Optional:
-
-- pandas (some plotting functions)
-- joblib (parallel processing)
-- h5py (HDF5 write/read)
-
-System-level:
-- git (for automated version downloading)
-- AVbin (if playing compressed videos)
-
 
 Licensing
 ^^^^^^^^^

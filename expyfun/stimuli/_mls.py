@@ -91,6 +91,8 @@ def compute_mls_impulse_response(response, mls, n_repeats, verbose=None):
         The MLS presented to the system.
     n_repeats : int
         Number of repeats used.
+    verbose : bool, str, int, or None
+        If not ``None``, override default verbose level.
     """
     if mls.ndim != 1 or response.ndim != 1:
         raise ValueError('response and mls must both be one-dimensional')
