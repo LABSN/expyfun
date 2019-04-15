@@ -58,6 +58,10 @@ def test_visuals(hide_window):
                 img = visual.RawImage(ec, data)
             print(img.bounds)  # test bounds
             assert_equal(img.scale, 1)
+            # test get_rect
+            imgrect = visual.Rectangle(ec, img.get_rect())
+            assert_equal(imgrect._points['fill'][(0, 2, 0, 1), (0, 0, 1, 1)],
+                         img.bounds)
             img.draw()
         line = visual.Line(ec, [[0, 1], [1, 0]])
         line.draw()
