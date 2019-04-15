@@ -61,3 +61,8 @@ test-doc:
 version:
 	@expr substr `git rev-parse HEAD` 1 7
 
+pydocstyle:
+	@echo "Running pydocstyle"
+	@pydocstyle expyfun
+
+docstyle: pydocstyle

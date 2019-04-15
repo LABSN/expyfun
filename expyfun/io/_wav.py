@@ -18,6 +18,8 @@ def read_wav(fname, verbose=None):
     ----------
     fname : str
         Filename to load.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level.
 
     Returns
     -------
@@ -50,9 +52,13 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
         The data to save.
     fs : int
         The sample rate of the data.
-    format : numpy dtype
+    dtype : numpy dtype
         The output format to use. np.int16 is standard for many wav files,
         but np.float32 or np.float64 has higher dynamic range.
+    overwrite : bool
+        If True, overwrite the file if necessary.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level.
     """
     if not overwrite and op.isfile(fname):
         raise IOError('File {} exists, overwrite=True must be '
@@ -74,7 +80,7 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
         if np.dtype(dtype).kind == 'i' and np.max(np.abs(data)) > 1.:
             raise ValueError('Data must be between -1 and +1 when saving '
                              'with an integer dtype')
-    _print_wav_info('Writing', data, data.dtype)
+    _print_wav_info('Writing', data, dtype)
     max_val = _get_dtype_norm(dtype)
     data = (data * max_val).astype(dtype)
     wavfile.write(fname, fs, data.T)

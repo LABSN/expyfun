@@ -465,6 +465,7 @@ class CRMPreload(object):
         The location of the stimulus directory. Defaults to the data directory
         where the raw CRM originals are stored.
     """
+
     def __init__(self, fs, ref_rms=0.01, ramp_dur=0.01, stereo=False,
                  path=None):
         if path is None:

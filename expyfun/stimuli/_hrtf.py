@@ -28,7 +28,7 @@ from .._utils import fetch_data_file, _fix_audio_dims
 
 
 def _get_hrtf(angle, source, fs, interp=False):
-    """Helper to sub-select proper BRIR.
+    """Sub-select proper BRIR.
 
     HRTF files must be .hdf5 files written by ``write_hdf5``. The dict stored
     in that file must contain the following: ``brir``: the BRIR data with shape
@@ -53,7 +53,6 @@ def _get_hrtf(angle, source, fs, interp=False):
        Functions", Australian Government Department of Defence: Defence Science
        and Technology Organization, Melbourne, Victoria, Australia, 2007.
     """
-
     fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
     data = read_hdf5(fname)
     angles = data['angles']
@@ -130,8 +129,8 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
         supported. The former is default for legacy purpose. `'cipic'` is
         recommended for new experiments.
     interp : bool
-        Parameter to determine whether to restrict use to known HRTF values or 
-        to use an interpolated HRTF for angles not in the source; set to 
+        Parameter to determine whether to restrict use to known HRTF values or
+        to use an interpolated HRTF for angles not in the source; set to
         False by default
 
     Returns

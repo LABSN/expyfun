@@ -25,7 +25,8 @@ from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      string_types, _fix_audio_dims, input, _get_args)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
-from ._sound_controllers import PygletSoundController, SoundPlayer
+from ._sound_controllers import (SoundPlayer, SoundCardController,
+                                 _AUTO_BACKENDS)
 from ._input_controllers import Keyboard, CedrusBox, Mouse
 from .visual import Text, Rectangle, Video, _convert_color
 from ._git import assert_version, __version__
@@ -45,11 +46,12 @@ class ExperimentController(object):
         Name of the experiment.
     audio_controller : str | dict | None
         If audio_controller is None, the type will be read from the system
-        configuration file. If a string, can be 'pyglet' or 'tdt', and the
-        remaining audio parameters will be read from the machine configuration
-        file. If a dict, must include a key 'TYPE' that is either 'pyglet'
-        or 'tdt'; the dict can contain other parameters specific to the TDT
-        (see documentation for :class:`TDTController`).
+        configuration file. If a string, can be 'sound_card' or 'tdt',
+        and the remaining audio parameters will be read from the
+        machine configuration file. If a dict, must include a key 'TYPE' that
+        is one of the supported types; the dict can contain other parameters
+        specific to the backend (see :class:`TDTController` and
+        :class:`SoundCardController`).
     response_device : str | None
         Must be 'keyboard', 'cedrus', or 'tdt'.  If None, the type will be read
         from the machine configuration file.
@@ -84,14 +86,19 @@ class ExperimentController(object):
         default handling of 'escape' in pyglet.
     participant : str | None
         If ``None``, a GUI will be used to acquire this information.
-    session : str | None
-        If ``None``, a GUI will be used to acquire this information.
+    monitor : dict | None
+        Monitor properties. If dict, must include keys
+        SCREEN_WIDTH, SCREEN_DISTANCE, and SCREEN_SIZE_PIX.
+        Generally this can be None if the width and distance have been
+        set properly for the machine in use.
     trigger_controller : str | None
         If ``None``, the type will be read from the system configuration file.
         If a string, must be 'dummy', 'parallel', or 'tdt'. Note that by
         default the mode is 'dummy', since setting up the parallel port
         can be a pain. Can also be a dict with entries 'type' ('parallel'),
         'address' (None), and 'high_duration' (0.005).
+    session : str | None
+        If ``None``, a GUI will be used to acquire this information.
     check_rms : str | None
         Method to use in checking stimulus RMS to ensure appropriate levels.
         Possible values are ``None``, ``wholefile``, and ``windowed`` (the
@@ -104,6 +111,8 @@ class ExperimentController(object):
         the expected version of the expyfun codebase is being used when running
         experiments. To override version checking (e.g., during development)
         use ``version='dev'``.
+    enable_video : bool
+        If True, enable video mode.
     safe_flipping : bool | None
         If False, do not use ``glFinish`` when flipping. This can restore
         60 Hz on Linux systems where 30 Hz framerates occur, but the timing
@@ -247,10 +256,10 @@ class ExperimentController(object):
 
             if screen_num is None:
                 screen_num = int(get_config('SCREEN_NUM', '0'))
+            import pyglet
+            display = pyglet.window.get_platform().get_default_display()
+            screen = display.get_screens()[screen_num]
             if monitor is None:
-                import pyglet
-                display = pyglet.window.get_platform().get_default_display()
-                screen = display.get_screens()[screen_num]
                 mon_size = [screen.width, screen.height]
                 mon_size = ','.join([str(d) for d in mon_size])
                 monitor = dict()
@@ -265,9 +274,10 @@ class ExperimentController(object):
                 raise TypeError('monitor must be a dict')
             req_mon_keys = ['SCREEN_WIDTH', 'SCREEN_DISTANCE',
                             'SCREEN_SIZE_PIX']
-            if not all([key in monitor for key in req_mon_keys]):
-                raise KeyError('monitor must have keys {0}'
-                               ''.format(req_mon_keys))
+            missing_keys = [key for key in req_mon_keys if key not in monitor]
+            if missing_keys:
+                raise KeyError('monitor is missing required keys {0}'
+                               ''.format(missing_keys))
             mon_size = monitor['SCREEN_SIZE_PIX']
             monitor['SCREEN_DPI'] = (monitor['SCREEN_SIZE_PIX'][0] /
                                      (monitor['SCREEN_WIDTH'] * 0.393701))
@@ -281,17 +291,19 @@ class ExperimentController(object):
             #
             if audio_controller is None:
                 audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
-                                                       'pyglet')}
+                                                       'sound_card')}
             elif isinstance(audio_controller, string_types):
-                if audio_controller.lower() in ['pyglet', 'tdt']:
-                    audio_controller = {'TYPE': audio_controller.lower()}
+                # old option, backward compat / shortcut
+                if audio_controller in _AUTO_BACKENDS:
+                    audio_controller = {
+                        'TYPE': 'sound_card',
+                        'SOUND_CARD_BACKEND': audio_controller}
                 else:
-                    raise ValueError('audio_controller must be \'pyglet\' or '
-                                     '\'tdt\' (or a dict including \'TYPE\':'
-                                     ' \'pyglet\' or \'TYPE\': \'tdt\').')
+                    audio_controller = {'TYPE': audio_controller.lower()}
             elif not isinstance(audio_controller, dict):
-                raise TypeError('audio_controller must be a str or dict.')
-            self.audio_type = audio_controller['TYPE'].lower()
+                raise TypeError('audio_controller must be a str or dict, got '
+                                'type %s' % (type(audio_controller),))
+            audio_type = audio_controller['TYPE'].lower()
 
             #
             # parse response device
@@ -308,15 +320,17 @@ class ExperimentController(object):
             #
 
             # Audio (and for TDT, potentially keyboard)
-            if self.audio_type == 'tdt':
+            if audio_type == 'tdt':
                 logger.info('Expyfun: Setting up TDT')
                 self._ac = TDTController(audio_controller)
                 self.audio_type = self._ac.model
-            elif self.audio_type == 'pyglet':
-                self._ac = PygletSoundController(self, self.stim_fs)
+            elif audio_type == 'sound_card':
+                self._ac = SoundCardController(audio_controller, self.stim_fs)
+                self.audio_type = self._ac.backend_name
             else:
-                raise ValueError('audio_controller[\'TYPE\'] must be '
-                                 '\'pyglet\' or \'tdt\'.')
+                raise ValueError('audio_controller[\'TYPE\'] must be "tdt" '
+                                 'or "sound_card", got %r.' % (audio_type,))
+            del audio_type
             self._extra_cleanup_fun.insert(0, self._ac.halt)
             # audio scaling factor; ensure uniform intensity across devices
             self.set_stim_db(self._stim_db)
@@ -507,8 +521,8 @@ class ExperimentController(object):
             The acceptable list of buttons or keys to use to advance the trial.
             If None, all buttons / keys will be accepted.  If an empty list,
             the prompt displays until max_wait seconds have passed.
-        click : bool
-            Whether to use clicks to advance rather than key presses.
+        timestamp : bool
+            If True, output the timestamp as well.
         clear_after : bool
             If True, the screen will be cleared before returning.
         pos : list | tuple
@@ -531,6 +545,8 @@ class ExperimentController(object):
             Should the text be interpreted with pyglet's ``decode_attributed``
             method? This allows inline formatting for text color, e.g.,
             ``'This is {color (255, 0, 0, 255)}red text'``.
+        click : bool
+            Whether to use clicks to advance rather than key presses.
 
         Returns
         -------
@@ -661,8 +677,8 @@ class ExperimentController(object):
         -----
         See `flip_and_play` for order of operations. Can be called multiple
         times to add multiple functions to the queue. If the function must be
-        called with arguments, use `functools.partial` before passing to
-        `call_on_next_flip`.
+        called with arguments, use :func:`functools.partial` before passing
+        to `call_on_next_flip`.
         """
         if function is not None:
             self._on_next_flip.append(function)
@@ -686,7 +702,7 @@ class ExperimentController(object):
         -----
         See `flip_and_play` for order of operations. Can be called multiple
         times to add multiple functions to the queue. If the function must be
-        called with arguments, use `functools.partial` before passing to
+        called with arguments, use :func:`functools.partial` before passing to
         `call_on_every_flip`.
         """
         if function is not None:
@@ -736,11 +752,10 @@ class ExperimentController(object):
                 # norm (window) to norm (whole screen), then to deg
                 x = np.arctan2(verts[0] * w_prop * (w_cm / 2.), d_cm)
                 y = np.arctan2(verts[1] * h_prop * (h_cm / 2.), d_cm)
-                verts = np.array([x, y])
-                verts *= (180. / np.pi)
+                verts = np.rad2deg(np.array([x, y]))
             else:
                 # deg to norm (whole screen), to norm (window)
-                verts *= (np.pi / 180.)
+                verts = np.deg2rad(verts)
                 x = (d_cm * np.tan(verts[0])) / (w_cm / 2.) / w_prop
                 y = (d_cm * np.tan(verts[1])) / (h_cm / 2.) / h_prop
                 verts = np.array([x, y])
@@ -761,7 +776,7 @@ class ExperimentController(object):
         """
         import pyglet
         # this must be done in order to instantiate image_buffer_manager
-        data = pyglet.image.get_buffer_manager().get_color_buffer()
+        pyglet.image.get_buffer_manager().get_color_buffer()
         data = self._win.context.image_buffer_manager.color_buffer.image_data
         data = data.get_data(data.format, data.pitch)
         data = np.frombuffer(data, dtype=np.uint8)
@@ -798,6 +813,19 @@ class ExperimentController(object):
 
 # ############################### VIDEO METHODS ###############################
     def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
+        """Load a video.
+
+        Parameters
+        ----------
+        file_name : str
+            The filename.
+        pos : tuple
+            The screen position.
+        units : str
+            Units for `pos`. See `check_units` for options.
+        center : bool
+            If True, center the video.
+        """
         from pyglet.media import MediaFormatException
         try:
             self.video = Video(self, file_name, pos, units)
@@ -811,6 +839,7 @@ class ExperimentController(object):
                 % (exp,))
 
     def delete_video(self):
+        """Delete the video."""
         self.video._delete()
         self.video = None
 
@@ -1262,6 +1291,8 @@ class ExperimentController(object):
         ----------
         visibility : bool
             If True, show; if False, hide.
+        flip : bool
+            If True, flip after toggling.
 
         See Also
         --------
@@ -1462,7 +1493,7 @@ class ExperimentController(object):
 
         See Also
         --------
-        ExperimentControlller.set_noise_db
+        ExperimentController.set_noise_db
         ExperimentController.start_noise
         """
         if self._ac is not None:  # check b/c used by __exit__
@@ -1545,6 +1576,11 @@ class ExperimentController(object):
     def set_noise_db(self, new_db):
         """Set the level of the background noise
 
+        Parameters
+        ----------
+        new_db : float
+            The new level.
+
         See Also
         --------
         ExperimentController.start_noise
@@ -1556,6 +1592,11 @@ class ExperimentController(object):
 
     def set_stim_db(self, new_db):
         """Set the level of the stimuli
+
+        Parameters
+        ----------
+        new_db : float
+            The new level.
 
         See Also
         --------
@@ -1708,8 +1749,8 @@ class ExperimentController(object):
                                               value]) + '\n'
         if self._data_file is not None:
             if self._data_file.closed:
-                logger.warn('Data line not written due to closed file %s:\n%s'
-                            % (self.data_fname, ll[:-1]))
+                logger.warning('Data line not written due to closed file %s:\n'
+                               '%s' % (self.data_fname, ll[:-1]))
             else:
                 self._data_file.write(ll)
             self.flush()
@@ -1839,8 +1880,7 @@ class ExperimentController(object):
             raise RuntimeError('trial cannot be okay unless it was started, '
                                'did you call ec.start_stimulus?')
         if self._playing:
-            msg = 'ec.trial_ok called before stimulus had stopped'
-            logger.warn(msg)
+            logger.warning('ec.trial_ok called before stimulus had stopped')
         for func in self._on_trial_ok:
             func()
         logger.exp('Expyfun: Trial OK')
@@ -1940,7 +1980,6 @@ class ExperimentController(object):
                 action()
             except Exception:
                 tb.print_exc()
-                pass
         if any([x is not None for x in (err_type, value, traceback)]):
             return False
         return True

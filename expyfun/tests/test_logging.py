@@ -2,15 +2,19 @@ import os
 
 import pytest
 from expyfun import ExperimentController
+from expyfun._sound_controllers import _AUTO_BACKENDS
+from expyfun._utils import _check_skip_backend
 
 std_args = ['test']
 std_kwargs = dict(participant='foo', session='01', full_screen=False,
                   window_size=(1, 1), verbose=True, noise_db=0, version='dev')
 
 
-@pytest.mark.parametrize('ac', ('pyglet', 'tdt'))
+@pytest.mark.parametrize('ac', ('tdt',) + _AUTO_BACKENDS)
 def test_logging(ac, tmpdir, hide_window):
     """Test logging to file (Pyglet)."""
+    if ac != 'tdt':
+        _check_skip_backend(ac)
     orig_dir = os.getcwd()
     os.chdir(str(tmpdir))
     try:
@@ -31,11 +35,12 @@ def test_logging(ac, tmpdir, hide_window):
         should_have = ['Participant: foo', 'Session: 01',
                        'wait_until was called',
                        'Stimulus max RMS (']
-        if ac == 'pyglet':
-            should_have.append('Pyglet')
-        else:
+        if ac == 'tdt':
             should_have.append('TDT')
-
+        else:
+            should_have.append('sound card')
+            if ac != 'auto':
+                should_have.append(ac)
         for s in should_have:
             if s not in data:
                 raise ValueError('Missing data: "{0}" in:\n{1}'

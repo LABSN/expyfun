@@ -1,4 +1,9 @@
-"""Tools for drawing shapes and text on the screen"""
+"""
+Visual stimulus design
+======================
+
+Tools for drawing shapes and text on the screen.
+"""
 
 # Authors: Dan McCloy <drmccloy@uw.edu>
 #          Eric Larson <larsoner@uw.edu>
@@ -9,9 +14,14 @@
 from ctypes import (cast, pointer, POINTER, create_string_buffer, c_char,
                     c_int, c_float)
 from functools import partial
+import re
 
 import warnings
 import numpy as np
+try:
+    from PyOpenGL import gl
+except ImportError:
+    from pyglet import gl
 
 from .._utils import check_units, string_types, logger
 
@@ -36,7 +46,7 @@ def _replicate_color(color, pts):
 # Text
 
 class Text(object):
-    """A text object
+    """A text object.
 
     Parameters
     ----------
@@ -82,6 +92,7 @@ class Text(object):
     text : instance of Text
         The text object.
     """
+
     def __init__(self, ec, text, pos=(0, 0), color='white',
                  font_name='Arial', font_size=24, height=None,
                  width='auto', anchor_x='center', anchor_y='center',
@@ -166,7 +177,10 @@ def _check_log(obj, func):
     ptr = cast(pointer(log), POINTER(c_char))
     func(obj, 4096, pointer(c_int()), ptr)
     message = log.value
-    if message.startswith(b'No errors'):
+    message = message.decode()
+    if message.startswith('No errors') or \
+            re.match('.*shader was successfully compiled.*', message) or \
+            message == 'Vertex shader(s) linked, fragment shader(s) linked.\n':
         pass
     elif message:
         raise RuntimeError(message)
@@ -174,13 +188,13 @@ def _check_log(obj, func):
 
 class _Triangular(object):
     """Super class for objects that use triangulations and/or lines"""
+
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
         self._ec = ec
         self._line_width = line_width
         self._line_loop = line_loop  # whether or not lines drawn are looped
 
         # initialize program and shaders
-        from pyglet import gl
         self._program = gl.glCreateProgram()
 
         vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
@@ -232,9 +246,7 @@ class _Triangular(object):
         self.set_line_color(line_color)
 
     def _set_points(self, points, kind, tris):
-        """Helper to set fill and line points"""
-        from pyglet import gl
-
+        """Set fill and line points."""
         if points is None:
             self._counts[kind] = 0
         points = np.asarray(points, dtype=np.float32, order='C')
@@ -289,7 +301,7 @@ class _Triangular(object):
 
         Parameters
         ----------
-        fill_color : matplotlib Color | None
+        line_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
         self._colors['line'] = _convert_color(line_color, byte=False)
@@ -310,7 +322,6 @@ class _Triangular(object):
 
     def draw(self):
         """Draw the object to the display buffer"""
-        from pyglet import gl
         gl.glUseProgram(self._program)
         for kind in ('fill', 'line'):
             if self._counts[kind] > 0:
@@ -369,6 +380,7 @@ class Line(_Triangular):
     line : instance of Line
         The line object.
     """
+
     def __init__(self, ec, coords, units='norm', line_color='white',
                  line_width=1.0, line_loop=False):
         _Triangular.__init__(self, ec, fill_color=None, line_color=line_color,
@@ -383,6 +395,8 @@ class Line(_Triangular):
         ----------
         coords : array-like
             2 x N set of X, Y coordinates.
+        units : str
+            Units to use.
         """
         check_units(units)
         coords = np.array(coords, dtype=float)
@@ -419,6 +433,7 @@ class Triangle(_Triangular):
     line : instance of Triangle
         The triangle object.
     """
+
     def __init__(self, ec, coords, units='norm', fill_color='white',
                  line_color=None, line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
@@ -434,11 +449,14 @@ class Triangle(_Triangular):
         ----------
         coords : array-like
             2 x 3 set of X, Y coordinates.
+        units : str
+            Units to use.
         """
         check_units(units)
         coords = np.array(coords, dtype=float)
         if coords.shape != (2, 3):
-            raise ValueError('coords must be an array of size 2 x 3')
+            raise ValueError('coords must be an array of shape (2, 3), got %s'
+                             % (coords.shape,))
         points = self._ec._convert_units(coords, units, 'pix')
         points = points.T
         self._set_fill_points(points, [0, 1, 2])
@@ -446,7 +464,7 @@ class Triangle(_Triangular):
 
 
 class Rectangle(_Triangular):
-    """A rectangle
+    """A rectangle.
 
     Parameters
     ----------
@@ -470,6 +488,7 @@ class Rectangle(_Triangular):
     line : instance of Rectangle
         The rectangle object.
     """
+
     def __init__(self, ec, pos, units='norm', fill_color='white',
                  line_color=None, line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
@@ -507,7 +526,7 @@ class Rectangle(_Triangular):
 
 
 class Diamond(_Triangular):
-    """A diamond
+    """A diamond.
 
     Parameters
     ----------
@@ -531,6 +550,7 @@ class Diamond(_Triangular):
     line : instance of Rectangle
         The rectangle object.
     """
+
     def __init__(self, ec, pos, units='norm', fill_color='white',
                  line_color=None, line_width=1.0):
         _Triangular.__init__(self, ec, fill_color=fill_color,
@@ -568,7 +588,7 @@ class Diamond(_Triangular):
 
 
 class Circle(_Triangular):
-    """A circle or ellipse
+    """A circle or ellipse.
 
     Parameters
     ----------
@@ -596,6 +616,7 @@ class Circle(_Triangular):
     circle : instance of Circle
         The circle object.
     """
+
     def __init__(self, ec, radius=1, pos=(0, 0), units='norm',
                  n_edges=200, fill_color='white', line_color=None,
                  line_width=1.0):
@@ -678,7 +699,7 @@ class Circle(_Triangular):
 
 
 class ConcentricCircles(object):
-    """A set of filled concentric circles drawn without edges
+    """A set of filled concentric circles drawn without edges.
 
     Parameters
     ----------
@@ -701,6 +722,7 @@ class ConcentricCircles(object):
     circle : instance of Circle
         The circle object.
     """
+
     def __init__(self, ec, radii=(0.2, 0.05), pos=(0, 0), units='norm',
                  colors=('w', 'k')):
         radii = np.array(radii, float)
@@ -771,8 +793,6 @@ class ConcentricCircles(object):
             Color of the circle.
         idx : int
             Index of the circle.
-        units : str
-            Units to use. See ``check_units`` for options.
         """
         self._circles[idx].set_fill_color(color)
 
@@ -799,7 +819,7 @@ class ConcentricCircles(object):
 
 
 class FixationDot(ConcentricCircles):
-    """A reasonable centered fixation dot
+    """A reasonable centered fixation dot.
 
     This uses concentric circles, the inner of which has a radius of one
     pixel, to create a fixation dot. If finer-grained control is desired,
@@ -817,6 +837,7 @@ class FixationDot(ConcentricCircles):
     fix : instance of FixationDot
         The fixation dot.
     """
+
     def __init__(self, ec, colors=('w', 'k')):
         if len(colors) != 2:
             raise ValueError('colors must have length 2')
@@ -827,7 +848,7 @@ class FixationDot(ConcentricCircles):
 
 
 class ProgressBar(object):
-    """A progress bar that can be displayed between sections
+    """A progress bar that can be displayed between sections.
 
     This uses two rectangles, one outline, and one solid to show how much
     progress has been made in the experiment.
@@ -845,10 +866,8 @@ class ProgressBar(object):
     colors : list or tuple of matplotlib Colors
         Colors to fill and outline the bar respectively. Defaults to green and
         white.
-    text : bool
-        Whether to show the percent done as text below the bar. If ``True``,
-        leave room on the screen below the bar
     """
+
     def __init__(self, ec, pos, units='norm', colors=('g', 'w')):
         self._ec = ec
         if len(colors) != 2:
@@ -872,7 +891,7 @@ class ProgressBar(object):
                             Rectangle(ec, self._pos, units, None, colors[1])]
 
     def update_bar(self, percent):
-        """ Update the progress of the bar
+        """Update the progress of the bar.
 
         Parameters
         ----------
@@ -886,8 +905,7 @@ class ProgressBar(object):
         self._rectangles[0].set_pos(self._pos_bar, self._units)
 
     def draw(self):
-        """ Draw the progress bar
-        """
+        """Draw the progress bar."""
         for rectangle in self._rectangles:
             rectangle.draw()
 
@@ -896,7 +914,7 @@ class ProgressBar(object):
 # Image display
 
 class RawImage(object):
-    """Create image from array for on-screen display
+    """Create image from array for on-screen display.
 
     Parameters
     ----------
@@ -917,6 +935,7 @@ class RawImage(object):
     img : instance of RawImage
         The image object.
     """
+
     def __init__(self, ec, image_buffer, pos=(0, 0), scale=1., units='norm'):
         self._ec = ec
         self._img = None
@@ -955,7 +974,7 @@ class RawImage(object):
                                                      -dims[1] * dims[2]))
 
     def set_pos(self, pos, units='norm'):
-        """Set image position
+        """Set image position.
 
         Parameters
         ----------
@@ -972,7 +991,7 @@ class RawImage(object):
 
     @property
     def bounds(self):
-        """Left, Right, Bottom, Top (in pixels) of the image"""
+        """Left, Right, Bottom, Top (in pixels) of the image."""
         pos = np.array(self._pos, float)
         size = np.array([self._sprite.width,
                          self._sprite.height], float)
@@ -984,7 +1003,7 @@ class RawImage(object):
         return self._scale
 
     def set_scale(self, scale):
-        """Create image from array for on-screen display
+        """Create image from array for on-screen display.
 
         Parameters
         ----------
@@ -1018,7 +1037,7 @@ class RawImage(object):
 
 
 class Video(object):
-    """Read video file and draw it to the screen
+    """Read video file and draw it to the screen.
 
     Parameters
     ----------
@@ -1031,7 +1050,7 @@ class Video(object):
         Units to use for the position. See ``check_units`` for options.
     scale : float | str
         The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
-        large, etc. If `scale` is a string, it must be either ``'fill'``
+        large, etc. If scale is a string, it must be either ``'fill'``
         (which ensures the entire ``ExperimentController`` window is
         covered by the video, at the expense of some parts of the video
         potentially being offscreen), or ``'fit'`` (which scales maximally
@@ -1043,7 +1062,7 @@ class Video(object):
         the frame.
     visible : bool
         Whether to show the video when initialized. Can be toggled later using
-        ``set_visible`` method.
+        `Video.set_visible` method.
 
     Returns
     -------
@@ -1058,6 +1077,7 @@ class Video(object):
     timing of audio and video are unimportant (e.g., if the video is merely
     entertainment for the participant during a passive auditory task).
     """
+
     def __init__(self, ec, file_name, pos=(0, 0), units='norm', scale=1.,
                  center=True, visible=True):
         from pyglet.media import load, Player
@@ -1136,7 +1156,7 @@ class Video(object):
         ----------
         scale : float | str
             The scale factor. 1 is native size (pixel-to-pixel), 2 is twice as
-            large, etc. If `scale` is a string, it must be either ``'fill'``
+            large, etc. If scale is a string, it must be either ``'fill'``
             (which ensures the entire ``ExperimentController`` window is
             covered by the video, at the expense of some parts of the video
             potentially being offscreen), or ``'fit'`` (which scales maximally
@@ -1200,7 +1220,15 @@ class Video(object):
         self._ec.check_force_quit()
 
     def set_visible(self, show, flip=False):
-        """Show/hide the video frame."""
+        """Show/hide the video frame.
+
+        Parameters
+        ----------
+        show : bool
+            Show or hide.
+        flip : bool
+            If True, flip after showing or hiding.
+        """
         if show:
             self._visible = True
             self._draw()

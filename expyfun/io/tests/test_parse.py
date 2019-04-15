@@ -50,8 +50,7 @@ def test_parse(hide_window):
 
 
 def test_reconstruct(hide_window):
-    """Test Tracker objects reconstruction"""
-
+    """Test Tracker objects reconstruction."""
     # test with one TrackerUD
     with ExperimentController(*std_args, **std_kwargs) as ec:
         tr = TrackerUD(ec, 1, 1, 3, 1, 5, np.inf, 3)

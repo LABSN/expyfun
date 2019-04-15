@@ -152,12 +152,12 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     line_kwargs : dict
         Arguments passed to ``matplotlib.pyplot.plot()`` (e.g., color, marker,
         linestyle).
-    pval_kwargs : dict
-        Arguments passed to ``matplotlib.pyplot.annotate()`` when drawing
-        bracket labels.
     bracket_kwargs : dict
         arguments passed to ``matplotlib.pyplot.plot()`` (e.g., color, marker,
         linestyle).
+    pval_kwargs : dict
+        Arguments passed to ``matplotlib.pyplot.annotate()`` when drawing
+        bracket labels.
     figure_kwargs : dict
         arguments passed to ``matplotlib.pyplot.figure()`` (e.g., figsize, dpi,
         frameon).

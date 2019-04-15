@@ -90,9 +90,9 @@ def _check(val, msg, out='error'):
     if val != TRIAL_OK:
         msg = msg.format(val)
         if out == 'warn':
-            logger.warn(msg)
+            logger.warning(msg)
         else:
-            raise RuntimeError()
+            raise RuntimeError(msg)
 
 
 _dummy_names = [
@@ -107,6 +107,8 @@ _dummy_names = [
 
 
 class DummyEl(object):
+    """Dummy EyeLink controller."""
+
     def __init__(self):
         for name in _dummy_names:
             setattr(self, name, dummy_fun)
@@ -116,13 +118,14 @@ class DummyEl(object):
         self.waitForBlockStart = lambda a, b, c: 1
 
     def sendMessage(self, msg):
+        """Send a message."""
         if not isinstance(msg, string_types):
             raise TypeError('msg must be str')
         return TRIAL_OK
 
 
 class EyelinkController(object):
-    """Eyelink communication and control methods
+    """Eyelink communication and control methods.
 
     Parameters
     ----------
@@ -143,6 +146,7 @@ class EyelinkController(object):
     The data will be saved to the ExperimentController ``output_dir``.
     If this was `None`, data will be saved to the current working dir.
     """
+
     @verbose_dec
     def __init__(self, ec, link='default', fs=1000, verbose=None):
         if link == 'default':
@@ -342,7 +346,6 @@ class EyelinkController(object):
         -------
         fname : str | None
             Filename on the Eyelink of the started data file.
-            Will be None if start is None.
 
         Notes
         -----
@@ -363,7 +366,6 @@ class EyelinkController(object):
         if prompt:
             self._ec.screen_prompt('We will now perform a screen calibration.'
                                    '\n\nPress a button to continue.')
-        fname = None
         logger.info('EyeLink: Entering calibration')
         self._ec.flush()
         # enter Eyetracker camera setup mode, calibration and validation
@@ -545,8 +547,6 @@ class EyelinkController(object):
             Total amount of time to check.
         tol : float
             The tolerance (in pixels) to consider the target hit.
-        max_wait : float
-            Maximum time to wait (seconds) before returning.
         period : float
             Maximum time between gazes in region
         check_interval : float
@@ -719,7 +719,8 @@ class EyelinkController(object):
 
 
 class _Calibrate(cal_super_class):
-    """Show and control calibration screen"""
+    """Show and control calibration screen."""
+
     def __init__(self, ec, beep=False):
         cal_super_class.__init__(self)
         self.__target_beep__ = None
@@ -824,7 +825,7 @@ class _Calibrate(cal_super_class):
         return x, y
 
     def alert_printf(self, msg):
-        logger.warn('EyeLink: alert_printf {}'.format(msg))
+        logger.warning('EyeLink: alert_printf {}'.format(msg))
 
     def setup_image_display(self, w, h):
         # convert w, h from pixels to relative units

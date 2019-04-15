@@ -1,0 +1,15 @@
+/* Allow easier copy-paste in code blocks */
+div.highlight-console div.highlight span.gp {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+/* Sizing */
+.body {
+    max-width: unset !important;
+    min-width: unset !important;
+}

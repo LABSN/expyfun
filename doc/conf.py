@@ -35,7 +35,7 @@ if not os.path.isdir('_images'):
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+needs_sphinx = '1.8'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -50,11 +50,13 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
     'sphinx_gallery.gen_gallery',
+    'sphinx_fontawesome',
     'numpydoc',
+    'sphinx_bootstrap_theme',
 ]
 
 autosummary_generate = True
-autodoc_default_flags = ['inherited-members']
+autodoc_default_options = {'inherited-members': None}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -73,6 +75,7 @@ project = u'expyfun'
 td = date.today()
 copyright = u'2013-%s, expyfun developers. Last updated on %s' % (td.year,
                                                                   td.isoformat())
+nitpicky = True
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -99,11 +102,10 @@ unused_docs = []
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
 exclude_trees = ['_build']
-exclude_patterns = ['source/generated']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
-#default_role = None
+default_role = "autolink"
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 #add_function_parentheses = True
@@ -144,14 +146,11 @@ html_theme_options = {
     'navbar_class': "navbar",
     'bootstrap_version': "3",  # default
     'navbar_links': [
-        ("API reference", "python_reference"),
+        ("Getting started", "getting_started"),
         ("Examples", "auto_examples/index"),
-        ("What's new", "whats_new"),
+        ("API reference", "python_reference"),
     ],
     }
-
-# Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -205,6 +204,7 @@ html_static_path = ['_static', '_images']
 
 # If true, links to the reST sources are added to the pages.
 html_show_sourcelink = False
+html_copy_source = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 html_show_sphinx = False
@@ -233,11 +233,17 @@ trim_doctests_flags = True
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy-dev/', None),
-    'scipy': ('https://scipy.github.io/devdocs/', None),
-    'sklearn': ('http://scikit-learn.org/stable/', None),
-    'matplotlib': ('https://matplotlib.org/', None),
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('https://www.numpy.org/devdocs', None),
+    'scipy': ('https://scipy.github.io/devdocs', None),
+    'matplotlib': ('https://matplotlib.org', None),
+    'sklearn': ('https://scikit-learn.org/stable', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
+    'sounddevice': ('https://python-sounddevice.readthedocs.io', None),
+    'rtmixer': ('https://python-rtmixer.readthedocs.io/en/latest', None),
+    'pyglet': ('https://pyglet.readthedocs.io/en/pyglet-1.3-maintenance',
+               None),
+    'mne': ('https://mne-tools.github.io/dev', None),
 }
 
 examples_dirs = ['../examples']
@@ -245,13 +251,12 @@ gallery_dirs = ['auto_examples']
 
 sphinx_gallery_conf = {
     'doc_module': ('expyfun',),
-    'reference_url': {'expyfun': None},
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
     'find_mayavi_figures': False,
     'default_thumb_file': os.path.join('_static', 'favicon.ico'),
     'backreferences_dir': 'generated',
-    'filename_pattern': '/.*(?<!_)\.py$',  # anything that isn't *_.py
+    'filename_pattern': r'/.*(?<!_)\.py$',  # anything that isn't *_.py
     }
 
 numpydoc_class_members_toctree = False

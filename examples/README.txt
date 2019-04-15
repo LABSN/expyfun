@@ -1,3 +1,6 @@
+.. _general_examples:
+
+========
 Examples
 ========
 
@@ -7,3 +10,6 @@ stimuli, as well as do some analyses and plots.
 .. contents:: Contents
    :local:
    :depth: 2
+
+Basic examples
+--------------

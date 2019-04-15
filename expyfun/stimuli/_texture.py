@@ -63,11 +63,11 @@ def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),
         Duration (in seconds) of each token in seq (default is 1.0).
     SAM_freq : float
         The SAM frequency to use.
-    freq_lims : tuple
-        The lower and upper frequency limits (default is (200, 8000)).
     random_state : None | int | np.random.RandomState
         The random generator state used for band selection and noise
         envelope generation.
+    freq_lims : tuple
+        The lower and upper frequency limits (default is (200, 8000)).
     verbose : bool
         If True, print the resulting ERB spacing.
 

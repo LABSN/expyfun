@@ -1,4 +1,8 @@
-"""Experiment control functions
+"""
+Experiment control
+==================
+
+Experiment control functions.
 """
 
 from ._version import __version__
@@ -12,6 +16,7 @@ from ._git import assert_version, download_version
 from ._experiment_controller import (ExperimentController, wait_secs,
                                      get_keyboard_input)
 from ._eyelink_controller import EyelinkController
+from ._sound_controllers import SoundCardController
 from ._trigger_controllers import (decimals_to_binary, binary_to_decimals,
                                    ParallelTrigger)
 from ._tdt_controller import TDTController

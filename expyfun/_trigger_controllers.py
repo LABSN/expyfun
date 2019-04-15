@@ -12,7 +12,7 @@ from ._utils import wait_secs, verbose_dec, string_types
 
 
 class ParallelTrigger(object):
-    """Parallel port and dummy triggering support
+    """Parallel port and dummy triggering support.
 
     .. warning:: When using the parallel port, calling
                  :meth:`expyfun.ExperimentController.start_stimulus`
@@ -32,7 +32,7 @@ class ParallelTrigger(object):
         Amount of time (seconds) to leave the trigger high whenever
         sending a trigger.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see expyfun.verbose).
+        If not None, override default verbose level.
 
     Notes
     -----
@@ -51,6 +51,7 @@ class ParallelTrigger(object):
     On Windows, you may need to download ``inpout32.dll`` from someplace
     like http://www.highrez.co.uk/downloads/inpout32/.
     """
+
     @verbose_dec
     def __init__(self, mode='dummy', address=None, high_duration=0.005,
                  verbose=None):
@@ -104,13 +105,13 @@ class ParallelTrigger(object):
         return '<ParallelTrigger : %s (%s)>' % (self.mode, self._portname)
 
     def _stamp_trigger(self, trig):
-        """Fake stamping"""
+        """Fake stamping."""
         self._set_data(int(trig))
         wait_secs(self.high_duration)
         self._set_data(0)
 
     def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
-        """Stamp a list of triggers with a given inter-trigger delay
+        """Stamp a list of triggers with a given inter-trigger delay.
 
         Parameters
         ----------
@@ -138,7 +139,7 @@ class ParallelTrigger(object):
 
 
 def decimals_to_binary(decimals, n_bits):
-    """Convert a sequence of decimal numbers to a sequence of binary numbers
+    """Convert a sequence of decimal numbers to a sequence of binary numbers.
 
     Parameters
     ----------
@@ -175,7 +176,7 @@ def decimals_to_binary(decimals, n_bits):
 
 
 def binary_to_decimals(binary, n_bits):
-    """Convert a sequence of binary numbers to a sequence of decimal numbers
+    """Convert a sequence of binary numbers to a sequence of decimal numbers.
 
     Parameters
     ----------
@@ -204,7 +205,7 @@ def binary_to_decimals(binary, n_bits):
     outs = []
     for nb in n_bits:
         outs.append(np.sum(binary[offset:offset + nb] *
-                    (2 ** np.arange(nb - 1, -1, -1))))
+                           (2 ** np.arange(nb - 1, -1, -1))))
         offset += nb
     assert offset == len(binary)
     return np.array(outs)

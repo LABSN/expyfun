@@ -10,10 +10,9 @@ import time
 import numpy as np
 from os import path as op
 from functools import partial
-from copy import deepcopy
 import warnings
 
-from ._utils import get_config, wait_secs, logger, ZeroClock
+from ._utils import _check_params, wait_secs, logger, ZeroClock
 from ._input_controllers import Keyboard
 
 
@@ -24,6 +23,8 @@ def _dummy_fun(self, name, ret, *args, **kwargs):
 
 
 class DummyRPcoX(object):
+    """Dummy RPcoX."""
+
     def __init__(self, model, interface):
         self.model = model
         self.interface = interface
@@ -38,11 +39,13 @@ class DummyRPcoX(object):
         self._play_start = 0
 
     def WriteTagVEX(self, name, offset, kind, data):
+        """Write tag data."""
         if name == 'datainleft':
             self._stim_dur = len(data) / self.GetSFreq()
         return True
 
     def SoftTrg(self, trignum):
+        """Send a software trigger."""
         if trignum == 1:
             self._play_start = time.time()
         elif trignum == 2:
@@ -50,6 +53,7 @@ class DummyRPcoX(object):
         return True
 
     def GetTagVal(self, name):
+        """Get a tag value."""
         if name == 'masterclock':
             return self._clock.get_time()
         elif name == 'npressabs':
@@ -60,8 +64,8 @@ class DummyRPcoX(object):
             raise ValueError('unknown tag "{0}"'.format(name))
 
 
-class TDTController(Keyboard):
-    """Interface for TDT audio output, stamping, and responses
+class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
+    """Interface for TDT audio output, stamping, and responses.
 
     .. warning:: This class should not be instantiated manually,
                  but rather should be created automatically by an
@@ -69,57 +73,42 @@ class TDTController(Keyboard):
 
     Parameters
     ----------
-    tdt_params : dict | None
+    tdt_params : dict
         A dictionary containing keys with string values:
 
-            * 'TYPE': this should always be 'tdt'.
-            * 'TDT_MODEL': String name of the TDT model, can be 'RM1', 'RP2',
-              'RP2legacy', 'RZ6', or 'dummy' (default). For historical
-              reasons, 'RP2' corresponds to the RP2.1, and 'RP2legacy'
-              corresponds to the first-revision RP2.
-            * 'TDT_CIRCUIT_PATH': Path to the TDT circuit. Defaults to an
-              internal expyfun circuit.
-            * 'TDT_INTERFACE': Type of connection, either 'USB' (default)
-              or 'GB').
-            * 'TDT_DELAY': the delay (in ms) for the circuit (default: '0').
-            * 'TDT_TRIG_DELAY': additional delay for the triggers
-              (default: '0').
+        'TYPE'
+            This should always be 'tdt'.
+        'TDT_MODEL'
+            String name of the TDT model, can be 'RM1', 'RP2',
+            'RP2legacy', 'RZ6', or 'dummy' (default). For historical
+            reasons, 'RP2' corresponds to the RP2.1, and 'RP2legacy'
+            corresponds to the first-revision RP2.
+        'TDT_CIRCUIT_PATH'
+            Path to the TDT circuit. Defaults to an internal expyfun circuit.
+        'TDT_INTERFACE'
+            Type of connection, either 'USB' (default) or 'GB').
+        'TDT_DELAY'
+            The delay (in ms) for the circuit (default: '0').
+        'TDT_TRIG_DELAY'
+            Additional delay for the triggers (default: '0').
 
-        Note that the defaults are overridden on individual machines by
+        The defaults are overridden on individual machines by
         the configuration file.
-
-    Returns
-    -------
-    tdt_obj : instance of a TDTObject.
-        The object containing all relevant info about the TDT in use.
     """
+
     def __init__(self, tdt_params):
-        legal_keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE',
-                      'TDT_DELAY', 'TDT_TRIG_DELAY']
-        tdt_params = dict(TYPE='tdt') if tdt_params is None else tdt_params
-        tdt_params = deepcopy(tdt_params)
-        if not isinstance(tdt_params, dict):
-            raise TypeError('tdt_params must be a dict, got '
-                            '{0}'.format(type(tdt_params)))
+        defaults = dict(TDT_MODEL='dummy', TDT_DELAY='0', TDT_TRIG_DELAY='0',
+                        TYPE='tdt')  # if not listed -> None
+        keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE',
+                'TDT_DELAY', 'TDT_TRIG_DELAY']
+        tdt_params = _check_params(tdt_params, keys, defaults, 'tdt_params')
         if tdt_params['TYPE'] != 'tdt':
             raise ValueError('tdt_params["TYPE"] must be "tdt", not '
                              '{0}'.format(tdt_params['TYPE']))
-        # Set sensible defaults for values that are not passed
-        defaults = dict(TDT_MODEL='dummy', TDT_DELAY='0', TDT_TRIG_DELAY='0',
-                        TYPE='tdt')  # if not listed -> None
-        for k in legal_keys:
-            tdt_params[k] = tdt_params.get(
-                k, get_config(k, defaults.get(k, None)))
         for key in ('TDT_DELAY', 'TDT_TRIG_DELAY'):
             tdt_params[key] = int(tdt_params[key])
         if tdt_params['TDT_DELAY'] < 0:
             raise ValueError('tdt_delay must be non-negative.')
-
-        # Check keys
-        for k in tdt_params.keys():
-            if k not in legal_keys:
-                raise KeyError('Unrecognized key in tdt_params {0}, must be '
-                               'one of {1}'.format(k, ', '.join(legal_keys)))
         self._model = tdt_params['TDT_MODEL']
         legal_models = ['RM1', 'RP2', 'RZ6', 'RP2legacy', 'dummy']
         if self.model not in legal_models:
@@ -264,10 +253,15 @@ class TDTController(Keyboard):
         self._trigger(4)
         logger.debug('Expyfun: Stopping TDT noise')
 
-    def set_noise_level(self, new_level):
-        """Set the amplitude of stationary background noise.
+    def set_noise_level(self, level):
+        """Set the noise level.
+
+        Parameters
+        ----------
+        level : float
+            The new level.
         """
-        self.rpcox.SetTagVal('noiselev', new_level)
+        self.rpcox.SetTagVal('noiselev', level)
 
     def _set_delay(self, delay, delay_trig):
         """Set the delay (in ms) of the system
@@ -387,5 +381,12 @@ class TDTController(Keyboard):
 
 
 def get_tdt_rates():
+    """Get the TDT sample rates.
+
+    Returns
+    -------
+    rates : dict
+        The sample rates.
+    """
     return {'6k': 6103.515625, '12k': 12207.03125, '25k': 24414.0625,
             '50k': 48828.125, '100k': 97656.25, '200k': 195312.5}
