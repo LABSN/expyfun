@@ -7,6 +7,7 @@ import os
 import pytest
 
 
+@pytest.mark.timeout(0)  # importing plt will build font cache, slow on Azure
 @pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""

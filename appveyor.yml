@@ -18,7 +18,7 @@ install:
   # OpenGL (should provide a Gallium driver)
   - "git clone --depth 1 git://github.com/vtkiorg/gl-ci-helpers.git"
   - "powershell gl-ci-helpers/appveyor/install_opengl.ps1"
-  - "python -c \"import pyglet; print(pyglet.gl.gl_info.get_renderer())\""
+  - "python -c \"import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()\""
   # expyfun
   - "powershell make/get_avbin.ps1"
   - "python setup.py develop"
