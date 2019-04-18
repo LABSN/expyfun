@@ -1,19 +1,65 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- master
+  # start a new build for every push
+  batch: False
+  branches:
+    include:
+      - master
 
-pool:
-  vmImage: 'Ubuntu-16.04'
-
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+jobs:
+- job: Windows
+  pool:
+    vmIMage: 'VS2017-Win2016'
+  variables:
+    MNE_LOGGING_LEVEL: 'warning'
+    MNE_FORCE_SERIAL: 'true'
+    PIP_DEPENDENCIES: 'codecov'
+    OPENBLAS_NUM_THREADS: 1
+    AZURE_CI_WINDOWS: 'true'
+  strategy:
+    maxParallel: 4
+    matrix:
+      # Eventually we should test x86 (32-bit), but it was a nightmare
+      # to get it to download 32-bit Anaconda properly, and VTK does not ship
+      # 32-bit Windows binaries via pip.
+      Python37-64bit:
+        PYTHON_VERSION: '3.7'
+        PYTHON_ARCH: 'x64'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: $(PYTHON_VERSION)
+      architecture: $(PYTHON_ARCH)
+      addToPath: true
+  - powershell: |
+      pip install --upgrade numpy scipy vtk
+      pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy joblib numpydoc
+      python -c "import mne; mne.sys_info()"
+    displayName: 'Install pip dependencies'
+  - powershell: |
+      powershell make/get_rtmixer.ps1
+      pip install -q rtmixer-0.0.0-cp37-cp37m-win_amd64.whl
+      python -m sounddevice
+    displayName: 'Install rtmixer'
+  - powershell: |
+      git clone --depth 1 git://github.com/vtkiorg/gl-ci-helpers.git
+      powershell gl-ci-helpers/appveyor/install_opengl.ps1
+      python -c "import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()"
+    displayName: 'Get OpenGL'
+  - powershell: |
+      powershell make/get_avbin.ps1
+      python -c "import expyfun; assert expyfun._utils._has_avbin()"
+    displayName: 'Get AVBin'
+  - script: python setup.py develop
+    displayName: 'Install'
+  - script: pytest expyfun
+    displayName: 'Run tests'
+  - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
+    displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
+    condition: always()
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: 'junit-*.xml'
+      testRunTitle: 'Publish test results for Python $(python.version)'
+    condition: always()
