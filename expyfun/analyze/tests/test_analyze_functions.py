@@ -153,7 +153,7 @@ def test_logit():
 def test_sigmoid():
     """Test sigmoidal fitting and generation."""
     n_pts = 1000
-    x = np.random.randn(n_pts)
+    x = np.random.RandomState(0).randn(n_pts)
     p0 = (0., 1., 0., 1.)
     y = ea.sigmoid(x, *p0)
     assert np.all(np.logical_and(y <= 1, y >= 0))
