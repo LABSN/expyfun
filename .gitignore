@@ -5,6 +5,7 @@
 *.hdf5
 *.edf
 *.orig
+*.vscode
 doc/generated
 
 # C extensions

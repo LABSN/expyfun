@@ -48,4 +48,7 @@ Here are some stub installation instructions for each OS:
        $ python -m sounddevice  # just to see if it worked
        $ pip install https://staff.washington.edu/larsoner/rtmixer-0.0.0-cp37-cp37m-win_amd64.whl
 
+    If you are on Python 3.6 you can try
+    `this binary <https://staff.washington.edu/larsoner/rtmixer-0.0.0-cp36-cp36m-win_amd64.whl>`__.
+
 .. _`PortAudio binaries site`: https://github.com/spatialaudio/portaudio-binaries
