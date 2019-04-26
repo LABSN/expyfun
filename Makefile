@@ -66,3 +66,6 @@ pydocstyle:
 	@pydocstyle expyfun
 
 docstyle: pydocstyle
+
+check-manifest:
+	check-manifest --ignore .DS_Store
