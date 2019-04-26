@@ -47,7 +47,7 @@ before_install:
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
     - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout
-    - pip install -q codecov pytest-sugar codespell pydocstyle numpydoc
+    - pip install -q codecov pytest-sugar codespell pydocstyle numpydoc check-manifest
     # install python-rtmixer
     - ./make/install_rtmixer.sh
     # install AVbin
@@ -81,6 +81,7 @@ script:
     - make flake
     - make codespell-error
     - make docstyle
+    - make check-manifest
 
 after_success:
     # Need to run from source dir to execute appropriate "git" commands

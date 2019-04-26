@@ -4,10 +4,11 @@
 #    Re-used based on mne-python code.
 
 import os
+import os.path as op
 import subprocess
 
 # we are using a setuptools namespace
-import setuptools  # analysis:ignore
+import setuptools  # noqa, analysis:ignore
 from numpy.distutils.core import setup
 
 descr = """Experiment controller functions."""
@@ -51,6 +52,16 @@ def write_version(version):
         fid.write('__version__ = \'{0}\'\n'.format(version))
 
 
+def package_tree(pkgroot):
+    """Get the submodule list."""
+    # Adapted from VisPy
+    path = op.dirname(__file__)
+    subdirs = [op.relpath(i[0], path).replace(op.sep, '.')
+               for i in os.walk(op.join(path, pkgroot))
+               if '__init__.py' in i[2]]
+    return sorted(subdirs)
+
+
 def setup_package(script_args=None):
     """Actually invoke the setup call"""
     if os.path.exists('MANIFEST'):
@@ -80,13 +91,7 @@ def setup_package(script_args=None):
                      'Operating System :: Unix',
                      'Operating System :: MacOS'],
         platforms='any',
-        packages=['expyfun', 'expyfun.tests',
-                  'expyfun.analyze', 'expyfun.analyze.tests',
-                  'expyfun.codeblocks',
-                  'expyfun._externals',
-                  'expyfun.io', 'expyfun.io.tests',
-                  'expyfun.stimuli', 'expyfun.stimuli.tests',
-                  'expyfun.visual', 'expyfun.visual.tests'],
+        packages=package_tree('expyfun'),
         package_data={'expyfun': [os.path.join('data', '*')]},
         scripts=[])
     if script_args is not None:

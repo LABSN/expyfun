@@ -1,7 +1,26 @@
 include *.rst
-include expyfun/__init__.py
-# recursive-include doc *
+include LICENSE
+
+include conftest.py
 recursive-include examples *.py
 recursive-include examples *.txt
-recursive-include expyfun *.py
 
+recursive-include expyfun *.py
+recursive-include expyfun/data *
+
+### Exclude
+
+exclude make
+exclude doc
+exclude .circleci
+exclude Makefile
+exclude .coveragerc
+exclude *.yml
+exclude ignore_words.txt
+exclude .mailmap
+recursive-exclude expyfun *.pyc
+
+recursive-exclude doc *
+recursive-exclude make *
+recursive-exclude examples *.tab
+recursive-exclude .circleci *
