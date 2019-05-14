@@ -106,9 +106,11 @@ def std_kwargs_changed(**kwargs):
     for key, val in kwargs.items():
         old_vals[key] = std_kwargs[key]
         std_kwargs[key] = val
-    yield
-    for key, val in old_vals.items():
-        std_kwargs[key] = val
+    try:
+        yield
+    finally:
+        for key, val in old_vals.items():
+            std_kwargs[key] = val
 
 
 def test_degenerate():
