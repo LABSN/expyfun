@@ -590,7 +590,7 @@ class ExperimentController(object):
         since it will draw a filled rectangle over everything. On subsequent
         flips, the rectangle will automatically be "drawn" because
         ``glClearColor`` will be set so the buffer starts out with the
-        appropriate backgound color.
+        appropriate background color.
         """
         from pyglet import gl
         if not self._enable_video:
