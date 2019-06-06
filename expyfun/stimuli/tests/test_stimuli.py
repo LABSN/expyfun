@@ -20,6 +20,7 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(340, 480),
                   verbose=True, version='dev')
 
 
+@requires_lib('mne')
 def test_textures():
     """Test stimulus textures."""
     texture_ERB()  # smoke test
@@ -146,6 +147,7 @@ def test_rms():
 
 
 @pytest.mark.timeout(15)  # can be slow to load on CIs
+@requires_lib('mne')
 def test_crm(tmpdir):
     """Test CRM Corpus functions."""
     fs = 40000  # native rate, to avoid large resampling delay in testing
