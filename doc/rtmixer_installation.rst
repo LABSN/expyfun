@@ -20,7 +20,7 @@ Here are some stub installation instructions for each OS:
 
        $ sudo apt install libportaudio2  # only if on Linux!
        $ brew install portaudio  # only if on OSX!
-       $ pip install python-sounddevice
+       $ pip install sounddevice
        $ python -m sounddevice  # just to see if it worked
        $ git clone git://github.com/spatialaudio/python-rtmixer
        $ cd python-rtmixer
