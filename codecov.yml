@@ -11,4 +11,4 @@ coverage:
     changes: false
 comment:
   layout: "header, diff, sunburst, uncovered"
-  behavior: default
+  behavior: once
