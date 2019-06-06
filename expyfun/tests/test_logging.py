@@ -3,13 +3,14 @@ import os
 import pytest
 from expyfun import ExperimentController
 from expyfun._sound_controllers import _AUTO_BACKENDS
-from expyfun._utils import _check_skip_backend
+from expyfun._utils import _check_skip_backend, requires_lib
 
 std_args = ['test']
 std_kwargs = dict(participant='foo', session='01', full_screen=False,
                   window_size=(1, 1), verbose=True, noise_db=0, version='dev')
 
 
+@requires_lib('mne')
 @pytest.mark.parametrize('ac', ('tdt',) + _AUTO_BACKENDS)
 def test_logging(ac, tmpdir, hide_window):
     """Test logging to file (Pyglet)."""
