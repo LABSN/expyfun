@@ -129,7 +129,7 @@ class SoundPlayer(object):
             else:
                 self._action = self._mixer.play_buffer(
                     self._data, self._data.shape[1])
-                #    start=self._mixer.time - self._mixer.start_time + 0.06)
+                    # start=self._mixer.time + 0.01)
 
     def pause(self):
         """Pause."""
