@@ -23,7 +23,7 @@ jobs:
       - run: echo "export SOUND_CARD_BACKEND=pyglet"  # rtmixer needs pulse, which is a huge pain to get running on CircleCI
       - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       - run: pip install --quiet --upgrade --user pip
-      - run: pip install --quiet --upgrade --user numpy scipy matplotlib sphinx pillow pandas h5py mne pyglet==1.2.4 psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
+      - run: pip install --quiet --upgrade --user numpy scipy matplotlib sphinx pillow pandas h5py mne "pyglet<1.3" psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
       - run: python -c "import mne; mne.sys_info()"
       - run: python setup.py develop --user
       - run: cd doc && make html

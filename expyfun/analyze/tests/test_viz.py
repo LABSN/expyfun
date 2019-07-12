@@ -25,14 +25,19 @@ def test_barplot_with_pandas():
     ea.barplot(tmp, axis=0, lines=True)
 
 
-@pytest.mark.timeout(15)
-def test_barplot():
-    """Test bar plot function."""
-    import matplotlib.pyplot as plt
+@pytest.fixture
+def tmp_err():  # noqa
     rng = np.random.RandomState(0)
-    # TESTS THAT SHOULD FAIL
     tmp = np.ones(4) + rng.rand(4)
     err = 0.1 + tmp / 5.
+    return tmp, err
+
+
+@pytest.mark.timeout(45)
+def test_barplot_degenerate(tmp_err):
+    """Test bar plot degenerate cases."""
+    import matplotlib.pyplot as plt
+    tmp, err = tmp_err
     # too many data dimensions:
     pytest.raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
     # gap_size > 1:
@@ -49,10 +54,22 @@ def test_barplot():
     # bad bracket spec:
     pytest.raises(ValueError, ea.barplot, tmp, brackets=[(1,)],
                   bracket_text=['foo'])
+    plt.close('all')
 
-    # TEST WITH SINGLE DATA POINT & SINGLE ERROR BAR SPEC.
+
+def test_barplot_single(tmp_err):
+    """Test with single data point and single error bar spec."""
+    import matplotlib.pyplot as plt
+    tmp, err = tmp_err
     ea.barplot(2, err_bars=0.2)
-    # TESTS WITH ONE DATA POINT PER BAR & USER-SPECIFIED ERROR BAR RANGES
+    plt.close('all')
+
+
+@pytest.mark.timeout(120)
+def test_barplot_single_spec(tmp_err):
+    """Test with one data point per bar and user-specified err ranges."""
+    import matplotlib.pyplot as plt
+    tmp, err = tmp_err
     _, axs = plt.subplots(1, 5, sharey=False)
     ea.barplot(tmp, err_bars=err, brackets=([2, 3], [0, 1]), ax=axs[0],
                bracket_text=['foo', 'bar'], bracket_inline=True)
@@ -68,7 +85,14 @@ def test_barplot():
                brackets=[(0, 1), (1, 2), ([0, 1, 2], 3)],
                bracket_text=['foo', 'bar', 'baz'],
                bracket_group_lines=True)
-    # TESTS WITH MULTIPLE DATA POINTS PER BAR & CALCULATED ERROR BAR RANGES
+    plt.close('all')
+
+
+@pytest.mark.timeout(60)
+def test_barplot_multiple():
+    """Test with multiple data points per bar and calculated ranges."""
+    import matplotlib.pyplot as plt
+    rng = np.random.RandomState(0)
     tmp = (rng.randn(20) + np.arange(20)).reshape((5, 4))  # 2-dim
     _, axs = plt.subplots(1, 4, sharey=False)
     ea.barplot(tmp, lines=True, err_bars='sd', ax=axs[0], smart_defaults=False)
@@ -86,6 +110,7 @@ def test_barplot():
                        fname=fname)
             plt.close()
         _check_warnings(w)
+    plt.close('all')
 
 
 def test_plot_screen():

@@ -32,7 +32,7 @@ jobs:
       addToPath: true
   - powershell: |
       pip install --upgrade numpy scipy vtk
-      pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy joblib numpydoc
+      pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov "pyglet<1.4" mne tdtpy joblib numpydoc
       python -c "import mne; mne.sys_info()"
       python -c "import matplotlib.pyplot as plt"
     displayName: 'Install pip dependencies'
