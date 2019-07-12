@@ -2,7 +2,6 @@ import numpy as np
 from os import path as op
 import pytest
 from numpy.testing import assert_equal
-import matplotlib.pyplot as plt
 
 import expyfun.analyze as ea
 from expyfun._utils import _TempDir, requires_lib
@@ -37,6 +36,7 @@ def tmp_err():  # noqa
 @pytest.mark.timeout(45)
 def test_barplot_degenerate(tmp_err):
     """Test bar plot degenerate cases."""
+    import matplotlib.pyplot as plt
     tmp, err = tmp_err
     # too many data dimensions:
     pytest.raises(ValueError, ea.barplot, np.arange(8).reshape((2, 2, 2)))
@@ -59,6 +59,7 @@ def test_barplot_degenerate(tmp_err):
 
 def test_barplot_single(tmp_err):
     """Test with single data point and single error bar spec."""
+    import matplotlib.pyplot as plt
     tmp, err = tmp_err
     ea.barplot(2, err_bars=0.2)
     plt.close('all')
@@ -67,6 +68,7 @@ def test_barplot_single(tmp_err):
 @pytest.mark.timeout(60)
 def test_barplot_single_spec(tmp_err):
     """Test with one data point per bar and user-specified err ranges."""
+    import matplotlib.pyplot as plt
     tmp, err = tmp_err
     _, axs = plt.subplots(1, 5, sharey=False)
     ea.barplot(tmp, err_bars=err, brackets=([2, 3], [0, 1]), ax=axs[0],
@@ -89,6 +91,7 @@ def test_barplot_single_spec(tmp_err):
 @pytest.mark.timeout(45)
 def test_barplot_multiple():
     """Test with multiple data points per bar and calculated ranges."""
+    import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
     tmp = (rng.randn(20) + np.arange(20)).reshape((5, 4))  # 2-dim
     _, axs = plt.subplots(1, 4, sharey=False)
