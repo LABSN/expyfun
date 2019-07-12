@@ -9,7 +9,7 @@ platform:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
-  - "pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy joblib numpydoc"
+  - "pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov 'pyglet<1.4' mne tdtpy joblib numpydoc"
   - "python -c \"import mne; mne.sys_info()\""
   # RTMixer (should provide a virtual sound card / VBAudioVACWDM device)
   - "powershell make/get_rtmixer.ps1"
