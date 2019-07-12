@@ -1653,7 +1653,9 @@ class ExperimentController(object):
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs), 2))
             from mne.filter import resample
-            samples = resample(samples, self.fs, self.stim_fs, axis=0)
+            samples = resample(
+                samples.astype(np.float64), self.fs, self.stim_fs,
+                axis=0).astype(np.float32)
 
         # check RMS
         if self._check_rms is not None:
