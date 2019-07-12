@@ -19,7 +19,7 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   verbose=True, version='dev')
 
 
-@pytest.timeout(15)
+@pytest.mark.timeout(15)
 @requires_opengl21
 def test_tracker_ud(hide_window):
     """Test TrackerUD"""
