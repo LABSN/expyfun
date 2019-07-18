@@ -26,13 +26,13 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None,
                           version='dev') as ec:
+    ec.load_buffer(np.r_[0.1, np.zeros(99)])  # RMS == 0.01
     pressed = None
     screenshot = None
     # Make a circle so that the photodiode can be centered on the screen
     circle = Circle(ec, 1, units='deg', fill_color='k', line_color='w')
     while pressed != '8':  # enable a clean quit if required
         ec.set_background_color('white')
-        ec.load_buffer(np.r_[0.1, np.zeros(99)])  # RMS == 0.01
         t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
         ec.set_background_color('black')
         t2 = ec.flip()

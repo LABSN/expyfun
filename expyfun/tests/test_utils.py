@@ -1,7 +1,8 @@
-from numpy.testing import assert_equal
 import pytest
 import os
 import warnings
+
+import numpy as np
 
 from expyfun._utils import get_config, set_config, deprecated, _fix_audio_dims
 
@@ -24,9 +25,9 @@ def test_config():
         assert (get_config(key) is None)
         pytest.raises(KeyError, get_config, key, raise_error=True)
         set_config(key, value)
-        assert_equal(get_config(key), value)
+        assert get_config(key) == value
         set_config(key, None)
-    assert_equal(len(w), 3)
+    assert len(w) == 3
     if old_val is not None:
         os.environ[key] = old_val
     pytest.raises(ValueError, get_config, 1)
@@ -62,16 +63,23 @@ def test_deprecated():
 
 def test_audio_dims():
     """Test audio dimension fixing."""
-    x = range(10)
-    _fix_audio_dims(x)
-    y1 = _fix_audio_dims(x, 1)
-    _fix_audio_dims(y1)
-    _fix_audio_dims(y1, 1)
-    _fix_audio_dims(y1, 2)
-    y2 = _fix_audio_dims(x, 2)
-    _fix_audio_dims(y2)
-    _fix_audio_dims(y2, 2)
-    pytest.raises(ValueError, _fix_audio_dims, y2, 1)
-    pytest.raises(ValueError, _fix_audio_dims, y1, 3)
-    from numpy import zeros
-    pytest.raises(ValueError, _fix_audio_dims, zeros((2, 2, 2)))
+    n_samples = 10
+    x = range(n_samples)
+    y = _fix_audio_dims(x, 1)
+    assert y.shape == (1, n_samples)
+    # tiling for stereo
+    y = _fix_audio_dims(x, 2)
+    assert y.shape == (2, n_samples)
+    y = _fix_audio_dims(y, 2)
+    assert y.shape == (2, n_samples)
+    # no tiling for >2 channel output
+    with pytest.raises(ValueError, match='channel count 1 did not .* 3'):
+        _fix_audio_dims(x, 3)
+    for dim in (1, 3):
+        want = ('signal channel count 2 did not match required channel '
+                'count %s' % dim)
+        with pytest.raises(ValueError, match=want):
+            _fix_audio_dims(y, dim)
+    for n_channels in (1, 2, 3):
+        with pytest.raises(ValueError, match='must have one or two dimension'):
+            _fix_audio_dims(np.zeros((2, 2, 2)), n_channels)

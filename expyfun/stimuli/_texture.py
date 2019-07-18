@@ -8,6 +8,7 @@ import numpy as np
 import warnings
 
 from ._stimuli import rms, window_edges
+from .._fixes import irfft
 
 
 def _cams(f):
@@ -36,8 +37,7 @@ def _make_narrow_noise(bw, f_c, dur, fs, ramp_dur, rng):
     phase = rng.rand(h_max - h_min) * 2 * np.pi
     noise = np.zeros(len(t) // 2 + 1, np.complex)
     noise[h_min:h_max] = np.exp(1j * phase)
-    return window_edges(np.fft.irfft(noise)[:len(t)], fs, ramp_dur,
-                        window='dpss')
+    return window_edges(irfft(noise)[:len(t)], fs, ramp_dur, window='dpss')
 
 
 def texture_ERB(n_freqs=20, n_coh=None, rho=1., seq=('inc', 'nb', 'inc', 'nb'),

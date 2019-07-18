@@ -47,11 +47,12 @@ def _check_pyglet_audio():
 class SoundPlayer(Player):
     """SoundPlayer based on Pyglet."""
 
-    def __init__(self, data, fs=None, loop=False, api=None, name=None):
+    def __init__(self, data, fs=None, loop=False, api=None, name=None,
+                 fixed_delay=None):
         assert AudioFormat is not None
-        if api is not None or name is not None:
+        if any(x is not None for x in (api, name, fixed_delay)):
             raise ValueError('The Pyglet backend does not support specifying '
-                             'api or name')
+                             'api, name, or fixed_delay')
         # We could maybe let Pyglet make this decision, but hopefully
         # people won't need to tweak the Pyglet backend anyway
         self.fs = 44100 if fs is None else fs

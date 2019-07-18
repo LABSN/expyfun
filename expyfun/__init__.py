@@ -24,6 +24,7 @@ from . import analyze
 from . import codeblocks
 from . import io
 from . import stimuli
+from . import _fixes
 
 # INIT LOGGING
 set_log_level(None, False)

@@ -6,11 +6,13 @@
 # License: BSD (3-clause)
 
 import importlib
+import operator
 import os
 import os.path as op
 
 import numpy as np
 
+from .._fixes import rfft, irfft, rfftfreq
 from .._utils import logger, flush_logger, _check_params
 
 
@@ -31,67 +33,73 @@ class SoundCardController(object):
         A dictionary containing parameter keys. See Notes for details.
     stim_fs : float
         Stim fs, used to downsample the white noise if necessary.
+    n_channels : int
+        The number of playback channels to use.
 
     Notes
     -----
     Params should contain string values:
 
-    - 'SOUND_CARD_BACKEND'
+    - 'SOUND_CARD_BACKEND' : str
         The backend to use. Can be 'auto' (default), 'rtmixer', 'pyglet'.
-    - 'SOUND_CARD_API'
+    - 'SOUND_CARD_API' : str
         The API to use for the sound card.
         See :func:`sounddevice.query_hostapis`.
         The default is OS-dependent.
-    - 'SOUND_CARD_NAME'
+    - 'SOUND_CARD_NAME' : str
         The name as it is given by :func:`sounddevice.query_devices`.
         The default chooses the default sound card for the OS.
-    - 'SOUND_CARD_FS'
+    - 'SOUND_CARD_FS' : float
         The sample rate to use for the sound card. The default
         lets the OS choose.
+    - 'SOUND_CARD_FIXED_DELAY' : float
+        The fixed delay (in sec) to use for playback.
+        This is used by the rtmixer backend to ensure fixed
+        latency playback.
 
     Note that the defaults are superseded on individual machines by
     the configuration file.
     """
 
-    def __init__(self, params, stim_fs):
+    def __init__(self, params, stim_fs, n_channels=2):
         keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
-                'SOUND_CARD_NAME', 'SOUND_CARD_FS')
+                'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY')
         defaults = dict(SOUND_CARD_BACKEND='auto')
         params = _check_params(params, keys, defaults, 'params')
 
         self.backend, self.backend_name = _import_backend(
             params['SOUND_CARD_BACKEND'])
-        logger.info('Expyfun: Setting up sound card audio using %s backend'
-                    % (self.backend_name,))
+        self._n_channels = operator.index(n_channels)
+        logger.info('Expyfun: Setting up sound card audio using %s backend '
+                    'and %d channels' % (self.backend_name, n_channels))
         self._kwargs = dict(
             fs=params.get('SOUND_CARD_FS', None),
             api=params.get('SOUND_CARD_API', None),
             name=params.get('SOUND_CARD_NAME', None),
+            fixed_delay=params.get('SOUND_CARD_FIXED_DELAY', None),
         )
-        temp_sound = np.zeros((2, 10))
+        temp_sound = np.zeros((self._n_channels, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = temp_sound.fs
         temp_sound.stop()
-        temp_sound.delete()
         del temp_sound
 
         # Need to generate at RMS=1 to match TDT circuit, and use a power of
         # 2 length for the RingBuffer (here make it >= 15 sec)
         n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.)))
-        noise = np.random.normal(0, 1.0, n_samples)
+        noise = np.random.normal(0, 1.0, (n_channels, n_samples))
 
         # Low-pass if necessary
         if stim_fs < self.fs:
             # note we can use cheap DFT method here b/c
             # circular convolution won't matter for AWGN (yay!)
-            freqs = np.fft.rfftfreq(len(noise), 1. / self.fs)
-            noise = np.fft.rfft(noise)
-            noise[np.abs(freqs) > stim_fs / 2.] = 0.0
-            noise = np.fft.irfft(noise)
+            freqs = rfftfreq(noise.shape[-1], 1. / self.fs)
+            noise = rfft(noise, axis=-1)
+            noise[:, np.abs(freqs) > stim_fs / 2.] = 0.0
+            noise = irfft(noise, axis=-1)
 
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
-        noise = noise / np.sqrt(np.mean(noise * noise))
-        self.noise_array = np.array((noise, -1.0 * noise))
+        self.noise_array = noise / np.sqrt(np.mean(noise * noise))
         self.noise_level = 0.01
         self.noise = None
         self.audio = None
@@ -125,6 +133,9 @@ class SoundCardController(object):
             The sound samples.
         """
         self.stop()
+        if self.audio is not None:
+            self.audio.delete()
+            self.audio = None
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def play(self):
@@ -138,8 +149,6 @@ class SoundCardController(object):
         """Stop."""
         if self.audio is not None:
             self.audio.stop()
-            self.audio.delete()
-            self.audio = None
         self.playing = False
 
     def set_noise_level(self, level):

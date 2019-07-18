@@ -127,6 +127,7 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         if tdt_params['TDT_INTERFACE'] is None:
             tdt_params['TDT_INTERFACE'] = 'USB'
         self._interface = tdt_params['TDT_INTERFACE']
+        self._n_channels = 2
 
         # initialize RPcoX connection
         """

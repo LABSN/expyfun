@@ -8,6 +8,7 @@
 from os import path as op
 import numpy as np
 
+from .._fixes import irfft, rfft
 from .._utils import verbose_dec, logger
 
 _mls_file = op.join(op.dirname(__file__), '..', 'data', 'mls.bin')
@@ -126,9 +127,7 @@ def compute_mls_impulse_response(response, mls, n_repeats, verbose=None):
     correction = np.empty(len(mls) // 2 + 1)
     correction.fill(1. / (2 ** (n_bits - 2) * n_repeats))
     correction[0] = 1. / ((4 ** (n_bits - 1)) * n_repeats)
-    y = np.fft.irfft(correction *
-                     np.fft.rfft(resp_wrap) *
-                     np.fft.rfft(mls).conj())
+    y = irfft(correction * rfft(resp_wrap) * rfft(mls).conj())
     # Average out repeats
     h_est = np.mean(np.reshape(y, (n_repeats, mls_len)), axis=0)
     return h_est
