@@ -137,22 +137,23 @@ class SoundPlayer(object):
     def play(self):
         """Play."""
         if not self.playing and self._mixer is not None:
-            if self.loop:
-                self._action = self._mixer.play_ringbuffer(self._ring)
+            if self._fixed_delay is not None:
+                start = self._mixer.time + self._fixed_delay
             else:
-                if self._fixed_delay is not None:
-                    start = self._mixer.time + self._fixed_delay
-                else:
-                    start = 0
+                start = 0
+            if self.loop:
+                self._action = self._mixer.play_ringbuffer(
+                    self._ring, start=start)
+            else:
                 self._action = self._mixer.play_buffer(
-                    self._data, self._data.shape[1],
-                    start=start)
+                    self._data, self._data.shape[1], start=start)
 
     def pause(self):
         """Pause."""
         if self.playing:
             action, self._action = self._action, None
-            self._mixer.cancel(action)
+            cancel_action = self._mixer.cancel(action)
+            self._mixer.wait(cancel_action)
 
     def stop(self):
         """Stop."""
@@ -167,5 +168,5 @@ class SoundPlayer(object):
             logger.exp('%d underflows %d blocks'
                        % (stats.output_underflows, stats.blocks))
 
-    def __del__(self):
+    def __del__(self):  # noqa
         self.delete()

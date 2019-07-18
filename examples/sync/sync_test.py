@@ -26,7 +26,7 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None,
                           version='dev') as ec:
-    ec.load_buffer(np.r_[0.1, np.zeros(99)])  # RMS == 0.01
+    ec.load_buffer(np.r_[0.1, np.zeros(44100)])  # RMS == 0.01
     pressed = None
     screenshot = None
     # Make a circle so that the photodiode can be centered on the screen
