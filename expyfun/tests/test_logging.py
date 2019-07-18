@@ -47,6 +47,7 @@ def test_logging(ac, tmpdir, hide_window):
 
 
 def assert_have_all(data, should_have):
+    """Assert all substrings are in the logging output."""
     __tracebackhide__ = operator.methodcaller('errisinstance', AssertionError)
     for s in should_have:
         if s not in data:
