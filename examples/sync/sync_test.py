@@ -22,11 +22,16 @@ print(__doc__)
 
 
 # Fullscreen MUST be used to guarantee flip accuracy!
+n_channels = 2
+click_idx = 0
 with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None,
-                          version='dev') as ec:
-    ec.load_buffer(np.r_[0.1, np.zeros(99)])  # RMS == 0.01
+                          n_channels=n_channels, version='dev') as ec:
+    click = np.r_[0.1, np.zeros(99)]  # RMS = 0.01
+    data = np.zeros((n_channels, len(click)))
+    data[click_idx] = click
+    ec.load_buffer(data)
     pressed = None
     screenshot = None
     # Make a circle so that the photodiode can be centered on the screen
