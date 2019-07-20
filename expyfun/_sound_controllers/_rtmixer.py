@@ -66,7 +66,7 @@ def _init_mixer(fs, n_channels, api, name):
     for di, device in enumerate(devices):
         if device['hostapi'] == ai:
             possible.append(device['name'])
-            if name == device['name']:
+            if name in device['name']:
                 break
     else:
         raise RuntimeError('Could not find device on API %r with name '
