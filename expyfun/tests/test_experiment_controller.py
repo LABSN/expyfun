@@ -466,7 +466,7 @@ def test_button_presses_and_window_size(hide_window):
         # XXX this fails on OSX travis for some reason
         if (os.getenv('TRAVIS', '').lower() != 'true' or
                 sys.platform != 'darwin'):
-            assert ec.text_input(all_caps=False) == 'a'
+            assert ec.text_input(all_caps=False).strip() == 'a'
 
 
 @pytest.mark.timeout(10)
