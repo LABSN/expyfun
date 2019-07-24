@@ -26,9 +26,11 @@ expyfun requires several libraries for full functionality:
   - ``matplotlib``
   - ``pyglet``: 1.2.0 or later is recommended
 
-- Optional Python libraries:
+- Optional libraries:
 
   - ``rtmixer``: for high precision audio playback, see :ref:`rtmixer_installation`.
+  - ``pyparallel`` or ``inpout32.dll``: for parallel port triggering, see
+    :ref:`parallel_installation`.
   - ``TDTpy``: if using TDT on Windows
   - ``mne``: for filtering/resampling -- with CUDA if mne dependencies installed
   - ``pandas``: Some plotting functions

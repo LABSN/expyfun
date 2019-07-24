@@ -28,6 +28,8 @@ class ParallelTrigger(object):
         The address to use. On Linux this should be a string path like
         ``'/dev/parport0'`` (equivalent to None), on Windows it should be an
         integer address like ``888`` or ``0x378`` (equivalent to None).
+        The config variable ``TRIGGER_ADDRESS`` can be used to set this
+        permanently.
     high_duration : float
         Amount of time (seconds) to leave the trigger high whenever
         sending a trigger.
@@ -38,18 +40,6 @@ class ParallelTrigger(object):
     -----
     Parallel port activation is enabled by using the ``trigger_controller``
     argument of :class:`expyfun.ExperimentController`.
-
-    On Linux, parallel port may require some combination of the following:
-
-        1. ``sudo modprobe ppdev``
-        2. Add user to ``lp`` group (``/etc/group``)
-        3. Run ``sudo rmmod lp`` (otherwise ``lp`` takes exclusive control)
-        4. Edit ``/etc/modprobe.d/blacklist.conf`` to add ``blacklist lp``
-
-    The ``parallel`` module must also be installed.
-
-    On Windows, you may need to download ``inpout32.dll`` from someplace
-    like http://www.highrez.co.uk/downloads/inpout32/.
     """
 
     @verbose_dec
