@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import warnings
+import operator
 from copy import deepcopy
 import subprocess
 import importlib
@@ -552,6 +553,7 @@ known_config_types = ('RESPONSE_DEVICE',
                       'SOUND_CARD_BACKEND',
                       'SOUND_CARD_FS',
                       'SOUND_CARD_NAME',
+                      'SOUND_CARD_FIXED_DELAY',
                       'TDT_CIRCUIT_PATH',
                       'TDT_DELAY',
                       'TDT_INTERFACE',
@@ -746,48 +748,37 @@ def running_rms(signal, win_length):
     return sqrt(convolve(signal ** 2, ones(win_length) / win_length, 'valid'))
 
 
-def _fix_audio_dims(signal, n_channels=None):
+def _fix_audio_dims(signal, n_channels):
     """Make it so a valid audio buffer is in the standard dimensions
 
     Parameters
     ----------
     signal : array_like
         The signal whose dimensions should be checked and fixed.
-    n_channels : int or None
-        The number of channels that the output should have. If ``None``, don't
-        change the number of channels (and assume vectors have one channel).
-        Setting ``n_channels`` to 1 when the input is stereo will result in an
-        error, since stereo-mono conversion is non-trivial and beyond the
-        scope of this function.
+    n_channels : int
+        The number of channels that the output should have.
+        If the input is mono and n_channels=2, it will be tiled to be
+        shape (2, n_samples). Otherwise, the number of channels in signal
+        must match n_channels.
 
     Returns
     -------
     signal_fixed : array
-        The signal with standard dimensions (1, N) or (2, N).
+        The signal with standard dimensions (n_channels, N).
     """
     # Check requested channel output
-    if n_channels not in (None, 1, 2):
-        raise ValueError('Number of channels out must be None, 1, or 2.')
-
-    signal = np.asarray(signal, dtype=np.float32)
-
+    n_channels = int(operator.index(n_channels))
+    signal = np.asarray(np.atleast_2d(signal), dtype=np.float32)
     # Check dimensionality
-    if signal.ndim == 1:
-        signal = signal[np.newaxis, :]
-    elif signal.ndim == 2:
-        if np.min(signal.shape) > 2:
-            raise ValueError('Sound data has more than two channels.')
-        if signal.shape[0] > 2:  # Needs to be correct for remainder of checks
-            signal = signal.T
-        if signal.shape[0] not in [1, 2]:
-            raise ValueError('Audio shape must be (N,), (1, N), or (2, N).')
-        if signal.shape[0] == 2 and n_channels == 1:
-            raise ValueError('Requested mono output but gave stereo input.')
-    else:
-        raise ValueError('Sound data must have one or two dimensions.')
+    if signal.ndim != 2:
+        raise ValueError('Sound data must have one or two dimensions, got %s.'
+                         % (signal.ndim,))
     # Return data with correct dimensions
-    if n_channels is not None and n_channels != signal.shape[0]:
+    if n_channels == 2 and signal.shape[0] == 1:
         signal = np.tile(signal, (n_channels, 1))
+    if signal.shape[0] != n_channels:
+        raise ValueError('signal channel count %d did not match required '
+                         'channel count %d' % (signal.shape[0], n_channels))
     return signal
 
 

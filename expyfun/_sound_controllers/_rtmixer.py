@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import atexit
 import sys
 
 import numpy as np
@@ -15,16 +16,12 @@ from .._utils import logger, get_config
 _PRIORITY = 100
 _DEFAULT_NAME = None
 
+# only initialize each mixer once and reuse it until Python closes
+_MIXER_REGISTRY = {}
 
-# XXX we should really use the sys config to choose the fs, then resample
-# in software...
 
-def _init_mixer(fs, n_channels, api=None, name=None):
+def _get_mixer(fs, n_channels, api=None, name=None):
     """Select the API and device."""
-    devices = query_devices()
-    if len(devices) == 0:
-        raise OSError('No sound devices found!')
-    apis = query_hostapis()
     # API
     if api is None:
         api = get_config('SOUND_CARD_API', None)
@@ -36,6 +33,17 @@ def _init_mixer(fs, n_channels, api=None, name=None):
             win32='Windows WASAPI',
             linux='ALSA',
         )[sys.platform]
+    key = (fs, n_channels, api, name)
+    if key not in _MIXER_REGISTRY:
+        _MIXER_REGISTRY[key] = _init_mixer(fs, n_channels, api, name)
+    return _MIXER_REGISTRY[key]
+
+
+def _init_mixer(fs, n_channels, api, name):
+    devices = query_devices()
+    if len(devices) == 0:
+        raise OSError('No sound devices found!')
+    apis = query_hostapis()
     for ai, this_api in enumerate(apis):
         if this_api['name'] == api:
             api = this_api
@@ -58,7 +66,7 @@ def _init_mixer(fs, n_channels, api=None, name=None):
     for di, device in enumerate(devices):
         if device['hostapi'] == ai:
             possible.append(device['name'])
-            if name == device['name']:
+            if name in device['name']:
                 break
     else:
         raise RuntimeError('Could not find device on API %r with name '
@@ -87,24 +95,23 @@ def _init_mixer(fs, n_channels, api=None, name=None):
         mixer.start_time = 0
     logger.info('Expyfun: using %s, %0.1f ms latency'
                 % (param_str, 1000 * device['default_low_output_latency']))
+    atexit.register(lambda: (mixer.abort(), mixer.close()))
     return mixer
 
 
 class SoundPlayer(object):
     """SoundPlayer based on rtmixer."""
 
-    def __init__(self, data, fs=None, loop=False, api=None, name=None):
+    def __init__(self, data, fs=None, loop=False, api=None, name=None,
+                 fixed_delay=None):
         self._data = np.ascontiguousarray(
-            np.clip(data.T, -1, 1).astype(np.float32))
+            np.clip(np.atleast_2d(data).T, -1, 1).astype(np.float32))
         self.loop = bool(loop)
         self._n_samples, n_channels = self._data.shape
-        assert n_channels in (1, 2)
-        if n_channels == 1:
-            self._data = np.tile(self._data, (2, 1))
-            n_channels = 2
+        assert n_channels >= 1
         self._n_channels = n_channels
         self._mixer = None  # in case the next line crashes, __del__ works
-        self._mixer = _init_mixer(fs, self._n_channels, api, name)
+        self._mixer = _get_mixer(fs, self._n_channels, api, name)
         if loop:
             self._ring = RingBuffer(self._data.itemsize * self._n_channels,
                                     self._data.size)
@@ -112,6 +119,12 @@ class SoundPlayer(object):
         self._fs = float(self._mixer.samplerate)
         self._ec_duration = self._n_samples / self._fs
         self._action = None
+        self._fixed_delay = fixed_delay
+        if fixed_delay is not None:
+            logger.info('Expyfun: Using fixed audio delay %0.1f ms'
+                        % (1000 * fixed_delay,))
+        else:
+            logger.info('Expyfun: Variable audio delay')
 
     @property
     def fs(self):
@@ -123,19 +136,24 @@ class SoundPlayer(object):
 
     def play(self):
         """Play."""
-        if not self.playing:
+        if not self.playing and self._mixer is not None:
+            if self._fixed_delay is not None:
+                start = self._mixer.time + self._fixed_delay
+            else:
+                start = 0
             if self.loop:
-                self._action = self._mixer.play_ringbuffer(self._ring)
+                self._action = self._mixer.play_ringbuffer(
+                    self._ring, start=start)
             else:
                 self._action = self._mixer.play_buffer(
-                    self._data, self._data.shape[1])
-                #    start=self._mixer.time - self._mixer.start_time + 0.06)
+                    self._data, self._data.shape[1], start=start)
 
     def pause(self):
         """Pause."""
         if self.playing:
             action, self._action = self._action, None
-            self._mixer.cancel(action)
+            cancel_action = self._mixer.cancel(action)
+            self._mixer.wait(cancel_action)
 
     def stop(self):
         """Stop."""
@@ -143,14 +161,12 @@ class SoundPlayer(object):
 
     def delete(self):
         """Delete."""
-        if self._mixer is not None:
+        if getattr(self, '_mixer', None) is not None:
             self.pause()
             mixer, self._mixer = self._mixer, None
             stats = mixer.fetch_and_reset_stats().stats
             logger.exp('%d underflows %d blocks'
                        % (stats.output_underflows, stats.blocks))
-            mixer.abort()
-            mixer.close()
 
-    def __del__(self):
+    def __del__(self):  # noqa
         self.delete()

@@ -4,6 +4,7 @@
 import numpy as np
 
 from ..io import read_hdf5
+from .._fixes import irfft
 from .._utils import fetch_data_file, _fix_audio_dims
 
 # This was used to generate "barb_anech.gz":
@@ -104,7 +105,7 @@ def _get_hrtf(angle, source, fs, interp=False):
 
         # reconstruct hrtf and convert to time domain
         hrtf = hrtf_amp * np.exp(1j * hrtf_phase)
-        brir = np.fft.irfft(hrtf, int(hrtf.shape[-1]))
+        brir = irfft(hrtf, int(hrtf.shape[-1]))
 
     return brir, data['fs'], leftward
 

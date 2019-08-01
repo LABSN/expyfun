@@ -119,6 +119,9 @@ class ExperimentController(object):
         is not necessarily guaranteed, as the `flip` may return before the
         stimulus has actually flipped (check with
         :ref:`sphx_glr_auto_examples_sync_sync_test.py`).
+    n_channels : int
+        The number of audio playback channels. Defaults to 2 (must be 2 if
+        a TDT is used).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -140,7 +143,8 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  check_rms='windowed', suppress_resamp=False, version=None,
-                 enable_video=False, safe_flipping=None, verbose=None):
+                 enable_video=False, safe_flipping=None, n_channels=2,
+                 verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -322,10 +326,14 @@ class ExperimentController(object):
             # Audio (and for TDT, potentially keyboard)
             if audio_type == 'tdt':
                 logger.info('Expyfun: Setting up TDT')
+                if n_channels != 2:
+                    raise ValueError('n_channels must be equal to 2 for the '
+                                     'TDT backend, got %r' % (n_channels,))
                 self._ac = TDTController(audio_controller)
                 self.audio_type = self._ac.model
             elif audio_type == 'sound_card':
-                self._ac = SoundCardController(audio_controller, self.stim_fs)
+                self._ac = SoundCardController(audio_controller, self.stim_fs,
+                                               n_channels)
                 self.audio_type = self._ac.backend_name
             else:
                 raise ValueError('audio_controller[\'TYPE\'] must be "tdt" '
@@ -338,8 +346,8 @@ class ExperimentController(object):
 
             if self._fs_mismatch:
                 msg = ('Expyfun: Mismatch between reported stim sample '
-                       'rate ({0}) and device sample rate ({1}).'
-                       ''.format(self.stim_fs, self.fs))
+                       'rate ({0}) and device sample rate ({1}). '
+                       .format(self.stim_fs, self.fs))
                 if self._suppress_resamp:
                     msg += ('Nothing will be done about this because '
                             'suppress_resamp is "True"')
@@ -1638,7 +1646,7 @@ class ExperimentController(object):
             # samples /= np.max(np.abs(samples),axis=0)
 
         # check shape and dimensions, make stereo
-        samples = _fix_audio_dims(samples, 2).T
+        samples = _fix_audio_dims(samples, self._ac._n_channels).T
 
         # This limit is currently set by the TDT SerialBuf objects
         # (per channel), it sets the limit on our stimulus durations...

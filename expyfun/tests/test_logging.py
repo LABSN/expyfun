@@ -1,8 +1,8 @@
+import operator
 import os
 
 import pytest
 from expyfun import ExperimentController
-from expyfun._sound_controllers import _AUTO_BACKENDS
 from expyfun._utils import _check_skip_backend, requires_lib
 
 std_args = ['test']
@@ -11,7 +11,6 @@ std_kwargs = dict(participant='foo', session='01', full_screen=False,
 
 
 @requires_lib('mne')
-@pytest.mark.parametrize('ac', ('tdt',) + _AUTO_BACKENDS)
 def test_logging(ac, tmpdir, hide_window):
     """Test logging to file (Pyglet)."""
     if ac != 'tdt':
@@ -40,11 +39,17 @@ def test_logging(ac, tmpdir, hide_window):
             should_have.append('TDT')
         else:
             should_have.append('sound card')
-            if ac != 'auto':
-                should_have.append(ac)
-        for s in should_have:
-            if s not in data:
-                raise ValueError('Missing data: "{0}" in:\n{1}'
-                                 ''.format(s, data))
+            if ac != 'auto' and ac['SOUND_CARD_BACKEND'] != 'auto':
+                should_have.append(ac['SOUND_CARD_BACKEND'])
+        assert_have_all(data, should_have)
     finally:
         os.chdir(orig_dir)
+
+
+def assert_have_all(data, should_have):
+    """Assert all substrings are in the logging output."""
+    __tracebackhide__ = operator.methodcaller('errisinstance', AssertionError)
+    for s in should_have:
+        if s not in data:
+            raise AssertionError('Missing data: "{0}" in:\n{1}'
+                                 ''.format(s, data))

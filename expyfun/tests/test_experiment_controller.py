@@ -8,7 +8,6 @@ import pytest
 from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, wait_secs, visual
-from expyfun._sound_controllers import _SOUND_CARD_ACS
 from expyfun._utils import (_TempDir, fake_button_press, _check_skip_backend,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
@@ -156,8 +155,7 @@ def test_degenerate():
                   **std_kwargs)
 
 
-@pytest.mark.timeout(10)
-@pytest.mark.parametrize('ac', ('tdt',) + _SOUND_CARD_ACS)
+@pytest.mark.timeout(20)
 def test_ec(ac, hide_window):
     """Test EC methods."""
     if ac == 'tdt':
@@ -215,8 +213,10 @@ def test_ec(ac, hide_window):
         ec.load_buffer([0, 0, 0, 0, 0, 0])
         pytest.raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
         ec.load_buffer(np.zeros((100,)))
-        ec.load_buffer(np.zeros((100, 1)))
-        ec.load_buffer(np.zeros((100, 2)))
+        with pytest.raises(ValueError, match='100 did not match .* count 2'):
+            ec.load_buffer(np.zeros((100, 1)))
+        with pytest.raises(ValueError, match='100 did not match .* count 2'):
+            ec.load_buffer(np.zeros((100, 2)))
         ec.load_buffer(np.zeros((1, 100)))
         ec.load_buffer(np.zeros((2, 100)))
         data = np.zeros(int(5e6), np.float32)  # too long for TDT
@@ -466,7 +466,7 @@ def test_button_presses_and_window_size(hide_window):
         # XXX this fails on OSX travis for some reason
         if (os.getenv('TRAVIS', '').lower() != 'true' or
                 sys.platform != 'darwin'):
-            assert ec.text_input(all_caps=False) == 'a'
+            assert ec.text_input(all_caps=False).strip() == 'a'
 
 
 @pytest.mark.timeout(10)

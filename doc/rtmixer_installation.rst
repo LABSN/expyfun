@@ -44,7 +44,7 @@ Here are some stub installation instructions for each OS:
 
     .. code-block:: console
 
-       $ pip install python-sounddevice
+       $ pip install sounddevice
        $ python -m sounddevice  # just to see if it worked
        $ pip install https://staff.washington.edu/larsoner/rtmixer-0.0.0-cp37-cp37m-win_amd64.whl
 

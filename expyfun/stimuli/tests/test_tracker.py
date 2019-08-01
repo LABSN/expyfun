@@ -15,7 +15,7 @@ def callback(event_type, value=None, timestamp=None):
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
                   trigger_controller='dummy', response_device='keyboard',
-                  audio_controller='pyglet',
+                  audio_controller='sound_card',
                   verbose=True, version='dev')
 
 
