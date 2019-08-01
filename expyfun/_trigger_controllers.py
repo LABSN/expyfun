@@ -8,7 +8,7 @@
 import sys
 import numpy as np
 
-from ._utils import wait_secs, verbose_dec, string_types
+from ._utils import wait_secs, verbose_dec, string_types, logger
 
 
 class ParallelTrigger(object):
@@ -52,6 +52,7 @@ class ParallelTrigger(object):
                     raise ValueError('addrss must be a string or None, got %s '
                                      'of type %s' % (address, type(address)))
                 from parallel import Parallel
+                logger.info('Expyfun: Using address %s' % (address,))
                 self._port = Parallel(address)
                 self._portname = address
                 self._set_data = self._port.setData
@@ -62,7 +63,8 @@ class ParallelTrigger(object):
                         'Must have inpout32 installed, see:\n\n'
                         'http://www.highrez.co.uk/downloads/inpout32/')
 
-                base = 0x378 if address is None else address
+                base = '0x378' if address is None else address
+                logger.info('Expyfun: Using base address %s' % (base,))
                 if isinstance(base, string_types):
                     base = int(base, 16)
                 if not isinstance(base, int):
