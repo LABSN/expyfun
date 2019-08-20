@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  build_docs:
     docker:
       - image: circleci/python:3.6-stretch
     steps:
@@ -68,10 +68,10 @@ workflows:
   version: 2
   build_and_deploy:
     jobs:
-      - build
+      - build_docs
       - deploy:
           requires:
-            - build
+            - build_docs
           filters:
             branches:
               only: master
