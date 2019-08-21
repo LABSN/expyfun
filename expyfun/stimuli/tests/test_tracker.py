@@ -1,6 +1,6 @@
 import numpy as np
 
-from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer
+from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer, TrackerMHW
 from expyfun import ExperimentController
 import pytest
 from numpy.testing import assert_equal
@@ -209,7 +209,9 @@ def test_tracker_dealer():
 
     # test TrackerDealer with TrackerBinom
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
-                for _ in range(2)]
+                for _ in range(2)]    # start_value scalar type checking
+    pytest.raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
+                  np.inf, [9, 5], change_indices=[2])
     dealer_binom = TrackerDealer(callback, trackers, pace_rule='trials')
     for sub, x_current in dealer_binom:
         dealer_binom.respond(True)
@@ -221,3 +223,62 @@ def test_tracker_dealer():
 
     # if you're dealing from TrackerBinom, you can't use reversals to pace
     pytest.raises(ValueError, TrackerDealer, callback, trackers, 1)
+
+
+def test_tracker_mhw(hide_window):
+    """Test TrackerMHW"""
+    import matplotlib.pyplot as plt
+    tr = TrackerMHW(callback, 0, 120)
+    with ExperimentController('test', **std_kwargs) as ec:
+        tr = TrackerMHW(ec, 0, 120)
+    tr = TrackerMHW(None, 0, 120)
+    rand = np.random.RandomState(0)
+    while not tr.stopped:
+        tr.respond(int(rand.rand() * 100) < tr.x_current)
+
+    tr = TrackerMHW(None, 0, 120)
+    rand = np.random.RandomState(0)
+    while not tr.stopped:
+        tr.respond(int(rand.rand() * 100) < tr.x_current)
+    # test responding after stopped
+    pytest.raises(RuntimeError, tr.respond, 0)
+
+    for key in ('base_step', 'factor_down', 'factor_up_nr', 'start_value',
+                'x_min', 'x_max', 'n_up_stop', 'repeat_limit',
+                'n_correct_levels', 'threshold', 'stopped', 'x', 'x_current',
+                'responses', 'n_trials', 'n_reversals', 'reversals',
+                'reversal_inds', 'threshold_reached'):
+        assert hasattr(tr, key)
+
+    fig, ax, lines = tr.plot()
+    tr.plot_thresh(ax=ax)
+    tr.plot_thresh()
+    plt.close(fig)
+    ax = plt.axes()
+    fig, ax, lines = tr.plot(ax)
+    plt.close(fig)
+
+    # start_value scalar type checking
+    with pytest.raises(TypeError, match='start_value must be a scalar'):
+        TrackerMHW(None, 0, 120, 5, 2, 4, [5, 4], 2)
+    # n_up_stop integer check
+    with pytest.raises(TypeError, match='n_up_stop must be an integer'):
+        TrackerMHW(None, 0, 120, 5, 2, 4, 40, 1.5)
+    # x_min integer or float check
+    with pytest.raises(TypeError, match='x_min must be a float or integer'):
+        TrackerMHW(None, '5', 120, 5, 2, 4, 40, 2)
+    # x_max integer or float check
+    with pytest.raises(TypeError, match='x_max must be a float or integer'):
+        TrackerMHW(None, 0, '90', 5, 2, 4, 40, 2)
+    # start_value is a multiple of base_step
+    with pytest.raises(ValueError,
+                       match='start_value must be a multiple of base_step'):
+        TrackerMHW(None, 0, 120, 5, 2, 4, 41, 2)
+    # x_min factor check
+    with pytest.raises(ValueError,
+                       match='x_min must be a multiple of base_step'):
+        TrackerMHW(None, 2, 120, 5, 2, 4, 40, 2)
+    # x_max factor check
+    with pytest.raises(ValueError,
+                       match='x_max must be a multiple of base_step'):
+        TrackerMHW(None, 0, 93, 5, 2, 4, 40, 2)

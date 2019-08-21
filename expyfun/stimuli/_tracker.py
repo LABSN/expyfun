@@ -981,3 +981,429 @@ class TrackerDealer(object):
         """All of the tracker objects in the container
         """
         return self._trackers
+
+
+# =============================================================================
+# Define the TrackerMHW Class
+# =============================================================================
+class TrackerMHW(object):
+    """Up-down adaptive tracker for the modified Hughson-Westlake Procedure
+
+    This class implements a standard up-down adaptive tracker object. It is
+    configured to run a fixed-step m*base-down n*base-up tracker (staircase),
+    with a different z*base-up if there is "no response" to the start_value.
+
+    Parameters
+    ----------
+    callback : callable | ExperimentController | None
+        The function that will be used to print the data, usually to the
+        experiment .tab file. It should follow the prototype of
+        ``ExperimentController.write_data_line``. If an instance of
+        ``ExperimentController`` is given, then it will take that object's
+        ``write_data_line`` function. If None is given, then it will not write
+        the data anywhere.
+    x_min : float
+        The minimum value that the tracker level (``x``) is allowed to take.
+        A value must be provided and cannot be "None".
+    x_max : float
+        The maximum value that the tracker level (``x``) is allowed to take.
+        A value must be provided and cannot be "None".
+    base_step : float
+        The size of the base step when the tracker moves up or down.
+    factor_down : float
+        The factor multiplier of the base step when the tracker moves down.
+        The default is 2.
+    factor_up_nr : float
+        The factor multiplier of the base step when there is "no response"
+        (i.e., "incorrect" response) to the start_value. The default is 4.
+    start_value : float
+        The starting level of the tracker.
+    n_up_stop : int
+        The  number of times the level has a correct response in order to stop.
+    repeat_limit : str
+        How to treat trials that try to exceed either x_min or x_max.
+        ``reversals`` will consider these trials as reversals while staying at
+        the same level. ``ignore`` does not consider these trials as reversals.
+
+    Returns
+    -------
+    tracker : instance of TrackerMHW
+        The up-down modified Hughson-Westlake tracker object.
+
+    Notes
+    -----
+    In the modified Hughson-Westlake procedure, the up-step is the base-step,
+    (e.g., 5) and the down-step is 2 * base-step (e.g., 10), except when there
+    is "no response" to the starting value. Then the up-step is 4 * base-step
+    (e.g., 20) in order to quickly get within a suitable range for audibility
+    and finding threshold.
+    """
+
+    def __init__(self, callback, x_min, x_max, base_step=5, factor_down=2,
+                 factor_up_nr=4, start_value=40, n_up_stop=2,
+                 repeat_limit='reversals'):
+        self._callback = _check_callback(callback)
+        self._x_min = x_min
+        self._x_max = x_max
+        self._base_step = base_step
+        self._factor_down = factor_down
+        self._factor_up_nr = factor_up_nr
+        self._start_value = start_value
+        self._n_up_stop = n_up_stop
+        self._repeat_limit = repeat_limit
+
+        if type(x_min) != int and type(x_min) != float:
+            raise TypeError('x_min must be a float or integer')
+        if type(x_max) != int and type(x_max) != float:
+            raise TypeError('x_max must be a float or integer')
+
+        self._x = np.asarray([start_value], dtype=float)
+        if not np.isscalar(start_value):
+            raise TypeError('start_value must be a scalar')
+        if np.isscalar(start_value):
+            if start_value % base_step != 0:
+                raise ValueError('start_value must be a multiple of base_step')
+            else:
+                if (x_min - start_value) % base_step != 0:
+                    raise ValueError('x_min must be a multiple of base_step')
+                if (x_max - start_value) % base_step != 0:
+                    raise ValueError('x_max must be a multiple of base_step')
+
+        if type(n_up_stop) != int:
+            raise TypeError('n_up_stop must be an integer')
+
+        self._x_current = float(start_value)
+        self._responses = np.asarray([], dtype=bool)
+        self._reversals = np.asarray([], dtype=int)
+        self._bad_reversals = np.asarray([], dtype=bool)
+
+        self._direction = 0
+        self._n_trials = 0
+        self._n_reversals = 0
+        self._n_correct = 0
+        self._stopped = False
+        self._limit_count = 0
+        self._n_xmin_correct = 0
+
+        self._levels = np.arange(x_min, x_max + base_step, base_step)
+        self._n_correct_levels = {l: 0 for l in self._levels}
+        self._threshold = np.nan
+
+        # Now write the initialization data out
+        self._tracker_id = '%s-%s' % (id(self), int(round(time.time() * 1e6)))
+        self._callback('tracker_identify', json.dumps(dict(
+            tracker_id=self._tracker_id,
+            tracker_type='TrackerMHW')))
+
+        self._callback('tracker_%s_init' % self._tracker_id, json.dumps(dict(
+            callback=None,
+            base_step=self._base_step,
+            factor_down=self._factor_down,
+            factor_up_nr=self._factor_up_nr,
+            start_value=self._start_value,
+            x_min=self._x_min,
+            x_max=self._x_max,
+            n_up_stop=self._n_up_stop,
+            repeat_limit=self._repeat_limit)))
+
+    def respond(self, correct):
+        """Update the tracker based on the last response.
+
+        Parameters
+        ----------
+        correct : boolean
+            Was the most recent subject response correct?
+        """
+        if self._stopped:
+            raise RuntimeError('Tracker is stopped.')
+
+        bound = False
+        bad = False
+        reversal = False
+        self._responses = np.append(self._responses, correct)
+        self._n_trials += 1
+        step_dir = 0  # 0 no step, 1 up, -1 down
+
+        # Determine if it's a reversal and which way we're going
+        if correct:
+            self._n_correct += 1
+            step_dir = -1
+            if self._direction > 0:
+                reversal = True
+                self._n_reversals += 1
+                self._n_correct_levels[self._x[-1]] += 1
+            if self._x[-1] <= self._x_min:
+                self._n_xmin_correct += 1
+                if self._n_xmin_correct > 1:
+                    self._n_correct_levels[self._x[-1]] += 1
+            if self._direction >= 0:
+                self._direction = -1
+        else:
+            step_dir = 1
+            if self._direction < 0:
+                reversal = True
+                self._n_reversals += 1
+            if self._direction <= 0:
+                self._direction = 1
+
+        if self._x[-1] in [self._x_min, self._x_max]:
+            bound = True
+
+        # Update the staircase
+        if step_dir == 0:
+            self._x = np.append(self._x, self._x[-1])
+        elif step_dir < 0:
+            self._x = np.append(self._x, self._x[-1] -
+                                self._factor_down * self._base_step)
+        elif step_dir > 0:
+            if self._n_correct == 0:
+                self._x = np.append(self._x, self._x[-1] +
+                                    self._factor_up_nr * self._base_step)
+            else:
+                self._x = np.append(self._x, self._x[-1] + self._base_step)
+
+        if self._x[-1] < self._x_min:
+            self._x[-1] = self._x_min
+            self._limit_count += 1
+            if bound:
+                bad = True
+                if self._repeat_limit == 'reversals':
+                    reversal = True
+                    self._n_reversals += 1
+                if self._repeat_limit == 'ignore':
+                    reversal = False
+                    self._direction = 0
+        if self._x[-1] >= self._x_max:
+            self._x[-1] = self._x_max
+            self._limit_count += 1
+            if bound:
+                bad = True
+                if self._repeat_limit == 'reversals':
+                    reversal = True
+                    self._n_reversals += 1
+                if self._repeat_limit == 'ignore':
+                    reversal = False
+                    self._direction = 0
+
+        if reversal:
+            self._reversals = np.append(self._reversals, self._n_reversals)
+        else:
+            self._reversals = np.append(self._reversals, 0)
+
+        self._bad_reversals = np.append(self._bad_reversals, bad)
+
+        # Should we stop here?
+        self._stopped = self._stop_here()
+
+        if not self._stopped:
+            self._x_current = self._x[-1]
+            self._callback('tracker_%s_respond' % self._tracker_id,
+                           correct)
+        else:
+            self._x = self._x[:-1]
+            self._callback(
+                'tracker_%s_stop' % self._tracker_id, json.dumps(dict(
+                    responses=[int(s) for s in self._responses],
+                    reversals=[int(s) for s in self._reversals],
+                    x=[float(s) for s in self._x],
+                    threshold=self._threshold,
+                    n_correct_levels={int(k): v for k, v in
+                                      self._n_correct_levels.items()})))
+
+    def check_valid(self, n_reversals):
+        """If last reversals contain reversals exceeding x_min or x_max.
+
+        Parameters
+        ----------
+        n_reversals : int
+            Number of reversals (starting from the end to check).
+
+        Returns
+        -------
+        valid : bool
+            True if none of the reversals are at x_min or x_max and False
+            otherwise.
+        """
+        self._valid = (not self._bad_reversals[self._reversals != 0]
+                       [-n_reversals:].any())
+        return self._valid
+
+    def _stop_here(self):
+        self._threshold_reached = [self._n_correct_levels[l] ==
+                                   self._n_up_stop for l in self._levels]
+        if self._n_correct == 0 and self._x[
+                -2] == self._x_max and self._x[-1] == self._x_max:
+            self._n_stop = True
+            self._threshold = np.nan
+        elif len(self._x) > 3 and (self._x == self._x_max).sum() >= 4:
+            self._n_stop = True
+        elif len(self._x) > 3 and (self._x[-4:] == self._x_min).sum() >= 4:
+            self._n_stop = True
+            self._threshold = self._x_min
+        elif self._threshold_reached.count(True) == 1:
+            self._n_stop = True
+            self._threshold = int(self._levels[
+                    [i for i, tr in enumerate(self._threshold_reached) if tr]])
+        else:
+            self._n_stop = False
+        if self._n_stop and self._limit_count > 0:
+            warnings.warn('Tracker {} exceeded x_min or x_max bounds {} times.'
+                          ''.format(self._tracker_id, self._limit_count))
+        return self._n_stop
+
+    # =========================================================================
+    # Define all the public properties
+    # =========================================================================
+    @property
+    def base_step(self):
+        return self._base_step
+
+    @property
+    def factor_down(self):
+        return self._factor_down
+
+    @property
+    def factor_up_nr(self):
+        return self._factor_up_nr
+
+    @property
+    def start_value(self):
+        return self._start_value
+
+    @property
+    def x_min(self):
+        return self._x_min
+
+    @property
+    def x_max(self):
+        return self._x_max
+
+    @property
+    def n_up_stop(self):
+        return self._n_up_stop
+
+    @property
+    def repeat_limit(self):
+        return self._repeat_limit
+
+    @property
+    def n_correct_levels(self):
+        return self._n_correct_levels
+
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @property
+    def stopped(self):
+        """Has the tracker stopped
+        """
+        return self._stopped
+
+    @property
+    def x(self):
+        """The staircase
+        """
+        return self._x
+
+    @property
+    def x_current(self):
+        """The current level
+        """
+        return self._x_current
+
+    @property
+    def responses(self):
+        """The response history
+        """
+        return self._responses
+
+    @property
+    def n_trials(self):
+        """The number of trials so far
+        """
+        return self._n_trials
+
+    @property
+    def n_reversals(self):
+        """The number of reversals so far
+        """
+        return self._n_reversals
+
+    @property
+    def reversals(self):
+        """The reversal history (0 where there was no reversal)
+        """
+        return self._reversals
+
+    @property
+    def reversal_inds(self):
+        """The trial indices which had reversals"""
+        return np.where(self._reversals)[0]
+
+    @property
+    def threshold_reached(self):
+        """Which levels have threshold reached"""
+        return self._threshold_reached
+
+    # =========================================================================
+    # Display functions
+    # =========================================================================
+    def plot(self, ax=None, threshold=True):
+        """Plot the adaptive track.
+
+        Parameters
+        ----------
+        ax : AxesSubplot | None
+            The axes to make the plot on. If ``None`` defaults to current axes.
+        threshold : bool
+            Whether to plot the estimated threshold on the axes. Default is
+            True.
+
+        Returns
+        -------
+        fig : Figure
+            The figure handle.
+        ax : AxesSubplot
+            The axes handle.
+        lines : list of Line2D
+            The handles to the staircase line and the reversal dots.
+        """
+        import matplotlib.pyplot as plt
+        if ax is None:
+            fig, ax = plt.subplots(1)
+        else:
+            fig = ax.figure
+
+        line = ax.plot(1 + np.arange(self._n_trials), self._x, 'k.-')
+        line[0].set_label('Trials')
+        dots = ax.plot(1 + np.where(self._reversals > 0)[0],
+                       self._x[self._reversals > 0], 'ro')
+        dots[0].set_label('Reversals')
+        ax.set(xlabel='Trial number', ylabel='Level (dB)')
+        if threshold:
+            thresh = self.plot_thresh(ax)
+            thresh[0].set_label('Threshold')
+        ax.legend()
+        return fig, ax, line + dots
+
+    def plot_thresh(self, ax=None):
+        """Plot a line showing the threshold.
+
+        Parameters
+        ----------
+        ax : Axes
+            The handle to the axes object. If None, the current axes will
+            be used.
+
+        Returns
+        -------
+        line : list Line2D
+            The handle to the threshold line, as returned from ``plt.plot``.
+        """
+        import matplotlib.pyplot as plt
+        if ax is None:
+            ax = plt.gca()
+        h = ax.plot([1, self._n_trials], [self._threshold] * 2, '--',
+                    color='gray')
+        return h

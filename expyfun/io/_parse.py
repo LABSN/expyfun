@@ -127,7 +127,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok',
 
 
 def reconstruct_tracker(fname):
-    """Reconstruct TrackerUD and TrackerBinom objects from .tab files.
+    """Reconstruct TrackerUD, TrackerBinom, TrackerMHW objects from .tab files.
 
     Parameters
     ----------
@@ -136,13 +136,13 @@ def reconstruct_tracker(fname):
 
     Returns
     -------
-    tr : list of TrackerUD or TrackerBinom
+    tr : list of TrackerUD or TrackerBinom or TrackerMHW
         The tracker objects with all responses such that they are in their
         stopped state (as long as the trackers were allowed to stop during
         the generation of the file.) If only one tracker is found in the file,
         it will still be stored in a list and will be accessible as ``tr[0]``.
     """
-    from ..stimuli import TrackerUD, TrackerBinom
+    from ..stimuli import TrackerUD, TrackerBinom, TrackerMHW
     # read in raw data
     raw = read_tab_raw(fname)
 
@@ -163,7 +163,8 @@ def reconstruct_tracker(fname):
         tracker_dict_idx = tracker_dict_idx[0]
         used_dict_idx.append(tracker_dict_idx)
         tracker_dict = json.loads(raw[tracker_dict_idx][2])
-        td = dict(TrackerUD=TrackerUD, TrackerBinom=TrackerBinom)
+        td = dict(TrackerUD=TrackerUD, TrackerBinom=TrackerBinom,
+                  TrackerMHW=TrackerMHW)
         tr.append(td[tracker_type](**tracker_dict))
         tr[-1]._tracker_id = tracker_id  # make sure tracker has original ID
         stop_str = 'tracker_' + str(tracker_id) + '_stop'

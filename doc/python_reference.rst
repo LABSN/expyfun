@@ -49,6 +49,7 @@ grouped by hardware control type.
    TrackerBinom
    TrackerDealer
    TrackerUD
+   TrackerMHW
    convolve_hrtf
    compute_mls_impulse_response
    crm_info
