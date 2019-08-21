@@ -24,7 +24,7 @@ Here are some stub installation instructions for each OS:
        $ python -m sounddevice  # just to see if it worked
        $ git clone git://github.com/spatialaudio/python-rtmixer
        $ cd python-rtmixer
-       $ pip install -e .
+       $ git submodule update --init
 
     .. note:: As an alternative to ``brew`` on macOS, you can also use the
              `PortAudio binaries site`_ to put the ``dylib`` in some
