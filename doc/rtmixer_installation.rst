@@ -19,7 +19,6 @@ Here are some stub installation instructions for each OS:
     .. code-block:: console
 
        $ sudo apt install libportaudio2  # only if on Linux!
-       $ brew install portaudio  # only if on OSX!
        $ pip install sounddevice
        $ python -m sounddevice  # just to see if it worked
        $ git clone git://github.com/spatialaudio/python-rtmixer
@@ -33,11 +32,6 @@ Here are some stub installation instructions for each OS:
              suitable macOS library path.
 
 - |windows| Windows
-    Assuming you are on a modern Windows system (i.e., 64-bit):
-
-    - Download ``libportaudio64bit.dll`` from the `PortAudio binaries site`_
-    - Rename it to ``libportaudio.dll``
-    - Place it in ``C:\Windows\System32\``
 
     Because Windows support for compiling is pretty bad, ``python-rtmixer``
     probably will not install directly using ``pip``, because you need
