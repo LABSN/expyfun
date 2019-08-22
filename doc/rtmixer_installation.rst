@@ -26,11 +26,6 @@ Here are some stub installation instructions for each OS:
        $ git submodule update --init
        $ pip install -e .
 
-
-    .. note:: As an alternative to ``brew`` on macOS, you can also use the
-             `PortAudio binaries site`_ to put the ``dylib`` in some
-             suitable macOS library path.
-
 - |windows| Windows
 
     Because Windows support for compiling is pretty bad, ``python-rtmixer``
