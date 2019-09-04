@@ -56,6 +56,8 @@ class SoundCardController(object):
         The fixed delay (in sec) to use for playback.
         This is used by the rtmixer backend to ensure fixed
         latency playback.
+    - 'SOUND_CARD_STIM_CHANNELS' : int
+        Number of sound card channels to use as stim channels.
 
     Note that the defaults are superseded on individual machines by
     the configuration file.
@@ -63,22 +65,30 @@ class SoundCardController(object):
 
     def __init__(self, params, stim_fs, n_channels=2):
         keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
-                'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY')
-        defaults = dict(SOUND_CARD_BACKEND='auto')
+                'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
+                'SOUND_CARD_STIM_CHANNELS')
+        defaults = dict(SOUND_CARD_BACKEND='auto',
+                        SOUND_CARD_STIM_CHANNELS='0')
         params = _check_params(params, keys, defaults, 'params')
 
         self.backend, self.backend_name = _import_backend(
             params['SOUND_CARD_BACKEND'])
-        self._n_channels = operator.index(n_channels)
-        logger.info('Expyfun: Setting up sound card audio using %s backend '
-                    'and %d channels' % (self.backend_name, n_channels))
+        self._n_channels_stim = int(params['SOUND_CARD_STIM_CHANNELS'])
+        assert self._n_channels_stim >= 0
+        self._n_channels = int(operator.index(n_channels))
+        del n_channels
+        extra = (('%d stim and ' % (self._n_channels_stim))
+                 if self._n_channels_stim else '')
+        logger.info('Expyfun: Setting up sound card using %s backend with %s'
+                    '%d playback channels'
+                    % (self.backend_name, extra, self._n_channels))
         self._kwargs = dict(
-            fs=params.get('SOUND_CARD_FS', None),
-            api=params.get('SOUND_CARD_API', None),
-            name=params.get('SOUND_CARD_NAME', None),
-            fixed_delay=params.get('SOUND_CARD_FIXED_DELAY', None),
+            fs=params['SOUND_CARD_FS'],
+            api=params['SOUND_CARD_API'],
+            name=params['SOUND_CARD_NAME'],
+            fixed_delay=params['SOUND_CARD_FIXED_DELAY'],
         )
-        temp_sound = np.zeros((self._n_channels, 1000))
+        temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = temp_sound.fs
         temp_sound.stop()
@@ -87,7 +97,7 @@ class SoundCardController(object):
         # Need to generate at RMS=1 to match TDT circuit, and use a power of
         # 2 length for the RingBuffer (here make it >= 15 sec)
         n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.)))
-        noise = np.random.normal(0, 1.0, (n_channels, n_samples))
+        noise = np.random.normal(0, 1.0, (self._n_channels, n_samples))
 
         # Low-pass if necessary
         if stim_fs < self.fs:
@@ -99,12 +109,20 @@ class SoundCardController(object):
             noise = irfft(noise, axis=-1)
 
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
-        self.noise_array = noise / np.sqrt(np.mean(noise * noise))
+        noise /= np.sqrt(np.mean(noise * noise))
+        noise = np.concatenate(
+            (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype),
+             noise))
+        self.noise_array = noise
         self.noise_level = 0.01
         self.noise = None
         self.audio = None
         self.playing = False
         flush_logger()
+
+    @property
+    def _n_channels_tot(self):
+        return self._n_channels_stim + self._n_channels
 
     def start_noise(self):
         """Start noise."""
@@ -136,6 +154,10 @@ class SoundCardController(object):
         if self.audio is not None:
             self.audio.delete()
             self.audio = None
+        if self._n_channels_stim > 0:
+            stim = np.zeros((samples.shape[0], self._n_channels_stim))
+            stim[0, :] = 1.
+            samples = np.concatenate((stim, samples), axis=-1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def play(self):

@@ -23,7 +23,7 @@ print(__doc__)
 
 # Fullscreen MUST be used to guarantee flip accuracy!
 n_channels = 2
-click_idx = 0
+click_idx = [0]
 with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
                           participant='s', session='0', output_dir=None,
                           suppress_resamp=True, check_rms=None,
