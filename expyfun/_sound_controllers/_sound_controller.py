@@ -197,6 +197,8 @@ class SoundCardController(object):
         wait_for_last : bool
             If True, wait for last trigger to be stamped before returning.
         """
+        if delay is None:
+            delay = 2 * self._trigger_duration
         stim = self._make_digital_trigger(triggers, delay)
         stim = np.pad(stim, (0, self._n_channels), 'constant')
         stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
