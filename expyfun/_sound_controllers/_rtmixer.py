@@ -32,6 +32,7 @@ def _get_mixer(fs, n_channels, api=None, name=None):
             darwin='Core Audio',
             win32='Windows WASAPI',
             linux='ALSA',
+            linux2='ALSA',
         )[sys.platform]
     key = (fs, n_channels, api, name)
     if key not in _MIXER_REGISTRY:
