@@ -121,8 +121,7 @@ class ParallelTrigger(object):
                 wait_secs(delay - self.high_duration)
 
     def close(self):
-        """Release hardware interfaces
-        """
+        """Release hardware interfaces."""
         if hasattr(self, '_port'):
             del self._port
 

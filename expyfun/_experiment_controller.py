@@ -93,8 +93,8 @@ class ExperimentController(object):
         set properly for the machine in use.
     trigger_controller : str | None
         If ``None``, the type will be read from the system configuration file.
-        If a string, must be 'dummy', 'parallel', or 'tdt'. Note that by
-        default the mode is 'dummy', since setting up the parallel port
+        If a string, must be 'dummy', 'parallel', 'sound_card', or 'tdt'.
+        By default the mode is 'dummy', since setting up the parallel port
         can be a pain. Can also be a dict with entries 'type' ('parallel'),
         'address' (None), and 'high_duration' (0.005).
     session : str | None
@@ -404,6 +404,16 @@ class ExperimentController(object):
                     raise ValueError('trigger_controller can only be "tdt" if '
                                      'tdt is used for audio')
                 self._tc = self._ac
+            elif trigger_controller['type'] == 'sound_card':
+                if not isinstance(self._ac, SoundCardController):
+                    raise ValueError('trigger_controller can only be '
+                                     '"sound_card" if the sound card is '
+                                     'used for audio')
+                if self._ac._n_channels_stim == 0:
+                    raise ValueError('cannot use sound card for triggering '
+                                     'when SOUND_CARD_TRIGGER_CHANNELS is '
+                                     'zero')
+                self._tc = self._ac
             elif trigger_controller['type'] in ['parallel', 'dummy']:
                 if 'address' not in trigger_controller:
                     addr = get_config('TRIGGER_ADDRESS')
@@ -420,8 +430,8 @@ class ExperimentController(object):
                         [1], wait_for_last=False))
             else:
                 raise ValueError('trigger_controller type must be '
-                                 '"parallel", "dummy", or "tdt", not '
-                                 '{0}'.format(trigger_controller['type']))
+                                 '"parallel", "dummy", "sound_card", or "tdt",'
+                                 'got {0}'.format(trigger_controller['type']))
             self._stamp_ttl_triggers = self._tc.stamp_triggers
             self._id_call_dict['ttl_id'] = self._stamp_binary_id
 

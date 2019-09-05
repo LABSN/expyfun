@@ -541,3 +541,24 @@ def test_tdt_delay(hide_window):
     pytest.raises(ValueError, ExperimentController, *std_args,
                   audio_controller=dict(TYPE='tdt', TDT_DELAY=-1),
                   **std_kwargs)
+
+
+def test_sound_card_triggering(hide_window):
+    """Test using the sound card as a trigger controller."""
+    audio_controller = dict(TYPE='sound_card', SOUND_CARD_TRIGGER_CHANNELS='0')
+    with pytest.raises(ValueError, match='SOUND_CARD_TRIGGER_CHANNELS is zer'):
+        ExperimentController(*std_args,
+                             audio_controller=audio_controller,
+                             trigger_controller='sound_card',
+                             **std_kwargs)
+    audio_controller.update(SOUND_CARD_TRIGGER_CHANNELS='1')
+    # Use 1 trigger ch and 1 output ch because this should work on all systems
+    with ExperimentController(*std_args,
+                              audio_controller=audio_controller,
+                              trigger_controller='sound_card',
+                              n_channels=1,
+                              **std_kwargs) as ec:
+        ec.identify_trial(ttl_id=[1, 0], ec_id='')
+        ec.load_buffer([1e-2])
+        ec.start_stimulus()
+        ec.stop()

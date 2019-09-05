@@ -13,7 +13,7 @@ import os.path as op
 import numpy as np
 
 from .._fixes import rfft, irfft, rfftfreq
-from .._utils import logger, flush_logger, _check_params
+from .._utils import logger, flush_logger, _check_params, wait_secs
 
 
 _BACKENDS = tuple(sorted(
@@ -56,7 +56,7 @@ class SoundCardController(object):
         The fixed delay (in sec) to use for playback.
         This is used by the rtmixer backend to ensure fixed
         latency playback.
-    - 'SOUND_CARD_STIM_CHANNELS' : int
+    - 'SOUND_CARD_TRIGGER_CHANNELS' : int
         Number of sound card channels to use as stim channels.
 
     Note that the defaults are superseded on individual machines by
@@ -66,14 +66,14 @@ class SoundCardController(object):
     def __init__(self, params, stim_fs, n_channels=2):
         keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
                 'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
-                'SOUND_CARD_STIM_CHANNELS')
+                'SOUND_CARD_TRIGGER_CHANNELS')
         defaults = dict(SOUND_CARD_BACKEND='auto',
-                        SOUND_CARD_STIM_CHANNELS='0')
+                        SOUND_CARD_TRIGGER_CHANNELS='0')
         params = _check_params(params, keys, defaults, 'params')
 
         self.backend, self.backend_name = _import_backend(
             params['SOUND_CARD_BACKEND'])
-        self._n_channels_stim = int(params['SOUND_CARD_STIM_CHANNELS'])
+        self._n_channels_stim = int(params['SOUND_CARD_TRIGGER_CHANNELS'])
         assert self._n_channels_stim >= 0
         self._n_channels = int(operator.index(n_channels))
         del n_channels
@@ -118,7 +118,14 @@ class SoundCardController(object):
         self.noise = None
         self.audio = None
         self.playing = False
+        # eventually we could make this configurable
+        self._stamping_duration = 0.01
+        self._trig_scale = np.float32(1.) / np.float32(2 ** 31 - 1)
         flush_logger()
+
+    def __repr__(self):
+        return ('<SoundController : %s playback %s trigger ch >'
+                % (self._n_channels, self._n_channels_stim))
 
     @property
     def _n_channels_tot(self):
@@ -155,10 +162,42 @@ class SoundCardController(object):
             self.audio.delete()
             self.audio = None
         if self._n_channels_stim > 0:
-            stim = np.zeros((samples.shape[0], self._n_channels_stim))
-            stim[0, :] = 1.
+            stim = self._make_digitial_trigger([1], 0., samples.shape[0])
             samples = np.concatenate((stim, samples), axis=-1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
+
+    def _make_digitial_trigger(self, trigs, delay, n_samples=None):
+        n_on = int(round(self.fs * self._stamping_duration))
+        n_off = int(round(self.fs * (delay - self._stamping_duration)))
+        n_each = n_on + n_off
+        trigs = (np.array(trigs, int) << 8) * self._trig_scale
+        assert trigs.ndim == 1 and trigs.size > 0
+        n_samples = n_samples or n_each * len(trigs)
+        stim = np.zeros((n_samples, self._n_channels_stim), np.float32)
+        offset = 0
+        for trig in trigs:
+            stim[offset:offset + n_on] = trig
+        return stim
+
+    def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
+        """Stamp a list of triggers with a given inter-trigger delay.
+
+        Parameters
+        ----------
+        triggers : list
+            No input checking is done, so ensure triggers is a list,
+            with each entry an integer with fewer than 8 bits (max 255).
+        delay : float
+            The inter-trigger delay.
+        wait_for_last : bool
+            If True, wait for last trigger to be stamped before returning.
+        """
+        stim = self._make_digitial_trigger(triggers, delay)
+        stim = np.pad(stim, (0, self._n_channels), 'constant')
+        self.backend.SoundPlayer(stim.T, **self._kwargs).play()
+        t_each = self._stamping_duration + delay
+        duration = (len(triggers) + int(bool(wait_for_last))) * t_each
+        wait_secs(duration)
 
     def play(self):
         """Play."""
