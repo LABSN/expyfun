@@ -242,8 +242,7 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'sounddevice': ('https://python-sounddevice.readthedocs.io', None),
     'rtmixer': ('https://python-rtmixer.readthedocs.io/en/latest', None),
-    'pyglet': ('https://pyglet.readthedocs.io/en/pyglet-1.3-maintenance',
-               None),
+    'pyglet': ('https://pyglet.readthedocs.io/en/latest', None),
     'mne': ('https://mne-tools.github.io/dev', None),
 }
 

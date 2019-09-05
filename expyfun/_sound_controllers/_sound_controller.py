@@ -194,10 +194,14 @@ class SoundCardController(object):
         """
         stim = self._make_digitial_trigger(triggers, delay)
         stim = np.pad(stim, (0, self._n_channels), 'constant')
-        self.backend.SoundPlayer(stim.T, **self._kwargs).play()
+        stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
+        stim.play()
         t_each = self._stamping_duration + delay
-        duration = (len(triggers) + int(bool(wait_for_last))) * t_each
+        duration = len(triggers) * t_each
+        if not wait_for_last:
+            duration -= (delay - self._stamping_duration)
         wait_secs(duration)
+        stim.stop()
 
     def play(self):
         """Play."""

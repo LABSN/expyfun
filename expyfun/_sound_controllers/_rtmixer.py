@@ -167,6 +167,7 @@ class SoundPlayer(object):
             stats = mixer.fetch_and_reset_stats().stats
             logger.exp('%d underflows %d blocks'
                        % (stats.output_underflows, stats.blocks))
+            del stats, mixer
 
     def __del__(self):  # noqa
         self.delete()
