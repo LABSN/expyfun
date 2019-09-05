@@ -289,6 +289,8 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         wait_for_last : bool
             If True, wait for last trigger to be stamped before returning.
         """
+        if delay is None:
+            delay = 0.02  # we have a fixed trig duration of 0.01
         for ti, trig in enumerate(triggers):
             self.rpcox.SetTagVal('trgname', trig)
             self._trigger(6)
