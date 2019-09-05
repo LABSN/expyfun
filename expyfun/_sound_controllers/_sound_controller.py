@@ -120,7 +120,7 @@ class SoundCardController(object):
         self.playing = False
         # eventually we could make this configurable
         self._stamping_duration = 0.01
-        self._trig_scale = np.float32(1.) / np.float32(2 ** 31 - 1)
+        self._trig_scale = 1. / float(2 ** 31 - 1)
         flush_logger()
 
     def __repr__(self):
@@ -170,7 +170,8 @@ class SoundCardController(object):
         n_on = int(round(self.fs * self._stamping_duration))
         n_off = int(round(self.fs * (delay - self._stamping_duration)))
         n_each = n_on + n_off
-        trigs = (np.array(trigs, int) << 8) * self._trig_scale
+        trigs = ((np.array(trigs, int) << 8) *
+                  self._trig_scale).astype(np.float32)
         assert trigs.ndim == 1 and trigs.size > 0
         n_samples = n_samples or n_each * len(trigs)
         stim = np.zeros((n_samples, self._n_channels_stim), np.float32)
