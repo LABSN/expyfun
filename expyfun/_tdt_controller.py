@@ -275,16 +275,17 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         logger.info('Expyfun: Setting TDT trigger delay to %s' % delay_trig)
 
 # ############################### TRIGGER METHODS #############################
-    def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
-        """Stamp a list of triggers with a given inter-trigger delay
+    def stamp_triggers(self, triggers, delay=None, wait_for_last=True):
+        """Stamp a list of triggers with a given inter-trigger delay.
 
         Parameters
         ----------
         triggers : list
             No input checking is done, so ensure triggers is a list,
             with each entry an integer with fewer than 8 bits (max 255).
-        delay : float
-            The inter-trigger delay.
+        delay : float | None
+            The inter-trigger-onset delay (includes "on" time).
+            If None, will use twice the trigger duration (50% duty cycle).
         wait_for_last : bool
             If True, wait for last trigger to be stamped before returning.
         """

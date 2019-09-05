@@ -550,6 +550,7 @@ def test_sound_card_triggering(hide_window):
         ExperimentController(*std_args,
                              audio_controller=audio_controller,
                              trigger_controller='sound_card',
+                             suppress_resamp=True,
                              **std_kwargs)
     audio_controller.update(SOUND_CARD_TRIGGER_CHANNELS='1')
     # Use 1 trigger ch and 1 output ch because this should work on all systems
@@ -557,6 +558,7 @@ def test_sound_card_triggering(hide_window):
                               audio_controller=audio_controller,
                               trigger_controller='sound_card',
                               n_channels=1,
+                              suppress_resamp=True,
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         ec.load_buffer([1e-2])

@@ -35,6 +35,8 @@ class SoundCardController(object):
         Stim fs, used to downsample the white noise if necessary.
     n_channels : int
         The number of playback channels to use.
+    trigger_duration : float
+        The duration (sec) to use for triggers (if applicable).
 
     Notes
     -----
@@ -63,7 +65,7 @@ class SoundCardController(object):
     the configuration file.
     """
 
-    def __init__(self, params, stim_fs, n_channels=2):
+    def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01):
         keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
                 'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
                 'SOUND_CARD_TRIGGER_CHANNELS')
@@ -118,8 +120,7 @@ class SoundCardController(object):
         self.noise = None
         self.audio = None
         self.playing = False
-        # eventually we could make this configurable
-        self._stamping_duration = 0.01
+        self._trigger_duration = trigger_duration
         self._trig_scale = 1. / float(2 ** 31 - 1)
         flush_logger()
 
@@ -162,16 +163,18 @@ class SoundCardController(object):
             self.audio.delete()
             self.audio = None
         if self._n_channels_stim > 0:
-            stim = self._make_digitial_trigger([1], 0., samples.shape[0])
+            stim = self._make_digital_trigger([1], n_samples=samples.shape[0])
             samples = np.concatenate((stim, samples), axis=-1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
-    def _make_digitial_trigger(self, trigs, delay, n_samples=None):
-        n_on = int(round(self.fs * self._stamping_duration))
-        n_off = int(round(self.fs * (delay - self._stamping_duration)))
+    def _make_digital_trigger(self, trigs, delay=None, n_samples=None):
+        if delay is None:
+            delay = 2 * self._trigger_duration
+        n_on = int(round(self.fs * self._trigger_duration))
+        n_off = int(round(self.fs * (delay - self._trigger_duration)))
         n_each = n_on + n_off
         trigs = ((np.array(trigs, int) << 8) *
-                  self._trig_scale).astype(np.float32)
+                 self._trig_scale).astype(np.float32)
         assert trigs.ndim == 1 and trigs.size > 0
         n_samples = n_samples or n_each * len(trigs)
         stim = np.zeros((n_samples, self._n_channels_stim), np.float32)
@@ -180,7 +183,7 @@ class SoundCardController(object):
             stim[offset:offset + n_on] = trig
         return stim
 
-    def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
+    def stamp_triggers(self, triggers, delay=None, wait_for_last=True):
         """Stamp a list of triggers with a given inter-trigger delay.
 
         Parameters
@@ -188,12 +191,13 @@ class SoundCardController(object):
         triggers : list
             No input checking is done, so ensure triggers is a list,
             with each entry an integer with fewer than 8 bits (max 255).
-        delay : float
-            The inter-trigger delay.
+        delay : float | None
+            The inter-trigger-onset delay (includes "on" time).
+            If None, will use twice the trigger duration (50% duty cycle).
         wait_for_last : bool
             If True, wait for last trigger to be stamped before returning.
         """
-        stim = self._make_digitial_trigger(triggers, delay)
+        stim = self._make_digital_trigger(triggers, delay)
         stim = np.pad(stim, (0, self._n_channels), 'constant')
         stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
         stim.play()
