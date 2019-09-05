@@ -173,14 +173,32 @@ class SoundCardController(object):
         n_on = int(round(self.fs * self._trigger_duration))
         n_off = int(round(self.fs * (delay - self._trigger_duration)))
         n_each = n_on + n_off
-        trigs = ((np.array(trigs, int) << 8) *
+        # The factor of 101 here could be, say, 127, since we bit shift by
+        # 8. It should help ensure that we get the bit that we actually want
+        # (plus only some low-order bits that will get discarded) in case
+        # there is some rounding problem in however PortAudio and/or the OS
+        # converts float32 to int32. In other words, there should be no
+        # penalty/risk in up to (at least) 127 larger than the end int value
+        # we want (e.g. we want 256 and get 256+127 after PA conversion),
+        # but if we end up even 1 short (e.g., get 255 after conversion)
+        # then we will lose the bit. Here we stay under 128 to avoid any
+        # possible rounding error, though 255 in principle might even work.
+        #
+        # This is also why we keep our _trig_scale in float64, because it
+        # can accurately represent a 32-bit integer without loss of precision,
+        # whereas in 32-bit we get:
+        #
+        #     np.float32(2 ** 32 - 1) == np.float32(4294967295) == 4294967300
+        #
+        trigs = (((np.array(trigs, int) << 8) + 101) *
                  self._trig_scale).astype(np.float32)
-        assert trigs.ndim == 1 and trigs.size > 0
+        assert trigs.ndim == 1
         n_samples = n_samples or n_each * len(trigs)
         stim = np.zeros((n_samples, self._n_channels_stim), np.float32)
         offset = 0
         for trig in trigs:
             stim[offset:offset + n_on] = trig
+            offset += n_each
         return stim
 
     def stamp_triggers(self, triggers, delay=None, wait_for_last=True):
