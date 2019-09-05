@@ -8,6 +8,8 @@ Getting started
 Installing expyfun
 ------------------
 
+.. highlight:: console
+
 Python
 ^^^^^^
 The first step is to install a Python distribution. See tutorials on other
@@ -24,30 +26,31 @@ expyfun requires several libraries for full functionality:
   - ``numpy``
   - ``scipy``
   - ``matplotlib``
-  - ``pyglet``: 1.2.0 or later is recommended
+  - ``pyglet``: 1.2.0 or later is recommended but 1.4.0 is not fully supported
+    yet, so use e.g. ``pip install "pyglet<1.4"``.
 
 - Optional libraries:
 
-  - ``rtmixer``: for high precision audio playback, see :ref:`rtmixer_installation`.
-  - ``pyparallel`` or ``inpout32.dll``: for parallel port triggering, see
-    :ref:`parallel_installation`.
-  - ``TDTpy``: if using TDT on Windows
-  - ``mne``: for filtering/resampling -- with CUDA if mne dependencies installed
-  - ``pandas``: Some plotting functions
+  - ``rtmixer``: High precision audio playback, can be installed with
+    ``pip install rtmixer``. On Linux you'll also need the ``libportaudio2``
+    system package.
+  - ``pyparallel`` or ``inpout32.dll``: Parallel port triggering,
+    see :ref:`parallel_installation`.
+  - ``TDTpy``: Using the TDT (only available on Windows).
+  - ``mne``:  Filtering and resampling stimuli.
+  - ``pandas``: Required for some plotting functions.
   - ``joblib``: Parallel processing
-  - ``h5py``: HDF5 write/read
+  - ``h5py``: HDF5-based writing and reading.
 
 - Optional system software:
 
-  - ``git``: command-line tools needed for automated version downloading
-  - ``AVbin``: if playing compressed videos
+  - ``git``: Command-line tools needed for automated version downloading.
+  - ``AVbin``: For playing compressed videos.
 
 Expyfun
 ^^^^^^^
 The recommended way to install expyfun on
 development machines is to ``git clone`` the reposity then do:
-
-.. code-block:: console
 
     $ pip install -e .
 
