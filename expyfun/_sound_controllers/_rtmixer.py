@@ -20,7 +20,7 @@ _DEFAULT_NAME = None
 _MIXER_REGISTRY = {}
 
 
-def _get_mixer(fs, n_channels, api=None, name=None):
+def _get_mixer(fs, n_channels, api, name, api_options):
     """Select the API and device."""
     # API
     if api is None:
@@ -40,7 +40,7 @@ def _get_mixer(fs, n_channels, api=None, name=None):
     return _MIXER_REGISTRY[key]
 
 
-def _init_mixer(fs, n_channels, api, name):
+def _init_mixer(fs, n_channels, api, name, api_options=None):
     devices = sounddevice.query_devices()
     if len(devices) == 0:
         raise OSError('No sound devices found!')
@@ -78,9 +78,15 @@ def _init_mixer(fs, n_channels, api, name):
     if fs is not None:
         param_str += ' @ %d Hz' % (fs,)
     extra_settings = None
-    if api['name'] == 'Windows WASAPI':
-        # exclusive mode is needed for zero jitter on Windows in testing
-        extra_settings = sounddevice.WasapiSettings(exclusive=True)
+    if api_options is not None:
+        if api['name'] == 'Windows WASAPI':
+            # exclusive mode is needed for zero jitter on Windows in testing
+            extra_settings = sounddevice.WasapiSettings(**api_options)
+        else:
+            raise ValueError(
+                'api_options only supported for "Windows WASAPI" backend, '
+                'using %s backend got api_options=%s'
+                % (api['name'], api_options))
     try:
         mixer = Mixer(
             samplerate=fs, latency='low', channels=n_channels,
@@ -109,7 +115,7 @@ class SoundPlayer(object):
     """SoundPlayer based on rtmixer."""
 
     def __init__(self, data, fs=None, loop=False, api=None, name=None,
-                 fixed_delay=None):
+                 fixed_delay=None, api_options=None):
         self._data = np.ascontiguousarray(
             np.clip(np.atleast_2d(data).T, -1, 1).astype(np.float32))
         self.loop = bool(loop)
@@ -117,7 +123,7 @@ class SoundPlayer(object):
         assert n_channels >= 1
         self._n_channels = n_channels
         self._mixer = None  # in case the next line crashes, __del__ works
-        self._mixer = _get_mixer(fs, self._n_channels, api, name)
+        self._mixer = _get_mixer(fs, self._n_channels, api, name, api_options)
         if loop:
             self._ring = RingBuffer(self._data.itemsize * self._n_channels,
                                     self._data.size)

@@ -60,6 +60,8 @@ class SoundCardController(object):
         latency playback.
     - 'SOUND_CARD_TRIGGER_CHANNELS' : int
         Number of sound card channels to use as stim channels.
+    - 'SOUND_CARD_API_OPTIONS': dict
+        API options, such as ``{'exclusive': true}`` for WASAPI.
 
     Note that the defaults are superseded on individual machines by
     the configuration file.
@@ -68,9 +70,11 @@ class SoundCardController(object):
     def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01):
         keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
                 'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
-                'SOUND_CARD_TRIGGER_CHANNELS')
-        defaults = dict(SOUND_CARD_BACKEND='auto',
-                        SOUND_CARD_TRIGGER_CHANNELS='0')
+                'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS')
+        defaults = dict(
+            SOUND_CARD_BACKEND='auto',
+            SOUND_CARD_TRIGGER_CHANNELS=0,
+        )  # any omitted become None
         params = _check_params(params, keys, defaults, 'params')
 
         self.backend, self.backend_name = _import_backend(
@@ -84,12 +88,8 @@ class SoundCardController(object):
         logger.info('Expyfun: Setting up sound card using %s backend with %s'
                     '%d playback channels'
                     % (self.backend_name, extra, self._n_channels))
-        self._kwargs = dict(
-            fs=params['SOUND_CARD_FS'],
-            api=params['SOUND_CARD_API'],
-            name=params['SOUND_CARD_NAME'],
-            fixed_delay=params['SOUND_CARD_FIXED_DELAY'],
-        )
+        self._kwargs = {key: params['SOUND_CARD_' + key.upper()] for key in (
+            'fs', 'api', 'name', 'fixed_delay', 'api_options')}
         temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = temp_sound.fs
