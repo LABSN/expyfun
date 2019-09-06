@@ -36,7 +36,8 @@ def _get_mixer(fs, n_channels, api, name, api_options):
         )[sys.platform]
     key = (fs, n_channels, api, name)
     if key not in _MIXER_REGISTRY:
-        _MIXER_REGISTRY[key] = _init_mixer(fs, n_channels, api, name)
+        _MIXER_REGISTRY[key] = _init_mixer(fs, n_channels, api, name,
+                                           api_options)
     return _MIXER_REGISTRY[key]
 
 
@@ -73,10 +74,8 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
         raise RuntimeError('Could not find device on API %r with name '
                            'containing %r, found:\n%s'
                            % (api['name'], name, '\n'.join(possible)))
-    param_str = ('sound card %r (devices[%d]) via %r, %d channels'
-                 % (device['name'], di, api['name'], n_channels))
-    if fs is not None:
-        param_str += ' @ %d Hz' % (fs,)
+    param_str = ('sound card %r (devices[%d]) via %r'
+                 % (device['name'], di, api['name']))
     extra_settings = None
     if api_options is not None:
         if api['name'] == 'Windows WASAPI':
@@ -87,6 +86,10 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
                 'api_options only supported for "Windows WASAPI" backend, '
                 'using %s backend got api_options=%s'
                 % (api['name'], api_options))
+        param_str += ' with options %s' % (api_options,)
+    param_str += ', %d channels' % (n_channels,)
+    if fs is not None:
+        param_str += ' @ %d Hz' % (fs,)
     try:
         mixer = Mixer(
             samplerate=fs, latency='low', channels=n_channels,
@@ -105,7 +108,7 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
         mixer.start_time = mixer.time
     except Exception:
         mixer.start_time = 0
-    logger.info('Expyfun: using %s, %0.1f ms latency'
+    logger.info('Expyfun: using %s, %0.1f ms nominal latency'
                 % (param_str, 1000 * device['default_low_output_latency']))
     atexit.register(lambda: (mixer.abort(), mixer.close()))
     return mixer
