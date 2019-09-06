@@ -10,7 +10,7 @@ import sys
 import numpy as np
 
 from rtmixer import Mixer, RingBuffer
-from sounddevice import query_devices, query_hostapis
+import sounddevice
 from .._utils import logger, get_config
 
 _PRIORITY = 100
@@ -41,10 +41,10 @@ def _get_mixer(fs, n_channels, api=None, name=None):
 
 
 def _init_mixer(fs, n_channels, api, name):
-    devices = query_devices()
+    devices = sounddevice.query_devices()
     if len(devices) == 0:
         raise OSError('No sound devices found!')
-    apis = query_hostapis()
+    apis = sounddevice.query_hostapis()
     for ai, this_api in enumerate(apis):
         if this_api['name'] == api:
             api = this_api
@@ -77,10 +77,15 @@ def _init_mixer(fs, n_channels, api, name):
                  % (device['name'], di, api['name'], n_channels))
     if fs is not None:
         param_str += ' @ %d Hz' % (fs,)
+    extra_settings = None
+    if api['name'] == 'Windows WASAPI':
+        # exclusive mode is needed for zero jitter on Windows in testing
+        extra_settings = sounddevice.WasapiSettings(exclusive=True)
     try:
         mixer = Mixer(
             samplerate=fs, latency='low', channels=n_channels,
-            dither_off=True, device=di)
+            dither_off=True, device=di,
+            extra_settings=extra_settings)
     except Exception as exp:
         raise RuntimeError('Could not set up %s:\n%s' % (param_str, exp))
     assert mixer.channels == n_channels
