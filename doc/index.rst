@@ -37,6 +37,12 @@ Hardware support
   - Trigger stamping for integration with eye tracker/EEG/MEG systems
   - TDT button box responses
 
+- Sound card playback with:
+
+  - Fixed delay (no jitter) relative to video flip on Linux
+  - Digital trigger stamping for zero-jitter trigger-to-auditory delay
+    (with custom digital-to-TTL hardware)
+
 - EyeLink integration for pupillometry and eye tracking
 - Parallel port triggering
 - Keyboard responses

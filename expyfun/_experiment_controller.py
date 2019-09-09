@@ -93,10 +93,10 @@ class ExperimentController(object):
         set properly for the machine in use.
     trigger_controller : str | None
         If ``None``, the type will be read from the system configuration file.
-        If a string, must be 'dummy', 'parallel', or 'tdt'. Note that by
-        default the mode is 'dummy', since setting up the parallel port
+        If a string, must be 'dummy', 'parallel', 'sound_card', or 'tdt'.
+        By default the mode is 'dummy', since setting up the parallel port
         can be a pain. Can also be a dict with entries 'type' ('parallel'),
-        'address' (None), and 'high_duration' (0.005).
+        and 'address' (None).
     session : str | None
         If ``None``, a GUI will be used to acquire this information.
     check_rms : str | None
@@ -122,6 +122,8 @@ class ExperimentController(object):
     n_channels : int
         The number of audio playback channels. Defaults to 2 (must be 2 if
         a TDT is used).
+    trigger_duration : float
+        The trigger duration to use (sec). Must be 0.01 for TDT.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -144,7 +146,7 @@ class ExperimentController(object):
                  monitor=None, trigger_controller=None, session=None,
                  check_rms='windowed', suppress_resamp=False, version=None,
                  enable_video=False, safe_flipping=None, n_channels=2,
-                 verbose=None):
+                 trigger_duration=0.01, verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -323,17 +325,26 @@ class ExperimentController(object):
             # Initialize devices
             #
 
+            trigger_duration = float(trigger_duration)
+            if not 0.001 < trigger_duration <= 0.02:  # probably an error
+                raise ValueError('high_duration must be between 0.001 and '
+                                 '0.02 sec, got %s' % (trigger_duration,))
+
             # Audio (and for TDT, potentially keyboard)
             if audio_type == 'tdt':
                 logger.info('Expyfun: Setting up TDT')
                 if n_channels != 2:
                     raise ValueError('n_channels must be equal to 2 for the '
-                                     'TDT backend, got %r' % (n_channels,))
+                                     'TDT backend, got %s' % (n_channels,))
+                if trigger_duration != 0.01:
+                    raise ValueError('trigger_duration must be 0.01 for TDT, '
+                                     'got %s' % (trigger_duration,))
                 self._ac = TDTController(audio_controller)
                 self.audio_type = self._ac.model
             elif audio_type == 'sound_card':
-                self._ac = SoundCardController(audio_controller, self.stim_fs,
-                                               n_channels)
+                self._ac = SoundCardController(
+                    audio_controller, self.stim_fs, n_channels,
+                    trigger_duration=trigger_duration)
                 self.audio_type = self._ac.backend_name
             else:
                 raise ValueError('audio_controller[\'TYPE\'] must be "tdt" '
@@ -404,6 +415,16 @@ class ExperimentController(object):
                     raise ValueError('trigger_controller can only be "tdt" if '
                                      'tdt is used for audio')
                 self._tc = self._ac
+            elif trigger_controller['type'] == 'sound_card':
+                if not isinstance(self._ac, SoundCardController):
+                    raise ValueError('trigger_controller can only be '
+                                     '"sound_card" if the sound card is '
+                                     'used for audio')
+                if self._ac._n_channels_stim == 0:
+                    raise ValueError('cannot use sound card for triggering '
+                                     'when SOUND_CARD_TRIGGER_CHANNELS is '
+                                     'zero')
+                self._tc = self._ac
             elif trigger_controller['type'] in ['parallel', 'dummy']:
                 if 'address' not in trigger_controller:
                     addr = get_config('TRIGGER_ADDRESS')
@@ -411,7 +432,7 @@ class ExperimentController(object):
                 self._tc = ParallelTrigger(
                     trigger_controller['type'],
                     trigger_controller.get('address'),
-                    trigger_controller.get('high_duration', 0.005))
+                    trigger_duration)
                 self._extra_cleanup_fun.insert(0, self._tc.close)
                 # The TDT always stamps "1" on stimulus onset. Here we need
                 # to manually mimic that behavior.
@@ -420,8 +441,8 @@ class ExperimentController(object):
                         [1], wait_for_last=False))
             else:
                 raise ValueError('trigger_controller type must be '
-                                 '"parallel", "dummy", or "tdt", not '
-                                 '{0}'.format(trigger_controller['type']))
+                                 '"parallel", "dummy", "sound_card", or "tdt",'
+                                 'got {0}'.format(trigger_controller['type']))
             self._stamp_ttl_triggers = self._tc.stamp_triggers
             self._id_call_dict['ttl_id'] = self._stamp_binary_id
 

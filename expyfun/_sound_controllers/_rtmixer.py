@@ -10,7 +10,7 @@ import sys
 import numpy as np
 
 from rtmixer import Mixer, RingBuffer
-from sounddevice import query_devices, query_hostapis
+import sounddevice
 from .._utils import logger, get_config
 
 _PRIORITY = 100
@@ -20,7 +20,7 @@ _DEFAULT_NAME = None
 _MIXER_REGISTRY = {}
 
 
-def _get_mixer(fs, n_channels, api=None, name=None):
+def _get_mixer(fs, n_channels, api, name, api_options):
     """Select the API and device."""
     # API
     if api is None:
@@ -32,18 +32,20 @@ def _get_mixer(fs, n_channels, api=None, name=None):
             darwin='Core Audio',
             win32='Windows WASAPI',
             linux='ALSA',
+            linux2='ALSA',
         )[sys.platform]
     key = (fs, n_channels, api, name)
     if key not in _MIXER_REGISTRY:
-        _MIXER_REGISTRY[key] = _init_mixer(fs, n_channels, api, name)
+        _MIXER_REGISTRY[key] = _init_mixer(fs, n_channels, api, name,
+                                           api_options)
     return _MIXER_REGISTRY[key]
 
 
-def _init_mixer(fs, n_channels, api, name):
-    devices = query_devices()
+def _init_mixer(fs, n_channels, api, name, api_options=None):
+    devices = sounddevice.query_devices()
     if len(devices) == 0:
         raise OSError('No sound devices found!')
-    apis = query_hostapis()
+    apis = sounddevice.query_hostapis()
     for ai, this_api in enumerate(apis):
         if this_api['name'] == api:
             api = this_api
@@ -72,14 +74,27 @@ def _init_mixer(fs, n_channels, api, name):
         raise RuntimeError('Could not find device on API %r with name '
                            'containing %r, found:\n%s'
                            % (api['name'], name, '\n'.join(possible)))
-    param_str = ('sound card %r (devices[%d]) via %r, %d channels'
-                 % (device['name'], di, api['name'], n_channels))
+    param_str = ('sound card %r (devices[%d]) via %r'
+                 % (device['name'], di, api['name']))
+    extra_settings = None
+    if api_options is not None:
+        if api['name'] == 'Windows WASAPI':
+            # exclusive mode is needed for zero jitter on Windows in testing
+            extra_settings = sounddevice.WasapiSettings(**api_options)
+        else:
+            raise ValueError(
+                'api_options only supported for "Windows WASAPI" backend, '
+                'using %s backend got api_options=%s'
+                % (api['name'], api_options))
+        param_str += ' with options %s' % (api_options,)
+    param_str += ', %d channels' % (n_channels,)
     if fs is not None:
         param_str += ' @ %d Hz' % (fs,)
     try:
         mixer = Mixer(
             samplerate=fs, latency='low', channels=n_channels,
-            dither_off=True, device=di)
+            dither_off=True, device=di,
+            extra_settings=extra_settings)
     except Exception as exp:
         raise RuntimeError('Could not set up %s:\n%s' % (param_str, exp))
     assert mixer.channels == n_channels
@@ -93,7 +108,7 @@ def _init_mixer(fs, n_channels, api, name):
         mixer.start_time = mixer.time
     except Exception:
         mixer.start_time = 0
-    logger.info('Expyfun: using %s, %0.1f ms latency'
+    logger.info('Expyfun: using %s, %0.1f ms nominal latency'
                 % (param_str, 1000 * device['default_low_output_latency']))
     atexit.register(lambda: (mixer.abort(), mixer.close()))
     return mixer
@@ -103,7 +118,7 @@ class SoundPlayer(object):
     """SoundPlayer based on rtmixer."""
 
     def __init__(self, data, fs=None, loop=False, api=None, name=None,
-                 fixed_delay=None):
+                 fixed_delay=None, api_options=None):
         self._data = np.ascontiguousarray(
             np.clip(np.atleast_2d(data).T, -1, 1).astype(np.float32))
         self.loop = bool(loop)
@@ -111,7 +126,7 @@ class SoundPlayer(object):
         assert n_channels >= 1
         self._n_channels = n_channels
         self._mixer = None  # in case the next line crashes, __del__ works
-        self._mixer = _get_mixer(fs, self._n_channels, api, name)
+        self._mixer = _get_mixer(fs, self._n_channels, api, name, api_options)
         if loop:
             self._ring = RingBuffer(self._data.itemsize * self._n_channels,
                                     self._data.size)

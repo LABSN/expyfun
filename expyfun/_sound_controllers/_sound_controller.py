@@ -13,7 +13,7 @@ import os.path as op
 import numpy as np
 
 from .._fixes import rfft, irfft, rfftfreq
-from .._utils import logger, flush_logger, _check_params
+from .._utils import logger, flush_logger, _check_params, wait_secs
 
 
 _BACKENDS = tuple(sorted(
@@ -35,6 +35,8 @@ class SoundCardController(object):
         Stim fs, used to downsample the white noise if necessary.
     n_channels : int
         The number of playback channels to use.
+    trigger_duration : float
+        The duration (sec) to use for triggers (if applicable).
 
     Notes
     -----
@@ -56,29 +58,39 @@ class SoundCardController(object):
         The fixed delay (in sec) to use for playback.
         This is used by the rtmixer backend to ensure fixed
         latency playback.
+    - 'SOUND_CARD_TRIGGER_CHANNELS' : int
+        Number of sound card channels to use as stim channels.
+    - 'SOUND_CARD_API_OPTIONS': dict
+        API options, such as ``{'exclusive': true}`` for WASAPI.
 
     Note that the defaults are superseded on individual machines by
     the configuration file.
     """
 
-    def __init__(self, params, stim_fs, n_channels=2):
+    def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01):
         keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
-                'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY')
-        defaults = dict(SOUND_CARD_BACKEND='auto')
+                'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
+                'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS')
+        defaults = dict(
+            SOUND_CARD_BACKEND='auto',
+            SOUND_CARD_TRIGGER_CHANNELS=0,
+        )  # any omitted become None
         params = _check_params(params, keys, defaults, 'params')
 
         self.backend, self.backend_name = _import_backend(
             params['SOUND_CARD_BACKEND'])
-        self._n_channels = operator.index(n_channels)
-        logger.info('Expyfun: Setting up sound card audio using %s backend '
-                    'and %d channels' % (self.backend_name, n_channels))
-        self._kwargs = dict(
-            fs=params.get('SOUND_CARD_FS', None),
-            api=params.get('SOUND_CARD_API', None),
-            name=params.get('SOUND_CARD_NAME', None),
-            fixed_delay=params.get('SOUND_CARD_FIXED_DELAY', None),
-        )
-        temp_sound = np.zeros((self._n_channels, 1000))
+        self._n_channels_stim = int(params['SOUND_CARD_TRIGGER_CHANNELS'])
+        assert self._n_channels_stim >= 0
+        self._n_channels = int(operator.index(n_channels))
+        del n_channels
+        extra = (('%d stim and ' % (self._n_channels_stim))
+                 if self._n_channels_stim else '')
+        logger.info('Expyfun: Setting up sound card using %s backend with %s'
+                    '%d playback channels'
+                    % (self.backend_name, extra, self._n_channels))
+        self._kwargs = {key: params['SOUND_CARD_' + key.upper()] for key in (
+            'fs', 'api', 'name', 'fixed_delay', 'api_options')}
+        temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = temp_sound.fs
         temp_sound.stop()
@@ -87,7 +99,7 @@ class SoundCardController(object):
         # Need to generate at RMS=1 to match TDT circuit, and use a power of
         # 2 length for the RingBuffer (here make it >= 15 sec)
         n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.)))
-        noise = np.random.normal(0, 1.0, (n_channels, n_samples))
+        noise = np.random.normal(0, 1.0, (self._n_channels, n_samples))
 
         # Low-pass if necessary
         if stim_fs < self.fs:
@@ -99,12 +111,26 @@ class SoundCardController(object):
             noise = irfft(noise, axis=-1)
 
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
-        self.noise_array = noise / np.sqrt(np.mean(noise * noise))
+        noise /= np.sqrt(np.mean(noise * noise))
+        noise = np.concatenate(
+            (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype),
+             noise))
+        self.noise_array = noise
         self.noise_level = 0.01
         self.noise = None
         self.audio = None
         self.playing = False
+        self._trigger_duration = trigger_duration
+        self._trig_scale = 1. / float(2 ** 31 - 1)
         flush_logger()
+
+    def __repr__(self):
+        return ('<SoundController : %s playback %s trigger ch >'
+                % (self._n_channels, self._n_channels_stim))
+
+    @property
+    def _n_channels_tot(self):
+        return self._n_channels_stim + self._n_channels
 
     def start_noise(self):
         """Start noise."""
@@ -136,7 +162,80 @@ class SoundCardController(object):
         if self.audio is not None:
             self.audio.delete()
             self.audio = None
+        if self._n_channels_stim > 0:
+            stim = self._make_digital_trigger([1], n_samples=samples.shape[0])
+            samples = np.concatenate((stim, samples), axis=-1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
+
+    def _make_digital_trigger(self, trigs, delay=None, n_samples=None):
+        if delay is None:
+            delay = 2 * self._trigger_duration
+        n_on = int(round(self.fs * self._trigger_duration))
+        n_off = int(round(self.fs * (delay - self._trigger_duration)))
+        n_each = n_on + n_off
+        # At some point below we did:
+        #
+        #     (np.array(trigs, int) << 8) + 101
+        #
+        # The factor of 101 here could be, say, 127, since we bit shift by
+        # 8. It should help ensure that we get the bit that we actually want
+        # (plus only some low-order bits that will get discarded) in case
+        # there is some rounding problem in however PortAudio and/or the OS
+        # converts float32 to int32. In other words, there should be no
+        # penalty/risk in up to (at least) 127 larger than the end int value
+        # we want (e.g. we want 256 and get 256+127 after PA conversion),
+        # but if we end up even 1 short (e.g., get 255 after conversion)
+        # then we will lose the bit. Here we stay under 128 to avoid any
+        # possible rounding error, though 255 in principle might even work.
+        # HOWEVER -- if there is more than one trigger being sent at the same
+        # time, this addition could be problematic. Hence we could add for
+        # example 10 to give us some rounding-error buffer and be safe up
+        # to 10 or so simultaneous triggers, but for now let's just see
+        # if adding nothing is good enough (trust PortAudio to convert!).
+        #
+        # This is also why we keep our _trig_scale in float64, because it
+        # can accurately represent a 32-bit integer without loss of precision,
+        # whereas in 32-bit we get:
+        #
+        #     np.float32(2 ** 32 - 1) == np.float32(4294967295) == 4294967300
+        #
+        trigs = ((np.array(trigs, int) << 8) *
+                 self._trig_scale).astype(np.float32)
+        assert trigs.ndim == 1
+        n_samples = n_samples or n_each * len(trigs)
+        stim = np.zeros((n_samples, self._n_channels_stim), np.float32)
+        offset = 0
+        for trig in trigs:
+            stim[offset:offset + n_on] = trig
+            offset += n_each
+        return stim
+
+    def stamp_triggers(self, triggers, delay=None, wait_for_last=True):
+        """Stamp a list of triggers with a given inter-trigger delay.
+
+        Parameters
+        ----------
+        triggers : list
+            No input checking is done, so ensure triggers is a list,
+            with each entry an integer with fewer than 8 bits (max 255).
+        delay : float | None
+            The inter-trigger-onset delay (includes "on" time).
+            If None, will use twice the trigger duration (50% duty cycle).
+        wait_for_last : bool
+            If True, wait for last trigger to be stamped before returning.
+        """
+        if delay is None:
+            delay = 2 * self._trigger_duration
+        stim = self._make_digital_trigger(triggers, delay)
+        stim = np.pad(stim, (0, self._n_channels), 'constant')
+        stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
+        stim.play()
+        t_each = self._trigger_duration + delay
+        duration = len(triggers) * t_each
+        if not wait_for_last:
+            duration -= (delay - self._trigger_duration)
+        wait_secs(duration)
+        stim.stop()
 
     def play(self):
         """Play."""

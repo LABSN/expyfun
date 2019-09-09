@@ -17,7 +17,8 @@ class ParallelTrigger(object):
     .. warning:: When using the parallel port, calling
                  :meth:`expyfun.ExperimentController.start_stimulus`
                  will automatically invoke a stamping of the 1 trigger, which
-                 will in turn cause a delay equal to that of ``high_duration``.
+                 will in turn cause a delay equal to that of
+                 ``trigger_duration``.
                  This can effect e.g. :class:`EyelinkController` timing.
 
     Parameters
@@ -30,7 +31,7 @@ class ParallelTrigger(object):
         integer address like ``888`` or ``0x378`` (equivalent to None).
         The config variable ``TRIGGER_ADDRESS`` can be used to set this
         permanently.
-    high_duration : float
+    trigger_duration : float
         Amount of time (seconds) to leave the trigger high whenever
         sending a trigger.
     verbose : bool, str, int, or None
@@ -43,7 +44,7 @@ class ParallelTrigger(object):
     """
 
     @verbose_dec
-    def __init__(self, mode='dummy', address=None, high_duration=0.005,
+    def __init__(self, mode='dummy', address=None, trigger_duration=0.01,
                  verbose=None):
         if mode == 'parallel':
             if sys.platform.startswith('linux'):
@@ -90,7 +91,7 @@ class ParallelTrigger(object):
             self._trigger_list = list()
             self._set_data = lambda x: (self._trigger_list.append(x)
                                         if x != 0 else None)
-        self.high_duration = high_duration
+        self.trigger_duration = trigger_duration
         self.mode = mode
 
     def __repr__(self):
@@ -99,10 +100,10 @@ class ParallelTrigger(object):
     def _stamp_trigger(self, trig):
         """Fake stamping."""
         self._set_data(int(trig))
-        wait_secs(self.high_duration)
+        wait_secs(self.trigger_duration)
         self._set_data(0)
 
-    def stamp_triggers(self, triggers, delay=0.03, wait_for_last=True):
+    def stamp_triggers(self, triggers, delay=None, wait_for_last=True):
         """Stamp a list of triggers with a given inter-trigger delay.
 
         Parameters
@@ -110,19 +111,21 @@ class ParallelTrigger(object):
         triggers : list
             No input checking is done, so ensure triggers is a list,
             with each entry an integer with fewer than 8 bits (max 255).
-        delay : float
-            The inter-trigger delay.
+        delay : float | None
+            The inter-trigger-onset delay (includes "on" time).
+            If None, will use twice the trigger duration (50% duty cycle).
         wait_for_last : bool
             If True, wait for last trigger to be stamped before returning.
         """
+        if delay is None:
+            delay = 2 * self.trigger_duration
         for ti, trig in enumerate(triggers):
             self._stamp_trigger(trig)
             if ti < len(triggers) - 1 or wait_for_last:
-                wait_secs(delay - self.high_duration)
+                wait_secs(delay - self.trigger_duration)
 
     def close(self):
-        """Release hardware interfaces
-        """
+        """Release hardware interfaces."""
         if hasattr(self, '_port'):
             del self._port
 
