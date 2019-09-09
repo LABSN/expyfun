@@ -15,7 +15,7 @@ import pyglet
 
 from .._utils import _new_pyglet
 
-_PRIORITY = 200
+_PRIORITY = 300
 
 _use_silent = (os.getenv('_EXPYFUN_SILENT', '') == 'true')
 _opts_dict = dict(linux2=('pulse',),

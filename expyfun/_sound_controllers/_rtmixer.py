@@ -1,4 +1,4 @@
-"""python-rtmixer interface for sound output."""
+"""rtmixer interface for sound output."""
 
 # Authors: Eric Larson <larsoner@uw.edu>
 #
@@ -13,7 +13,7 @@ from rtmixer import Mixer, RingBuffer
 import sounddevice
 from .._utils import logger, get_config
 
-_PRIORITY = 100
+_PRIORITY = 200
 _DEFAULT_NAME = None
 
 # only initialize each mixer once and reuse it until Python closes

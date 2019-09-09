@@ -45,11 +45,11 @@ class SoundCardController(object):
     Params should contain string values:
 
     - 'SOUND_CARD_BACKEND' : str
-        The backend to use. Can be 'auto' (default), 'rtmixer', 'pyglet'.
+        The backend to use. Can be 'auto' (default), 'ptb', 'rtmixer',
+        or 'pyglet'.
     - 'SOUND_CARD_API' : str
-        The API to use for the sound card.
-        See :func:`sounddevice.query_hostapis`.
-        The default is OS-dependent.
+        The API to use for the sound card. Only used by the rtmixer backend.
+        See :func:`sounddevice.query_hostapis`. The default is OS-dependent.
     - 'SOUND_CARD_NAME' : str
         The name as it is given by :func:`sounddevice.query_devices`.
         The default chooses the default sound card for the OS.
@@ -58,7 +58,7 @@ class SoundCardController(object):
         lets the OS choose.
     - 'SOUND_CARD_FIXED_DELAY' : float
         The fixed delay (in sec) to use for playback.
-        This is used by the rtmixer backend to ensure fixed
+        This is used by the ptb and rtmixer backends to ensure fixed
         latency playback.
     - 'SOUND_CARD_TRIGGER_CHANNELS' : int
         Number of sound card channels to use as stim channels.
