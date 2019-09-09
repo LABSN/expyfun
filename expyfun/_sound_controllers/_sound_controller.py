@@ -173,6 +173,10 @@ class SoundCardController(object):
         n_on = int(round(self.fs * self._trigger_duration))
         n_off = int(round(self.fs * (delay - self._trigger_duration)))
         n_each = n_on + n_off
+        # At some point below we did:
+        #
+        #     (np.array(trigs, int) << 8) + 101
+        #
         # The factor of 101 here could be, say, 127, since we bit shift by
         # 8. It should help ensure that we get the bit that we actually want
         # (plus only some low-order bits that will get discarded) in case
@@ -183,6 +187,11 @@ class SoundCardController(object):
         # but if we end up even 1 short (e.g., get 255 after conversion)
         # then we will lose the bit. Here we stay under 128 to avoid any
         # possible rounding error, though 255 in principle might even work.
+        # HOWEVER -- if there is more than one trigger being sent at the same
+        # time, this addition could be problematic. Hence we could add for
+        # example 10 to give us some rounding-error buffer and be safe up
+        # to 10 or so simultaneous triggers, but for now let's just see
+        # if adding nothing is good enough (trust PortAudio to convert!).
         #
         # This is also why we keep our _trig_scale in float64, because it
         # can accurately represent a 32-bit integer without loss of precision,
@@ -190,7 +199,7 @@ class SoundCardController(object):
         #
         #     np.float32(2 ** 32 - 1) == np.float32(4294967295) == 4294967300
         #
-        trigs = (((np.array(trigs, int) << 8) + 101) *
+        trigs = ((np.array(trigs, int) << 8) *
                  self._trig_scale).astype(np.float32)
         assert trigs.ndim == 1
         n_samples = n_samples or n_each * len(trigs)
