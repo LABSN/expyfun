@@ -131,7 +131,7 @@ class SoundPlayer(object):
                 start = psychtoolbox.GetSecs() + self._fixed_delay
             else:
                 start = 0
-            self._track.start(repetitions=self._loops)  # , when=start)
+            self._track.start(repetitions=self._loops, when=start)
             self.playing = True
 
     def pause(self):
