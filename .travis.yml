@@ -47,7 +47,10 @@ before_install:
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
     - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout
-    - pip install -q codecov pytest-sugar codespell pydocstyle numpydoc check-manifest rtmixer
+    - pip install -q codecov pytest-sugar codespell pydocstyle numpydoc check-manifest
+    - if [ "${PYTHON}" != "2.7" ]; then
+        pip install rtmixer;
+      fi
     # install AVbin
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         curl -L https://github.com/downloads/AVbin/AVbin/AVbin10.pkg -o ~/AVbin10.pkg;
