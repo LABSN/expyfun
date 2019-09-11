@@ -1935,7 +1935,7 @@ class ExperimentController(object):
         id_ = np.array(id_)
         if not np.all((id_ == 1) | (id_ == 0)):
             raise ValueError('All values of id must be 0 or 1')
-        id_ = (id_ + 1) << 2  # 0, 1 -> 4, 8
+        id_ = (id_.astype(int) + 1) << 2  # 0, 1 -> 4, 8
         self._stamp_ttl_triggers(id_, wait_for_last)
 
     def stamp_triggers(self, ids, check='binary', wait_for_last=True):
