@@ -37,8 +37,8 @@ jobs:
       python -c "import matplotlib.pyplot as plt"
     displayName: 'Install pip dependencies'
   - powershell: |
-      powershell make/get_rtmixer.ps1
-      pip install -q rtmixer-0.0.0-cp37-cp37m-win_amd64.whl
+      powershell make/get_sound.ps1
+      pip install -q rtmixer
       python -m sounddevice
     displayName: 'Install rtmixer'
   - powershell: |

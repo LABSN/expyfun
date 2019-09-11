@@ -437,13 +437,11 @@ class ExperimentController(object):
                 # The TDT always stamps "1" on stimulus onset. Here we need
                 # to manually mimic that behavior.
                 self._ofp_critical_funs.insert(
-                    0, lambda: self._tc.stamp_triggers(
-                        [1], wait_for_last=False))
+                    0, lambda: self._stamp_ttl_triggers([1], False))
             else:
                 raise ValueError('trigger_controller type must be '
                                  '"parallel", "dummy", "sound_card", or "tdt",'
                                  'got {0}'.format(trigger_controller['type']))
-            self._stamp_ttl_triggers = self._tc.stamp_triggers
             self._id_call_dict['ttl_id'] = self._stamp_binary_id
 
             # other basic components
@@ -809,7 +807,11 @@ class ExperimentController(object):
         data = self._win.context.image_buffer_manager.color_buffer.image_data
         data = data.get_data(data.format, data.pitch)
         data = np.frombuffer(data, dtype=np.uint8)
-        data.shape = (self._win.height, self._win.width, 4)
+        try:
+            h, w = self._win.get_viewport_size()  # Pyglet 1.3+
+        except Exception:
+            h, w = self._win.height, self._win.width
+        data.shape = (h, w, 4)
         data = np.flipud(data)
         return data
 
@@ -1921,7 +1923,7 @@ class ExperimentController(object):
         """Stamp id -- currently anything allowed"""
         self.write_data_line('trial_id', id_)
 
-    def _stamp_binary_id(self, id_, delay=0.03, wait_for_last=True):
+    def _stamp_binary_id(self, id_, wait_for_last=True):
         """Helper for ec to stamp a set of IDs using binary controller
 
         This makes TDT and parallel port give the same output. Eventually
@@ -1931,11 +1933,10 @@ class ExperimentController(object):
         if not isinstance(id_, (list, tuple, np.ndarray)):
             raise TypeError('id must be array-like')
         id_ = np.array(id_)
-        if not np.all(np.logical_or(id_ == 1, id_ == 0)):
+        if not np.all(np.in1d(id_, [0, 1])):
             raise ValueError('All values of id must be 0 or 1')
-        id_ = 2 ** (id_.astype(int) + 2)  # 4's and 8's
-        # Note: we no longer put 8, 8 on ends
-        self._stamp_ttl_triggers(id_, delay=delay, wait_for_last=wait_for_last)
+        id_ = (id_.astype(int) + 1) << 2  # 0, 1 -> 4, 8
+        self._stamp_ttl_triggers(id_, wait_for_last)
 
     def stamp_triggers(self, ids, check='binary', wait_for_last=True):
         """Stamp binary values
@@ -1954,11 +1955,7 @@ class ExperimentController(object):
         Notes
         -----
         This may be (nearly) instantaneous, or take a while, depending
-        on the type of triggering (TDT or parallel).
-
-        If absolute minimal latency is required, consider using the
-        private function _stamp_ttl_triggers (for advanced use only,
-        subject to change!).
+        on the type of triggering (TDT, sound card, or parallel).
 
         See Also
         --------
@@ -1974,11 +1971,15 @@ class ExperimentController(object):
             if not all(id_ in _vals for id_ in ids):
                 raise ValueError('with check="binary", ids must all be '
                                  '1, 2, 4, or 8: {0}'.format(ids))
-        self._stamp_ttl_triggers(ids, wait_for_last=wait_for_last)
+        self._stamp_ttl_triggers(ids, wait_for_last)
+
+    def _stamp_ttl_triggers(self, ids, wait_for_last):
+        logger.exp('Stamping TTL triggers: %s', ids)
+        self._tc.stamp_triggers(ids, wait_for_last=wait_for_last)
+        self.flush()
 
     def flush(self):
-        """Flush logs and data files
-        """
+        """Flush logs and data files."""
         flush_logger()
         if self._data_file is not None and not self._data_file.closed:
             self._data_file.flush()
