@@ -47,7 +47,7 @@ before_install:
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
     - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout
-    - pip install -q codecov pytest-sugar codespell pydocstyle numpydoc check-manifest
+    - pip install -q codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice
     - if [ "${PYTHON}" != "2.7" ]; then
         pip install rtmixer;
       fi
