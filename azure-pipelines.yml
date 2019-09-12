@@ -37,7 +37,8 @@ jobs:
       python -c "import matplotlib.pyplot as plt"
     displayName: 'Install pip dependencies'
   - powershell: |
-      powershell make/get_sound.ps1
+      git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git
+      powershell sound-ci-helpers/windows/setup_sound.ps1
       pip install -q rtmixer
       python -m sounddevice
     displayName: 'Install rtmixer'
