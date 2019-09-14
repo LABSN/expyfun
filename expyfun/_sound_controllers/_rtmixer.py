@@ -171,7 +171,7 @@ class SoundPlayer(object):
         if self.playing:
             action, self._action = self._action, None
             # Impose the same delay here that we imposed on the stim start
-            cancel_action = self._mixer.cancel(action, time=self._start_time)
+            self._mixer.cancel(action, time=self._start_time)
 
     def stop(self):
         """Stop."""
