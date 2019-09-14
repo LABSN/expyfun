@@ -202,7 +202,9 @@ class SoundCardController(object):
         trigs = ((np.array(trigs, int) << 8) *
                  self._trig_scale).astype(np.float32)
         assert trigs.ndim == 1
-        n_samples = n_samples or n_each * len(trigs)
+        # XXX try making it at least 10 long to see if the dropped triggers
+        # are like an rtmixer bug
+        n_samples = n_samples or n_each * max(len(trigs), 10)
         stim = np.zeros((n_samples, self._n_channels_stim), np.float32)
         offset = 0
         for trig in trigs:
