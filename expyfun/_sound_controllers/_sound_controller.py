@@ -62,6 +62,11 @@ class SoundCardController(object):
         Number of sound card channels to use as stim channels.
     - 'SOUND_CARD_API_OPTIONS': dict
         API options, such as ``{'exclusive': true}`` for WASAPI.
+    - 'SOUND_CARD_TRIGGER_SCALE': float
+        Scale factor for sound card triggers (after they are bit-shifted
+        by 8). The default value (``1. / (2 ** 32 - 1)``) is meant to
+        be appropriate for bit-perfect mapping to the 24 bit output of
+        a SPDIF channel.
 
     Note that the defaults are superseded on individual machines by
     the configuration file.
@@ -70,16 +75,19 @@ class SoundCardController(object):
     def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01):
         keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
                 'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
-                'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS')
+                'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS',
+                'SOUND_CARD_TRIGGER_SCALE')
         defaults = dict(
             SOUND_CARD_BACKEND='auto',
             SOUND_CARD_TRIGGER_CHANNELS=0,
+            SOUND_CARD_TRIGGER_SCALE=1. / float(2 ** 31 - 1),
         )  # any omitted become None
         params = _check_params(params, keys, defaults, 'params')
 
         self.backend, self.backend_name = _import_backend(
             params['SOUND_CARD_BACKEND'])
         self._n_channels_stim = int(params['SOUND_CARD_TRIGGER_CHANNELS'])
+        trig_scale = float(params['SOUND_CARD_TRIGGER_SCALE'])
         assert self._n_channels_stim >= 0
         self._n_channels = int(operator.index(n_channels))
         del n_channels
@@ -121,7 +129,7 @@ class SoundCardController(object):
         self.audio = None
         self.playing = False
         self._trigger_duration = trigger_duration
-        self._trig_scale = 1. / float(2 ** 31 - 1)
+        self._trig_scale = trig_scale
         flush_logger()
 
     def __repr__(self):
@@ -163,11 +171,16 @@ class SoundCardController(object):
             self.audio.delete()
             self.audio = None
         if self._n_channels_stim > 0:
-            stim = self._make_digital_trigger([1], n_samples=samples.shape[0])
+            stim = self._make_digital_trigger([1])
+            extra = len(samples) - len(stim)
+            if extra > 0:  # stim shorter than samples (typical)
+                stim = np.pad(stim, ((0, extra), (0, 0)), 'constant')
+            elif extra < 0:  # samples shorter than stim (very brief stim)
+                samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
             samples = np.concatenate((stim, samples), axis=-1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
-    def _make_digital_trigger(self, trigs, delay=None, n_samples=None):
+    def _make_digital_trigger(self, trigs, delay=None):
         if delay is None:
             delay = 2 * self._trigger_duration
         n_on = int(round(self.fs * self._trigger_duration))
@@ -202,9 +215,7 @@ class SoundCardController(object):
         trigs = ((np.array(trigs, int) << 8) *
                  self._trig_scale).astype(np.float32)
         assert trigs.ndim == 1
-        # XXX try making it at least 10 long to see if the dropped triggers
-        # are like an rtmixer bug
-        n_samples = n_samples or n_each * max(len(trigs), 10)
+        n_samples = n_each * len(trigs)
         stim = np.zeros((n_samples, self._n_channels_stim), np.float32)
         offset = 0
         for trig in trigs:
@@ -229,7 +240,7 @@ class SoundCardController(object):
         if delay is None:
             delay = 2 * self._trigger_duration
         stim = self._make_digital_trigger(triggers, delay)
-        stim = np.pad(stim, (0, self._n_channels), 'constant')
+        stim = np.pad(stim, ((0, 0), (0, self._n_channels)), 'constant')
         stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
         stim.play()
         t_each = self._trigger_duration + delay
