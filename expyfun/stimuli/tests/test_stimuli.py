@@ -84,7 +84,7 @@ def test_play_sound(backend, hide_window):  # only works if windowing works
     play_sound(data).stop()
     play_sound(data[0], norm=False, wait=True)
     pytest.raises(ValueError, play_sound, data[:, :, np.newaxis])
-    # Make sure Pyglet can handle a lot of sounds
+    # Make sure each backend can handle a lot of sounds
     for _ in range(10):
         snd = play_sound(data)
         # we manually stop and delete here, because we don't want to

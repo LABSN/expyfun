@@ -101,7 +101,7 @@ class SoundCardController(object):
         temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = temp_sound.fs
-        temp_sound.stop()
+        temp_sound.stop(wait=False)
         del temp_sound
 
         # Need to generate at RMS=1 to match TDT circuit, and use a power of
@@ -147,10 +147,18 @@ class SoundCardController(object):
                 self.noise_array * self.noise_level, loop=True, **self._kwargs)
             self.noise.play()
 
-    def stop_noise(self):
-        """Stop noise."""
+    def stop_noise(self, wait=False):
+        """Stop noise.
+
+        Parameters
+        ----------
+        wait : bool
+            If True, wait for the action to complete.
+            This is usually not necessary and can lead to tens of
+            milliseconds of (variable) delay.
+        """
         if self._noise_playing:
-            self.noise.stop()
+            self.noise.stop(wait=wait)
             self.noise.delete()
             self.noise = None
 
@@ -166,7 +174,7 @@ class SoundCardController(object):
         samples : ndarray
             The sound samples.
         """
-        self.stop()
+        self.stop(wait=False)
         if self.audio is not None:
             self.audio.delete()
             self.audio = None
@@ -248,7 +256,7 @@ class SoundCardController(object):
         if not wait_for_last:
             duration -= (delay - self._trigger_duration)
         wait_secs(duration)
-        stim.stop()
+        stim.stop(wait=False)
 
     def play(self):
         """Play."""
@@ -257,10 +265,18 @@ class SoundCardController(object):
             self.audio.play()
         self.playing = True
 
-    def stop(self):
-        """Stop."""
+    def stop(self, wait=False):
+        """Stop.
+
+        Parameters
+        ----------
+        wait : bool
+            If True, wait for the action to complete.
+            This is usually not necessary and can lead to tens of
+            milliseconds of (variable) delay.
+        """
         if self.audio is not None:
-            self.audio.stop()
+            self.audio.stop(wait=wait)
         self.playing = False
 
     def set_noise_level(self, level):
@@ -274,15 +290,15 @@ class SoundCardController(object):
         self.noise_level = float(level)
         new_noise = None
         if self._noise_playing:
-            self.stop_noise()
+            self.stop_noise(wait=True)
             self.start_noise()
         else:
             self.noise = new_noise
 
     def halt(self):
         """Halt."""
-        self.stop()
-        self.stop_noise()
+        self.stop(wait=True)
+        self.stop_noise(wait=True)
 
 
 def _import_backend(backend):

@@ -166,21 +166,19 @@ class SoundPlayer(object):
                 self._action = self._mixer.play_buffer(
                     self._data, self._data.shape[1], start=self._start_time)
 
-    def pause(self):
-        """Pause."""
+    def stop(self, wait=True):
+        """Stop."""
         if self.playing:
             action, self._action = self._action, None
             # Impose the same delay here that we imposed on the stim start
-            self._mixer.cancel(action, time=self._start_time)
-
-    def stop(self):
-        """Stop."""
-        self.pause()
+            cancel_action = self._mixer.cancel(action, time=self._start_time)
+            if wait:
+                self._mixer.wait(cancel_action)
 
     def delete(self):
         """Delete."""
         if getattr(self, '_mixer', None) is not None:
-            self.pause()
+            self.stop(wait=False)
             mixer, self._mixer = self._mixer, None
             stats = mixer.fetch_and_reset_stats().stats
             logger.exp('%d underflows %d blocks'
