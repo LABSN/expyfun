@@ -174,6 +174,7 @@ def test_ec(ac, hide_window):
                     suppress_resamp=suppress, **std_kwargs) as ec:
                 pass
         assert len(w) == (1 if ac == 'tdt' else 0)
+    SAFE_DELAY = 0.05
     with ExperimentController(
             *std_args, audio_controller=ac, response_device=rd,
             trigger_controller=tc, stim_fs=fs, **std_kwargs) as ec:
@@ -286,7 +287,7 @@ def test_ec(ac, hide_window):
         ec.start_stimulus(start_of_trial=False)         # should work
         if tc == 'dummy':
             assert_equal(ec._tc._trigger_list, [1])
-        ec.wait_secs(0.05)
+        ec.wait_secs(SAFE_DELAY)
         assert (ec._playing is True)
         pytest.raises(RuntimeError, ec.trial_ok)        # order violation
         ec.stop()
@@ -314,7 +315,7 @@ def test_ec(ac, hide_window):
             # dummy TDT version won't do this check properly, as
             # ec._ac._playing -> GetTagVal('playing') always gives False
             pytest.raises(RuntimeError, ec.play)  # already played, must stop
-        ec.wait_secs(0.05)
+        ec.wait_secs(SAFE_DELAY)
         ec.stop()
         assert (ec._playing is False)
         #
@@ -327,7 +328,7 @@ def test_ec(ac, hide_window):
         pytest.raises(RuntimeError, ec.start_stimulus)  # order violation
         ec.start_stimulus(start_of_trial=False)         # should work
         pytest.raises(RuntimeError, ec.trial_ok)        # order violation
-        ec.wait_secs(0.05)
+        ec.wait_secs(SAFE_DELAY)
         ec.stop()
         assert (ec._playing is False)
 
@@ -336,15 +337,20 @@ def test_ec(ac, hide_window):
         ec.estimate_screen_fs()
         assert (ec._playing is False)
         ec.play()
-        ec.wait_secs(0.05)
+        ec.wait_secs(SAFE_DELAY)
         assert (ec._playing is True)
         ec.call_on_every_flip(None)
-        ec.call_on_next_flip(ec.start_noise())
+        # something funny with the ring buffer in testing on OSX
+        if sys.platform != 'darwin':
+            ec.call_on_next_flip(ec.start_noise())
+        ec.flip()
         ec.wait_secs(0.05)
+        ec.stop_noise()
         ec.stop()
         assert (ec._playing is False)
+        ec.stop_noise()
+        ec.wait_secs(SAFE_DELAY)
         ec.start_stimulus(start_of_trial=False)
-        ec.call_on_next_flip(ec.stop_noise)
         ec.stop()
         ec.start_stimulus(start_of_trial=False)
         ec.get_mouse_position()
@@ -360,7 +366,10 @@ def test_ec(ac, hide_window):
         print(ec.on_every_flip_functions)
         print(ec.window)
         data = ec.screenshot()
-        assert_allclose(data.shape[:2], std_kwargs['window_size'])
+        # HiDPI
+        sizes = [tuple(std_kwargs['window_size']),
+                 tuple(np.array(std_kwargs['window_size']) * 2)]
+        assert data.shape[:2] in sizes
         print(ec.fs)  # test fs support
         wait_secs(0.01)
         test_pix = (11.3, 0.5, 110003)
@@ -464,8 +473,7 @@ def test_button_presses_and_window_size(hide_window):
         fake_button_press(ec, 'comma', 0.45)
         fake_button_press(ec, 'return', 0.5)
         # XXX this fails on OSX travis for some reason
-        if (os.getenv('TRAVIS', '').lower() != 'true' or
-                sys.platform != 'darwin'):
+        if sys.platform != 'darwin':
             assert ec.text_input(all_caps=False).strip() == 'a'
 
 

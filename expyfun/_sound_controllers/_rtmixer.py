@@ -174,6 +174,8 @@ class SoundPlayer(object):
             cancel_action = self._mixer.cancel(action, time=self._start_time)
             if wait:
                 self._mixer.wait(cancel_action)
+            else:
+                return cancel_action
 
     def delete(self):
         """Delete."""

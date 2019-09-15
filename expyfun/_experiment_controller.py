@@ -811,7 +811,10 @@ class ExperimentController(object):
             h, w = self._win.get_viewport_size()  # Pyglet 1.3+
         except Exception:
             h, w = self._win.height, self._win.width
-        data.shape = (h, w, 4)
+        try:
+            data.shape = (h, w, 4)
+        except ValueError:
+            data.shape = (h // 2, w // 2, 4)
         data = np.flipud(data)
         return data
 
