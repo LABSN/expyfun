@@ -236,8 +236,13 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         """Is a sound currently playing"""
         return bool(int(self.rpcox.GetTagVal('playing')))
 
-    def stop(self):
+    def stop(self, wait=True):
         """Send the soft trigger to stop and reset the ring buffer playback.
+
+        Parameters
+        ----------
+        wait : bool
+            Unused by the TDT.
         """
         self._trigger(2)
         logger.debug('Expyfun: Stopping TDT audio')
@@ -248,8 +253,13 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         self._trigger(3)
         logger.debug('Expyfun: Starting TDT noise')
 
-    def stop_noise(self):
+    def stop_noise(self, wait=True):
         """Send the soft trigger to stop the noise generator.
+
+        Parameters
+        ----------
+        wait : bool
+            Unused by the TDT.
         """
         self._trigger(4)
         logger.debug('Expyfun: Stopping TDT noise')
