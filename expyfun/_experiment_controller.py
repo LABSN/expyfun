@@ -21,13 +21,14 @@ import numpy as np
 
 from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
-                     check_units, set_log_file, flush_logger,
-                     string_types, _fix_audio_dims, input, _get_args)
+                     check_units, set_log_file, flush_logger, _TempDir,
+                     string_types, _fix_audio_dims, input, _get_args,
+                     _get_display)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import (SoundPlayer, SoundCardController,
                                  _AUTO_BACKENDS)
-from ._input_controllers import Keyboard, CedrusBox, Mouse
+from ._input_controllers import Keyboard, CedrusBox, Mouse, Joystick
 from .visual import Text, Rectangle, Video, _convert_color
 from ._git import assert_version, __version__
 
@@ -124,6 +125,8 @@ class ExperimentController(object):
         a TDT is used).
     trigger_duration : float
         The trigger duration to use (sec). Must be 0.01 for TDT.
+    joystick : bool
+        Whether or not to enable joystick control.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -146,7 +149,7 @@ class ExperimentController(object):
                  monitor=None, trigger_controller=None, session=None,
                  check_rms='windowed', suppress_resamp=False, version=None,
                  enable_video=False, safe_flipping=None, n_channels=2,
-                 trigger_duration=0.01, verbose=None):
+                 trigger_duration=0.01, joystick=False, verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -262,8 +265,7 @@ class ExperimentController(object):
 
             if screen_num is None:
                 screen_num = int(get_config('SCREEN_NUM', '0'))
-            import pyglet
-            display = pyglet.window.get_platform().get_default_display()
+            display = _get_display()
             screen = display.get_screens()[screen_num]
             if monitor is None:
                 mon_size = [screen.width, screen.height]
@@ -399,6 +401,13 @@ class ExperimentController(object):
                 self._ac._add_keyboard_init(self, force_quit)
             else:  # response_device == 'cedrus'
                 self._response_handler = CedrusBox(self, force_quit)
+
+            # Joystick
+            if joystick:
+                self._joystick_handler = Joystick(self)
+                self._extra_cleanup_fun.append(self._joystick_handler.close)
+            else:
+                self._joystick_handler = None
 
             #
             # set up trigger controller
@@ -798,24 +807,18 @@ class ExperimentController(object):
 
         Returns
         -------
-        scr : array
-            N x M x 3 array of screen pixel colors.
+        data : array, shape (h, w, 4)
+            Screen pixel colors.
         """
         import pyglet
-        # this must be done in order to instantiate image_buffer_manager
-        pyglet.image.get_buffer_manager().get_color_buffer()
-        data = self._win.context.image_buffer_manager.color_buffer.image_data
-        data = data.get_data(data.format, data.pitch)
-        data = np.frombuffer(data, dtype=np.uint8)
-        try:
-            h, w = self._win.get_viewport_size()  # Pyglet 1.3+
-        except Exception:
-            h, w = self._win.height, self._win.width
-        try:
-            data.shape = (h, w, 4)
-        except ValueError:
-            data.shape = (h // 2, w // 2, 4)
-        data = np.flipud(data)
+        from PIL import Image
+        tempdir = _TempDir()
+        fname = op.join(tempdir, 'tmp.png')
+        pyglet.image.get_buffer_manager().get_color_buffer().save(fname)
+        with Image.open(fname) as img:
+            data = np.array(img)
+        del tempdir
+        assert data.ndim == 3 and data.shape[-1] == 4
         return data
 
     @property
@@ -1175,12 +1178,12 @@ class ExperimentController(object):
         return self._response_handler.wait_for_presses(
             max_wait, min_wait, live_keys, timestamp, relative_to)
 
-    def _log_presses(self, pressed):
+    def _log_presses(self, pressed, kind='key'):
         """Write key presses to data file."""
         # This function will typically be called by self._response_handler
         # after it retrieves some button presses
         for key, stamp, eventType in pressed:
-            self.write_data_line('key'+eventType, key, stamp)
+            self.write_data_line(kind + eventType, key, stamp)
 
     def check_force_quit(self):
         """Check to see if any force quit keys were pressed."""
@@ -1242,6 +1245,76 @@ class ExperimentController(object):
                 text += letter if letter in letters else ''
         self.write_data_line('text_input', text)
         return text
+
+# ############################## KEYPRESS METHODS #############################
+    def listen_joystick_button_presses(self):
+        """Start listening for joystick buttons.
+
+        See Also
+        --------
+        ExperimentController.get_joystick_button_presses
+        """
+        self._joystick_handler.listen_presses()
+
+    def get_joystick_button_presses(self, timestamp=True, relative_to=None,
+                                    kind='presses', return_kinds=False):
+        """Get the entire joystick buffer.
+
+        This will also clear events that are not requested per ``type``.
+
+        Parameters
+        ----------
+        timestamp : bool
+            Whether the keypress should be timestamped. If True, returns the
+            button press time relative to the value given in `relative_to`.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            timestamp==False.  If ``None``, timestamps are relative to the time
+            `listen_presses` was last called.
+        kind : string
+            Which button events to return. One of ``presses``, ``releases`` or
+            ``both``. (default ``presses``)
+        return_kinds : bool
+            Return the kinds of presses.
+
+        Returns
+        -------
+        presses : list
+            Returns a list of tuples with button events. Each tuple's first
+            value will be the button pressed. If ``timestamp==True``, the
+            second value is the time for the event. If ``return_kinds==True``,
+            then the last value is a string indicating if this was a button
+            press or release event.
+
+        See Also
+        --------
+        ExperimentController.listen_presses
+        """
+        print('gettin')
+        print(self._joystick_handler._dev.x)
+        print(self._joystick_handler._dev.buttons)
+        return self._joystick_handler.get_presses(
+            None, timestamp, relative_to, kind, return_kinds)
+
+    def get_joy_x(self):
+        """Get the current joystick x direction.
+
+        Returns
+        -------
+        x : float
+            Value in the range -1 (left) to 1 (right).
+        """
+        return self._joystick_handler.x
+
+    def get_joy_y(self):
+        """Get the current joystick y direction.
+
+        Returns
+        -------
+        x : float
+            Value in the range -1 (down) to 1 (up).
+        """
+        return self._joystick_handler.x
 
 # ############################## MOUSE METHODS ################################
 

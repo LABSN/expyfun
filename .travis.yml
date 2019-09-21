@@ -60,7 +60,7 @@ before_install:
       fi;
     - python -m sounddevice
     # Only install these deps if necessary (slow on Py3k)
-    - pip install -q flake8 "pyglet<1.4"
+    - pip install -q flake8 pyglet
     # Full dependencies (pandas, mne-python, h5py, joblib)
     - if [ "${DEPS}" != "minimal" ]; then
         conda install --yes --quiet pandas h5py mne;

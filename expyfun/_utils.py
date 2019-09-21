@@ -727,7 +727,7 @@ def wait_secs(secs, ec=None):
     # hog the cpu, checking time
     import pyglet
     t0 = clock()
-    wins = pyglet.window.get_platform().get_default_display().get_windows()
+    wins = _get_display().get_windows()
     while (clock() - t0) < secs:
         for win in wins:
             win.dispatch_events()
@@ -880,3 +880,12 @@ def _check_params(params, keys, defaults, name):
             raise KeyError('Unrecognized key in {0}["{1}"], must be '
                            'one of {2}'.format(name, k, ', '.join(keys)))
     return params
+
+
+def _get_display():
+    import pyglet
+    try:
+        display = pyglet.canvas.get_display()
+    except AttributeError:  # < 1.4
+        display = pyglet.window.get_platform().get_default_display()
+    return display

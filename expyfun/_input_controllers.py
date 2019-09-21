@@ -12,7 +12,7 @@ from functools import partial
 
 from .visual import (Triangle, Rectangle, Circle, Diamond, ConcentricCircles,
                      FixationDot)
-from ._utils import wait_secs, clock, string_types
+from ._utils import wait_secs, clock, string_types, logger
 
 
 class Keyboard(object):
@@ -51,6 +51,7 @@ class Keyboard(object):
 
     ###########################################################################
     # Methods to be overridden by subclasses
+
     def _clear_events(self):
         self._clear_keyboard_events()
 
@@ -330,6 +331,7 @@ class Mouse(object):
 
     ###########################################################################
     # Methods to be overridden by subclasses
+
     def _clear_events(self):
         self._clear_mouse_events()
 
@@ -525,7 +527,6 @@ class CedrusBox(Keyboard):
         dev.reset_base_timer()
         assert dev.is_response_device()
         self._dev = dev
-        self._keyboard_buffer = []
         super(CedrusBox, self).__init__(ec, force_quit_keys)
         ec._time_correction_maxs['keypress'] = 1e-3  # higher tolerance
 
@@ -565,3 +566,48 @@ class CedrusBox(Keyboard):
                 if live_keys is None or key[0] in live_keys:
                     targets.append(key)
         return targets
+
+
+class Joystick(Keyboard):
+    """Class for Joysticks.
+
+    Basically they are just Keyboards with extra methods.
+    """
+
+    def __init__(self, ec):
+        import pyglet.input
+        self.master_clock = ec._master_clock
+        self.log_presses = partial(ec._log_presses, kind='joy')
+        self.force_quit_keys = []
+        self.listen_start = None
+        ec._time_correction_fxns['joystick'] = self._get_timebase
+        self.get_time_corr = partial(ec._get_time_correction, 'joystick')
+        self.time_correction = self.get_time_corr()
+        self._keyboard_buffer = []
+        self._dev = pyglet.input.get_joysticks()[0]
+        logger.info('Expyfun: Initializing joystick %s' % (self._dev.device,))
+        self._dev.open(window=ec._win, exclusive=False)
+        assert hasattr(self._dev, 'on_joybutton_press')
+        self._dev.on_joybutton_press = partial(
+            self._on_pyglet_joybutton, kind='press')
+        self._dev.on_joybutton_release = partial(
+            self._on_pyglet_joybutton, kind='release')
+        self.win = ec._win
+
+    def _on_pyglet_joybutton(self, joystick, button='foo', kind='press'):
+        """Handler for on_joybutton_press events."""
+        key_time = clock()
+        self._keyboard_buffer.append((str(button), key_time, kind))
+
+    def close(self):
+        dev = getattr(self, '_dev', None)
+        if dev is not None:
+            dev.close()
+
+    @property
+    def x(self):
+        return self._dev.x
+
+    @property
+    def y(self):
+        return -self._dev.y  # undo Pyglet convention -> we consider up +
