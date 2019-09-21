@@ -1,5 +1,4 @@
 language: python
-dist: xenial
 sudo: false
 cache:
   apt: true
@@ -7,11 +6,6 @@ env:
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
     global: PYTHON=3.7 DISPLAY=:99.0
 
-addons:
-  apt:
-    packages:
-      - ffmpeg
-      - libglu1-mesa
 
 matrix:
   exclude:
@@ -19,11 +13,23 @@ matrix:
       - python: 2.7
   include:
     - os: linux
+      dist: xenial
       env: _EXPYFUN_SILENT=true
+      addons:
+        apt:
+          packages:
+            - ffmpeg
+            - libglu1-mesa
     - os: osx
       language: objective-c
     - os: linux
+      dist: trusty
       env: PYTHON=2.7 DEPS=minimal _EXPYFUN_SILENT=true
+      addons:
+        apt:
+          packages:
+            - libavbin0
+            - libavbin-dev
 
 
 before_install:
