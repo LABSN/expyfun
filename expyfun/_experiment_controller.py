@@ -863,7 +863,10 @@ class ExperimentController(object):
         center : bool
             If True, center the video.
         """
-        from pyglet.media import MediaFormatException
+        try:
+            from pyglet.media.exceptions import MediaFormatException
+        except ImportError:  # < 1.4
+            from pyglet.media import MediaFormatException
         try:
             self.video = Video(self, file_name, pos, units)
         except MediaFormatException as exp:

@@ -53,7 +53,7 @@ jobs:
     displayName: 'Get video support'
   - script: python setup.py develop
     displayName: 'Install'
-  - script: pytest expyfun
+  - script: pytest --cov=expyfun expyfun
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'

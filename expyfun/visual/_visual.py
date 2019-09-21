@@ -23,7 +23,7 @@ try:
 except ImportError:
     from pyglet import gl
 
-from .._utils import check_units, string_types, logger
+from .._utils import check_units, string_types, logger, _new_pyglet
 
 
 def _convert_color(color, byte=True):
@@ -1111,6 +1111,7 @@ class Video(object):
         self._center = center
         self.set_scale(scale)  # also calls set_pos
         self._visible = visible
+        self._eos_fun = self._eos_new if _new_pyglet() else self._eos_old
 
     def play(self):
         """Play video from current position.
@@ -1252,9 +1253,17 @@ class Video(object):
     # PROPERTIES
     @property
     def _eos(self):
+        return self._eos_fun()
+
+    def _eos_old(self):
         return (self._player._last_video_timestamp is not None and
                 self._player._last_video_timestamp ==
                 self._source.get_next_video_timestamp())
+
+    def _eos_new(self):
+        ts = self._source.get_next_video_timestamp()
+        dur = self._source._duration
+        return ts is None or ts >= dur
 
     @property
     def playing(self):

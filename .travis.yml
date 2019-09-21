@@ -73,7 +73,7 @@ install:
     - python setup.py develop
 
 script:
-    - pytest expyfun
+    - pytest --cov=expyfun expyfun
     - make flake
     - make codespell-error
     - make docstyle
