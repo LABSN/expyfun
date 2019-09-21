@@ -3,7 +3,7 @@ import pytest
 from numpy.testing import assert_equal
 
 from expyfun import ExperimentController, visual, fetch_data_file
-from expyfun._utils import requires_opengl21, requires_avbin
+from expyfun._utils import requires_opengl21, requires_video
 
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
@@ -92,7 +92,7 @@ def test_visuals(hide_window):
         pytest.raises(ValueError, bar.update_bar, 500)
 
 
-@requires_avbin()
+@requires_video()
 def test_video(hide_window):
     """Test EC video methods."""
     std_kwargs.update(dict(enable_video=True, window_size=(640, 480)))

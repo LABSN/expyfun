@@ -432,22 +432,32 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
-def _has_avbin():
-    has = True
-    try:
-        from pyglet.media.avbin import AVbinSource  # noqa
-    except ImportError:
+def _new_pyglet():
+    import pyglet
+    return LooseVersion(pyglet.version) >= LooseVersion('1.4')
+
+
+def _has_video():
+    if _new_pyglet():
         try:
-            from pyglet.media.sources.avbin import AVbinSource  # noqa
+            from pyglet.media.codecs.ffmpeg import FFmpegSource  # noqa
         except ImportError:
-            has = False
-    return has
+            return False
+    else:
+        try:
+            from pyglet.media.avbin import AVbinSource  # noqa
+        except ImportError:
+            try:
+                from pyglet.media.sources.avbin import AVbinSource  # noqa
+            except ImportError:
+                return False
+    return True
 
 
-def requires_avbin():
-    """Requires AVbin decorator."""
+def requires_video():
+    """Requires FFmpeg/AVbin decorator."""
     import pytest
-    return pytest.mark.skipif(not _has_avbin(), reason='Requires AVbin')
+    return pytest.mark.skipif(not _has_video(), reason='Requires FFmpeg/AVbin')
 
 
 def requires_opengl21(func):

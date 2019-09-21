@@ -45,7 +45,7 @@ expyfun requires several libraries for full functionality:
 - Optional system software:
 
   - ``git``: Command-line tools needed for automated version downloading.
-  - ``AVbin``: For playing compressed videos.
+  - ``FFmpeg`` or ``AVBin`` (Pyglet >= or < 1.4, respectively): For playing compressed videos.
 
 Expyfun
 ^^^^^^^

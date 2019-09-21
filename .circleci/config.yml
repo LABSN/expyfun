@@ -8,9 +8,7 @@ jobs:
       - checkout
       - run: echo $(git log -1 --pretty=%B) | tee gitlog.txt
       - run: echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-      - run: sudo apt-get install libglu1-mesa
-      - run: wget https://github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10
-      - run: sudo sh ./install-avbin-linux-x86-64-v10
+      - run: sudo apt-get install libglu1-mesa ffmpeg
       - run:
          command: |
            if [[ $(cat merge.txt) != "" ]]; then

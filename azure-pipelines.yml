@@ -48,9 +48,9 @@ jobs:
       python -c "import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()"
     displayName: 'Get OpenGL'
   - powershell: |
-      powershell make/get_avbin.ps1
-      python -c "import expyfun; assert expyfun._utils._has_avbin()"
-    displayName: 'Get AVBin'
+      powershell make/get_video.ps1
+      # python -c "import expyfun; assert expyfun._utils._has_video()"
+    displayName: 'Get video support'
   - script: python setup.py develop
     displayName: 'Install'
   - script: pytest expyfun

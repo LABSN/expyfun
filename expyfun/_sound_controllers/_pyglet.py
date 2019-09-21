@@ -22,7 +22,6 @@ _opts_dict = dict(linux2=('pulse',),
                   darwin=('openal',))
 _opts_dict['linux'] = _opts_dict['linux2']  # new name on Py3k
 _driver = _opts_dict[sys.platform] if not _use_silent else ('silent',)
-_new_pyglet = LooseVersion(pyglet.version) >= LooseVersion('1.4')
 
 pyglet.options['audio'] = _driver
 # We might also want this at some point if we hit OSX problems:
@@ -58,6 +57,7 @@ class SoundPlayer(Player):
 
     def __init__(self, data, fs=None, loop=False, api=None, name=None,
                  fixed_delay=None, api_options=None):
+        from ..utils import _new_pyglet
         assert AudioFormat is not None
         if any(x is not None for x in (api, name, fixed_delay, api_options)):
             raise ValueError('The Pyglet backend does not support specifying '
@@ -68,7 +68,7 @@ class SoundPlayer(Player):
         super(SoundPlayer, self).__init__()
         _check_pyglet_audio()
         sms = _as_static(data, self.fs)
-        if _new_pyglet:
+        if _new_pyglet():
             self.queue(sms)
             self.loop = bool(loop)
         else:

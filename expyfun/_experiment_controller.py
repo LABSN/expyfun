@@ -869,10 +869,10 @@ class ExperimentController(object):
         except MediaFormatException as exp:
             raise RuntimeError(
                 'Something is wrong; probably you tried to load a '
-                'compressed video file but you do not have AVbin installed.'
-                ' Download and install it; if you are on Windows, you may '
-                'also need to manually copy the AVbin .dll file(s) from '
-                'C:\\Windows\\system32 to C:\\Windows\\SysWOW64.:\n%s'
+                'compressed video file but you do not have FFmpeg/Avbin '
+                'installed. Download and install it; if you are on Windows, '
+                'you may also need to manually copy the .dll file(s) '
+                'from C:\\Windows\\system32 to C:\\Windows\\SysWOW64.:\n%s'
                 % (exp,))
 
     def delete_video(self):
