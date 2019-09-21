@@ -42,6 +42,5 @@ with ExperimentController('joyExp', participant='foo', session='001',
         count += 1
         ec.wait_secs(0.2)
         ec.check_force_quit()
-joystick.close()
 
 analyze.plot_screen(screenshot)
