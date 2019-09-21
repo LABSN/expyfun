@@ -10,7 +10,10 @@ env:
 addons:
   apt:
     packages:
+      - libavbin-dev
+      - libavbin0
       - ffmpeg
+      - libglu1-mesa
 
 matrix:
   exclude:
