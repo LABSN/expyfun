@@ -52,10 +52,10 @@ with ExperimentController('joyExp', participant='foo', session='001',
         # Get presses
         if not building_doc:
             pressed = ec.get_joystick_button_presses()
+            ec.listen_joystick_button_presses()  # clear events
         else:
             pressed = [('2',)]
         count += len(pressed)
-        ec.listen_joystick_button_presses()  # clear events
 
         #######################################################################
         # Move the cursor
