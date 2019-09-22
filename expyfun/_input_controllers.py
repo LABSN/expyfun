@@ -43,10 +43,10 @@ class Keyboard(object):
         ec._time_correction_fxns['keypress'] = self._get_timebase
         self.get_time_corr = partial(ec._get_time_correction, 'keypress')
         self.time_correction = self.get_time_corr()
-        self.win = ec._win
+        self.ec = ec
         # always init pyglet response handler for error (and non-error) keys
-        self.win.on_key_press = self._on_pyglet_keypress
-        self.win.on_key_release = self._on_pyglet_keyrelease
+        self.ec._win.on_key_press = self._on_pyglet_keypress
+        self.ec._win.on_key_release = self._on_pyglet_keyrelease
         self._keyboard_buffer = []
 
     ###########################################################################
@@ -64,7 +64,7 @@ class Keyboard(object):
         return clock()
 
     def _clear_keyboard_events(self):
-        self.win.dispatch_events()
+        self.ec._dispatch_events()
         self._keyboard_buffer = []
 
     def _retrieve_keyboard_events(self, live_keys, kind='presses'):
@@ -72,7 +72,7 @@ class Keyboard(object):
         if live_keys is not None:
             live_keys = [str(x) for x in live_keys]  # accept ints
             live_keys.extend(self.force_quit_keys)
-        self.win.dispatch_events()  # pump events on pyglet windows
+        self.ec._dispatch_events()  # pump events on pyglet windows
         targets = []
 
         for key in self._keyboard_buffer:
@@ -287,7 +287,7 @@ class Mouse(object):
 
     def __init__(self, ec, visible=False):
         from pyglet.window import mouse
-        self.win = ec._win
+        self.ec = ec
         self.set_visible(visible)
         self.master_clock = ec._master_clock
         self.log_clicks = ec._log_clicks
@@ -295,9 +295,8 @@ class Mouse(object):
         ec._time_correction_fxns['mouseclick'] = self._get_timebase
         self.get_time_corr = partial(ec._get_time_correction, 'mouseclick')
         self.time_correction = self.get_time_corr()
-        self.win = ec._win
         self._check_force_quit = ec.check_force_quit
-        self.win.on_mouse_press = self._on_pyglet_mouse_click
+        self.ec._win.on_mouse_press = self._on_pyglet_mouse_click
         self._mouse_buffer = []
         self._button_names = {mouse.LEFT: 'left', mouse.MIDDLE: 'middle',
                               mouse.RIGHT: 'right'}
@@ -313,8 +312,8 @@ class Mouse(object):
         visible : bool
             If True, make mouse visible.
         """
-        self.win.set_mouse_visible(visible)
-        self.win.set_mouse_platform_visible(visible)  # Pyglet workaround
+        self.ec._win.set_mouse_visible(visible)
+        self.ec._win.set_mouse_platform_visible(visible)  # Pyglet workaround
         self._visible = visible
 
     @property
@@ -325,8 +324,10 @@ class Mouse(object):
     @property
     def pos(self):
         """The current position of the mouse in normalized units"""
-        x = (self.win._mouse_x - self.win.width / 2.) / (self.win.width / 2.)
-        y = (self.win._mouse_y - self.win.height / 2.) / (self.win.height / 2.)
+        x = (self.ec._win._mouse_x -
+             self.ec._win.width / 2.) / (self.ec._win.width / 2.)
+        y = (self.ec._win._mouse_y -
+             self.ec._win.height / 2.) / (self.ec._win.height / 2.)
         return np.array([x, y])
 
     ###########################################################################
@@ -344,11 +345,11 @@ class Mouse(object):
         return clock()
 
     def _clear_mouse_events(self):
-        self.win.dispatch_events()
+        self.ec._dispatch_events()
         self._mouse_buffer = []
 
     def _retrieve_mouse_events(self, live_buttons):
-        self.win.dispatch_events()  # pump events on pyglet windows
+        self.ec._dispatch_events()  # pump events on pyglet windows
         targets = []
         for button in self._mouse_buffer:
             if live_buttons is None or button[0] in live_buttons:
@@ -592,7 +593,6 @@ class Joystick(Keyboard):
             self._on_pyglet_joybutton, kind='press')
         self._dev.on_joybutton_release = partial(
             self._on_pyglet_joybutton, kind='release')
-        self.win = ec._win
 
     def _on_pyglet_joybutton(self, joystick, button='foo', kind='press'):
         """Handler for on_joybutton_press events."""

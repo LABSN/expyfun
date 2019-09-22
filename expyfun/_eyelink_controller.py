@@ -799,7 +799,7 @@ class _Calibrate(cal_super_class):
         self.ec.system_beep() if self.beep else None
 
     def get_input_key(self):
-        self.ec.window.dispatch_events()
+        self.ec._dispatch_events()
         if len(self.keys) == 0:
             return None
         k = self.keys

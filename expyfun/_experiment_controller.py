@@ -690,7 +690,7 @@ class ExperimentController(object):
             if when is not None:
                 self.wait_until(when)
             funs = [self._play] + self._ofp_critical_funs
-            self._win.dispatch_events()
+            self._dispatch_events()
             stimulus_time = self.get_time()
             for fun in funs:
                 fun()
@@ -883,6 +883,35 @@ class ExperimentController(object):
         self.video._delete()
         self.video = None
 
+# ############################### PYGLET EVENTS ###############################
+
+    def _setup_event_loop(self):
+        from pyglet.app import EventLoop, PlatformEventLoop
+        self._event_loop = ev = EventLoop()
+        self._platform_event_loop = PlatformEventLoop()
+
+        ev.has_exit = False
+        ev._legacy_setup()
+        self._platform_event_loop.start()
+        ev.dispatch_event('on_enter')
+
+        ev.is_running = True
+        self._extra_cleanup_fun.append(self._end_event_loop)
+        # This is when Pyglet calls:
+        #     ev._run()
+        # which is a while loop with the contents of our dispatch_events.
+
+    def _dispatch_events(self):
+        self._win.dispatch_events()
+        # timeout = self._event_loop.idle()
+        timeout = 0
+        self._platform_event_loop.step(timeout)
+
+    def _end_event_loop(self):
+        self._event_loop.is_running = False
+        self._event_loop.dispatch_event('on_exit')
+        self._platform_event_loop.stop()
+
 # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
         import pyglet
@@ -935,7 +964,8 @@ class ExperimentController(object):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
         self.set_visible(v_)
-        win.dispatch_events()
+        self._setup_event_loop()
+        self._dispatch_events()
 
     def flip(self, when=None):
         """Flip screen, then run any "on-flip" functions.
@@ -972,7 +1002,7 @@ class ExperimentController(object):
         if when is not None:
             self.wait_until(when)
         call_list = self._on_next_flip + self._on_every_flip
-        self._win.dispatch_events()
+        self._dispatch_events()
         self._win.switch_to()
         if self.safe_flipping:
             # On NVIDIA Linux these calls cause a 2x delay (33ms instead of 16)
