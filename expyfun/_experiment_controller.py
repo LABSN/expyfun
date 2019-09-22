@@ -174,6 +174,7 @@ class ExperimentController(object):
 
         # put anything that could fail in this block to ensure proper cleanup!
         try:
+            self._setup_event_loop()
             self.set_rms_checking(check_rms)
             # Check Pyglet version for safety
             _check_pyglet_version(raise_error=True)
@@ -964,7 +965,6 @@ class ExperimentController(object):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
         self.set_visible(v_)
-        self._setup_event_loop()
         self._dispatch_events()
 
     def flip(self, when=None):
