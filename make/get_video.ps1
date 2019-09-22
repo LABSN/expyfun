@@ -23,7 +23,6 @@ function DownloadDLL($dll) {
 }
 
 function main () {
-    DownloadDLL("avbin64.dll")
     DownloadDLL("avcodec-58.dll")
     DownloadDLL("avformat-58.dll")
     DownloadDLL("avutil-56.dll")
