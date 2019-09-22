@@ -405,7 +405,7 @@ class ExperimentController(object):
             # Joystick
             if joystick:
                 self._joystick_handler = Joystick(self)
-                self._extra_cleanup_fun.append(self._joystick_handler.close)
+                self._extra_cleanup_fun.append(self._joystick_handler._close)
             else:
                 self._joystick_handler = None
 

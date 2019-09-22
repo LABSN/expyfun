@@ -69,8 +69,8 @@ before_install:
     - if [ "${DEPS}" == "minimal" ]; then
         pip install "pyglet<1.4";
       else
-        conda install --yes --quiet pandas h5py mne;
-        pip install -q joblib pyglet;
+        conda install --yes --quiet pandas h5py;
+        pip install -q joblib pyglet mne;
       fi;
     # Import matplotlib ahead of time so it doesn't affect test timings
     # (e.g., building fc-cache)

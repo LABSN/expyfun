@@ -599,7 +599,7 @@ class Joystick(Keyboard):
         key_time = clock()
         self._keyboard_buffer.append((str(button), key_time, kind))
 
-    def close(self):
+    def _close(self):
         dev = getattr(self, '_dev', None)
         if dev is not None:
             dev.close()

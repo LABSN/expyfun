@@ -2,7 +2,6 @@ from contextlib import contextmanager
 from copy import deepcopy
 from distutils.version import LooseVersion
 from functools import partial
-import os
 import sys
 
 import numpy as np
