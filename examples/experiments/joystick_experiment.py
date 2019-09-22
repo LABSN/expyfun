@@ -27,7 +27,8 @@ joy_keys = ('z', 'rz')
 with ExperimentController('joyExp', participant='foo', session='001',
                           output_dir=None, version='dev',
                           joystick=joystick) as ec:
-    circles = [Circle(ec, 0.5, units='deg', fill_color='none', line_color='w')]
+    circles = [Circle(ec, 0.5, units='deg',
+               fill_color=(1., 1., 1., 0.2), line_color='w')]
     # We use normalized units for "pos" so we need to compensate in movement
     # so that X/Y movement is even
     ratios = [1., ec.window_size_pix[0] / float(ec.window_size_pix[1])]
@@ -37,10 +38,9 @@ with ExperimentController('joyExp', participant='foo', session='001',
     count = 0
     screenshot = None
     pos = [0., 0.]
-    while pressed != '2':  # enable a clean quit if required
+    while pressed != '2':  # enable a clean quit (button number 3)
         #######################################################################
         # Draw things
-
         Text(ec, str(count), pos=(1, -1),
              anchor_x='right', anchor_y='bottom').draw()
         for circle in circles[::-1]:
@@ -60,7 +60,7 @@ with ExperimentController('joyExp', participant='foo', session='001',
         #######################################################################
         # Move the cursor
         for idx, (key, ratio) in enumerate(zip(joy_keys, ratios)):
-            delta = ec.get_joy_value(key)
+            delta = 0. if building_doc else ec.get_joy_value(key)
             if abs(delta) > noise_thresh:  # remove noise
                 pos[idx] = max(min(
                     pos[idx] + move_rate * ratio * delta, 1), -1)
@@ -71,6 +71,7 @@ with ExperimentController('joyExp', participant='foo', session='001',
             circles[1].set_pos(pos, units='norm')
             if len(circles) > 5:
                 circles.pop(-1)
+            pressed = pressed[0][0]  # for exit condition
         ec.check_force_quit()
 
 analyze.plot_screen(screenshot)
