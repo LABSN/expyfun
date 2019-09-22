@@ -14,7 +14,6 @@ from expyfun import ExperimentController, wait_secs, visual
 from expyfun._utils import (_TempDir, fake_button_press, _check_skip_backend,
                             fake_mouse_click, requires_opengl21)
 from expyfun.stimuli import get_tdt_rates
-(??)import sys
 
 std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
