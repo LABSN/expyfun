@@ -149,35 +149,38 @@ class SoundPlayer(object):
     def playing(self):
         return self._action is not None and self._mixer is not None
 
+    @property
+    def _start_time(self):
+        if self._fixed_delay is not None:
+            return self._mixer.time + self._fixed_delay
+        else:
+            return 0.
+
     def play(self):
         """Play."""
         if not self.playing and self._mixer is not None:
-            if self._fixed_delay is not None:
-                start = self._mixer.time + self._fixed_delay
-            else:
-                start = 0
             if self.loop:
                 self._action = self._mixer.play_ringbuffer(
-                    self._ring, start=start)
+                    self._ring, start=self._start_time)
             else:
                 self._action = self._mixer.play_buffer(
-                    self._data, self._data.shape[1], start=start)
+                    self._data, self._data.shape[1], start=self._start_time)
 
-    def pause(self):
-        """Pause."""
+    def stop(self, wait=True):
+        """Stop."""
         if self.playing:
             action, self._action = self._action, None
-            cancel_action = self._mixer.cancel(action)
-            self._mixer.wait(cancel_action)
-
-    def stop(self):
-        """Stop."""
-        self.pause()
+            # Impose the same delay here that we imposed on the stim start
+            cancel_action = self._mixer.cancel(action, time=self._start_time)
+            if wait:
+                self._mixer.wait(cancel_action)
+            else:
+                return cancel_action
 
     def delete(self):
         """Delete."""
         if getattr(self, '_mixer', None) is not None:
-            self.pause()
+            self.stop(wait=False)
             mixer, self._mixer = self._mixer, None
             stats = mixer.fetch_and_reset_stats().stats
             logger.exp('%d underflows %d blocks'
