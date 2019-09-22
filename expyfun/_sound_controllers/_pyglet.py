@@ -13,6 +13,8 @@ import numpy as np
 
 import pyglet
 
+from .._utils import _new_pyglet
+
 _PRIORITY = 200
 
 _use_silent = (os.getenv('_EXPYFUN_SILENT', '') == 'true')
@@ -46,7 +48,8 @@ except Exception as exp:
 
 
 def _check_pyglet_audio():
-    if pyglet.media.get_audio_driver() is None:
+    if pyglet.media.get_audio_driver() is None and \
+            not (_new_pyglet() and _driver == ('silent',)):
         raise SystemError('pyglet audio ("%s") could not be initialized'
                           % pyglet.options['audio'][0])
 
@@ -56,7 +59,6 @@ class SoundPlayer(Player):
 
     def __init__(self, data, fs=None, loop=False, api=None, name=None,
                  fixed_delay=None, api_options=None):
-        from .._utils import _new_pyglet
         assert AudioFormat is not None
         if any(x is not None for x in (api, name, fixed_delay, api_options)):
             raise ValueError('The Pyglet backend does not support specifying '
