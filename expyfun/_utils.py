@@ -735,7 +735,6 @@ def wait_secs(secs, ec=None):
     guarantee that events (keypresses, etc.) are processed.
     """
     # hog the cpu, checking time
-    import pyglet
     t0 = clock()
     wins = _get_display().get_windows()
     while (clock() - t0) < secs:
