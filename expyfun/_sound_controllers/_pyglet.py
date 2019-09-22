@@ -5,7 +5,6 @@
 #
 # License: BSD (3-clause)
 
-from distutils.version import LooseVersion
 import os
 import sys
 import warnings
