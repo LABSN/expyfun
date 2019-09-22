@@ -18,8 +18,16 @@ from os.path import relpath, dirname
 import sys
 from datetime import date
 import sphinx_gallery  # noqa
-import sphinx_bootstrap_theme
+import sphinx_bootstrap_theme  # noqa
 from numpydoc import numpydoc, docscrape  # noqa
+
+# Work around Pyglet annoyingness
+assert 'pyglet' not in sys.modules
+if 'sphinx' in sys.modules:
+    s = sys.modules.pop('sphinx')
+    import pyglet  # noqa
+    sys.modules['sphinx'] = s
+    del s
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
