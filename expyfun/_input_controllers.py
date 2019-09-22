@@ -12,7 +12,7 @@ from functools import partial
 
 from .visual import (Triangle, Rectangle, Circle, Diamond, ConcentricCircles,
                      FixationDot)
-from ._utils import wait_secs, clock, string_types, logger
+from ._utils import clock, string_types, logger
 
 
 class Keyboard(object):
@@ -255,7 +255,7 @@ class Keyboard(object):
             raise ValueError('min_wait must be less than max_wait')
         start_time = self.master_clock()
         relative_to = start_time if relative_to is None else relative_to
-        wait_secs(min_wait)
+        self.ec.wait_secs(min_wait)
         self.check_force_quit()
         self._clear_events()
         return relative_to, start_time
@@ -477,7 +477,7 @@ class Mouse(object):
         start_time = self.master_clock()
         if timestamp and relative_to is None:
             relative_to = start_time
-        wait_secs(min_wait)
+        self.ec.wait_secs(min_wait)
         self._check_force_quit()
         self._clear_events()
         was_visible = self.visible

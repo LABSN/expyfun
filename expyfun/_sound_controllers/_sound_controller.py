@@ -13,7 +13,7 @@ import os.path as op
 import numpy as np
 
 from .._fixes import rfft, irfft, rfftfreq
-from .._utils import logger, flush_logger, _check_params, wait_secs
+from .._utils import logger, flush_logger, _check_params
 
 
 _BACKENDS = tuple(sorted(
@@ -37,6 +37,8 @@ class SoundCardController(object):
         The number of playback channels to use.
     trigger_duration : float
         The duration (sec) to use for triggers (if applicable).
+    ec : instance of ExperimentController
+        The ExperimentController.
 
     Notes
     -----
@@ -72,7 +74,9 @@ class SoundCardController(object):
     the configuration file.
     """
 
-    def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01):
+    def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01,
+                 ec=None):
+        self.ec = ec
         keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
                 'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
                 'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS',
@@ -258,7 +262,7 @@ class SoundCardController(object):
             delta = (delay - self._trigger_duration)
             duration -= delta
             extra_delay += delta
-        wait_secs(duration)
+        self.ec.wait_secs(duration)
         # Impose an extra delay on the "stop" action
         stim.stop(wait=False, extra_delay=extra_delay)
 

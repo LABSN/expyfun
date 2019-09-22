@@ -8,7 +8,7 @@ from threading import Timer
 
 from ..io import read_wav
 from .._sound_controllers import SoundPlayer
-from .._utils import wait_secs, string_types
+from .._utils import _wait_secs, string_types
 
 
 def window_edges(sig, fs, dur=0.01, axis=-1, window='hann', edges='both'):
@@ -130,7 +130,7 @@ def play_sound(sound, fs=None, norm=True, wait=False, backend='auto'):
     snd.play()  # will clip as necessary
     del_wait = 0.5
     if wait:
-        wait_secs(dur)
+        _wait_secs(dur)
     else:
         del_wait += dur
     if hasattr(snd, 'delete'):  # for backward compatibility

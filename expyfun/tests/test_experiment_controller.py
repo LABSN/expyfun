@@ -9,9 +9,10 @@ from numpy.testing import assert_equal
 import pytest
 from numpy.testing import assert_allclose
 
-from expyfun import ExperimentController, wait_secs, visual
+from expyfun import ExperimentController, visual
 from expyfun._utils import (_TempDir, fake_button_press, _check_skip_backend,
-                            fake_mouse_click, requires_opengl21)
+                            fake_mouse_click, requires_opengl21,
+                            _wait_secs as wait_secs)
 from expyfun.stimuli import get_tdt_rates
 
 std_args = ['test']  # experiment name

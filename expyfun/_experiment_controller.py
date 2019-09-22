@@ -19,11 +19,11 @@ import string
 
 import numpy as np
 
-from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
+from ._utils import (get_config, verbose_dec, _check_pyglet_version,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
                      check_units, set_log_file, flush_logger, _TempDir,
                      string_types, _fix_audio_dims, input, _get_args,
-                     _get_display)
+                     _get_display, _wait_secs)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import (SoundPlayer, SoundCardController,
@@ -341,12 +341,12 @@ class ExperimentController(object):
                 if trigger_duration != 0.01:
                     raise ValueError('trigger_duration must be 0.01 for TDT, '
                                      'got %s' % (trigger_duration,))
-                self._ac = TDTController(audio_controller)
+                self._ac = TDTController(audio_controller, ec=self)
                 self.audio_type = self._ac.model
             elif audio_type == 'sound_card':
                 self._ac = SoundCardController(
                     audio_controller, self.stim_fs, n_channels,
-                    trigger_duration=trigger_duration)
+                    trigger_duration=trigger_duration, ec=self)
                 self.audio_type = self._ac.backend_name
             else:
                 raise ValueError('audio_controller[\'TYPE\'] must be "tdt" '
@@ -441,7 +441,7 @@ class ExperimentController(object):
                 self._tc = ParallelTrigger(
                     trigger_controller['type'],
                     trigger_controller.get('address'),
-                    trigger_duration)
+                    trigger_duration, ec=self)
                 self._extra_cleanup_fun.insert(0, self._tc.close)
                 # The TDT always stamps "1" on stimulus onset. Here we need
                 # to manually mimic that behavior.
@@ -1929,9 +1929,9 @@ class ExperimentController(object):
         See Also
         --------
         ExperimentController.wait_until
-        wait_secs
         """
-        wait_secs(secs, ec=self)
+        # hog the cpu, checking time
+        _wait_secs(secs, self)
 
     def wait_until(self, timestamp):
         """Wait until the given time is reached.
@@ -1951,7 +1951,6 @@ class ExperimentController(object):
         See Also
         --------
         ExperimentController.wait_secs
-        wait_secs
 
         Notes
         -----
@@ -1966,7 +1965,7 @@ class ExperimentController(object):
                            '({}) that had already passed {} seconds prior.'
                            ''.format(timestamp, -time_left))
         else:
-            wait_secs(time_left, self)
+            self.wait_secs(time_left)
         return time_left
 
     def identify_trial(self, **ids):

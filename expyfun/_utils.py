@@ -723,7 +723,7 @@ def _check_pyglet_version(raise_error=False):
     return is_usable
 
 
-def wait_secs(secs, ec=None):
+def _wait_secs(secs, ec=None):
     """Wait a specified number of seconds.
 
     Parameters
@@ -731,6 +731,7 @@ def wait_secs(secs, ec=None):
     secs : float
         Number of seconds to wait.
     ec : None | expyfun.ExperimentController instance
+        The ExperimentController.
 
     Notes
     -----
@@ -739,12 +740,14 @@ def wait_secs(secs, ec=None):
     """
     # hog the cpu, checking time
     t0 = clock()
-    wins = _get_display().get_windows()
-    while (clock() - t0) < secs:
+    if ec is not None:
+        while (clock() - t0) < secs:
+            ec._dispatch_events()
+            ec.check_force_quit()
+    else:
+        wins = _get_display().get_windows()
         for win in wins:
             win.dispatch_events()
-        if ec is not None:
-            ec.check_force_quit()
 
 
 def running_rms(signal, win_length):

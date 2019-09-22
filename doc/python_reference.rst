@@ -32,7 +32,6 @@ grouped by hardware control type.
    get_keyboard_input
    set_log_level
    set_config
-   wait_secs
 
 
 .. currentmodule:: expyfun.stimuli

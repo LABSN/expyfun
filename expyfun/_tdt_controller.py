@@ -12,7 +12,7 @@ from os import path as op
 from functools import partial
 import warnings
 
-from ._utils import _check_params, wait_secs, logger, ZeroClock
+from ._utils import _check_params, logger, ZeroClock
 from ._input_controllers import Keyboard
 
 
@@ -94,9 +94,12 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
 
         The defaults are superseded on individual machines by
         the configuration file.
+    ec : instance of ExperimentController
+        The ExperimentController.
     """
 
-    def __init__(self, tdt_params):
+    def __init__(self, tdt_params, ec):
+        self.ec = ec
         defaults = dict(TDT_MODEL='dummy', TDT_DELAY='0', TDT_TRIG_DELAY='0',
                         TYPE='tdt')  # if not listed -> None
         keys = ['TYPE', 'TDT_MODEL', 'TDT_CIRCUIT_PATH', 'TDT_INTERFACE',
@@ -305,7 +308,7 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
             self.rpcox.SetTagVal('trgname', trig)
             self._trigger(6)
             if ti < len(triggers) - 1 or wait_for_last:
-                wait_secs(delay)
+                self.ec.wait_secs(delay)
 
     def _trigger(self, trig):
         """Wrapper for tdt.util.RPcoX.SoftTrg()
