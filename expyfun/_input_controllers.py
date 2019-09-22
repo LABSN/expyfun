@@ -575,6 +575,8 @@ class Joystick(Keyboard):
     Basically they are just Keyboards with extra methods.
     """
 
+    x = property(lambda self: self._dev.x)
+
     def __init__(self, ec):
         import pyglet.input
         self.ec = ec
@@ -605,10 +607,11 @@ class Joystick(Keyboard):
         if dev is not None:
             dev.close()
 
-    @property
-    def hat_x(self):
-        return self._dev.hat_x
 
-    @property
-    def hat_y(self):
-        return -self._dev.hat_y  # undo Pyglet convention -> we consider up +
+for key in ('x', 'y', 'hat_x', 'hat_y', 'z', 'rz', 'rx', 'ry'):
+    def _wrap(key=key):
+        sign = -1 if key in ('rz',) else 1
+        return property(lambda self: sign * getattr(self._dev, key))
+    setattr(Joystick, key, _wrap())
+    del _wrap
+del key

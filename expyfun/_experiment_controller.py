@@ -1323,29 +1323,23 @@ class ExperimentController(object):
         ExperimentController.listen_presses
         """
         self._dispatch_events()
-        print(self._joystick_handler._dev.hat_x, self._joystick_handler._dev.buttons)
         return self._joystick_handler.get_presses(
             None, timestamp, relative_to, kind, return_kinds)
 
-    def get_joy_hat_x(self):
+    def get_joy_value(self, kind):
         """Get the current joystick x direction.
 
-        Returns
-        -------
-        x : float
-            Value in the range -1 (left) to 1 (right).
-        """
-        return self._joystick_handler.hat_x
-
-    def get_joy_hat_y(self):
-        """Get the current joystick y direction.
+        Parameters
+        ----------
+        kind : str
+            Can be "x", "y", "hat_x", "hat_y", "z", "rz", "rx", or "ry".
 
         Returns
         -------
         x : float
-            Value in the range -1 (down) to 1 (up).
+            Value in the range -1 to 1.
         """
-        return self._joystick_handler.hat_y
+        return getattr(self._joystick_handler, kind)
 
 # ############################## MOUSE METHODS ################################
 
