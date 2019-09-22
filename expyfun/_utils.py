@@ -475,12 +475,15 @@ def requires_opengl21(func):
 def requires_lib(lib):
     """Requires lib decorator."""
     import pytest
-    val = False
     try:
         importlib.import_module(lib)
-    except Exception:
+    except Exception as exp:
         val = True
-    return pytest.mark.skipif(val, reason='Needs %s' % (lib,))
+        reason = 'Needs %s (%s)' % (lib, exp)
+    else:
+        val = False
+        reason = ''
+    return pytest.mark.skipif(val, reason=reason)
 
 
 def _has_scipy_version(version):
