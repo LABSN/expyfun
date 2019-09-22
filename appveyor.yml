@@ -9,7 +9,7 @@ platform:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
-  - "pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy joblib numpydoc pillow"
+  - "pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy joblib numpydoc pillow imageio-ffmpeg"
   - "python -c \"import mne; mne.sys_info()\""
   # Get a virtual sound card / VBAudioVACWDM device
   - "git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git"
@@ -21,14 +21,13 @@ install:
   - "powershell gl-ci-helpers/appveyor/install_opengl.ps1"
   - "python -c \"import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()\""
   # expyfun
-  - "powershell make/get_video.ps1"
   - "python setup.py develop"
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Ensure that video works
-  # "python -c \"import expyfun; assert expyfun._utils._has_video()\""
+  - "python -c \"import expyfun; assert expyfun._utils._has_video()\""
   # Run the project tests
   - "pytest --cov=expyfun expyfun"
 
