@@ -32,14 +32,15 @@ with ExperimentController('joyExp', participant='foo', session='001',
         Text(ec, str(count), pos=(1, -1),
              anchor_x='right', anchor_y='bottom').draw()
         circle.draw()
-        ec.flip()
         screenshot = ec.screenshot() if screenshot is None else screenshot
+        ec.flip()
         if not building_doc:
             pressed = ec.get_joystick_button_presses()
         else:
             pressed = [('2',)]
         pressed = pressed[0][0] if pressed else ''
-        count += 1
+        print(pressed)
+        count += len(pressed)
         ec.wait_secs(0.2)
         ec.check_force_quit()
 

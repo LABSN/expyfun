@@ -887,31 +887,30 @@ class ExperimentController(object):
 # ############################### PYGLET EVENTS ###############################
 
     def _setup_event_loop(self):
-        from pyglet.app import EventLoop, PlatformEventLoop
-        self._event_loop = ev = EventLoop()
-        self._platform_event_loop = PlatformEventLoop()
+        from pyglet.app import platform_event_loop, event_loop
+        event_loop.has_exit = False
+        event_loop._legacy_setup()
+        platform_event_loop.start()
+        event_loop.dispatch_event('on_enter')
 
-        ev.has_exit = False
-        ev._legacy_setup()
-        self._platform_event_loop.start()
-        ev.dispatch_event('on_enter')
-
-        ev.is_running = True
+        event_loop.is_running = True
         self._extra_cleanup_fun.append(self._end_event_loop)
         # This is when Pyglet calls:
         #     ev._run()
         # which is a while loop with the contents of our dispatch_events.
 
     def _dispatch_events(self):
+        from pyglet.app import platform_event_loop
         self._win.dispatch_events()
         # timeout = self._event_loop.idle()
         timeout = 0
-        self._platform_event_loop.step(timeout)
+        platform_event_loop.step(timeout)
 
     def _end_event_loop(self):
-        self._event_loop.is_running = False
-        self._event_loop.dispatch_event('on_exit')
-        self._platform_event_loop.stop()
+        from pyglet.app import platform_event_loop, event_loop
+        event_loop.is_running = False
+        event_loop.dispatch_event('on_exit')
+        platform_event_loop.stop()
 
 # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
@@ -1323,13 +1322,12 @@ class ExperimentController(object):
         --------
         ExperimentController.listen_presses
         """
-        print('gettin')
-        print(self._joystick_handler._dev.x)
-        print(self._joystick_handler._dev.buttons)
+        self._dispatch_events()
+        print(self._joystick_handler._dev.hat_x, self._joystick_handler._dev.buttons)
         return self._joystick_handler.get_presses(
             None, timestamp, relative_to, kind, return_kinds)
 
-    def get_joy_x(self):
+    def get_joy_hat_x(self):
         """Get the current joystick x direction.
 
         Returns
@@ -1337,9 +1335,9 @@ class ExperimentController(object):
         x : float
             Value in the range -1 (left) to 1 (right).
         """
-        return self._joystick_handler.x
+        return self._joystick_handler.hat_x
 
-    def get_joy_y(self):
+    def get_joy_hat_y(self):
         """Get the current joystick y direction.
 
         Returns
@@ -1347,7 +1345,7 @@ class ExperimentController(object):
         x : float
             Value in the range -1 (down) to 1 (up).
         """
-        return self._joystick_handler.x
+        return self._joystick_handler.hat_y
 
 # ############################## MOUSE METHODS ################################
 

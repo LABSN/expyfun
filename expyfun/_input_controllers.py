@@ -577,6 +577,7 @@ class Joystick(Keyboard):
 
     def __init__(self, ec):
         import pyglet.input
+        self.ec = ec
         self.master_clock = ec._master_clock
         self.log_presses = partial(ec._log_presses, kind='joy')
         self.force_quit_keys = []
@@ -605,9 +606,9 @@ class Joystick(Keyboard):
             dev.close()
 
     @property
-    def x(self):
-        return self._dev.x
+    def hat_x(self):
+        return self._dev.hat_x
 
     @property
-    def y(self):
-        return -self._dev.y  # undo Pyglet convention -> we consider up +
+    def hat_y(self):
+        return -self._dev.hat_y  # undo Pyglet convention -> we consider up +
