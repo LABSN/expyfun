@@ -582,10 +582,8 @@ def test_sound_card_triggering(hide_window):
 class _FakeJoystick(object):
     device = 'FakeJoystick'
     on_joybutton_press = lambda self, joystick, button: None  # noqa
+    open = lambda self, window, exclusive: None  # noqa
     x = 0.125
-
-    def open(self, window, exclusive):
-        pass
 
 
 def test_joystick(hide_window, monkeypatch):
@@ -599,4 +597,4 @@ def test_joystick(hide_window, monkeypatch):
         presses = ec.get_joystick_button_presses()
         assert len(presses) == 1
         assert presses[0][0] == '1'
-        ec.get_joystick_value('x') == 0.125
+        assert ec.get_joystick_value('x') == 0.125

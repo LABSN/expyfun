@@ -3,15 +3,13 @@
 Use joystick controls
 =====================
 
-This example demonstrates how to use a joystick as an input device.
+This example demonstrates how to use a joystick as an input device
+using button presses and continuous analog movement to control the position
+of a circle on the screen.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
-
-# Todo:
-# - make it actually work (Pyglet bug)
-# - make it move around the screen
 
 from expyfun import ExperimentController, analyze, building_doc
 from expyfun.visual import Circle, Text
@@ -19,8 +17,8 @@ from expyfun.visual import Circle, Text
 print(__doc__)
 
 joystick = not building_doc
-move_rate = 0.05
-noise_thresh = 0.01
+move_rate = 0.05  # map -1<->1 stick range to something decent for 60Hz refresh
+noise_thresh = 0.01  # permit slight miscalibration
 # on a Logitech Cordless Rumblepad, the right stick is the analog one,
 # and it has values stored in z and rz
 joy_keys = ('z', 'rz')
