@@ -590,7 +590,7 @@ class Joystick(Keyboard):
         self._keyboard_buffer = []
         self._dev = pyglet.input.get_joysticks()[0]
         logger.info('Expyfun: Initializing joystick %s' % (self._dev.device,))
-        self._dev.open(window=ec._win, exclusive=False)
+        self._dev.open(window=ec._win, exclusive=True)
         assert hasattr(self._dev, 'on_joybutton_press')
         self._dev.on_joybutton_press = partial(
             self._on_pyglet_joybutton, kind='press')

@@ -60,7 +60,7 @@ with ExperimentController('joyExp', participant='foo', session='001',
         #######################################################################
         # Move the cursor
         for idx, (key, ratio) in enumerate(zip(joy_keys, ratios)):
-            delta = 0. if building_doc else ec.get_joy_value(key)
+            delta = 0. if building_doc else ec.get_joystick_value(key)
             if abs(delta) > noise_thresh:  # remove noise
                 pos[idx] = max(min(
                     pos[idx] + move_rate * ratio * delta, 1), -1)

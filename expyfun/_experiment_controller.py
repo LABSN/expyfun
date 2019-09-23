@@ -1326,7 +1326,7 @@ class ExperimentController(object):
         return self._joystick_handler.get_presses(
             None, timestamp, relative_to, kind, return_kinds)
 
-    def get_joy_value(self, kind):
+    def get_joystick_value(self, kind):
         """Get the current joystick x direction.
 
         Parameters

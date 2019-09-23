@@ -577,3 +577,25 @@ def test_sound_card_triggering(hide_window):
         ec.load_buffer([1e-2])
         ec.start_stimulus()
         ec.stop()
+
+
+class _FakeJoystick(object):
+    device = 'FakeJoystick'
+    on_joybutton_press = lambda self, joystick, button: None  # noqa
+    x = 0.125
+
+    def open(self, window, exclusive):
+        pass
+
+
+def test_joystick(hide_window, monkeypatch):
+    import pyglet
+    fake = _FakeJoystick()
+    monkeypatch.setattr(pyglet.input, 'get_joysticks', lambda: [fake])
+    with ExperimentController(*std_args, joystick=True, **std_kwargs) as ec:
+        ec.listen_joystick_button_presses()
+        fake.on_joybutton_press(fake, 1)
+        presses = ec.get_joystick_button_presses()
+        assert len(presses) == 1
+        assert presses[0][0] == '1'
+        ec.get_joystick_value('x') == 0.125

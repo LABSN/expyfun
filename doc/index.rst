@@ -48,6 +48,7 @@ Hardware support
 - Keyboard responses
 - Mouse responses
 - Cedrus response boxes
+- Joystick control / responses
 
 .. note:: Support for high-precision sound card delivery is under development.
 
