@@ -589,6 +589,7 @@ class _FakeJoystick(object):
 
 
 def test_joystick(hide_window, monkeypatch):
+    """Test joystick support."""
     import pyglet
     fake = _FakeJoystick()
     monkeypatch.setattr(pyglet.input, 'get_joysticks', lambda: [fake])
