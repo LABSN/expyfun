@@ -64,6 +64,7 @@ def test_barplot_single(tmp_err):
     plt.close('all')
 
 
+@pytest.mark.timeout(15)
 def test_barplot_single_spec(tmp_err):
     """Test with one data point per bar and user-specified err ranges."""
     import matplotlib.pyplot as plt
@@ -86,6 +87,7 @@ def test_barplot_single_spec(tmp_err):
     plt.close('all')
 
 
+@pytest.mark.timeout(10)
 def test_barplot_multiple():
     """Test with multiple data points per bar and calculated ranges."""
     import matplotlib.pyplot as plt
