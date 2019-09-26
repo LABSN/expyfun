@@ -104,10 +104,7 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
         assert mixer.samplerate == fs
 
     mixer.start()
-    try:
-        mixer.start_time = mixer.time
-    except Exception:
-        mixer.start_time = 0
+    assert mixer.active
     logger.info('Expyfun: using %s, %0.1f ms nominal latency'
                 % (param_str, 1000 * device['default_low_output_latency']))
     atexit.register(lambda: (mixer.abort(), mixer.close()))
@@ -166,12 +163,13 @@ class SoundPlayer(object):
                 self._action = self._mixer.play_buffer(
                     self._data, self._data.shape[1], start=self._start_time)
 
-    def stop(self, wait=True):
+    def stop(self, wait=True, extra_delay=0.):
         """Stop."""
         if self.playing:
             action, self._action = self._action, None
             # Impose the same delay here that we imposed on the stim start
-            cancel_action = self._mixer.cancel(action, time=self._start_time)
+            cancel_action = self._mixer.cancel(
+                action, time=self._start_time + extra_delay)
             if wait:
                 self._mixer.wait(cancel_action)
             else:
