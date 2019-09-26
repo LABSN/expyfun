@@ -14,7 +14,7 @@ matrix:
   include:
     - os: linux
       dist: xenial
-      env: _EXPYFUN_SILENT=true
+      env: _EXPYFUN_SILENT=true PYTEST_DEBUG=true
       addons:
         apt:
           packages:
