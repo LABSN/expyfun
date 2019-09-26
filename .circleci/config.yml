@@ -2,15 +2,13 @@ version: 2
 jobs:
   build_docs:
     docker:
-      - image: circleci/python:3.6-stretch
+      - image: circleci/python:3.7-buster
     steps:
       # Get our data and merge with upstream
       - checkout
       - run: echo $(git log -1 --pretty=%B) | tee gitlog.txt
       - run: echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-      - run: sudo apt-get install libglu1-mesa
-      - run: wget https://github.com/downloads/AVbin/AVbin/install-avbin-linux-x86-64-v10
-      - run: sudo sh ./install-avbin-linux-x86-64-v10
+      - run: sudo apt-get install libglu1-mesa ffmpeg
       - run:
          command: |
            if [[ $(cat merge.txt) != "" ]]; then
@@ -20,10 +18,10 @@ jobs:
       - run: echo "export DISPLAY=:99" >> $BASH_ENV
       - run: echo "export _EXPYFUN_SILENT=true" >> $BASH_ENV
       - run: echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV
-      - run: echo "export SOUND_CARD_BACKEND=pyglet"  # rtmixer needs pulse, which is a huge pain to get running on CircleCI
+      - run: echo "export SOUND_CARD_BACKEND=pyglet >> $BASH_ENV"  # rtmixer needs pulse, which is a huge pain to get running on CircleCI
       - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       - run: pip install --quiet --upgrade --user pip
-      - run: pip install --quiet --upgrade --user numpy scipy matplotlib sphinx pillow pandas h5py mne "pyglet<1.3" psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
+      - run: pip install --quiet --upgrade --user numpy scipy matplotlib sphinx pillow pandas h5py mne pyglet psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
       - run: python -c "import mne; mne.sys_info()"
       - run: python setup.py develop --user
       - run: cd doc && make html

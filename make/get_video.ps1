@@ -1,13 +1,8 @@
-function DownloadAVBin () {
+function DownloadDLL($dll) {
+    $url = "https://staff.washington.edu/larsoner/" + $dll
+    $filepath = "C:\Windows\system32\" + $dll
     $webclient = New-Object System.Net.WebClient
     $basedir = $pwd.Path + "\"
-    if ($Env:PYTHON_ARCH -eq "32") {
-        $url = "https://staff.washington.edu/larsoner/avbin.dll"
-        $filepath = "C:\Windows\SysWOW64\avbin.dll"
-    } else {
-        $url = "https://staff.washington.edu/larsoner/avbin64.dll"
-        $filepath = "C:\Windows\system32\avbin64.dll"
-    }
     Write-Host "Downloading" $url
     $retry_attempts = 2
     for($i=0; $i -lt $retry_attempts; $i++){
@@ -28,7 +23,11 @@ function DownloadAVBin () {
 }
 
 function main () {
-    DownloadAVBin
+    DownloadDLL("avcodec-58.dll")
+    DownloadDLL("avformat-58.dll")
+    DownloadDLL("avutil-56.dll")
+    DownloadDLL("swresample-3.dll")
+    DownloadDLL("swscale-5.dll")
 }
 
 main

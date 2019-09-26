@@ -432,22 +432,32 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
-def _has_avbin():
-    has = True
-    try:
-        from pyglet.media.avbin import AVbinSource  # noqa
-    except ImportError:
+def _new_pyglet():
+    import pyglet
+    return LooseVersion(pyglet.version) >= LooseVersion('1.4')
+
+
+def _has_video():
+    if _new_pyglet():
         try:
-            from pyglet.media.sources.avbin import AVbinSource  # noqa
+            from pyglet.media.codecs.ffmpeg import FFmpegSource  # noqa
         except ImportError:
-            has = False
-    return has
+            return False
+    else:
+        try:
+            from pyglet.media.avbin import AVbinSource  # noqa
+        except ImportError:
+            try:
+                from pyglet.media.sources.avbin import AVbinSource  # noqa
+            except ImportError:
+                return False
+    return True
 
 
-def requires_avbin():
-    """Requires AVbin decorator."""
+def requires_video():
+    """Requires FFmpeg/AVbin decorator."""
     import pytest
-    return pytest.mark.skipif(not _has_avbin(), reason='Requires AVbin')
+    return pytest.mark.skipif(not _has_video(), reason='Requires FFmpeg/AVbin')
 
 
 def requires_opengl21(func):
@@ -465,12 +475,15 @@ def requires_opengl21(func):
 def requires_lib(lib):
     """Requires lib decorator."""
     import pytest
-    val = False
     try:
         importlib.import_module(lib)
-    except Exception:
+    except Exception as exp:
         val = True
-    return pytest.mark.skipif(val, reason='Needs %s' % (lib,))
+        reason = 'Needs %s (%s)' % (lib, exp)
+    else:
+        val = False
+        reason = ''
+    return pytest.mark.skipif(val, reason=reason)
 
 
 def _has_scipy_version(version):
@@ -710,7 +723,7 @@ def _check_pyglet_version(raise_error=False):
     return is_usable
 
 
-def wait_secs(secs, ec=None):
+def _wait_secs(secs, ec=None):
     """Wait a specified number of seconds.
 
     Parameters
@@ -718,6 +731,7 @@ def wait_secs(secs, ec=None):
     secs : float
         Number of seconds to wait.
     ec : None | expyfun.ExperimentController instance
+        The ExperimentController.
 
     Notes
     -----
@@ -725,14 +739,15 @@ def wait_secs(secs, ec=None):
     guarantee that events (keypresses, etc.) are processed.
     """
     # hog the cpu, checking time
-    import pyglet
     t0 = clock()
-    wins = pyglet.window.get_platform().get_default_display().get_windows()
-    while (clock() - t0) < secs:
+    if ec is not None:
+        while (clock() - t0) < secs:
+            ec._dispatch_events()
+            ec.check_force_quit()
+    else:
+        wins = _get_display().get_windows()
         for win in wins:
             win.dispatch_events()
-        if ec is not None:
-            ec.check_force_quit()
 
 
 def running_rms(signal, win_length):
@@ -880,3 +895,12 @@ def _check_params(params, keys, defaults, name):
             raise KeyError('Unrecognized key in {0}["{1}"], must be '
                            'one of {2}'.format(name, k, ', '.join(keys)))
     return params
+
+
+def _get_display():
+    import pyglet
+    try:
+        display = pyglet.canvas.get_display()
+    except AttributeError:  # < 1.4
+        display = pyglet.window.get_platform().get_default_display()
+    return display

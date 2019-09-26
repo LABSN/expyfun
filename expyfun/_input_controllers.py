@@ -12,7 +12,7 @@ from functools import partial
 
 from .visual import (Triangle, Rectangle, Circle, Diamond, ConcentricCircles,
                      FixationDot)
-from ._utils import wait_secs, clock, string_types
+from ._utils import clock, string_types, logger
 
 
 class Keyboard(object):
@@ -43,14 +43,15 @@ class Keyboard(object):
         ec._time_correction_fxns['keypress'] = self._get_timebase
         self.get_time_corr = partial(ec._get_time_correction, 'keypress')
         self.time_correction = self.get_time_corr()
-        self.win = ec._win
+        self.ec = ec
         # always init pyglet response handler for error (and non-error) keys
-        self.win.on_key_press = self._on_pyglet_keypress
-        self.win.on_key_release = self._on_pyglet_keyrelease
+        self.ec._win.on_key_press = self._on_pyglet_keypress
+        self.ec._win.on_key_release = self._on_pyglet_keyrelease
         self._keyboard_buffer = []
 
     ###########################################################################
     # Methods to be overridden by subclasses
+
     def _clear_events(self):
         self._clear_keyboard_events()
 
@@ -63,7 +64,7 @@ class Keyboard(object):
         return clock()
 
     def _clear_keyboard_events(self):
-        self.win.dispatch_events()
+        self.ec._dispatch_events()
         self._keyboard_buffer = []
 
     def _retrieve_keyboard_events(self, live_keys, kind='presses'):
@@ -71,7 +72,7 @@ class Keyboard(object):
         if live_keys is not None:
             live_keys = [str(x) for x in live_keys]  # accept ints
             live_keys.extend(self.force_quit_keys)
-        self.win.dispatch_events()  # pump events on pyglet windows
+        self.ec._dispatch_events()  # pump events on pyglet windows
         targets = []
 
         for key in self._keyboard_buffer:
@@ -254,7 +255,7 @@ class Keyboard(object):
             raise ValueError('min_wait must be less than max_wait')
         start_time = self.master_clock()
         relative_to = start_time if relative_to is None else relative_to
-        wait_secs(min_wait)
+        self.ec.wait_secs(min_wait)
         self.check_force_quit()
         self._clear_events()
         return relative_to, start_time
@@ -286,7 +287,7 @@ class Mouse(object):
 
     def __init__(self, ec, visible=False):
         from pyglet.window import mouse
-        self.win = ec._win
+        self.ec = ec
         self.set_visible(visible)
         self.master_clock = ec._master_clock
         self.log_clicks = ec._log_clicks
@@ -294,9 +295,8 @@ class Mouse(object):
         ec._time_correction_fxns['mouseclick'] = self._get_timebase
         self.get_time_corr = partial(ec._get_time_correction, 'mouseclick')
         self.time_correction = self.get_time_corr()
-        self.win = ec._win
         self._check_force_quit = ec.check_force_quit
-        self.win.on_mouse_press = self._on_pyglet_mouse_click
+        self.ec._win.on_mouse_press = self._on_pyglet_mouse_click
         self._mouse_buffer = []
         self._button_names = {mouse.LEFT: 'left', mouse.MIDDLE: 'middle',
                               mouse.RIGHT: 'right'}
@@ -312,8 +312,8 @@ class Mouse(object):
         visible : bool
             If True, make mouse visible.
         """
-        self.win.set_mouse_visible(visible)
-        self.win.set_mouse_platform_visible(visible)  # Pyglet workaround
+        self.ec._win.set_mouse_visible(visible)
+        self.ec._win.set_mouse_platform_visible(visible)  # Pyglet workaround
         self._visible = visible
 
     @property
@@ -324,12 +324,15 @@ class Mouse(object):
     @property
     def pos(self):
         """The current position of the mouse in normalized units"""
-        x = (self.win._mouse_x - self.win.width / 2.) / (self.win.width / 2.)
-        y = (self.win._mouse_y - self.win.height / 2.) / (self.win.height / 2.)
+        x = (self.ec._win._mouse_x -
+             self.ec._win.width / 2.) / (self.ec._win.width / 2.)
+        y = (self.ec._win._mouse_y -
+             self.ec._win.height / 2.) / (self.ec._win.height / 2.)
         return np.array([x, y])
 
     ###########################################################################
     # Methods to be overridden by subclasses
+
     def _clear_events(self):
         self._clear_mouse_events()
 
@@ -342,11 +345,11 @@ class Mouse(object):
         return clock()
 
     def _clear_mouse_events(self):
-        self.win.dispatch_events()
+        self.ec._dispatch_events()
         self._mouse_buffer = []
 
     def _retrieve_mouse_events(self, live_buttons):
-        self.win.dispatch_events()  # pump events on pyglet windows
+        self.ec._dispatch_events()  # pump events on pyglet windows
         targets = []
         for button in self._mouse_buffer:
             if live_buttons is None or button[0] in live_buttons:
@@ -474,7 +477,7 @@ class Mouse(object):
         start_time = self.master_clock()
         if timestamp and relative_to is None:
             relative_to = start_time
-        wait_secs(min_wait)
+        self.ec.wait_secs(min_wait)
         self._check_force_quit()
         self._clear_events()
         was_visible = self.visible
@@ -525,7 +528,6 @@ class CedrusBox(Keyboard):
         dev.reset_base_timer()
         assert dev.is_response_device()
         self._dev = dev
-        self._keyboard_buffer = []
         super(CedrusBox, self).__init__(ec, force_quit_keys)
         ec._time_correction_maxs['keypress'] = 1e-3  # higher tolerance
 
@@ -565,3 +567,51 @@ class CedrusBox(Keyboard):
                 if live_keys is None or key[0] in live_keys:
                     targets.append(key)
         return targets
+
+
+class Joystick(Keyboard):
+    """Class for Joysticks.
+
+    Basically they are just Keyboards with extra methods.
+    """
+
+    x = property(lambda self: self._dev.x)
+
+    def __init__(self, ec):
+        import pyglet.input
+        self.ec = ec
+        self.master_clock = ec._master_clock
+        self.log_presses = partial(ec._log_presses, kind='joy')
+        self.force_quit_keys = []
+        self.listen_start = None
+        ec._time_correction_fxns['joystick'] = self._get_timebase
+        self.get_time_corr = partial(ec._get_time_correction, 'joystick')
+        self.time_correction = self.get_time_corr()
+        self._keyboard_buffer = []
+        self._dev = pyglet.input.get_joysticks()[0]
+        logger.info('Expyfun: Initializing joystick %s' % (self._dev.device,))
+        self._dev.open(window=ec._win, exclusive=True)
+        assert hasattr(self._dev, 'on_joybutton_press')
+        self._dev.on_joybutton_press = partial(
+            self._on_pyglet_joybutton, kind='press')
+        self._dev.on_joybutton_release = partial(
+            self._on_pyglet_joybutton, kind='release')
+
+    def _on_pyglet_joybutton(self, joystick, button='foo', kind='press'):
+        """Handler for on_joybutton_press events."""
+        key_time = clock()
+        self._keyboard_buffer.append((str(button), key_time, kind))
+
+    def _close(self):
+        dev = getattr(self, '_dev', None)
+        if dev is not None:
+            dev.close()
+
+
+for key in ('x', 'y', 'hat_x', 'hat_y', 'z', 'rz', 'rx', 'ry'):
+    def _wrap(key=key):
+        sign = -1 if key in ('rz',) else 1
+        return property(lambda self: sign * getattr(self._dev, key))
+    setattr(Joystick, key, _wrap())
+    del _wrap
+del key

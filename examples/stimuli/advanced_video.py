@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ======================
-Play sample video file
+Video property control
 ======================
 
 This shows how to control various properties of a video file in expyfun.

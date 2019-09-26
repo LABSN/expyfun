@@ -19,15 +19,16 @@ import string
 
 import numpy as np
 
-from ._utils import (get_config, verbose_dec, _check_pyglet_version, wait_secs,
+from ._utils import (get_config, verbose_dec, _check_pyglet_version,
                      running_rms, _sanitize, logger, ZeroClock, date_str,
-                     check_units, set_log_file, flush_logger,
-                     string_types, _fix_audio_dims, input, _get_args)
+                     check_units, set_log_file, flush_logger, _TempDir,
+                     string_types, _fix_audio_dims, input, _get_args,
+                     _get_display, _wait_secs)
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._sound_controllers import (SoundPlayer, SoundCardController,
                                  _AUTO_BACKENDS)
-from ._input_controllers import Keyboard, CedrusBox, Mouse
+from ._input_controllers import Keyboard, CedrusBox, Mouse, Joystick
 from .visual import Text, Rectangle, Video, _convert_color
 from ._git import assert_version, __version__
 
@@ -124,6 +125,8 @@ class ExperimentController(object):
         a TDT is used).
     trigger_duration : float
         The trigger duration to use (sec). Must be 0.01 for TDT.
+    joystick : bool
+        Whether or not to enable joystick control.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -146,7 +149,7 @@ class ExperimentController(object):
                  monitor=None, trigger_controller=None, session=None,
                  check_rms='windowed', suppress_resamp=False, version=None,
                  enable_video=False, safe_flipping=None, n_channels=2,
-                 trigger_duration=0.01, verbose=None):
+                 trigger_duration=0.01, joystick=False, verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -171,6 +174,7 @@ class ExperimentController(object):
 
         # put anything that could fail in this block to ensure proper cleanup!
         try:
+            self._setup_event_loop()
             self.set_rms_checking(check_rms)
             # Check Pyglet version for safety
             _check_pyglet_version(raise_error=True)
@@ -262,8 +266,7 @@ class ExperimentController(object):
 
             if screen_num is None:
                 screen_num = int(get_config('SCREEN_NUM', '0'))
-            import pyglet
-            display = pyglet.window.get_platform().get_default_display()
+            display = _get_display()
             screen = display.get_screens()[screen_num]
             if monitor is None:
                 mon_size = [screen.width, screen.height]
@@ -339,12 +342,12 @@ class ExperimentController(object):
                 if trigger_duration != 0.01:
                     raise ValueError('trigger_duration must be 0.01 for TDT, '
                                      'got %s' % (trigger_duration,))
-                self._ac = TDTController(audio_controller)
+                self._ac = TDTController(audio_controller, ec=self)
                 self.audio_type = self._ac.model
             elif audio_type == 'sound_card':
                 self._ac = SoundCardController(
                     audio_controller, self.stim_fs, n_channels,
-                    trigger_duration=trigger_duration)
+                    trigger_duration=trigger_duration, ec=self)
                 self.audio_type = self._ac.backend_name
             else:
                 raise ValueError('audio_controller[\'TYPE\'] must be "tdt" '
@@ -400,6 +403,13 @@ class ExperimentController(object):
             else:  # response_device == 'cedrus'
                 self._response_handler = CedrusBox(self, force_quit)
 
+            # Joystick
+            if joystick:
+                self._joystick_handler = Joystick(self)
+                self._extra_cleanup_fun.append(self._joystick_handler._close)
+            else:
+                self._joystick_handler = None
+
             #
             # set up trigger controller
             #
@@ -432,7 +442,7 @@ class ExperimentController(object):
                 self._tc = ParallelTrigger(
                     trigger_controller['type'],
                     trigger_controller.get('address'),
-                    trigger_duration)
+                    trigger_duration, ec=self)
                 self._extra_cleanup_fun.insert(0, self._tc.close)
                 # The TDT always stamps "1" on stimulus onset. Here we need
                 # to manually mimic that behavior.
@@ -681,7 +691,7 @@ class ExperimentController(object):
             if when is not None:
                 self.wait_until(when)
             funs = [self._play] + self._ofp_critical_funs
-            self._win.dispatch_events()
+            self._dispatch_events()
             stimulus_time = self.get_time()
             for fun in funs:
                 fun()
@@ -798,24 +808,18 @@ class ExperimentController(object):
 
         Returns
         -------
-        scr : array
-            N x M x 3 array of screen pixel colors.
+        data : array, shape (h, w, 4)
+            Screen pixel colors.
         """
         import pyglet
-        # this must be done in order to instantiate image_buffer_manager
-        pyglet.image.get_buffer_manager().get_color_buffer()
-        data = self._win.context.image_buffer_manager.color_buffer.image_data
-        data = data.get_data(data.format, data.pitch)
-        data = np.frombuffer(data, dtype=np.uint8)
-        try:
-            h, w = self._win.get_viewport_size()  # Pyglet 1.3+
-        except Exception:
-            h, w = self._win.height, self._win.width
-        try:
-            data.shape = (h, w, 4)
-        except ValueError:
-            data.shape = (h // 2, w // 2, 4)
-        data = np.flipud(data)
+        from PIL import Image
+        tempdir = _TempDir()
+        fname = op.join(tempdir, 'tmp.png')
+        pyglet.image.get_buffer_manager().get_color_buffer().save(fname)
+        with Image.open(fname) as img:
+            data = np.array(img)
+        del tempdir
+        assert data.ndim == 3 and data.shape[-1] == 4
         return data
 
     @property
@@ -860,22 +864,53 @@ class ExperimentController(object):
         center : bool
             If True, center the video.
         """
-        from pyglet.media import MediaFormatException
+        try:
+            from pyglet.media.exceptions import MediaFormatException
+        except ImportError:  # < 1.4
+            from pyglet.media import MediaFormatException
         try:
             self.video = Video(self, file_name, pos, units)
         except MediaFormatException as exp:
             raise RuntimeError(
                 'Something is wrong; probably you tried to load a '
-                'compressed video file but you do not have AVbin installed.'
-                ' Download and install it; if you are on Windows, you may '
-                'also need to manually copy the AVbin .dll file(s) from '
-                'C:\\Windows\\system32 to C:\\Windows\\SysWOW64.:\n%s'
+                'compressed video file but you do not have FFmpeg/Avbin '
+                'installed. Download and install it; if you are on Windows, '
+                'you may also need to manually copy the .dll file(s) '
+                'from C:\\Windows\\system32 to C:\\Windows\\SysWOW64.:\n%s'
                 % (exp,))
 
     def delete_video(self):
         """Delete the video."""
         self.video._delete()
         self.video = None
+
+# ############################### PYGLET EVENTS ###############################
+
+    def _setup_event_loop(self):
+        from pyglet.app import platform_event_loop, event_loop
+        event_loop.has_exit = False
+        event_loop._legacy_setup()
+        platform_event_loop.start()
+        event_loop.dispatch_event('on_enter')
+
+        event_loop.is_running = True
+        self._extra_cleanup_fun.append(self._end_event_loop)
+        # This is when Pyglet calls:
+        #     ev._run()
+        # which is a while loop with the contents of our dispatch_events.
+
+    def _dispatch_events(self):
+        from pyglet.app import platform_event_loop
+        self._win.dispatch_events()
+        # timeout = self._event_loop.idle()
+        timeout = 0
+        platform_event_loop.step(timeout)
+
+    def _end_event_loop(self):
+        from pyglet.app import platform_event_loop, event_loop
+        event_loop.is_running = False
+        event_loop.dispatch_event('on_exit')
+        platform_event_loop.stop()
 
 # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen_num):
@@ -929,7 +964,7 @@ class ExperimentController(object):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
         self.set_visible(v_)
-        win.dispatch_events()
+        self._dispatch_events()
 
     def flip(self, when=None):
         """Flip screen, then run any "on-flip" functions.
@@ -966,7 +1001,7 @@ class ExperimentController(object):
         if when is not None:
             self.wait_until(when)
         call_list = self._on_next_flip + self._on_every_flip
-        self._win.dispatch_events()
+        self._dispatch_events()
         self._win.switch_to()
         if self.safe_flipping:
             # On NVIDIA Linux these calls cause a 2x delay (33ms instead of 16)
@@ -1175,12 +1210,12 @@ class ExperimentController(object):
         return self._response_handler.wait_for_presses(
             max_wait, min_wait, live_keys, timestamp, relative_to)
 
-    def _log_presses(self, pressed):
+    def _log_presses(self, pressed, kind='key'):
         """Write key presses to data file."""
         # This function will typically be called by self._response_handler
         # after it retrieves some button presses
         for key, stamp, eventType in pressed:
-            self.write_data_line('key'+eventType, key, stamp)
+            self.write_data_line(kind + eventType, key, stamp)
 
     def check_force_quit(self):
         """Check to see if any force quit keys were pressed."""
@@ -1242,6 +1277,69 @@ class ExperimentController(object):
                 text += letter if letter in letters else ''
         self.write_data_line('text_input', text)
         return text
+
+# ############################## KEYPRESS METHODS #############################
+    def listen_joystick_button_presses(self):
+        """Start listening for joystick buttons.
+
+        See Also
+        --------
+        ExperimentController.get_joystick_button_presses
+        """
+        self._joystick_handler.listen_presses()
+
+    def get_joystick_button_presses(self, timestamp=True, relative_to=None,
+                                    kind='presses', return_kinds=False):
+        """Get the entire joystick buffer.
+
+        This will also clear events that are not requested per ``type``.
+
+        Parameters
+        ----------
+        timestamp : bool
+            Whether the keypress should be timestamped. If True, returns the
+            button press time relative to the value given in `relative_to`.
+        relative_to : None | float
+            A time relative to which timestamping is done. Ignored if
+            timestamp==False.  If ``None``, timestamps are relative to the time
+            `listen_presses` was last called.
+        kind : string
+            Which button events to return. One of ``presses``, ``releases`` or
+            ``both``. (default ``presses``)
+        return_kinds : bool
+            Return the kinds of presses.
+
+        Returns
+        -------
+        presses : list
+            Returns a list of tuples with button events. Each tuple's first
+            value will be the button pressed. If ``timestamp==True``, the
+            second value is the time for the event. If ``return_kinds==True``,
+            then the last value is a string indicating if this was a button
+            press or release event.
+
+        See Also
+        --------
+        ExperimentController.listen_presses
+        """
+        self._dispatch_events()
+        return self._joystick_handler.get_presses(
+            None, timestamp, relative_to, kind, return_kinds)
+
+    def get_joystick_value(self, kind):
+        """Get the current joystick x direction.
+
+        Parameters
+        ----------
+        kind : str
+            Can be "x", "y", "hat_x", "hat_y", "z", "rz", "rx", or "ry".
+
+        Returns
+        -------
+        x : float
+            Value in the range -1 to 1.
+        """
+        return getattr(self._joystick_handler, kind)
 
 # ############################## MOUSE METHODS ################################
 
@@ -1823,9 +1921,9 @@ class ExperimentController(object):
         See Also
         --------
         ExperimentController.wait_until
-        wait_secs
         """
-        wait_secs(secs, ec=self)
+        # hog the cpu, checking time
+        _wait_secs(secs, self)
 
     def wait_until(self, timestamp):
         """Wait until the given time is reached.
@@ -1845,7 +1943,6 @@ class ExperimentController(object):
         See Also
         --------
         ExperimentController.wait_secs
-        wait_secs
 
         Notes
         -----
@@ -1860,7 +1957,7 @@ class ExperimentController(object):
                            '({}) that had already passed {} seconds prior.'
                            ''.format(timestamp, -time_left))
         else:
-            wait_secs(time_left, self)
+            self.wait_secs(time_left)
         return time_left
 
     def identify_trial(self, **ids):

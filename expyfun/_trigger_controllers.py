@@ -8,7 +8,7 @@
 import sys
 import numpy as np
 
-from ._utils import wait_secs, verbose_dec, string_types, logger
+from ._utils import verbose_dec, string_types, logger
 
 
 class ParallelTrigger(object):
@@ -34,6 +34,8 @@ class ParallelTrigger(object):
     trigger_duration : float
         Amount of time (seconds) to leave the trigger high whenever
         sending a trigger.
+    ec : instance of ExperimentController
+        The ExperimentController.
     verbose : bool, str, int, or None
         If not None, override default verbose level.
 
@@ -45,7 +47,8 @@ class ParallelTrigger(object):
 
     @verbose_dec
     def __init__(self, mode='dummy', address=None, trigger_duration=0.01,
-                 verbose=None):
+                 ec=None, verbose=None):
+        self.ec = ec
         if mode == 'parallel':
             if sys.platform.startswith('linux'):
                 address = '/dev/parport0' if address is None else address
@@ -100,7 +103,7 @@ class ParallelTrigger(object):
     def _stamp_trigger(self, trig):
         """Fake stamping."""
         self._set_data(int(trig))
-        wait_secs(self.trigger_duration)
+        self.ec.wait_secs(self.trigger_duration)
         self._set_data(0)
 
     def stamp_triggers(self, triggers, delay=None, wait_for_last=True):
@@ -122,7 +125,7 @@ class ParallelTrigger(object):
         for ti, trig in enumerate(triggers):
             self._stamp_trigger(trig)
             if ti < len(triggers) - 1 or wait_for_last:
-                wait_secs(delay - self.trigger_duration)
+                self.ec.wait_secs(delay - self.trigger_duration)
 
     def close(self):
         """Release hardware interfaces."""

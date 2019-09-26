@@ -5,13 +5,15 @@
 #
 # License: BSD (3-clause)
 
-import sys
 import os
+import sys
 import warnings
 
 import numpy as np
 
 import pyglet
+
+from .._utils import _new_pyglet
 
 _PRIORITY = 200
 
@@ -28,18 +30,26 @@ pyglet.options['audio'] = _driver
 
 # these must follow the above option setting, so PEP8 complains
 try:
-    from pyglet.media import Player, AudioFormat, SourceGroup  # noqa
     try:
-        from pyglet.media import StaticMemorySource
+        from pyglet.media.codecs import AudioFormat
     except ImportError:
-        from pyglet.media.sources.base import StaticMemorySource  # noqa
+        from pyglet.media import AudioFormat
+    from pyglet.media import Player, SourceGroup  # noqa
+    try:
+        from pyglet.media.codecs import StaticMemorySource
+    except ImportError:
+        try:
+            from pyglet.media import StaticMemorySource
+        except ImportError:
+            from pyglet.media.sources.base import StaticMemorySource  # noqa
 except Exception as exp:
     warnings.warn('Pyglet could not be imported:\n%s' % exp)
     Player = AudioFormat = SourceGroup = StaticMemorySource = object
 
 
 def _check_pyglet_audio():
-    if pyglet.media.get_audio_driver() is None:
+    if pyglet.media.get_audio_driver() is None and \
+            not (_new_pyglet() and _driver == ('silent',)):
         raise SystemError('pyglet audio ("%s") could not be initialized'
                           % pyglet.options['audio'][0])
 
@@ -59,10 +69,14 @@ class SoundPlayer(Player):
         super(SoundPlayer, self).__init__()
         _check_pyglet_audio()
         sms = _as_static(data, self.fs)
-        group = SourceGroup(sms.audio_format, None)
-        group.loop = bool(loop)
-        group.queue(sms)
-        self.queue(group)
+        if _new_pyglet():
+            self.queue(sms)
+            self.loop = bool(loop)
+        else:
+            group = SourceGroup(sms.audio_format, None)
+            group.loop = bool(loop)
+            group.queue(sms)
+            self.queue(group)
         self._ec_duration = sms._duration
 
     def stop(self, wait=True, extra_delay=0.):
@@ -94,6 +108,10 @@ def _as_static(data, fs):
 
 class StaticMemorySourceFixed(StaticMemorySource):
     """Stupid class to fix old Pyglet bug."""
+
+    def __init__(self, data, audio_format):
+        self._data = data
+        StaticMemorySource.__init__(self, data, audio_format)
 
     def _get_queue_source(self):
         return self

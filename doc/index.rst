@@ -39,7 +39,7 @@ Hardware support
 
 - Sound card playback with:
 
-  - Fixed delay (no jitter) relative to video flip on Linux
+  - Fixed delay (no jitter) relative to video flip on Linux and Windows
   - Digital trigger stamping for zero-jitter trigger-to-auditory delay
     (with custom digital-to-TTL hardware)
 
@@ -48,15 +48,4 @@ Hardware support
 - Keyboard responses
 - Mouse responses
 - Cedrus response boxes
-
-.. note:: Support for high-precision sound card delivery is under development.
-
-Further reading
----------------
-
-.. toctree::
-   :maxdepth: 1
-
-   getting_started.rst
-   python_reference.rst
-   auto_examples/index.rst
+- Joystick control / responses

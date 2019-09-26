@@ -5,7 +5,14 @@
 
 import os
 import pytest
+from expyfun._utils import _get_display
 from expyfun._sound_controllers import _AUTO_BACKENDS
+
+# Unknown pytest problem with readline<->deprecated decorator
+try:
+    import readline  # noqa
+except Exception:
+    pass
 
 
 @pytest.mark.timeout(0)  # importing plt will build font cache, slow on Azure
@@ -27,11 +34,10 @@ def matplotlib_config():
 @pytest.fixture(scope='function')
 def hide_window():
     """Hide the expyfun window."""
-    import pyglet
     try:
-        pyglet.window.get_platform().get_default_display()
+        _get_display()
     except Exception as exp:
-        pytest.skip('Pyglet windowing unavailable (%s)' % exp)
+        pytest.skip('Windowing unavailable (%s)' % exp)
 
 
 _SOUND_CARD_ACS = tuple({'TYPE': 'sound_card', 'SOUND_CARD_BACKEND': backend}

@@ -13,8 +13,7 @@ from ._utils import (set_log_level, set_log_file, set_config, check_units,
                      run_subprocess)
 from ._utils import verbose_dec as verbose, building_doc
 from ._git import assert_version, download_version
-from ._experiment_controller import (ExperimentController, wait_secs,
-                                     get_keyboard_input)
+from ._experiment_controller import ExperimentController, get_keyboard_input
 from ._eyelink_controller import EyelinkController
 from ._sound_controllers import SoundCardController
 from ._trigger_controllers import (decimals_to_binary, binary_to_decimals,

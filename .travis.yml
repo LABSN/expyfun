@@ -1,5 +1,4 @@
 language: python
-dist: trusty
 sudo: false
 cache:
   apt: true
@@ -7,11 +6,6 @@ env:
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
     global: PYTHON=3.7 DISPLAY=:99.0
 
-addons:
-  apt:
-    packages:
-      - libavbin-dev
-      - libavbin0
 
 matrix:
   exclude:
@@ -19,11 +13,23 @@ matrix:
       - python: 2.7
   include:
     - os: linux
+      dist: xenial
       env: _EXPYFUN_SILENT=true
+      addons:
+        apt:
+          packages:
+            - ffmpeg
+            - libglu1-mesa
     - os: osx
       language: objective-c
     - os: linux
+      dist: trusty
       env: PYTHON=2.7 DEPS=minimal _EXPYFUN_SILENT=true
+      addons:
+        apt:
+          packages:
+            - libavbin0
+            - libavbin-dev
 
 
 before_install:
@@ -43,28 +49,28 @@ before_install:
     - conda update --yes conda
     - conda create -n testenv --yes --quiet pip python=$PYTHON
     - source activate testenv
-    - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout
+    - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout pillow
     - pip install -q codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice
     - if [ "${PYTHON}" != "2.7" ]; then
         pip install rtmixer;
       fi
-    # install AVbin
+    # install FFmpeg, sound drivers
     - git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git;
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        curl -L https://github.com/downloads/AVbin/AVbin/AVbin10.pkg -o ~/AVbin10.pkg;
-        sudo installer -pkg ~/AVbin10.pkg -target /;
+        brew install ffmpeg;
         sound-ci-helpers/macos/setup_sound.sh;
       else
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         sound-ci-helpers/linux/setup_sound.sh;
       fi;
     - python -m sounddevice
-    # Only install these deps if necessary (slow on Py3k)
-    - pip install -q flake8 "pyglet<1.4"
-    # Full dependencies (pandas, mne-python, h5py, joblib)
-    - if [ "${DEPS}" != "minimal" ]; then
-        conda install --yes --quiet pandas h5py mne;
-        pip install -q joblib;
+    - pip install -q flake8
+    # Minimal or full dependencies (pandas, mne-python, h5py, joblib)
+    - if [ "${DEPS}" == "minimal" ]; then
+        pip install "pyglet<1.4";
+      else
+        conda install --yes --quiet pandas h5py;
+        pip install -q joblib pyglet mne;
       fi;
     # Import matplotlib ahead of time so it doesn't affect test timings
     # (e.g., building fc-cache)
@@ -74,7 +80,7 @@ install:
     - python setup.py develop
 
 script:
-    - pytest expyfun
+    - pytest --cov=expyfun expyfun
     - make flake
     - make codespell-error
     - make docstyle
