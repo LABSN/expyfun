@@ -13,7 +13,7 @@ from psychtoolbox import audio
 from .._utils import logger, get_config
 
 _DEFAULT_NAME = None
-_PRIORITY = 100
+_PRIORITY = 200
 
 # only initialize each mixer once and reuse it until Python closes
 _STREAM_REGISTRY = {}

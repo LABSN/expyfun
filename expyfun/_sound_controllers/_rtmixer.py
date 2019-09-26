@@ -13,7 +13,7 @@ from rtmixer import Mixer, RingBuffer
 import sounddevice
 from .._utils import logger, get_config
 
-_PRIORITY = 200
+_PRIORITY = 100
 _DEFAULT_NAME = None
 
 # only initialize each mixer once and reuse it until Python closes
