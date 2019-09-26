@@ -124,33 +124,34 @@ class SoundPlayer(object):
     def fs(self):
         return self._fs
 
+    @property
+    def _start_time(self):
+        start = psychtoolbox.GetSecs()
+        if self._fixed_delay is not None:
+            start += self._fixed_delay
+        return start
+
     def play(self):
         """Play."""
         if not self.playing and self._stream is not None:
-            if self._fixed_delay is not None:
-                start = psychtoolbox.GetSecs() + self._fixed_delay
-            else:
-                start = 0
-            self._track.start(repetitions=self._loops, when=start)
+            self._track.start(repetitions=self._loops, when=self._start_time)
             self.playing = True
 
-    def pause(self):
-        """Pause."""
-        if self.playing:
-            self._track.stop(block_until_stopped=0)
-            self.playing = False
-
-    def stop(self):
+    def stop(self, wait=False, extra_delay=0.):
         """Stop."""
-        self.pause()
+        if self.playing:
+            self.playing = False
+            self._track.stop(block_until_stopped=wait,
+                             when=self._start_time + extra_delay)
 
     def delete(self):
         """Delete."""
         if getattr(self, '_stream', None) is not None:
             self.pause()
-            self._track.stop(block_until_stopped=0)
-            self._track.close()
+            track, stream = self._track, self._stream
             self._track = self._stream = None
+            track.close()
+            stream.close()
 
     def __del__(self):  # noqa
         self.delete()

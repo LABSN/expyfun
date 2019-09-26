@@ -153,8 +153,7 @@ def _read_binary(zip_file, callsign, color, number,
 
 def _prepare_stim(zfn, path_out, sex, tal, cal, col, num, fs_out, dtype,
                   ref_rms, n_jobs):
-    """Read in a binary CRM file and write out a scaled resampled wav.
-    """
+    """Read in a binary CRM file and write out a scaled resampled wav."""
     from mne.filter import resample
     zip_file = ZipFile(zfn)
     x = _read_binary(zip_file, cal, col, num, 0)
@@ -211,8 +210,7 @@ def crm_prepare_corpus(fs, path_out=None, overwrite=False, dtype=np.float64,
 
 def _crm_prepare_corpus_helper(fs, path_out, overwrite, dtype, n_jobs,
                                verbose, talker_list=None):
-    """Helper function that allows prep of one talker for faster testing.
-    """
+    """Helper function that allows prep of one talker for faster testing."""
     if talker_list is None:
         talker_list = [dict(sex=s, talker_num=t) for s in range(_n_sexes) for
                        t in range(_n_talkers)]

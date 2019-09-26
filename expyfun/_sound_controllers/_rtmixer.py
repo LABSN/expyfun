@@ -148,10 +148,10 @@ class SoundPlayer(object):
 
     @property
     def _start_time(self):
+        start = self._mixer.time
         if self._fixed_delay is not None:
-            return self._mixer.time + self._fixed_delay
-        else:
-            return 0.
+            start += self._fixed_delay
+        return start
 
     def play(self):
         """Play."""
