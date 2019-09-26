@@ -65,7 +65,7 @@ class SoundPlayer(Player):
         self.queue(group)
         self._ec_duration = sms._duration
 
-    def stop(self, wait=True):
+    def stop(self, wait=True, extra_delay=0.):
         """Stop."""
         self.pause()
         self.seek(0.)

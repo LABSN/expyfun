@@ -253,10 +253,14 @@ class SoundCardController(object):
         stim.play()
         t_each = self._trigger_duration + delay
         duration = len(triggers) * t_each
+        extra_delay = 0.1
         if not wait_for_last:
-            duration -= (delay - self._trigger_duration)
+            delta = (delay - self._trigger_duration)
+            duration -= delta
+            extra_delay += delta
         wait_secs(duration)
-        stim.stop(wait=False)
+        # Impose an extra delay on the "stop" action
+        stim.stop(wait=False, extra_delay=extra_delay)
 
     def play(self):
         """Play."""
