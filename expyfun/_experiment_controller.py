@@ -198,7 +198,7 @@ class ExperimentController(object):
             # Use ZeroClock, which uses the "clock" fn but starts at zero
             self._time_corrections = dict()
             self._time_correction_fxns = dict()
-            self._time_correction_maxs = dict()  # optional, defaults to 10e-6
+            self._time_correction_maxs = dict()  # optional, defaults to 50e-6
 
             # dictionary for experiment metadata
             self._exp_info = OrderedDict()
@@ -1898,7 +1898,7 @@ class ExperimentController(object):
             self._time_corrections[clock_type] = time_correction
 
         diff = time_correction - self._time_corrections[clock_type]
-        max_dt = self._time_correction_maxs.get(clock_type, 10e-6)
+        max_dt = self._time_correction_maxs.get(clock_type, 50e-6)
         if np.abs(diff) > max_dt:
             logger.warning('Expyfun: drift of > {} microseconds ({}) '
                            'between {} clock and EC master clock.'
