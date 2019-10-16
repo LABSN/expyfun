@@ -1,10 +1,12 @@
-language: python
+language: c
 sudo: false
 cache:
   apt: true
 env:
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
-    global: PYTHON=3.7 DISPLAY=:99.0
+    global: PYTHON_VERSION=3.7 DISPLAY=:99.0
+            CONDA_DEPENDENCIES="scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout pillow"
+            PIP_DEPENDENCIES="codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice"
 
 
 matrix:
@@ -24,7 +26,7 @@ matrix:
       language: objective-c
     - os: linux
       dist: trusty
-      env: PYTHON=2.7 DEPS=minimal _EXPYFUN_SILENT=true
+      env: PYTHON_VERSION=2.7 DEPS=minimal _EXPYFUN_SILENT=true
       addons:
         apt:
           packages:
@@ -42,16 +44,9 @@ before_install:
         export CONDA_OS="Linux";
       fi;
     # Easy dependencies (pulseaudio, scipy, matplotlib, pytest, coverage, codecov, flake8)
-    - wget http://repo.continuum.io/miniconda/Miniconda3-latest-${CONDA_OS}-x86_64.sh -O ~/miniconda.sh
-    - chmod +x ~/miniconda.sh
-    - ~/miniconda.sh -b -p ~/anaconda
-    - export PATH=~/anaconda/bin:$PATH
-    - conda update --yes conda
-    - conda create -n testenv --yes --quiet pip python=$PYTHON
-    - source activate testenv
-    - conda install --yes scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout pillow
-    - pip install -q codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice
-    - if [ "${PYTHON}" != "2.7" ]; then
+    - git clone git://github.com/astropy/ci-helpers.git --depth=1
+    - source ci-helpers/travis/setup_conda.sh
+    - if [ "${PYTHON_VERSION}" != "2.7" ]; then
         pip install rtmixer;
       fi
     # install FFmpeg, sound drivers
