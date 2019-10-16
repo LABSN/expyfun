@@ -1243,7 +1243,7 @@ class TrackerMHW(object):
         elif self._threshold_reached.count(True) == 1:
             self._n_stop = True
             self._threshold = int(self._levels[
-                    [i for i, tr in enumerate(self._threshold_reached) if tr]])
+                [i for i, tr in enumerate(self._threshold_reached) if tr]])
         else:
             self._n_stop = False
         if self._n_stop and self._limit_count > 0:

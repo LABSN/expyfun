@@ -15,8 +15,6 @@ import numpy as np
 from expyfun.stimuli import TrackerMHW
 from expyfun.analyze import sigmoid
 
-print(__doc__)
-
 
 # Make a callback function that prints to the console, rather than log file
 def callback(event_type, value=None, timestamp=None):
