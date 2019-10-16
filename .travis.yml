@@ -46,7 +46,7 @@ before_install:
     # Easy dependencies (pulseaudio, scipy, matplotlib, pytest, coverage, codecov, flake8)
     - git clone git://github.com/astropy/ci-helpers.git --depth=1
     - source ci-helpers/travis/setup_conda.sh
-    - if [ "${PYTHON}" != "2.7" ]; then
+    - if [ "${PYTHON_VERSION}" != "2.7" ]; then
         pip install rtmixer;
       fi
     # install FFmpeg, sound drivers
