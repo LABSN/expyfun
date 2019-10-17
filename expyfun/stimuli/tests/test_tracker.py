@@ -285,9 +285,8 @@ def test_tracker_mhw(hide_window):
         TrackerMHW(None, 0, 93, 5, 2, 4, 40, 2)
 
     tr = TrackerMHW(None, 0, 120, 5, 2, 4, 10, 2)
-    responses = [True, True, True, True, True]
-    with pytest.warns(UserWarning, match='''Tracker {} exceeded x_min or x_max
-                      bounds {} times.'''):
+    responses = [True, True, True, True]
+    with pytest.warns(UserWarning, match='exceeded x_min or x_max bounds'):
         for r in responses:
             tr.respond(r)
 
