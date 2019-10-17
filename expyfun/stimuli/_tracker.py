@@ -1060,7 +1060,7 @@ class TrackerMHW(object):
         self._x = np.asarray([start_value], dtype=float)
         if not np.isscalar(start_value):
             raise TypeError('start_value must be a scalar')
-        if np.isscalar(start_value):
+        else:
             if start_value % base_step != 0:
                 raise ValueError('start_value must be a multiple of base_step')
             else:

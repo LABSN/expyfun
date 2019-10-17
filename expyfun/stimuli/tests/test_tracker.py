@@ -240,6 +240,7 @@ def test_tracker_mhw(hide_window):
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(int(rand.rand() * 100) < tr.x_current)
+        assert(tr.check_valid(1))  # make sure checking validity is good
     # test responding after stopped
     pytest.raises(RuntimeError, tr.respond, 0)
 
@@ -282,3 +283,23 @@ def test_tracker_mhw(hide_window):
     with pytest.raises(ValueError,
                        match='x_max must be a multiple of base_step'):
         TrackerMHW(None, 0, 93, 5, 2, 4, 40, 2)
+
+    tr = TrackerMHW(None, 0, 120, 5, 2, 4, 10, 2)
+    responses = [True, True, True, True, True]
+    with pytest.warns(UserWarning, match='''Tracker {} exceeded x_min or x_max
+                      bounds {} times.'''):
+        for r in responses:
+            tr.respond(r)
+
+    tr = TrackerMHW(None, 0, 120, 5, 2, 4, 40, 2)
+    responses = [False, False, False, False, False]
+    with pytest.warns(UserWarning, match='exceeded x_min or x_max bounds'):
+        for r in responses:
+            tr.respond(r)
+    assert(not tr.check_valid(3))
+
+    tr = TrackerMHW(None, 0, 120, 5, 2, 4, 40, 2)
+    responses = [False, False, False, False, True, False, False, True]
+    with pytest.warns(UserWarning, match='exceeded x_min or x_max bounds'):
+        for r in responses:
+            tr.respond(r)
