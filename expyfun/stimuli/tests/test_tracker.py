@@ -88,7 +88,7 @@ def test_tracker_ud(hide_window):
     assert(tr.check_valid(1))  # make sure checking validity is good
     assert(not tr.check_valid(3))
     with pytest.raises(ValueError,
-                       match="with reversals attemping to exceed x_min"):
+                       match="with reversals attempting to exceed x_min"):
         tr.threshold(1)
         tr.threshold(3)
     assert_equal(tr.n_trials, tr.stop_trials)
