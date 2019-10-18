@@ -39,7 +39,8 @@ def test_tracker_ud(hide_window):
     while not tr.stopped:
         tr.respond(rand.rand() < tr.x_current)
     # test responding after stopped
-    pytest.raises(RuntimeError, tr.respond, 0)
+    with pytest.raises(RuntimeError, match="Tracker is stopped."):
+        tr.respond(0)
 
     # all the properties better work
     tr.up
@@ -69,7 +70,9 @@ def test_tracker_ud(hide_window):
     tr.check_valid(2)
 
     # bad callback type
-    pytest.raises(TypeError, TrackerUD, 'foo', 3, 1, 1, 1, 10, np.inf, 1)
+    with pytest.raises(TypeError,
+                       match="callback must be a callable, None, or an"):
+        TrackerUD('foo', 3, 1, 1, 1, 10, np.inf, 1)
 
     # test dynamic step size and error conditions
     tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
@@ -84,8 +87,10 @@ def test_tracker_ud(hide_window):
             tr.respond(r)
     assert(tr.check_valid(1))  # make sure checking validity is good
     assert(not tr.check_valid(3))
-    pytest.raises(ValueError, tr.threshold, 1)
-    tr.threshold(3)
+    with pytest.raises(ValueError,
+                       match="with reversals attemping to exceed x_min"):
+        tr.threshold(1)
+        tr.threshold(3)
     assert_equal(tr.n_trials, tr.stop_trials)
 
     # run tests with ignore too--should generate warnings, but no error
@@ -98,32 +103,45 @@ def test_tracker_ud(hide_window):
     tr.threshold(0)
 
     # bad stop_trials
-    pytest.raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 10, 'foo', 1)
+    with pytest.raises(ValueError,
+                       match="stop_trials must be an integer or np.inf"):
+        TrackerUD(None, 3, 1, 1, 1, 10, 'foo', 1)
 
     # bad stop_reversals
-    pytest.raises(ValueError, TrackerUD, None, 3, 1, 1, 1, 'foo', 10, 1)
+    with pytest.raises(ValueError,
+                       match="stop_reversals must be an integer or np.inf"):
+        TrackerUD(None, 3, 1, 1, 1, 'foo', 10, 1)
 
     # change_indices too long
-    pytest.raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  np.inf, 1, change_indices=[1, 2])
+    with pytest.raises(ValueError,
+                       match="one element longer than change_indices"):
+        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
+                  change_indices=[1, 2])
     # step_size_up length mismatch
-    pytest.raises(ValueError, TrackerUD, None, 3, 1, [1], [1, 0.5], 10,
-                  np.inf, 1, change_indices=[2])
+    with pytest.raises(ValueError,
+                       match="step_size_up is not scalar it must be one"):
+        TrackerUD(None, 3, 1, [1], [1, 0.5], 10, np.inf, 1, change_indices=[2])
     # step_size_down length mismatch
-    pytest.raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1], 10,
-                  np.inf, 1, change_indices=[2])
+    with pytest.raises(ValueError,
+                       match="If step_size_down is not scalar it must be one"):
+        TrackerUD(None, 3, 1, [1, 0.5], [1], 10, np.inf, 1, change_indices=[2])
     # bad change_rule
-    pytest.raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  np.inf, 1, change_indices=[2], change_rule='foo')
+    with pytest.raises(ValueError,
+                       match="must be either 'trials' or 'reversals"):
+        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
+                  change_indices=[2], change_rule='foo')
     # no change_indices (i.e. change_indices=None)
-    pytest.raises(ValueError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  np.inf, 1)
+    with pytest.raises(ValueError,
+                       match="If step_size_up is longer than 1, you must"):
+        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1)
 
     # start_value scalar type checking
-    pytest.raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  np.inf, [9, 5], change_indices=[2])
-    pytest.raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  np.inf, None, change_indices=[2])
+    with pytest.raises(TypeError, match="start_value must be a scalar"):
+        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, [9, 5],
+                  change_indices=[2])
+    with pytest.raises(TypeError, match="start_value must be a scalar"):
+        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, None,
+                  change_indices=[2])
 
     # test with multiple change_indices
     tr = TrackerUD(None, 3, 1, [3, 2, 1], [3, 2, 1], 10, np.inf, 1,
@@ -180,12 +198,16 @@ def test_tracker_dealer():
     # can't respond to a trial twice
     dealer_ud.next()
     dealer_ud.respond(True)
-    pytest.raises(RuntimeError, dealer_ud.respond, True)
+    with pytest.raises(RuntimeError,
+                       match="You must get a trial before you can respond."):
+        dealer_ud.respond(True)
 
     dealer_ud = TrackerDealer(callback, np.array(trackers))
 
     # can't respond before you pick a tracker and get a trial
-    pytest.raises(RuntimeError, dealer_ud.respond, True)
+    with pytest.raises(RuntimeError,
+                       match="You must get a trial before you can respond."):
+        dealer_ud.respond(True)
 
     rand = np.random.RandomState(0)
     for sub, x_current in dealer_ud:
@@ -205,13 +227,15 @@ def test_tracker_dealer():
     # bad rand type
     trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 50, 1)
                 for _ in range(2)]
-    pytest.raises(TypeError, TrackerDealer, trackers, rand=1)
+    with pytest.raises(TypeError, match="missing 1 required positional"):
+        TrackerDealer(trackers, rand=1)
 
     # test TrackerDealer with TrackerBinom
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
                 for _ in range(2)]    # start_value scalar type checking
-    pytest.raises(TypeError, TrackerUD, None, 3, 1, [1, 0.5], [1, 0.5], 10,
-                  np.inf, [9, 5], change_indices=[2])
+    with pytest.raises(TypeError, match="start_value must be a scalar"):
+        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, [9, 5],
+                  change_indices=[2])
     dealer_binom = TrackerDealer(callback, trackers, pace_rule='trials')
     for sub, x_current in dealer_binom:
         dealer_binom.respond(True)
@@ -219,10 +243,14 @@ def test_tracker_dealer():
     # if you're dealing from TrackerBinom, you can't use stop_early feature
     trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True, x_current=3)
                 for _ in range(2)]
-    pytest.raises(ValueError, TrackerDealer, callback, trackers, 1, 'trials')
+    with pytest.raises(ValueError,
+                       match="be False to deal trials from a TrackerBinom"):
+        TrackerDealer(callback, trackers, 1, 'trials')
 
     # if you're dealing from TrackerBinom, you can't use reversals to pace
-    pytest.raises(ValueError, TrackerDealer, callback, trackers, 1)
+    with pytest.raises(ValueError,
+                       match="be False to deal trials from a TrackerBinom"):
+        TrackerDealer(callback, trackers, 1)
 
 
 def test_tracker_mhw(hide_window):
@@ -242,7 +270,8 @@ def test_tracker_mhw(hide_window):
         tr.respond(int(rand.rand() * 100) < tr.x_current)
         assert(tr.check_valid(1))  # make sure checking validity is good
     # test responding after stopped
-    pytest.raises(RuntimeError, tr.respond, 0)
+    with pytest.raises(RuntimeError, match="Tracker is stopped."):
+        tr.respond(0)
 
     for key in ('base_step', 'factor_down', 'factor_up_nr', 'start_value',
                 'x_min', 'x_max', 'n_up_stop', 'repeat_limit',
