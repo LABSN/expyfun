@@ -544,7 +544,7 @@ class TrackerUD(object):
         else:
             if self._bad_reversals[rev_inds].any():
                 raise ValueError('Cannot calculate thresholds with reversals '
-                                 'attemping to exceed x_min or x_max. Try '
+                                 'attempting to exceed x_min or x_max. Try '
                                  'increasing n_skip.')
             return (np.mean(self._x[rev_inds[0::2]]) +
                     np.mean(self._x[rev_inds[1::2]])) / 2
