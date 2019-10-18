@@ -227,7 +227,7 @@ def test_tracker_dealer():
     # bad rand type
     trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 50, 1)
                 for _ in range(2)]
-    with pytest.raises(TypeError, match="missing 1 required positional"):
+    with pytest.raises(TypeError, match="argument"):
         TrackerDealer(trackers, rand=1)
 
     # test TrackerDealer with TrackerBinom
