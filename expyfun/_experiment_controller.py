@@ -968,8 +968,9 @@ class ExperimentController(object):
         # ensure we got the correct window size
         got_size = win.get_size()
         if not np.array_equal(got_size, window_size):
-            raise RuntimeError('Requested window size %s but got size %s, '
-                               'is the resolution set incorrectly?'
+            raise RuntimeError('Window size requested by config (%s) does not '
+                               'match obtained window size (%s), is the '
+                               'screen resolution set incorrectly?'
                                % (window_size, got_size))
         self._dispatch_events()
 
