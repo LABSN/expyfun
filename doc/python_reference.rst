@@ -32,6 +32,7 @@ grouped by hardware control type.
    download_version
    get_config
    get_keyboard_input
+   known_config_types
    set_log_level
    set_config
 
