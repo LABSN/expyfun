@@ -15,7 +15,7 @@ This example tests synchronization between the screen and the audio playback.
 import numpy as np
 
 from expyfun import ExperimentController, building_doc
-from expyfun.visual import Circle
+from expyfun.visual import Circle, Rectangle
 import expyfun.analyze as ea
 
 print(__doc__)
@@ -36,6 +36,8 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
     screenshot = None
     # Make a circle so that the photodiode can be centered on the screen
     circle = Circle(ec, 1, units='deg', fill_color='k', line_color='w')
+    # Make a rectangle that is the standard credit card size (~3 3/8" x 2 1/8")
+    rect = Rectangle(ec, [0, 0, 8.56, 5.398], 'cm', None, '#AA3377')
     while pressed != '8':  # enable a clean quit if required
         ec.set_background_color('white')
         t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
@@ -44,6 +46,7 @@ with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
         diff = round(1000 * (t2 - t1), 2)
         ec.screen_text('IFI (ms): {}'.format(diff), wrap=True)
         circle.draw()
+        rect.draw()
         screenshot = ec.screenshot() if screenshot is None else screenshot
         ec.flip()
         ec.stamp_triggers([2, 4, 8])

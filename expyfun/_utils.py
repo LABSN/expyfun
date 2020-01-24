@@ -268,9 +268,9 @@ def check_units(units):
     Parameters
     ----------
     units : str
-        Must be ``'norm'``, ``'deg'``, or ``'pix'``.
+        Must be ``'norm'``, ``'deg'``, ``'pix'``, or ``'cm'``.
     """
-    good_units = ['norm', 'pix', 'deg']
+    good_units = ['norm', 'pix', 'deg', 'cm']
     if units not in good_units:
         raise ValueError('"units" must be one of {}, not {}'
                          ''.format(good_units, units))

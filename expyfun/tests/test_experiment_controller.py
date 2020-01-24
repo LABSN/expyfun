@@ -34,9 +34,8 @@ def test_unit_conversions(hide_window, ws):
     kwargs['window_size'] = ws
     with ExperimentController(*std_args, **kwargs) as ec:
         verts = np.random.rand(2, 4)
-        for to in ['norm', 'pix', 'deg']:
-            for fro in ['norm', 'pix', 'deg']:
-                print((ws, to, fro))
+        for to in ['norm', 'pix', 'deg', 'cm']:
+            for fro in ['norm', 'pix', 'deg', 'cm']:
                 v2 = ec._convert_units(verts, fro, to)
                 v2 = ec._convert_units(v2, to, fro)
                 assert_allclose(verts, v2)
@@ -384,13 +383,18 @@ def test_ec(ac, hide_window):
 @pytest.mark.parametrize('screen_num', (None, 0))
 @pytest.mark.parametrize('monitor', (
     None,
-    dict(SCREEN_WIDTH=10, SCREEN_DISTANCE=10, SCREEN_SIZE_PIX=(1000, 1000))))
-def test_screen_monitor(screen_num, monitor):
+    dict(SCREEN_WIDTH=10, SCREEN_DISTANCE=10, SCREEN_SIZE_PIX=(1000, 1000)),
+))
+def test_screen_monitor(screen_num, monitor, hide_window):
     """Test screen and monitor option support."""
     with ExperimentController(
             *std_args, screen_num=screen_num, monitor=monitor,
             **std_kwargs):
         pass
+    full_kwargs = deepcopy(std_kwargs)
+    full_kwargs['full_screen'] = True
+    with pytest.raises(RuntimeError, match='resolution set incorrectly'):
+        ExperimentController(*std_args, **full_kwargs)
     with pytest.raises(TypeError, match='must be a dict'):
         ExperimentController(*std_args, monitor=1, **std_kwargs)
     with pytest.raises(KeyError, match='is missing required keys'):
