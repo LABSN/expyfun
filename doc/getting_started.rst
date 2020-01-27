@@ -10,7 +10,7 @@ Getting started
 Installing expyfun
 ------------------
 
-.. highlight:: console
+.. highlight:: python
 
 Python
 ^^^^^^
@@ -72,7 +72,8 @@ A/V/trigger timing typically requires utilizing:
 
 - oscilloscope
 - photodiode
-- parallel port breakout or TDT trigger breakout
+- parallel port breakout, TDT trigger breakout, or sound card SPDIF-to-TTL
+  converter
 - auditory connectors to go 1/4" or 1/8" output->BNC
 - Running :ref:`synchronization_tests`
 
@@ -88,18 +89,16 @@ The keys that will always need to be set (using :func:`expyfun.set_config` or
 manual JSON editing) include, but are not limited to (all *distances* in cm;
 example values from a fairly typical desktop computer):
 
-``"SCREEN_SIZE_PIX"``
-    Full screen size in pixels.
-``"SCREEN_DISTANCE"``
+- ``"SCREEN_SIZE_PIX"``
+    Comma-separated full screen size in pixels, e.g., ``"1920,1200"``.
+- ``"SCREEN_DISTANCE"``
     Physical display distance from the subject, e.g., ``"83.0"``.
-``"SCREEN_WIDTH"``
+- ``"SCREEN_WIDTH"``
     Physical display width, e.g., ``"52.0"``.
 
-.. note::
-
-     Another settable parameter is ``"SCREEN_HEIGHT"``, but if you have square
-     display pixels (a sane assumption for reasonable displays) then it's
-     inferred based on the screen size in pixels and physical screen width.
+Another settable parameter is ``"SCREEN_HEIGHT"``, but if you have square
+display pixels (a sane assumption for reasonable displays) then it's inferred
+based on the screen size in pixels and physical screen width.
 
 Other settings depend on whether you use TDT / sound card / parallel port for
 auditory stimuli and triggering. Possibilities can be seen by looking at
@@ -108,6 +107,58 @@ viewed by doing::
 
     >>> expyfun.get_config()
     {'SCREEN_DISTANCE': '61.0', 'SCREEN_SIZE_PIX': '1920,1200', 'SCREEN_WIDTH': '52.0', 'SOUND_CARD_BACKEND': 'rtmixer'}
+
+.. note::
+
+    If this returns ``{}``, you have not written any config values yet. This
+    means that the standard ``expyfun.json`` file might not exist, and
+    you might want to do something like::
+
+        >>> expyfun.set_config('SCREEN_SIZE_PIX', '1920,1200')
+
+    To initialize the ``expyfun.json`` file.
+
+
+The fixed, hardware-dependent settings for a given system get written to
+an ``expyfun.json`` file. You can use :func:`expyfun.get_config_path` to
+get the path to your config file. Some sample configurations:
+
+- A TDT-based M/EEG+pupillometry machine:
+
+  .. code-block:: JSON
+
+    {
+    "AUDIO_CONTROLLER": "tdt",
+    "EXPYFUN_EYELINK": "100.1.1.1",
+    "RESPONSE_DEVICE": "keyboard",
+    "SCREEN_DISTANCE": "100",
+    "SCREEN_WIDTH": "51",
+    "TDT_DELAY": "44",
+    "TDT_INTERFACE": "GB",
+    "TDT_MODEL": "RZ6",
+    "TDT_TRIG_DELAY": "3",
+    "TRIGGER_CONTROLLER": "tdt"
+    }
+
+- A sound-card-based EEG system:
+
+  .. code-block:: JSON
+
+    {
+    "AUDIO_CONTROLLER": "sound_card",
+    "RESPONSE_DEVICE": "keyboard",
+    "SCREEN_DISTANCE": "50",
+    "SCREEN_SIZE_PIX": "1920,1080",
+    "SCREEN_WIDTH": "53",
+    "SOUND_CARD_API": "ASIO",
+    "SOUND_CARD_BACKEND": "rtmixer",
+    "SOUND_CARD_FIXED_DELAY": 0.03,
+    "SOUND_CARD_FS": 48000,
+    "SOUND_CARD_NAME": "ASIO Fireface USB",
+    "SOUND_CARD_TRIGGER_CHANNELS": 2,
+    "SOUND_CARD_TRIGGER_SCALE": 0.001,
+    "TRIGGER_CONTROLLER": "sound_card"
+    }
 
 Deploying experiments
 ---------------------
