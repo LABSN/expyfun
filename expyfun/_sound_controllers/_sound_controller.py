@@ -23,6 +23,13 @@ _BACKENDS = tuple(sorted(
 # libsoundio stub (kind of iffy)
 # https://gist.github.com/larsoner/fd9228f321d369c8a00c66a246fcc83f
 
+_SOUND_CARD_KEYS = (
+    'TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
+    'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
+    'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS',
+    'SOUND_CARD_TRIGGER_SCALE', 'SOUND_CARD_TRIGGER_INSERTION',
+)
+
 
 class SoundCardController(object):
     """Use a sound card.
@@ -77,16 +84,13 @@ class SoundCardController(object):
     def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01,
                  ec=None):
         self.ec = ec
-        keys = ('TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
-                'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
-                'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS',
-                'SOUND_CARD_TRIGGER_SCALE')
         defaults = dict(
             SOUND_CARD_BACKEND='auto',
             SOUND_CARD_TRIGGER_CHANNELS=0,
             SOUND_CARD_TRIGGER_SCALE=1. / float(2 ** 31 - 1),
+            SOUND_CARD_TRIGGER_INSERTION='prepend',
         )  # any omitted become None
-        params = _check_params(params, keys, defaults, 'params')
+        params = _check_params(params, _SOUND_CARD_KEYS, defaults, 'params')
 
         self.backend, self.backend_name = _import_backend(
             params['SOUND_CARD_BACKEND'])
@@ -95,8 +99,18 @@ class SoundCardController(object):
         assert self._n_channels_stim >= 0
         self._n_channels = int(operator.index(n_channels))
         del n_channels
-        extra = (('%d stim and ' % (self._n_channels_stim))
-                 if self._n_channels_stim else '')
+        insertion = str(params['SOUND_CARD_TRIGGER_INSERTION'])
+        if insertion not in ('prepend', 'append'):
+            raise ValueError('SOUND_CARD_TRIGGER_INSERTION must be "prepend" '
+                             'or "append", got %r' % (insertion,))
+        self._stim_insertion = insertion
+        del insertion
+        extra = ''
+        if self._n_channels_stim:
+            extra = ('%d %sed stim and '
+                     % (self._stim_insertion, self._n_channels_stim))
+        else:
+            extra = ''
         logger.info('Expyfun: Setting up sound card using %s backend with %s'
                     '%d playback channels'
                     % (self.backend_name, extra, self._n_channels))
@@ -189,7 +203,9 @@ class SoundCardController(object):
                 stim = np.pad(stim, ((0, extra), (0, 0)), 'constant')
             elif extra < 0:  # samples shorter than stim (very brief stim)
                 samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
-            samples = np.concatenate((stim, samples), axis=-1)
+            sl = slice(
+                None, None, 1 if self._stim_insertion == 'prepend' else -1)
+            samples = np.concatenate((stim, samples)[sl], axis=-1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def _make_digital_trigger(self, trigs, delay=None):
