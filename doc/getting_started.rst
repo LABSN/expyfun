@@ -156,7 +156,6 @@ get the path to your config file. Some sample configurations:
     "SOUND_CARD_FS": 48000,
     "SOUND_CARD_NAME": "ASIO Fireface USB",
     "SOUND_CARD_TRIGGER_CHANNELS": 2,
-    "SOUND_CARD_TRIGGER_SCALE": 0.001,
     "TRIGGER_CONTROLLER": "sound_card"
     }
 
