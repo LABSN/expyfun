@@ -108,7 +108,7 @@ class SoundCardController(object):
         extra = ''
         if self._n_channels_stim:
             extra = ('%d %sed stim and '
-                     % (self._stim_insertion, self._n_channels_stim))
+                     % (self._n_channels_stim, self._stim_insertion))
         else:
             extra = ''
         logger.info('Expyfun: Setting up sound card using %s backend with %s'
