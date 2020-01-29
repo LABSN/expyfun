@@ -103,14 +103,14 @@ class SoundCardController(object):
         if insertion not in ('prepend', 'append'):
             raise ValueError('SOUND_CARD_TRIGGER_INSERTION must be "prepend" '
                              'or "append", got %r' % (insertion,))
-        self._stim_insertion = insertion
-        del insertion
+        self._stim_sl = slice(None, None, 1 if insertion == 'prepend' else -1)
         extra = ''
         if self._n_channels_stim:
             extra = ('%d %sed stim and '
-                     % (self._n_channels_stim, self._stim_insertion))
+                     % (self._n_channels_stim, insertion))
         else:
             extra = ''
+        del insertion
         logger.info('Expyfun: Setting up sound card using %s backend with %s'
                     '%d playback channels'
                     % (self.backend_name, extra, self._n_channels))
@@ -189,9 +189,10 @@ class SoundCardController(object):
 
         Parameters
         ----------
-        samples : ndarray
+        samples : ndarray, shape (n_samples, n_channels)
             The sound samples.
         """
+        assert samples.ndim == 2
         self.stop(wait=False)
         if self.audio is not None:
             self.audio.delete()
@@ -203,9 +204,8 @@ class SoundCardController(object):
                 stim = np.pad(stim, ((0, extra), (0, 0)), 'constant')
             elif extra < 0:  # samples shorter than stim (very brief stim)
                 samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
-            sl = slice(
-                None, None, 1 if self._stim_insertion == 'prepend' else -1)
-            samples = np.concatenate((stim, samples)[sl], axis=-1)
+            samples = np.concatenate((stim, samples), axis=-1)
+            samples = samples[:, self._stim_sl]
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def _make_digital_trigger(self, trigs, delay=None):
@@ -269,6 +269,7 @@ class SoundCardController(object):
             delay = 2 * self._trigger_duration
         stim = self._make_digital_trigger(triggers, delay)
         stim = np.pad(stim, ((0, 0), (0, self._n_channels)), 'constant')
+        stim = stim[:, self._stim_sl]
         stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
         stim.play()
         t_each = self._trigger_duration + delay
