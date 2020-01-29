@@ -204,8 +204,7 @@ class SoundCardController(object):
                 stim = np.pad(stim, ((0, extra), (0, 0)), 'constant')
             elif extra < 0:  # samples shorter than stim (very brief stim)
                 samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
-            samples = np.concatenate((stim, samples), axis=-1)
-            samples = samples[:, self._stim_sl]
+            samples = np.concatenate((stim, samples)[self._stim_sl], axis=1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def _make_digital_trigger(self, trigs, delay=None):
@@ -268,8 +267,8 @@ class SoundCardController(object):
         if delay is None:
             delay = 2 * self._trigger_duration
         stim = self._make_digital_trigger(triggers, delay)
-        stim = np.pad(stim, ((0, 0), (0, self._n_channels)), 'constant')
-        stim = stim[:, self._stim_sl]
+        stim = np.pad(
+            stim, ((0, 0), (0, self._n_channels)[self._stim_sl]), 'constant')
         stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
         stim.play()
         t_each = self._trigger_duration + delay
