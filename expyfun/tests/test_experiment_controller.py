@@ -12,7 +12,8 @@ from numpy.testing import assert_allclose
 from expyfun import ExperimentController, visual
 from expyfun._utils import (_TempDir, fake_button_press, _check_skip_backend,
                             fake_mouse_click, requires_opengl21,
-                            _wait_secs as wait_secs)
+                            _wait_secs as wait_secs, known_config_types)
+from expyfun._sound_controllers._sound_controller import _SOUND_CARD_KEYS
 from expyfun.stimuli import get_tdt_rates
 
 std_args = ['test']  # experiment name
@@ -598,3 +599,10 @@ def test_joystick(hide_window, monkeypatch):
         assert len(presses) == 1
         assert presses[0][0] == '1'
         assert ec.get_joystick_value('x') == 0.125
+
+
+def test_sound_card_params():
+    """Test that sound card params are known keys."""
+    for key in _SOUND_CARD_KEYS:
+        if key != 'TYPE':
+            assert key in known_config_types, key
