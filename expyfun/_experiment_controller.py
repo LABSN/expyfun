@@ -280,7 +280,7 @@ class ExperimentController(object):
                 mon_size = [int(p) for p in mon_size]
                 monitor['SCREEN_SIZE_PIX'] = mon_size
             if not isinstance(monitor, dict):
-                raise TypeError('monitor must be a dict')
+                raise TypeError('monitor must be a dict, got %r' % (monitor,))
             req_mon_keys = ['SCREEN_WIDTH', 'SCREEN_DISTANCE',
                             'SCREEN_SIZE_PIX']
             missing_keys = [key for key in req_mon_keys if key not in monitor]
@@ -377,7 +377,8 @@ class ExperimentController(object):
             #
             logger.info('Expyfun: Setting up screen')
             if full_screen:
-                window_size = monitor['SCREEN_SIZE_PIX']
+                if window_size is None:
+                    window_size = monitor['SCREEN_SIZE_PIX']
             else:
                 if window_size is None:
                     window_size = get_config('WINDOW_SIZE',
@@ -748,7 +749,7 @@ class ExperimentController(object):
             self._on_every_flip = []
 
     def _convert_units(self, verts, fro, to):
-        """Convert between different screen units"""
+        """Convert between different screen units."""
         check_units(to)
         check_units(fro)
         verts = np.array(np.atleast_2d(verts), dtype=float)
@@ -767,35 +768,35 @@ class ExperimentController(object):
             return verts
 
         # figure out our actual transition, knowing one is 'norm'
-        w_pix = self.window_size_pix[0]
-        h_pix = self.window_size_pix[1]
+        win_w_pix, win_h_pix = self.window_size_pix
+        mon_w_pix, mon_h_pix = self.monitor_size_pix
+        wh_cm = np.array([self._monitor['SCREEN_WIDTH'],
+                          self._monitor['SCREEN_HEIGHT']], float)
         d_cm = self._monitor['SCREEN_DISTANCE']
-        w_cm = self._monitor['SCREEN_WIDTH']
-        h_cm = self._monitor['SCREEN_HEIGHT']
-        w_prop = w_pix / float(self.monitor_size_pix[0])
-        h_prop = h_pix / float(self.monitor_size_pix[1])
+        cm_factors = (self.window_size_pix / self.monitor_size_pix *
+                      wh_cm / 2.)[:, np.newaxis]
         if 'pix' in [to, fro]:
             if 'pix' == to:
                 # norm to pixels
-                x = np.array([[w_pix / 2., 0, w_pix / 2.],
-                              [0, h_pix / 2., h_pix / 2.]])
+                x = np.array([[win_w_pix / 2., 0, win_w_pix / 2.],
+                              [0, win_h_pix / 2., win_h_pix / 2.]])
             else:
                 # pixels to norm
-                x = np.array([[2. / w_pix, 0, -1.],
-                              [0, 2. / h_pix, -1.]])
+                x = np.array([[2. / win_w_pix, 0, -1.],
+                              [0, 2. / win_h_pix, -1.]])
             verts = np.dot(x, np.r_[verts, np.ones((1, verts.shape[1]))])
         elif 'deg' in [to, fro]:
             if 'deg' == to:
                 # norm (window) to norm (whole screen), then to deg
-                x = np.arctan2(verts[0] * w_prop * (w_cm / 2.), d_cm)
-                y = np.arctan2(verts[1] * h_prop * (h_cm / 2.), d_cm)
-                verts = np.rad2deg(np.array([x, y]))
+                verts = np.rad2deg(np.arctan2(verts * cm_factors, d_cm))
             else:
                 # deg to norm (whole screen), to norm (window)
-                verts = np.deg2rad(verts)
-                x = (d_cm * np.tan(verts[0])) / (w_cm / 2.) / w_prop
-                y = (d_cm * np.tan(verts[1])) / (h_cm / 2.) / h_prop
-                verts = np.array([x, y])
+                verts = (d_cm * np.tan(np.deg2rad(verts))) / cm_factors
+        elif 'cm' in [to, fro]:
+            if 'cm' == to:
+                verts = verts * cm_factors
+            else:
+                verts = verts / cm_factors
         else:
             raise KeyError('unknown conversion "{}" to "{}"'.format(fro, to))
         return verts
@@ -963,7 +964,14 @@ class ExperimentController(object):
         gl.glShadeModel(gl.GL_SMOOTH)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
-        self.set_visible(v_)
+        self.set_visible(v_)  # this is when we set fullscreen
+        # ensure we got the correct window size
+        got_size = win.get_size()
+        if not np.array_equal(got_size, window_size):
+            raise RuntimeError('Window size requested by config (%s) does not '
+                               'match obtained window size (%s), is the '
+                               'screen resolution set incorrectly?'
+                               % (window_size, got_size))
         self._dispatch_events()
 
     def flip(self, when=None):
@@ -1059,7 +1067,7 @@ class ExperimentController(object):
             the window is restored, regardless of what the glClearColor
             had been set to.
         """
-        self._win.set_fullscreen(visible and self._full_screen)
+        self._win.set_fullscreen(self._full_screen)
         self._win.set_visible(visible)
         logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
         if visible and flip:

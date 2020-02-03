@@ -31,7 +31,9 @@ grouped by hardware control type.
    decimals_to_binary
    download_version
    get_config
+   get_config_path
    get_keyboard_input
+   known_config_types
    set_log_level
    set_config
 

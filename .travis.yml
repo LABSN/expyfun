@@ -1,18 +1,15 @@
-language: c
+language: generic
 sudo: false
 cache:
-  apt: true
+  pip: true
 env:
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
     global: PYTHON_VERSION=3.7 DISPLAY=:99.0
             CONDA_DEPENDENCIES="scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout pillow"
-            PIP_DEPENDENCIES="codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice"
+            PIP_DEPENDENCIES="codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice rtmixer"
 
 
 matrix:
-  exclude:
-      # Exclude the default Python 2.7 build
-      - python: 2.7
   include:
     - os: linux
       dist: xenial
@@ -26,7 +23,7 @@ matrix:
       language: objective-c
     - os: linux
       dist: trusty
-      env: PYTHON_VERSION=2.7 DEPS=minimal _EXPYFUN_SILENT=true
+      env: PYTHON_VERSION=3.5 DEPS=minimal _EXPYFUN_SILENT=true
       addons:
         apt:
           packages:
@@ -46,9 +43,6 @@ before_install:
     # Easy dependencies (pulseaudio, scipy, matplotlib, pytest, coverage, codecov, flake8)
     - git clone git://github.com/astropy/ci-helpers.git --depth=1
     - source ci-helpers/travis/setup_conda.sh
-    - if [ "${PYTHON_VERSION}" != "2.7" ]; then
-        pip install rtmixer;
-      fi
     # install FFmpeg, sound drivers
     - git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git;
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
