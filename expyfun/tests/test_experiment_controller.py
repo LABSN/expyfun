@@ -10,6 +10,7 @@ import pytest
 from numpy.testing import assert_allclose
 
 from expyfun import ExperimentController, visual
+from expyfun._experiment_controller import _get_dev_db
 from expyfun._utils import (_TempDir, fake_button_press, _check_skip_backend,
                             fake_mouse_click, requires_opengl21,
                             _wait_secs as wait_secs, known_config_types)
@@ -50,6 +51,30 @@ def test_unit_conversions(hide_window, ws):
     assert_allclose(v2[0], v2[1])
     pytest.raises(ValueError, ec._convert_units, verts, 'deg', 'nothing')
     pytest.raises(RuntimeError, ec._convert_units, verts[0], 'deg', 'pix')
+
+
+def test_validate_audio(hide_window):
+    """Test that validate_audio can pass through samples."""
+    with ExperimentController(*std_args, suppress_resamp=True,
+                              **std_kwargs) as ec:
+        ec.set_stim_db(_get_dev_db(ec.audio_type) - 40)  # 0.01 RMS
+        assert ec._stim_scaler == 1.
+        for shape in ((1000,), (1, 1000), (2, 1000)):
+            samples_in = np.zeros(shape)
+            samples_out = ec._validate_audio(samples_in)
+            assert samples_out.shape == (1000, 2)
+            assert samples_out.dtype == np.float32
+            assert samples_out is not samples_in
+        for order in 'CF':
+            samples_in = np.zeros((2, 1000), dtype=np.float32, order=order)
+            samples_out = ec._validate_audio(samples_in)
+            assert samples_out.shape == samples_in.shape[::-1]
+            assert samples_out.dtype == np.float32
+            # transpose that we do will not copy just make a view
+            assert samples_out.base is samples_in
+            samples_out.flags['WRITEABLE'] = True  # undo our read-only safety
+            samples_out[:] = 1
+            assert_allclose(samples_in.T, samples_out)
 
 
 def test_data_line(hide_window):

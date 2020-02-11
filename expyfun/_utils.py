@@ -768,7 +768,7 @@ def running_rms(signal, win_length):
 
 
 def _fix_audio_dims(signal, n_channels):
-    """Make it so a valid audio buffer is in the standard dimensions
+    """Make it so a valid audio buffer is in the standard dimensions.
 
     Parameters
     ----------
