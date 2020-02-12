@@ -2267,7 +2267,7 @@ def _get_dev_db(audio_controller):
             # TODO: these values not calibrated, system-dependent
             pyglet=100.,
             rtmixer=100.,
-            dummy=90.,  # only used for testing
+            dummy=100.,  # only used for testing
         ).get(audio_controller, None)
     else:
         level = float(level)
@@ -2275,6 +2275,6 @@ def _get_dev_db(audio_controller):
         logger.warning('Expyfun: Unknown audio controller %s: stim scaler may '
                        'not work correctly. You may want to remove your '
                        'headphones if this is the first run of your '
-                       'experiment.')
-        level = 90  # for untested TDT models
+                       'experiment.' % (audio_controller,))
+        level = 100  # for untested TDT models
     return level
