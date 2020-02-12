@@ -20,7 +20,6 @@ import atexit
 import json
 from functools import partial
 from distutils.version import LooseVersion
-from numpy import sqrt, convolve, ones
 import logging
 import datetime
 from timeit import default_timer as clock
@@ -764,7 +763,25 @@ def running_rms(signal, win_length):
     win_length : int
         Length (in samples) of the rectangular window
     """
-    return sqrt(convolve(signal ** 2, ones(win_length) / win_length, 'valid'))
+    assert signal.ndim == 1
+    assert win_length > 0
+    # The following is equivalent to:
+    # sqrt(convolve(signal ** 2, ones(win_length) / win_length, 'valid'))
+    # But an order of magnitude faster: 60 ms vs 7 ms for:
+    #
+    #     x = np.random.RandomState(0).randn(1000001)
+    #     %timeit expyfun._utils.running_rms(x, 441)
+    #
+    sig2 = signal * signal
+    c1 = np.cumsum(sig2)
+    out = c1[win_length - 1:].copy()
+    if len(out) == 0:  # len(signal) < len(win_length)
+        out = np.array([np.sqrt(c1[-1] / signal.size)])
+    else:
+        out[1:] -= c1[:-win_length]
+        out /= win_length
+        np.sqrt(out, out=out)
+    return out
 
 
 def _fix_audio_dims(signal, n_channels):

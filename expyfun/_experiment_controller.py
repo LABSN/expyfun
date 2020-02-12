@@ -1806,9 +1806,15 @@ class ExperimentController(object):
                 chan_rms = [np.sqrt(np.mean(x ** 2)) for x in chans]
                 max_rms = max(chan_rms)
             else:  # 'windowed'
+                # ~226 sec at 44100 Hz
+                if samples.size >= 1e7 and not self._slow_rms_warned:
+                    warnings.warn(
+                        'Checking RMS with a 10 ms window and many samples is '
+                        'slow, consider using None or "wholefile" modes.')
+                    self._slow_rms_warned = True
                 win_length = int(self.fs * 0.01)  # 10ms running window
-                chan_rms = [running_rms(x, win_length) for x in chans]
-                max_rms = max([max(x) for x in chan_rms])
+                max_rms = [running_rms(x, win_length).max() for x in chans]
+                max_rms = max(max_rms)
             if max_rms > 2 * self._stim_rms:
                 warn_string = ('Expyfun: Stimulus max RMS ({}) exceeds stated '
                                'RMS ({}) by more than 6 dB.'
@@ -1841,6 +1847,7 @@ class ExperimentController(object):
         if check_rms not in [None, 'wholefile', 'windowed']:
             raise ValueError('check_rms must be one of "wholefile", "windowed"'
                              ', or None.')
+        self._slow_rms_warned = False
         self._check_rms = check_rms
 
 # ############################## OTHER METHODS ################################

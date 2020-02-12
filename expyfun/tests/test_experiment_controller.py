@@ -290,6 +290,9 @@ def test_ec(ac, hide_window):
             ec.load_buffer(click)
         with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(noise)
+        if ac != 'tdt':  # too many samples there
+            with pytest.warns(UserWarning, match='slow'):
+                ec.load_buffer(np.zeros(10000001, dtype=np.float32))
 
         ec.stop()
         ec.set_visible()
