@@ -105,9 +105,7 @@ class Text(object):
         elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
         self._attr = attr
-        text = text + ' '  # pyglet bug workaround
         if self._attr:
-            text = text.replace('\n', '\n ')  # pyglet bug workaround
             preamble = ('{{font_name \'{}\'}}{{font_size {}}}{{color {}}}'
                         '').format(font_name, font_size, _convert_color(color))
             doc = pyglet.text.decode_attributed(preamble + text)
