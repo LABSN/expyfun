@@ -914,7 +914,7 @@ class ExperimentController(object):
         platform_event_loop.stop()
 
 # ############################### OPENGL METHODS ##############################
-    def _setup_window(self, window_size, exp_name, full_screen, screen_num):
+    def _setup_window(self, window_size, exp_name, full_screen, screen):
         import pyglet
         from pyglet import gl
         # Use 16x sampling here
@@ -926,7 +926,7 @@ class ExperimentController(object):
         self._full_screen = full_screen
         win_kwargs = dict(width=window_size[0], height=window_size[1],
                           caption=exp_name, fullscreen=False,
-                          screen=screen_num, style='borderless', visible=False,
+                          screen=screen, style='borderless', visible=False,
                           config=pyglet.gl.Config(**config_kwargs))
 
         max_try = 5  # sometimes it fails for unknown reasons
@@ -973,6 +973,8 @@ class ExperimentController(object):
                                'screen resolution set incorrectly?'
                                % (window_size, got_size))
         self._dispatch_events()
+        logger.info('Initialized %s window on screen %s with DPI %0.2f'
+                    % (window_size, screen, self.dpi))
 
     def flip(self, when=None):
         """Flip screen, then run any "on-flip" functions.
