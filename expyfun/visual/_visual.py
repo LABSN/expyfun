@@ -105,19 +105,17 @@ class Text(object):
         elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
         self._attr = attr
-        text = text + ' '  # pyglet bug workaround
         if self._attr:
-            text = text.replace('\n', '\n ')  # pyglet bug workaround
             preamble = ('{{font_name \'{}\'}}{{font_size {}}}{{color {}}}'
                         '').format(font_name, font_size, _convert_color(color))
             doc = pyglet.text.decode_attributed(preamble + text)
-            self._text = pyglet.text.layout.TextLayout(doc, width=width,
-                                                       height=height,
-                                                       multiline=wrap,
-                                                       dpi=int(ec.dpi))
+            self._text = pyglet.text.layout.TextLayout(
+                doc, width=width, height=height, multiline=wrap,
+                dpi=int(ec.dpi))
         else:
-            self._text = pyglet.text.Label(text, width=width, height=height,
-                                           multiline=wrap, dpi=int(ec.dpi))
+            self._text = pyglet.text.Label(
+                text, width=width, height=height, multiline=wrap,
+                dpi=int(ec.dpi))
             self._text.color = _convert_color(color)
             self._text.font_name = font_name
             self._text.font_size = font_size
