@@ -70,11 +70,8 @@ def test_validate_audio(hide_window):
             samples_out = ec._validate_audio(samples_in)
             assert samples_out.shape == samples_in.shape[::-1]
             assert samples_out.dtype == np.float32
-            # transpose that we do will not copy just make a view
+            # ensure that we have not bade a copy, just a view
             assert samples_out.base is samples_in
-            samples_out.flags['WRITEABLE'] = True  # undo our read-only safety
-            samples_out[:] = 1
-            assert_allclose(samples_in.T, samples_out)
 
 
 def test_data_line(hide_window):
@@ -291,7 +288,7 @@ def test_ec(ac, hide_window):
         with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(noise)
         if ac != 'tdt':  # too many samples there
-            with pytest.warns(UserWarning, match='slow'):
+            with pytest.warns(UserWarning, match='samples is slow'):
                 ec.load_buffer(np.zeros(10000001, dtype=np.float32))
 
         ec.stop()
