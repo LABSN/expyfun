@@ -890,7 +890,6 @@ class ExperimentController(object):
     def _setup_event_loop(self):
         from pyglet.app import platform_event_loop, event_loop
         event_loop.has_exit = False
-        event_loop._legacy_setup()
         platform_event_loop.start()
         event_loop.dispatch_event('on_enter')
 
