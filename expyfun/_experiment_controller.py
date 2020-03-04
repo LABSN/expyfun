@@ -1660,7 +1660,8 @@ class ExperimentController(object):
             raise RuntimeError('Previous audio must be stopped before loading '
                                'the buffer')
         samples = self._validate_audio(samples)
-        samples *= self._stim_scaler
+        if not np.isclose(self._stim_scaler, 1.):
+            samples = samples * self._stim_scaler
         logger.exp('Expyfun: Loading {} samples to buffer'
                    ''.format(samples.size))
         self._ac.load_buffer(samples)
@@ -1715,7 +1716,7 @@ class ExperimentController(object):
         logger.exp('Expyfun: Audio stopped and reset.')
 
     def set_noise_db(self, new_db):
-        """Set the level of the background noise
+        """Set the level of the background noise.
 
         Parameters
         ----------
@@ -1732,7 +1733,7 @@ class ExperimentController(object):
         self._noise_db = new_db
 
     def set_stim_db(self, new_db):
-        """Set the level of the stimuli
+        """Set the level of the stimuli.
 
         Parameters
         ----------
@@ -1805,9 +1806,15 @@ class ExperimentController(object):
                 chan_rms = [np.sqrt(np.mean(x ** 2)) for x in chans]
                 max_rms = max(chan_rms)
             else:  # 'windowed'
+                # ~226 sec at 44100 Hz
+                if samples.size >= 1e7 and not self._slow_rms_warned:
+                    warnings.warn(
+                        'Checking RMS with a 10 ms window and many samples is '
+                        'slow, consider using None or "wholefile" modes.')
+                    self._slow_rms_warned = True
                 win_length = int(self.fs * 0.01)  # 10ms running window
-                chan_rms = [running_rms(x, win_length) for x in chans]
-                max_rms = max([max(x) for x in chan_rms])
+                max_rms = [running_rms(x, win_length).max() for x in chans]
+                max_rms = max(max_rms)
             if max_rms > 2 * self._stim_rms:
                 warn_string = ('Expyfun: Stimulus max RMS ({}) exceeds stated '
                                'RMS ({}) by more than 6 dB.'
@@ -1820,8 +1827,9 @@ class ExperimentController(object):
                                ''.format(max_rms, self._stim_rms))
                 logger.warning(warn_string)
 
-        # this will create a copy, so we can modify inplace later!
-        samples = np.array(samples, np.float32)
+        # let's make sure we don't change our version of this array later
+        samples = samples.view()
+        samples.flags['WRITEABLE'] = False
         return samples
 
     def set_rms_checking(self, check_rms):
@@ -1839,6 +1847,7 @@ class ExperimentController(object):
         if check_rms not in [None, 'wholefile', 'windowed']:
             raise ValueError('check_rms must be one of "wholefile", "windowed"'
                              ', or None.')
+        self._slow_rms_warned = False
         self._check_rms = check_rms
 
 # ############################## OTHER METHODS ################################
@@ -2255,15 +2264,17 @@ def _get_dev_db(audio_controller):
             RP2=108.,
             RP2legacy=108.,
             RZ6=114.,
-            pyglet=100.,  # TODO: this value not calibrated, system-dependent
-            dummy=90.,  # only used for testing
+            # TODO: these values not calibrated, system-dependent
+            pyglet=100.,
+            rtmixer=100.,
+            dummy=100.,  # only used for testing
         ).get(audio_controller, None)
     else:
         level = float(level)
     if level is None:
-        logger.warning('Expyfun: Unknown audio controller: stim scaler may '
+        logger.warning('Expyfun: Unknown audio controller %s: stim scaler may '
                        'not work correctly. You may want to remove your '
                        'headphones if this is the first run of your '
-                       'experiment.')
-        level = 90  # for untested TDT models
+                       'experiment.' % (audio_controller,))
+        level = 100  # for untested TDT models
     return level

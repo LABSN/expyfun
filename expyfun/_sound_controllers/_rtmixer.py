@@ -116,8 +116,9 @@ class SoundPlayer(object):
 
     def __init__(self, data, fs=None, loop=False, api=None, name=None,
                  fixed_delay=None, api_options=None):
-        self._data = np.ascontiguousarray(
-            np.clip(np.atleast_2d(data).T, -1, 1).astype(np.float32))
+        data = np.atleast_2d(data).T
+        data = np.asarray(data, np.float32, 'C')
+        self._data = data
         self.loop = bool(loop)
         self._n_samples, n_channels = self._data.shape
         assert n_channels >= 1

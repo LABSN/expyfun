@@ -19,6 +19,14 @@ matrix:
           packages:
             - ffmpeg
             - libglu1-mesa
+    - os: linux
+      dist: xenial
+      env: _EXPYFUN_SILENT=true DEPS=pre
+      addons:
+        apt:
+          packages:
+            - ffmpeg
+            - libglu1-mesa
     - os: osx
       language: objective-c
     - os: linux
@@ -59,8 +67,18 @@ before_install:
         pip install "pyglet<1.4";
       else
         conda install --yes --quiet pandas h5py;
-        pip install -q joblib pyglet mne;
+        pip install -q joblib mne;
+        if [ "${DEPS}" == "pre" ]; then
+          pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --upgrade --pre numpy scipy matplotlib;
+          pip install pyglet;
+        else
+          pip install pyglet;
+        fi;
       fi;
+    # Eventually in "pre" we should do:
+    # pip install https://api.github.com/repos/pyglet/pyglet/zipball/master
+    # But this is known to be problematic...
+
     # Import matplotlib ahead of time so it doesn't affect test timings
     # (e.g., building fc-cache)
     - python -c "import matplotlib.pyplot as plt"
