@@ -7,7 +7,7 @@ env:
     global: PYTHON_VERSION=3.7 DISPLAY=:99.0
             CONDA_DEPENDENCIES="scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout pillow"
             PIP_DEPENDENCIES="codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice rtmixer"
-
+            MESA_GL_VERSION_OVERRIDE=3.3
 
 matrix:
   include:
@@ -61,7 +61,6 @@ before_install:
         sound-ci-helpers/linux/setup_sound.sh;
       fi;
     - python -m sounddevice
-    - glxinfo | grep version
     - pip install -q flake8
     # Minimal or full dependencies (pandas, mne-python, h5py, joblib)
     - if [ "${DEPS}" == "minimal" ]; then
