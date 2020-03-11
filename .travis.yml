@@ -61,6 +61,7 @@ before_install:
         sound-ci-helpers/linux/setup_sound.sh;
       fi;
     - python -m sounddevice
+    - glxinfo | grep version
     - pip install -q flake8
     # Minimal or full dependencies (pandas, mne-python, h5py, joblib)
     - if [ "${DEPS}" == "minimal" ]; then
