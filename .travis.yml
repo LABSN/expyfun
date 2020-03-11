@@ -19,7 +19,7 @@ matrix:
             - ffmpeg
             - libglu1-mesa
     - os: linux
-      dist: bionic
+      dist: xenial
       env: _EXPYFUN_SILENT=true DEPS=pre MESA_GL_VERSION_OVERRIDE=3.3
       addons:
         apt:
