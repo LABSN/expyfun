@@ -30,7 +30,7 @@ test_script:
   # Ensure that video works
   - "python -c \"import expyfun; assert expyfun._utils._has_video()\""
   # Run the project tests
-  - "pytest --cov=expyfun expyfun"
+  - "pytest --tb=short --cov=expyfun expyfun"
 
 on_success:
   - "codecov"

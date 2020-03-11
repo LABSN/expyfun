@@ -7,7 +7,6 @@ env:
     global: PYTHON_VERSION=3.7 DISPLAY=:99.0
             CONDA_DEPENDENCIES="scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout pillow"
             PIP_DEPENDENCIES="codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice rtmixer"
-            MESA_GL_VERSION_OVERRIDE=3.3
 
 matrix:
   include:
@@ -21,7 +20,7 @@ matrix:
             - libglu1-mesa
     - os: linux
       dist: bionic
-      env: _EXPYFUN_SILENT=true DEPS=pre
+      env: _EXPYFUN_SILENT=true DEPS=pre MESA_GL_VERSION_OVERRIDE=3.3
       addons:
         apt:
           packages:
@@ -83,7 +82,7 @@ install:
     - python setup.py develop
 
 script:
-    - pytest --cov=expyfun expyfun
+    - pytest --tb=short --cov=expyfun expyfun
     - make flake
     - make codespell-error
     - make docstyle
