@@ -43,10 +43,7 @@ jobs:
       python -m sounddevice
     displayName: 'Install rtmixer'
   - powershell: |
-      git clone --depth 1 git://github.com/larsoner/gl-ci-helpers.git
-      cd gl-ci-helpers
-      git checkout -b 20 origin/20
-      cd ..
+      git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
       powershell gl-ci-helpers/appveyor/install_opengl.ps1
       python -c "import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()"
     displayName: 'Get OpenGL'
