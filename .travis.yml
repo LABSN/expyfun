@@ -16,7 +16,6 @@ matrix:
       addons:
         apt:
           packages:
-            - ffmpeg
             - libavutil55
             - libglu1-mesa
     - os: linux
@@ -25,7 +24,6 @@ matrix:
       addons:
         apt:
           packages:
-            - ffmpeg
             - libavutil55
             - libglu1-mesa
     - os: osx
@@ -55,14 +53,10 @@ before_install:
     # install FFmpeg, sound drivers
     - git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git;
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        brew install ffmpeg;
         sound-ci-helpers/macos/setup_sound.sh;
       else
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         sound-ci-helpers/linux/setup_sound.sh;
-      fi;
-    - if [ "${DEPS}" != "minimal" ]; then
-        ffmpeg -version;
       fi;
     - python -m sounddevice
     - pip install -q flake8
@@ -76,7 +70,7 @@ before_install:
           pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --upgrade --pre numpy scipy matplotlib;
           pip install https://api.github.com/repos/pyglet/pyglet/zipball/master;
         else
-          pip install pyglet;
+          pip install pyglet pyglet-ffmpeg;
         fi;
       fi;
     # Import matplotlib ahead of time so it doesn't affect test timings
@@ -87,10 +81,6 @@ install:
     - python setup.py develop
 
 script:
-    - if [ "${DEPS}" != "minimal" ]; then
-        python -c "import expyfun; expyfun.fetch_data_file('video/example-video.mp4')";
-        ffmpeg -i ~/.expyfun/data/video/example-video.mp4 test.avi;
-      fi;
     - python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
     - pytest -n 1 --tb=short --cov=expyfun expyfun
     - make flake
