@@ -11,22 +11,22 @@ env:
 matrix:
   include:
     - os: linux
-      dist: bionic
+      dist: xenial
       env: _EXPYFUN_SILENT=true
       addons:
         apt:
           packages:
             - ffmpeg
-            - libavutil55
+            - libavutil-ffmpeg54
             - libglu1-mesa
     - os: linux
-      dist: bionic
+      dist: xenial
       env: _EXPYFUN_SILENT=true DEPS=pre MESA_GL_VERSION_OVERRIDE=3.3
       addons:
         apt:
           packages:
             - ffmpeg
-            - libavutil55
+            - libavutil-ffmpeg54
             - libglu1-mesa
     - os: osx
       language: objective-c
