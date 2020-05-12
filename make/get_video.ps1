@@ -1,3 +1,6 @@
+# FFMpeg 64-bit stable (4.2.2) shared libraries obtained from
+# https://ffmpeg.zeranoe.com/builds/
+
 function DownloadDLL($dll) {
     $url = "https://staff.washington.edu/larsoner/" + $dll
     $filepath = "C:\Windows\system32\" + $dll
