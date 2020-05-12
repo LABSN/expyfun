@@ -5,7 +5,7 @@ cache:
 env:
     # The _EXPYFUN_SILENT is a workaround for a silly Py3/Travis bug
     global: PYTHON_VERSION=3.7 DISPLAY=:99.0
-            CONDA_DEPENDENCIES="scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout pytest-xdist pillow"
+            CONDA_DEPENDENCIES="scipy matplotlib coverage setuptools pytest pytest-cov pytest-timeout pillow"
             PIP_DEPENDENCIES="codecov pytest-sugar codespell pydocstyle numpydoc check-manifest sounddevice rtmixer"
 
 matrix:
@@ -87,7 +87,7 @@ script:
     - if [ "${TRAVIS_OS_NAME}" == "osx" ] || [ "${DEPS}" == "minimal" ]; then
         python -c "import expyfun; expyfun._utils._has_video(raise_error=True)";
       fi;
-    - pytest -n 1 --tb=short --cov=expyfun expyfun
+    - pytest --tb=short --cov=expyfun expyfun
     - make flake
     - make codespell-error
     - make docstyle
