@@ -11,22 +11,22 @@ env:
 matrix:
   include:
     - os: linux
-      dist: xenial
+      dist: bionic
       env: _EXPYFUN_SILENT=true
       addons:
         apt:
           packages:
             - ffmpeg
-            - libavutil-ffmpeg54
+            - libavutil55
             - libglu1-mesa
     - os: linux
-      dist: xenial
+      dist: bionic
       env: _EXPYFUN_SILENT=true DEPS=pre MESA_GL_VERSION_OVERRIDE=3.3
       addons:
         apt:
           packages:
             - ffmpeg
-            - libavutil-ffmpeg54
+            - libavutil55
             - libglu1-mesa
     - os: osx
       language: objective-c
@@ -87,6 +87,10 @@ install:
     - python setup.py develop
 
 script:
+    - if [ "${DEPS}" != "minimal" ]; then
+        python -c "import expyfun; expyfun.fetch_data_file('video/example-video.mp4')";
+        ffmpeg -i ~/.expyfun/data/video/example-video.mp4 test.avi;
+      fi;
     - python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
     - pytest -n 1 --tb=short --cov=expyfun expyfun
     - make flake
