@@ -49,7 +49,7 @@ jobs:
     displayName: 'Get OpenGL'
   - powershell: |
       powershell make/get_video.ps1
-      python -c "import expyfun; assert expyfun._utils._has_video()"
+      python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
     displayName: 'Get video support'
   - script: python setup.py develop
     displayName: 'Install'

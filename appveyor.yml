@@ -28,7 +28,7 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Ensure that video works
-  - "python -c \"import expyfun; assert expyfun._utils._has_video()\""
+  - "python -c \"import expyfun; assert expyfun._utils._has_video(raise_error=True)\""
   # Run the project tests
   - "pytest --tb=short --cov=expyfun expyfun"
 

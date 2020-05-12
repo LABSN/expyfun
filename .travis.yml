@@ -82,6 +82,7 @@ install:
     - python setup.py develop
 
 script:
+    - python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
     - pytest --tb=short --cov=expyfun expyfun
     - make flake
     - make codespell-error
