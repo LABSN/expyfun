@@ -32,7 +32,7 @@ jobs:
       addToPath: true
   - powershell: |
       pip install --upgrade numpy scipy vtk
-      pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet mne tdtpy joblib numpydoc pillow
+      pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet pyglet-ffmpeg mne tdtpy joblib numpydoc pillow
       python -c "import mne; mne.sys_info()"
       python -c "import matplotlib.pyplot as plt"
     displayName: 'Install pip dependencies'
@@ -47,9 +47,6 @@ jobs:
       powershell gl-ci-helpers/appveyor/install_opengl.ps1
       python -c "import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()"
     displayName: 'Get OpenGL'
-  - powershell: |
-      powershell make/get_video.ps1
-    displayName: 'Get video support'
   - powershell: |
       python -c "from ctypes import cdll; print(cdll.LoadLibrary('avcodec-58'))"
     displayName: 'Check avcodec'
