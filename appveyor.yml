@@ -9,7 +9,7 @@ platform:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
-  - "pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet pyglet-ffmpepg mne tdtpy joblib numpydoc pillow"
+  - "pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet pyglet-ffmpeg mne tdtpy joblib numpydoc pillow"
   - "python -c \"import mne; mne.sys_info()\""
   # Get a virtual sound card / VBAudioVACWDM device
   - "git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git"
