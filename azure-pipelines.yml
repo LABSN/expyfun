@@ -32,7 +32,7 @@ jobs:
       addToPath: true
   - powershell: |
       pip install --upgrade numpy scipy vtk
-      pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet mne tdtpy joblib numpydoc pillow
+      pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet mne tdtpy joblib numpydoc pillow
       python -c "import mne; mne.sys_info()"
       python -c "import matplotlib.pyplot as plt"
     displayName: 'Install pip dependencies'
@@ -49,11 +49,16 @@ jobs:
     displayName: 'Get OpenGL'
   - powershell: |
       powershell make/get_video.ps1
-      python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
     displayName: 'Get video support'
+  - powershell: |
+      python -c "from ctypes.cdll import LoadLibrary; print(LoadLibrary('avcodec-58'))"
+    displayName: 'Check avcodec'
+  - powershell: |
+      python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
+    displayName: 'Check video support'
   - script: python setup.py develop
     displayName: 'Install'
-  - script: pytest --tb=short --cov=expyfun expyfun
+  - script: pytest -n 1 --tb=short --cov=expyfun expyfun
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'
