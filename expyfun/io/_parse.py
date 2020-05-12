@@ -88,7 +88,7 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok',
     lines = out[0] if return_params else out
 
     # determine the event fields
-    header = list(set([l[1] for l in lines]))
+    header = list(set([line[1] for line in lines]))
     header.sort()
     if group_start not in header:
         raise ValueError('group_start "{0}" not in header: {1}'

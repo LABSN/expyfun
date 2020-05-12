@@ -159,8 +159,8 @@ def test_crm(tmpdir):
     talkers = [dict(sex='f', talker_num=0)]
 
     crm_prepare_corpus(fs, path_out=tempdir, talker_list=talkers,
-                       n_jobs=np.inf)
-    crm_prepare_corpus(fs, path_out=tempdir, talker_list=talkers,
+                       n_jobs=1)
+    crm_prepare_corpus(fs, path_out=tempdir, talker_list=talkers, n_jobs=1,
                        overwrite=True)
     # no overwrite
     pytest.raises(RuntimeError, crm_prepare_corpus, fs, path_out=tempdir)

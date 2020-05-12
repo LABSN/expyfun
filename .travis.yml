@@ -11,20 +11,20 @@ env:
 matrix:
   include:
     - os: linux
-      dist: xenial
+      dist: bionic
       env: _EXPYFUN_SILENT=true
       addons:
         apt:
           packages:
-            - ffmpeg
+            - libavutil55
             - libglu1-mesa
     - os: linux
-      dist: xenial
+      dist: bionic
       env: _EXPYFUN_SILENT=true DEPS=pre MESA_GL_VERSION_OVERRIDE=3.3
       addons:
         apt:
           packages:
-            - ffmpeg
+            - libavutil55
             - libglu1-mesa
     - os: osx
       language: objective-c
@@ -82,6 +82,11 @@ install:
     - python setup.py develop
 
 script:
+    # For some mysterious reason with FFMpegSource it fails on Travis even
+    # though things seem to work nicely locally, so ignore it for now
+    - if [ "${TRAVIS_OS_NAME}" == "osx" ] || [ "${DEPS}" == "minimal" ]; then
+        python -c "import expyfun; expyfun._utils._has_video(raise_error=True)";
+      fi;
     - pytest --tb=short --cov=expyfun expyfun
     - make flake
     - make codespell-error

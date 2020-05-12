@@ -1086,7 +1086,7 @@ class TrackerMHW(object):
         self._n_xmin_correct = 0
 
         self._levels = np.arange(x_min, x_max + base_step, base_step)
-        self._n_correct_levels = {l: 0 for l in self._levels}
+        self._n_correct_levels = {level: 0 for level in self._levels}
         self._threshold = np.nan
 
         # Now write the initialization data out
@@ -1229,8 +1229,8 @@ class TrackerMHW(object):
         return self._valid
 
     def _stop_here(self):
-        self._threshold_reached = [self._n_correct_levels[l] ==
-                                   self._n_up_stop for l in self._levels]
+        self._threshold_reached = [self._n_correct_levels[level] ==
+                                   self._n_up_stop for level in self._levels]
         if self._n_correct == 0 and self._x[
                 -2] == self._x_max and self._x[-1] == self._x_max:
             self._n_stop = True

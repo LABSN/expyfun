@@ -102,7 +102,7 @@ def _as_static(data, fs):
     data = data.T.ravel('C')
     data[data < -1] = -1
     data[data > 1] = 1
-    data = (data * (2 ** 15)).astype('int16').tostring()
+    data = (data * (2 ** 15)).astype('int16').tobytes()
     return StaticMemorySourceFixed(data, audio_format)
 
 

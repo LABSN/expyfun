@@ -265,7 +265,7 @@ class _Triangular(object):
         gl.glUseProgram(self._program)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers[kind]['array'])
         gl.glBufferData(gl.GL_ARRAY_BUFFER, self._points[kind].size * 4,
-                        self._points[kind].tostring(),
+                        self._points[kind].tobytes(),
                         gl.GL_STATIC_DRAW)
         if kind == 'line':
             self._counts[kind] = array_count
@@ -275,7 +275,7 @@ class _Triangular(object):
                             self._buffers[kind]['index'])
             gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER,
                             self._tris[kind].size * 4,
-                            self._tris[kind].tostring(),
+                            self._tris[kind].tobytes(),
                             gl.GL_STATIC_DRAW)
         gl.glUseProgram(0)
 
@@ -969,7 +969,7 @@ class RawImage(object):
         dims = image_buffer.shape
         fmt = 'RGB' if dims[2] == 3 else 'RGBA'
         self._sprite = sprite.Sprite(image.ImageData(dims[1], dims[0], fmt,
-                                                     image_buffer.tostring(),
+                                                     image_buffer.tobytes(),
                                                      -dims[1] * dims[2]))
 
     def set_pos(self, pos, units='norm'):

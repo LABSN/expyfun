@@ -14,6 +14,7 @@ import os.path as op
 import inspect
 import sys
 import tempfile
+import traceback
 import ssl
 from shutil import rmtree
 import atexit
@@ -436,31 +437,48 @@ def _new_pyglet():
     return LooseVersion(pyglet.version) >= LooseVersion('1.4')
 
 
-def _has_video():
+def _has_video(raise_error=False):
+    exceptions = list()
+    good = True
     if _new_pyglet():
         try:
             from pyglet.media.codecs.ffmpeg import FFmpegSource  # noqa
         except ImportError:
-            return False
+            exceptions.append(traceback.format_exc())
+            good = False
+        else:
+            if raise_error:
+                print('Found FFmpegSource for new Pyglet')
     else:
         try:
             from pyglet.media.avbin import AVbinSource  # noqa
         except ImportError:
+            exceptions.append(traceback.format_exc())
             try:
                 from pyglet.media.sources.avbin import AVbinSource  # noqa
             except ImportError:
-                return False
-    return True
+                exceptions.append(traceback.format_exc())
+                good = False
+            else:
+                if raise_error:
+                    print('Found AVbinSource for old Pyglet 1')
+        else:
+            if raise_error:
+                print('Found AVbinSource for old Pyglet 2')
+    if raise_error and not good:
+        raise RuntimeError('Video support not enabled, got exception(s):\n\n%s'
+                           '\n***********************\n'.join(exceptions))
+    return good
 
 
 def requires_video():
-    """Requires FFmpeg/AVbin decorator."""
+    """Require FFmpeg/AVbin."""
     import pytest
     return pytest.mark.skipif(not _has_video(), reason='Requires FFmpeg/AVbin')
 
 
 def requires_opengl21(func):
-    """Requires OpenGL decorator."""
+    """Require OpenGL."""
     import pytest
     import pyglet.gl
     vendor = pyglet.gl.gl_info.get_vendor()
