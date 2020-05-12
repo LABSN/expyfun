@@ -1793,7 +1793,7 @@ class ExperimentController(object):
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
-                           ''.format(round(len(samples) / self.stim_fs), 2))
+                           ''.format(round(len(samples) / self.stim_fs, 2)))
             from mne.filter import resample
             samples = resample(
                 samples.astype(np.float64), self.fs, self.stim_fs,

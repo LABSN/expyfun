@@ -10,7 +10,7 @@ This shows how to make stimuli that play at different SNRs and db SPL.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from expyfun.stimuli import vocode, play_sound, window_edges, read_wav, rms
+from expyfun.stimuli import window_edges, read_wav, rms
 from expyfun import fetch_data_file
 
 print(__doc__)
