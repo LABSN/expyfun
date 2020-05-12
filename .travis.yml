@@ -17,6 +17,7 @@ matrix:
         apt:
           packages:
             - ffmpeg
+            - libavutil
             - libglu1-mesa
     - os: linux
       dist: xenial
@@ -25,6 +26,7 @@ matrix:
         apt:
           packages:
             - ffmpeg
+            - libavutil
             - libglu1-mesa
     - os: osx
       language: objective-c

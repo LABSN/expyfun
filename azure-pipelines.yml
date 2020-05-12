@@ -51,7 +51,7 @@ jobs:
       powershell make/get_video.ps1
     displayName: 'Get video support'
   - powershell: |
-      python -c "from ctypes.cdll import LoadLibrary; print(LoadLibrary('avcodec-58'))"
+      python -c "from ctypes import cdll; print(cdll.LoadLibrary('avcodec-58'))"
     displayName: 'Check avcodec'
   - powershell: |
       python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
