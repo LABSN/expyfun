@@ -1112,7 +1112,7 @@ class Video(object):
         self._visible = visible
         self._eos_fun = self._eos_new if _new_pyglet() else self._eos_old
 
-    def play(self):
+    def play(self, auto_draw=True):
         """Play video from current position.
 
         Returns
@@ -1122,7 +1122,8 @@ class Video(object):
             which ``play()`` was called.
         """
         if not self._playing:
-            self._ec.call_on_every_flip(self.draw)
+            if auto_draw:
+                self._ec.call_on_every_flip(self.draw)
             self._player.play()
             self._playing = True
         else:
@@ -1140,8 +1141,12 @@ class Video(object):
             which ``pause()`` was called.
         """
         if self._playing:
-            idx = self._ec.on_every_flip_functions.index(self.draw)
-            self._ec.on_every_flip_functions.pop(idx)
+            try:
+                idx = self._ec.on_every_flip_functions.index(self.draw)
+            except ValueError:  # not auto_draw
+                pass
+            else:
+                self._ec.on_every_flip_functions.pop(idx)
             self._player.pause()
             self._playing = False
         else:

@@ -11,7 +11,7 @@ This shows how to play a video file in expyfun. It requires that FFmpeg
 """
 
 from expyfun import (ExperimentController, fetch_data_file, analyze as ea,
-                     building_doc, visual)
+                     building_doc)
 
 print(__doc__)
 
@@ -22,13 +22,11 @@ ec_args = dict(exp_name='simple video example', window_size=(720, 480),
                version='dev', enable_video=True, output_dir=None)
 
 with ExperimentController(**ec_args) as ec:
-    fix = visual.FixationDot(ec)
     ec.load_video(movie_path)
     ec.video.set_scale('fit')
     t_zero = ec.video.play()
     while not ec.video.finished:
         if ec.video.playing:
-            fix.draw()
             fliptime = ec.flip()
         screenshot = ec.screenshot()
         if building_doc:

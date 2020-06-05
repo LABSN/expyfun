@@ -32,16 +32,14 @@ with ExperimentController(**ec_args) as ec:
     ec.video.set_scale('fill')
     ec.screen_prompt('press 1 during video to toggle pause.', max_wait=1.)
     ec.listen_presses()  # to catch presses on first pass of while loop
-    t_zero = ec.video.play()
+    t_zero = ec.video.play(auto_draw=False)
     this_sec = 0
     while not ec.video.finished:
-        if ec.video.playing:
-            if text is not None:
-                text.draw()
-            fix.draw()
-            fliptime = ec.flip()
-        else:  # to catch presses reliably, need delay between loop executions
-            ec.wait_secs(screen_period / 5)
+        ec.video.draw()
+        if text is not None:
+            text.draw()
+        fix.draw()
+        fliptime = ec.flip()
         presses = ec.get_presses(live_keys=[1], relative_to=t_zero)
         ec.listen_presses()
         # change the background color every 1 second
