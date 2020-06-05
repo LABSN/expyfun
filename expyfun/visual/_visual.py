@@ -1115,6 +1115,11 @@ class Video(object):
     def play(self, auto_draw=True):
         """Play video from current position.
 
+        Parameters
+        ----------
+        auto_draw : bool
+            If True, add ``self.draw`` to ``ec.on_every_flip``.
+
         Returns
         -------
         time : float
