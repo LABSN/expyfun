@@ -10,10 +10,6 @@ This shows how to play a video file in expyfun. It requires that FFmpeg
 @author: drmccloy
 """
 
-# Todo:
-# 1. fix things
-# 2. Check "streaming=False"
-
 from expyfun import (ExperimentController, fetch_data_file, analyze as ea,
                      building_doc, visual)
 
