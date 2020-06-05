@@ -37,8 +37,7 @@ with ExperimentController(**ec_args) as ec:
     this_sec = 0
     while not ec.video.finished:
         ec.video.draw()
-        if text is not None:
-            text.draw()
+        text.draw()
         fix.draw()
         if screenshot is None:
             screenshot = ec.screenshot()
