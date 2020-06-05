@@ -105,7 +105,8 @@ class Text(object):
         elif isinstance(width, string_types):
             raise ValueError('"width", if str, must be "auto"')
         self._attr = attr
-        text = text + '\n '  # weird Pyglet bug
+        if wrap:
+            text = text + '\n '  # weird Pyglet bug
         if self._attr:
             preamble = ('{{font_name \'{}\'}}{{font_size {}}}{{color {}}}'
                         '').format(font_name, font_size, _convert_color(color))
@@ -320,7 +321,7 @@ class _Triangular(object):
         self._line_width = line_width
 
     def draw(self):
-        """Draw the object to the display buffer"""
+        """Draw the object to the display buffer."""
         gl.glUseProgram(self._program)
         for kind in ('fill', 'line'):
             if self._counts[kind] > 0:
@@ -796,7 +797,7 @@ class ConcentricCircles(object):
         self._circles[idx].set_fill_color(color)
 
     def set_colors(self, colors):
-        """Set the color of each circle
+        """Set the color of each circle.
 
         Parameters
         ----------
@@ -811,8 +812,7 @@ class ConcentricCircles(object):
             self.set_color(color, idx)
 
     def draw(self):
-        """Draw the fixation dot
-        """
+        """Draw the fixation dot."""
         for circle in self._circles:
             circle.draw()
 
@@ -1216,6 +1216,7 @@ class Video(object):
     def _draw(self):
         self._texture = self._player.get_texture()
         self._scale_texture()
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         self._texture.blit(*self._actual_pos)
 
     def draw(self):
