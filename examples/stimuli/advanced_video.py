@@ -28,6 +28,7 @@ with ExperimentController(**ec_args) as ec:
     all_presses = list()
     fix = visual.FixationDot(ec)
     text = None  # don't draw at first
+    screenshot = None  # don't have one yet
     ec.load_video(movie_path)
     ec.video.set_scale('fill')
     ec.screen_prompt('press 1 during video to toggle pause.', max_wait=1.)
@@ -38,6 +39,10 @@ with ExperimentController(**ec_args) as ec:
         ec.video.draw()
         if text is not None:
             text.draw()
+            if screenshot is None:
+                screenshot = ec.screenshot()
+                if building_doc:
+                    break
         fix.draw()
         fliptime = ec.flip()
         presses = ec.get_presses(live_keys=[1], relative_to=t_zero)
@@ -67,9 +72,6 @@ with ExperimentController(**ec_args) as ec:
                 else:
                     ec.video.set_visible(True)
                     ec.video.play()
-        screenshot = ec.screenshot()
-        if building_doc:
-            break
     ec.delete_video()
     preamble = 'press times:' if len(all_presses) else 'no presses'
     msg = ', '.join(['{0:.3f}'.format(x[1]) for x in all_presses])
