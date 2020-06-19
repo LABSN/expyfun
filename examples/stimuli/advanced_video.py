@@ -34,9 +34,12 @@ with ExperimentController(**ec_args) as ec:
     ec.screen_prompt('press 1 during video to toggle pause.', max_wait=1.)
     ec.listen_presses()  # to catch presses on first pass of while loop
     t_zero = ec.video.play(auto_draw=False)
-    this_sec = 0
+    this_sec = 0.
     while not ec.video.finished:
-        ec.video.draw()
+        if ec.video.playing:
+            ec.video.draw()
+        else:
+            ec.screen_text('paused!', color='y', font_size=32, wrap=False)
         text.draw()
         fix.draw()
         if screenshot is None:
@@ -61,14 +64,9 @@ with ExperimentController(**ec_args) as ec:
             all_presses.extend(presses)
             if len(presses) % 2:  # if even number of presses, do nothing
                 if ec.video.playing:
-                    ec.video.set_visible(False)
                     ec.video.pause()
-                    ec.screen_text('pause!', color='k', font_size=32,
-                                   wrap=False)
-                    ec.flip()
                 else:
-                    ec.video.set_visible(True)
-                    ec.video.play()
+                    ec.video.play(auto_draw=False)
         if building_doc:
             break
     ec.delete_video()
