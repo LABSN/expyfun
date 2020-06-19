@@ -779,7 +779,12 @@ class _Calibrate(cal_super_class):
                                      on_mouse_drag)
 
     def release_event_handlers(self):
-        self.ec.window.pop_handlers()  # should detacch top-level handler
+        try:
+            fun = self.ec.window.pop_handlers
+        except AttributeError:
+            pass  # Pyglet bug?
+        else:
+            fun()  # should detach top-level handler
         del self.label
         del self.img
 

@@ -1775,7 +1775,7 @@ class ExperimentController(object):
         samples = np.asarray(samples, dtype=np.float32)
 
         # check values
-        if np.max(np.abs(samples)) > 1:
+        if samples.size and np.max(np.abs(samples)) > 1:
             raise ValueError('Sound data exceeds +/- 1.')
             # samples /= np.max(np.abs(samples),axis=0)
 
@@ -1795,12 +1795,13 @@ class ExperimentController(object):
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs, 2)))
             from mne.filter import resample
-            samples = resample(
-                samples.astype(np.float64), self.fs, self.stim_fs,
-                axis=0).astype(np.float32)
+            if samples.size:
+                samples = resample(
+                    samples.astype(np.float64), self.fs, self.stim_fs,
+                    axis=0).astype(np.float32)
 
         # check RMS
-        if self._check_rms is not None:
+        if self._check_rms is not None and samples.size:
             chans = [samples[:, x] for x in range(samples.shape[1])]
             if self._check_rms == 'wholefile':
                 chan_rms = [np.sqrt(np.mean(x ** 2)) for x in chans]
