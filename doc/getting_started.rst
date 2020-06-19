@@ -29,6 +29,7 @@ expyfun requires several libraries for full functionality:
   - ``scipy``
   - ``matplotlib``
   - ``pyglet``
+  - ``pillow``
 
 - Optional libraries:
 
@@ -47,6 +48,16 @@ expyfun requires several libraries for full functionality:
 
   - ``git``: Command-line tools needed for automated version downloading.
   - ``FFmpeg`` or ``AVBin`` (Pyglet >= or < 1.4, respectively): For playing compressed videos.
+
+To get started quickly, this should suffice for conda users on most systems:
+
+.. code-block:: console
+
+    $ conda create -n expy python=3 numpy scipy matplotlib pandas pyglet h5py joblib pillow
+    $ conda activate expy
+    $ pip install mne pyparallel rtmixer expyfun
+
+where ``expy`` can be replaced with whatever name you find convenient.
 
 Expyfun
 ^^^^^^^
