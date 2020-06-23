@@ -923,7 +923,8 @@ class ExperimentController(object):
         if os.getenv('TRAVIS') == 'true':
             del config_kwargs['samples'], config_kwargs['sample_buffers']
         self._full_screen = full_screen
-        win_kwargs = dict(width=window_size[0], height=window_size[1],
+        win_kwargs = dict(width=int(window_size[0]),
+                          height=int(window_size[1]),
                           caption=exp_name, fullscreen=False,
                           screen=screen, style='borderless', visible=False,
                           config=pyglet.gl.Config(**config_kwargs))

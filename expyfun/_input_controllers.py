@@ -554,7 +554,7 @@ class Mouse(object):
             point = POINT()
             point.x = x
             point.y = y
-            _user32.ClientToScreen(self.ec._hwnd, byref(point))
+            _user32.ClientToScreen(self.ec.window._hwnd, byref(point))
             # Move the mouse
             _user32.SetCursorPos(point.x, point.y)
         else:
