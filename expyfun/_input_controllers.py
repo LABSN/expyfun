@@ -558,7 +558,7 @@ class Mouse(object):
             # Move the mouse
             _user32.SetCursorPos(point.x, point.y)
         else:
-            # https://stackoverflow.com/questions/2433447/how-to-set-mouse-cursor-position-in-c-on-linux/2433488  # noqa
+            # https://stackoverflow.com/questions/2433447
             from pyglet.libs.x11.xlib import (XWarpPointer, XFlush,
                                               XSelectInput, KeyReleaseMask)
             display, window = self.ec.window._x_display, self.ec.window._window
