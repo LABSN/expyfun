@@ -7,8 +7,10 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
 from functools import partial
+import sys
+
+import numpy as np
 
 from .visual import (Triangle, Rectangle, Circle, Diamond, ConcentricCircles,
                      FixationDot)
@@ -512,6 +514,57 @@ class Mouse(object):
             return True
         else:
             return False
+
+    def _move_to(self, pos, units):
+        # adapted from pyautogui (BSD)
+        x, y = self.ec._convert_units(np.array(
+            [pos]).T, units, 'pix')[:, 0].round().astype(int)
+        # The "y" we use is inverted relative to the OSes
+        y = self.ec.window.height - y
+        if sys.platform == 'darwin':
+            from pyglet.libs.darwin.cocoapy import quartz, CGPoint, CGRect
+            # Convert from window to global
+            view, window = self.ec.window._nsview, self.ec.window._nswindow
+            point = CGPoint()
+            point.x = x
+            point.y = y
+            in_window = view.convertPoint_fromView_(point, None)
+            rect = CGRect()
+            rect.origin = in_window
+            on_screen = window.convertRectToScreen_(rect)
+            # Move the mouse
+            quartz.CGWarpMouseCursorPosition(on_screen.origin)
+            # Someday if this is not good enough we can work out the
+            # argtypes and restypes for:
+            # kCGEventMouseMoved, kCGHIDEventTap = 5, 0
+            # func = quartz.CGEventCreateMouseEvent
+            # func.restype = CGEventRef
+            # func.argtypes = [...]
+            # event = func(
+            #    None, kCGEventMouseMoved, on_screen.origin, 0)
+            # func = quartz.CGEventPost
+            # func.restype = c_void_p
+            # func.argtypes = [...]
+            # func(kCGHIDEventTap, event)
+            # time.sleep(0.001)
+            # quartz.CFRelease(event)
+        elif sys.platform.startswith('win'):
+            # Convert from window to global
+            from pyglet.window.win32 import POINT, _user32, byref
+            point = POINT()
+            point.x = x
+            point.y = y
+            _user32.ClientToScreen(self.ec.window._hwnd, byref(point))
+            # Move the mouse
+            _user32.SetCursorPos(point.x, point.y)
+        else:
+            # https://stackoverflow.com/questions/2433447
+            from pyglet.libs.x11.xlib import (XWarpPointer, XFlush,
+                                              XSelectInput, KeyReleaseMask)
+            display, window = self.ec.window._x_display, self.ec.window._window
+            XSelectInput(display, window, KeyReleaseMask)
+            XWarpPointer(display, 0, window, 0, 0, 0, 0, x, y)
+            XFlush(display)
 
 
 class CedrusBox(Keyboard):

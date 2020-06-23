@@ -385,6 +385,7 @@ def test_ec(ac, hide_window):
         ec.get_clicks()
         ec.toggle_cursor(False)
         ec.toggle_cursor(True, True)
+        ec.move_mouse_to((0, 0))  # center of the window
         ec.wait_secs(0.001)
         print(ec.id_types)
         print(ec.stim_db)
