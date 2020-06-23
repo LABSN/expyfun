@@ -519,11 +519,10 @@ class Mouse(object):
         # adapted from pyautogui (BSD)
         x, y = self.ec._convert_units(np.array(
             [pos]).T, units, 'pix')[:, 0].round().astype(int)
-        # The "y" we use is inverted relative to XWindow
+        # The "y" we use is inverted relative to the OSes
         y = self.ec.window.height - y
         if sys.platform == 'darwin':
             from pyglet.libs.darwin.cocoapy import quartz, CGPoint, CGRect
-            from ctypes import c_void_p
             # Convert from window to global
             view, window = self.ec.window._nsview, self.ec.window._nswindow
             point = CGPoint()
@@ -547,8 +546,8 @@ class Mouse(object):
             # func.restype = c_void_p
             # func.argtypes = [...]
             # func(kCGHIDEventTap, event)
-            #time.sleep(0.001)
-            #quartz.CFRelease(event)
+            # time.sleep(0.001)
+            # quartz.CFRelease(event)
         elif sys.platform.startswith('win'):
             # Convert from window to global
             from pyglet.window.win32 import POINT, _user32, byref
