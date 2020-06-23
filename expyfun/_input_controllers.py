@@ -522,8 +522,9 @@ class Mouse(object):
         # The "y" we use is inverted relative to XWindow
         y = self.ec.window.height - y
         if sys.platform == 'darwin':
-            # Convert from window to global ?
             from pyglet.libs.darwin.cocoapy import quartz, CGPoint, CGRect
+            from ctypes import c_void_p
+            # Convert from window to global
             view, window = self.ec.window._nsview, self.ec.window._nswindow
             point = CGPoint()
             point.x = x
@@ -532,9 +533,22 @@ class Mouse(object):
             rect = CGRect()
             rect.origin = in_window
             on_screen = window.convertRectToScreen_(rect)
-            event = quartz.CGEventCreateMouseEvent(
-                None, quartz.kCGEventMouseMoved, on_screen.origin, 0)
-            quartz.CGEventPost(quartz.kCGHIDEventTap, event)
+            # Move the mouse
+            quartz.CGWarpMouseCursorPosition(on_screen.origin)
+            # Someday if this is not good enough we can work out the
+            # argtypes and restypes for:
+            # kCGEventMouseMoved, kCGHIDEventTap = 5, 0
+            # func = quartz.CGEventCreateMouseEvent
+            # func.restype = CGEventRef
+            # func.argtypes = [...]
+            # event = func(
+            #    None, kCGEventMouseMoved, on_screen.origin, 0)
+            # func = quartz.CGEventPost
+            # func.restype = c_void_p
+            # func.argtypes = [...]
+            # func(kCGHIDEventTap, event)
+            #time.sleep(0.001)
+            #quartz.CFRelease(event)
         elif sys.platform.startswith('win'):
             # Convert from window to global
             from pyglet.window.win32 import POINT, _user32, byref
@@ -542,6 +556,7 @@ class Mouse(object):
             point.x = x
             point.y = y
             _user32.ClientToScreen(self.ec._hwnd, byref(point))
+            # Move the mouse
             _user32.SetCursorPos(point.x, point.y)
         else:
             # https://stackoverflow.com/questions/2433447/how-to-set-mouse-cursor-position-in-c-on-linux/2433488  # noqa
