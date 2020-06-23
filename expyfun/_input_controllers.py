@@ -7,8 +7,10 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
 from functools import partial
+import sys
+
+import numpy as np
 
 from .visual import (Triangle, Rectangle, Circle, Diamond, ConcentricCircles,
                      FixationDot)
@@ -512,6 +514,28 @@ class Mouse(object):
             return True
         else:
             return False
+
+    def _move_to(self, pos, units):
+        # adapted from pyautogui (BSD)
+        x, y = self.ec._convert_units(np.array(
+            [pos]).T, units, 'pix')[:, 0].round().astype(int)
+        if sys.platform == 'darwin':
+            from pyglet.libs.darwin.cocoapy import quartz
+            # import Quartz
+            ev = quartz.CGEventCreateMouseEvent(
+                None, quartz.kCGEventMouseMoved, (x, y), 0)
+            quartz.CGEventPost(quartz.kCGHIDEventTap, ev)
+        elif sys.platform.startswith('win'):
+            from ctypes.windll import user32
+            user32.SetCursorPos(x, y)
+        else:
+            # https://stackoverflow.com/questions/2433447/how-to-set-mouse-cursor-position-in-c-on-linux/2433488  # noqa
+            from pyglet.libs.x11.xlib import (XWarpPointer, XFlush,
+                                              XSelectInput, KeyReleaseMask)
+            display, window = self.ec.window._x_display, self.ec.window._window
+            XSelectInput(display, window, KeyReleaseMask)
+            XWarpPointer(display, 0, window, 0, 0, 0, 0, x, y)
+            XFlush(display)
 
 
 class CedrusBox(Keyboard):

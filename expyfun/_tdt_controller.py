@@ -379,7 +379,7 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
     @property
     def fs(self):
         """Playback frequency of the audio (samples / second)."""
-        return np.float(self.rpcox.GetSFreq())
+        return np.float64(self.rpcox.GetSFreq())
 
     @property
     def model(self):

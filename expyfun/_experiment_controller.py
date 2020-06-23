@@ -1500,6 +1500,18 @@ class ExperimentController(object):
                                                   live_buttons, timestamp,
                                                   relative_to, visible)
 
+    def move_mouse_to(self, pos, units='norm'):
+        """Move the mouse position to the specified position.
+
+        Parameters
+        ----------
+        pos : array-like
+            2-element array-like with X and Y.
+        units : str
+            Units to use. See ``check_units`` for options.
+        """
+        self._mouse_handler._move_to(pos, units)
+
     def wait_for_clicks(self, max_wait=np.inf, min_wait=0.0, live_buttons=None,
                         timestamp=True, relative_to=None, visible=None):
         """Returns all clicks between min_wait and max_wait.
@@ -1794,7 +1806,9 @@ class ExperimentController(object):
         if self._fs_mismatch and not self._suppress_resamp:
             logger.warning('Expyfun: Resampling {} seconds of audio'
                            ''.format(round(len(samples) / self.stim_fs, 2)))
-            from mne.filter import resample
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter('ignore')
+                from mne.filter import resample
             if samples.size:
                 samples = resample(
                     samples.astype(np.float64), self.fs, self.stim_fs,
