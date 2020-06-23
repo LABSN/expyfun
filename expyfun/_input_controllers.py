@@ -519,15 +519,30 @@ class Mouse(object):
         # adapted from pyautogui (BSD)
         x, y = self.ec._convert_units(np.array(
             [pos]).T, units, 'pix')[:, 0].round().astype(int)
+        # The "y" we use is inverted relative to XWindow
+        y = self.ec.window.height - y
         if sys.platform == 'darwin':
-            from pyglet.libs.darwin.cocoapy import quartz
-            # import Quartz
-            ev = quartz.CGEventCreateMouseEvent(
-                None, quartz.kCGEventMouseMoved, (x, y), 0)
-            quartz.CGEventPost(quartz.kCGHIDEventTap, ev)
+            # Convert from window to global ?
+            from pyglet.libs.darwin.cocoapy import quartz, CGPoint, CGRect
+            view, window = self.ec.window._nsview, self.ec.window._nswindow
+            point = CGPoint()
+            point.x = x
+            point.y = y
+            in_window = view.convertPoint_fromView_(point, None)
+            rect = CGRect()
+            rect.origin = in_window
+            on_screen = window.convertRectToScreen_(rect)
+            event = quartz.CGEventCreateMouseEvent(
+                None, quartz.kCGEventMouseMoved, on_screen.origin, 0)
+            quartz.CGEventPost(quartz.kCGHIDEventTap, event)
         elif sys.platform.startswith('win'):
-            from ctypes.windll import user32
-            user32.SetCursorPos(x, y)
+            # Convert from window to global
+            from pyglet.window.win32 import POINT, _user32, byref
+            point = POINT()
+            point.x = x
+            point.y = y
+            _user32.ClientToScreen(self.ec._hwnd, byref(point))
+            _user32.SetCursorPos(point.x, point.y)
         else:
             # https://stackoverflow.com/questions/2433447/how-to-set-mouse-cursor-position-in-c-on-linux/2433488  # noqa
             from pyglet.libs.x11.xlib import (XWarpPointer, XFlush,
