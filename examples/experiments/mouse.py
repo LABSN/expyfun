@@ -27,10 +27,12 @@ with ExperimentController('MouseDemo', screen_num=0,
                           stim_db=0, noise_db=0, output_dir=None,
                           participant='foo', session='001',
                           version='dev') as ec:
-    ###############
-    # toggle_cursor
+    #################################
+    # toggle_cursor and move_mouse_to
     ec.toggle_cursor(True)
-    ec.screen_prompt('Now you see it.', max_wait=msg_dur, wrap=False)
+    ec.move_mouse_to((0, 0))
+    ec.screen_prompt('Now you see it (centered on the window).',
+                     max_wait=msg_dur, wrap=False)
 
     ec.toggle_cursor(False)
     ec.screen_prompt("Now you don't (maybe--Windows is buggy)",
@@ -59,7 +61,7 @@ with ExperimentController('MouseDemo', screen_num=0,
     clicks = ec.get_clicks()
     ec.screen_prompt('Your clicks:\n%s' % str(clicks), max_wait=msg_dur)
 
-    ###########################
+    ####################
     # get_mouse_position
     ec.screen_prompt('Move the mouse around...', max_wait=msg_dur, wrap=False)
     stop_time = ec.current_time + wait_dur
@@ -70,7 +72,7 @@ with ExperimentController('MouseDemo', screen_num=0,
         ec.check_force_quit()
         ec.flip()
 
-    ###########################
+    ###################
     # wait_for_click_on
     ec.toggle_cursor(False)
     ec.wait_secs(1)
