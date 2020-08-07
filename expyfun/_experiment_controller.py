@@ -98,8 +98,8 @@ class ExperimentController(object):
         If ``None``, the type will be read from the system configuration file.
         If a string, must be 'dummy', 'parallel', 'sound_card', or 'tdt'.
         By default the mode is 'dummy', since setting up the parallel port
-        can be a pain. Can also be a dict with entries 'type' ('parallel'),
-        and 'address' (None).
+        can be a pain. Can also be a dict with entries 'TYPE' ('parallel'),
+        and 'TRIGGER_ADDRESS' (None).
     session : str | None
         If ``None``, a GUI will be used to acquire this information.
     check_rms : str | None
@@ -420,7 +420,7 @@ class ExperimentController(object):
             if trigger_controller is None:
                 trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
             if isinstance(trigger_controller, string_types):
-                trigger_controller = dict(type=trigger_controller)
+                trigger_controller = dict(TYPE=trigger_controller)
             assert isinstance(trigger_controller, dict)
             trigger_controller = trigger_controller.copy()
             known_keys = ('TYPE',)
