@@ -13,6 +13,7 @@ import os
 import os.path as op
 import inspect
 import sys
+import time
 import tempfile
 import traceback
 import ssl
@@ -588,6 +589,7 @@ known_config_types = ('RESPONSE_DEVICE',
                       'SOUND_CARD_TRIGGER_CHANNELS',
                       'SOUND_CARD_TRIGGER_INSERTION',
                       'SOUND_CARD_TRIGGER_SCALE',
+                      'SOUND_CARD_TRIGGER_ID_AFTER_ONSET',
                       'TDT_CIRCUIT_PATH',
                       'TDT_DELAY',
                       'TDT_INTERFACE',
@@ -765,10 +767,13 @@ def _wait_secs(secs, ec=None):
         while (clock() - t0) < secs:
             ec._dispatch_events()
             ec.check_force_quit()
+            time.sleep(0.0001)
     else:
         wins = _get_display().get_windows()
-        for win in wins:
-            win.dispatch_events()
+        while (clock() - t0) < secs:
+            for win in wins:
+                win.dispatch_events()
+            time.sleep(0.0001)
 
 
 def running_rms(signal, win_length):

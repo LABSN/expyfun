@@ -106,7 +106,8 @@ class ParallelTrigger(object):
         self.ec.wait_secs(self.trigger_duration)
         self._set_data(0)
 
-    def stamp_triggers(self, triggers, delay=None, wait_for_last=True):
+    def stamp_triggers(self, triggers, delay=None, wait_for_last=True,
+                       is_trial_id=False):
         """Stamp a list of triggers with a given inter-trigger delay.
 
         Parameters
@@ -119,6 +120,8 @@ class ParallelTrigger(object):
             If None, will use twice the trigger duration (50% duty cycle).
         wait_for_last : bool
             If True, wait for last trigger to be stamped before returning.
+        is_trial_id : bool
+            No effect for this trigger controller.
         """
         if delay is None:
             delay = 2 * self.trigger_duration
