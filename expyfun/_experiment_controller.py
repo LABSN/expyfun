@@ -37,6 +37,8 @@ from ._git import assert_version, __version__
 # 2. 'identified', which ec.start_stimulus turns into...
 # 3. 'started', which ec.trial_ok turns into 'stopped'.
 
+_SLOW_LIMIT = 10000000
+
 
 class ExperimentController(object):
     """Interface for hardware control (audio, buttonbox, eye tracker, etc.)
@@ -1823,7 +1825,7 @@ class ExperimentController(object):
                 max_rms = max(chan_rms)
             else:  # 'windowed'
                 # ~226 sec at 44100 Hz
-                if samples.size >= 1e7 and not self._slow_rms_warned:
+                if samples.size >= _SLOW_LIMIT and not self._slow_rms_warned:
                     warnings.warn(
                         'Checking RMS with a 10 ms window and many samples is '
                         'slow, consider using None or "wholefile" modes.')

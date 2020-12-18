@@ -9,7 +9,7 @@ from numpy.testing import assert_equal
 import pytest
 from numpy.testing import assert_allclose
 
-from expyfun import ExperimentController, visual
+from expyfun import ExperimentController, visual, _experiment_controller
 from expyfun._experiment_controller import _get_dev_db
 from expyfun._utils import (_TempDir, fake_button_press, _check_skip_backend,
                             fake_mouse_click, requires_opengl21,
@@ -179,7 +179,7 @@ def test_degenerate():
 
 
 @pytest.mark.timeout(20)
-def test_ec(ac, hide_window):
+def test_ec(ac, hide_window, monkeypatch):
     """Test EC methods."""
     if ac == 'tdt':
         rd, tc, fs = 'tdt', 'tdt', get_tdt_rates()['25k']
@@ -289,8 +289,10 @@ def test_ec(ac, hide_window):
         with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(noise)
         if ac != 'tdt':  # too many samples there
+            monkeypatch.setattr(_experiment_controller, '_SLOW_LIMIT', 1)
             with pytest.warns(UserWarning, match='samples is slow'):
-                ec.load_buffer(np.zeros(10000001, dtype=np.float32))
+                ec.load_buffer(np.zeros(2, dtype=np.float32))
+            monkeypatch.setattr(_experiment_controller, '_SLOW_LIMIT', 1e7)
 
         ec.stop()
         ec.set_visible()
