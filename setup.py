@@ -79,6 +79,7 @@ def setup_package(script_args=None):
         version=FULL_VERSION,
         download_url=DOWNLOAD_URL,
         long_description=long_description,
+        python_requires=">=3.6",
         zip_safe=False,  # the package can run out of an .egg file
         classifiers=['Intended Audience :: Science/Research',
                      'Intended Audience :: Developers',

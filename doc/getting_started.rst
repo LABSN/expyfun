@@ -14,7 +14,7 @@ Installing expyfun
 
 Python
 ^^^^^^
-The first step is to install a Python distribution. See tutorials on other
+The first step is to install a Python 3.6+ distribution. See tutorials on other
 sites for how to do this.
 
 Dependencies
