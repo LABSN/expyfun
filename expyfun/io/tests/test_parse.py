@@ -14,7 +14,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   verbose=True, version='dev')
 
 
-def test_parse(hide_window):
+def test_parse_basic(hide_window, tmpdir):
     """Test .tab parsing."""
     with ExperimentController(*std_args, **std_kwargs) as ec:
         ec.identify_trial(ec_id='one', ttl_id=[0])
@@ -47,6 +47,28 @@ def test_parse(hide_window):
     assert_equal(params['version'], 'dev')
     assert_equal(params['version_used'], __version__)
     assert (params['file'].endswith('test_parse.py'))
+
+    # handle old files where the last trial_ok was missing
+    bad_fname = str(tmpdir.join('bad.tab'))
+    with open(ec.data_fname, 'r') as fid:
+        lines = fid.readlines()
+        assert 'trial_ok' in lines[-3]
+    with open(bad_fname, 'w') as fid:
+        # we used to write JSON badly
+        fid.write(lines[0].replace('"', "'"))
+        # and then sometimes missed the last trial_ok
+        for line in lines[1:-3]:
+            fid.write(line)
+    with pytest.raises(RuntimeError, match='bad bounds'):
+        read_tab(bad_fname)
+    data, params = read_tab(ec.data_fname, return_params=True)
+    data_2, params_2 = read_tab(
+        bad_fname, return_params=True, allow_last_missing=True)
+    assert params == params_2
+    t = data[-1].pop('trial_ok')
+    t_2 = data_2[-1].pop('trial_ok')
+    assert t != t_2
+    assert data_2 == data
 
 
 def test_reconstruct(hide_window):

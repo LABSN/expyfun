@@ -40,7 +40,13 @@ def read_tab_raw(fname, return_params=False):
     # first two lines are headers
     assert len(lines[0]) == 1 and lines[0][0].startswith('# ')
     if return_params:
-        params = json.loads(lines[0][0][2:], object_pairs_hook=OrderedDict)
+        line = lines[0][0][2:]
+        try:
+            params = json.loads(
+                line, object_pairs_hook=OrderedDict)
+        except json.decoder.JSONDecodeError:  # old format
+            params = json.loads(
+                line.replace("'", '"'), object_pairs_hook=OrderedDict)
     else:
         params = None
     assert lines[1] == ['timestamp', 'event', 'value']
@@ -54,7 +60,7 @@ def read_tab_raw(fname, return_params=False):
 
 
 def read_tab(fname, group_start='trial_id', group_end='trial_ok',
-             return_params=False):
+             return_params=False, allow_last_missing=False):
     """Read .tab file from expyfun output and segment into trials.
 
     Parameters
@@ -68,6 +74,9 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok',
         will end the current group.
     return_params : bool
         If True, return the JSON-parsed comment header.
+    allow_last_missing : bool
+        If True, allow the last "trial_ok" data line to be missing.
+        This should only be needed for old/legacy expyfun files.
 
     Returns
     -------
@@ -106,6 +115,10 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok',
                              ''.format(group_end, header))
         header.append(header.pop(header.index(group_end)))
         b2s = np.where([line[1] == group_end for line in lines])[0]
+    if len(b1s) == len(b2s) + 1 and allow_last_missing:
+        # old expyfun would sometimes not write the last trial_ok :(
+        b2s = np.concatenate([b2s, [len(lines)]])
+        lines.append((lines[-1][0] + 0.1, group_end, 'None'))
     if len(b1s) != len(b2s) or not np.all(b1s < b2s):
         raise RuntimeError('bad bounds in {0}:\n{1}\n{2}'
                            .format(fname, b1s, b2s))
