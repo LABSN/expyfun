@@ -30,7 +30,7 @@ matrix:
       language: objective-c
     - os: linux
       dist: trusty
-      env: PYTHON_VERSION=3.5 DEPS=minimal _EXPYFUN_SILENT=true
+      env: PYTHON_VERSION=3.6 DEPS=minimal _EXPYFUN_SILENT=true
       addons:
         apt:
           packages:

@@ -71,7 +71,7 @@ def test_visuals(hide_window):
         pytest.raises(ValueError, line.set_coords, [0])
         line.set_coords([0, 1])
         ec.set_background_color('black')
-        text = visual.Text(ec, 'Hello {color (255 0 0 255)}Everybody!',
+        text = visual.Text(ec, 'Hello {color (255, 0, 0, 255)}Everybody!',
                            pos=[0, 0], color=[1, 1, 1], wrap=False)
         text.draw()
         text.set_color(None)
