@@ -35,7 +35,7 @@ def _make_narrow_noise(bw, f_c, dur, fs, ramp_dur, rng):
     h_min = int(np.ceil(f_min / f_step))
     h_max = int(np.floor(f_max / f_step)) + 1
     phase = rng.rand(h_max - h_min) * 2 * np.pi
-    noise = np.zeros(len(t) // 2 + 1, np.complex)
+    noise = np.zeros(len(t) // 2 + 1, np.complex128)
     noise[h_min:h_max] = np.exp(1j * phase)
     return window_edges(irfft(noise)[:len(t)], fs, ramp_dur, window='dpss')
 

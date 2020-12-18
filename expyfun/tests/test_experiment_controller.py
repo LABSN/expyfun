@@ -395,6 +395,12 @@ def test_ec(ac, hide_window, monkeypatch):
         print(ec.on_next_flip_functions)
         print(ec.on_every_flip_functions)
         print(ec.window)
+        # we need to monkey-patch for old Pyglet
+        try:
+            from PIL import Image
+            Image.fromstring
+        except AttributeError:
+            PIL.Image.fromstring = None
         data = ec.screenshot()
         # HiDPI
         sizes = [tuple(std_kwargs['window_size']),

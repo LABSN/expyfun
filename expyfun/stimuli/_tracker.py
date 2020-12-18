@@ -533,7 +533,7 @@ class TrackerUD(object):
         -----
         The threshold is computed as the average of the up reversals and the
         average of the down reversals. In this way if there's an unequal number
-        of them the assymetry won't bias the threshold estimate.
+        of them the asymmetry won't bias the threshold estimate.
 
         This can also be used before the track is stopped if the experimenter
         wishes.
