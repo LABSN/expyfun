@@ -261,7 +261,6 @@ sphinx_gallery_conf = {
     'doc_module': ('expyfun',),
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
-    'default_thumb_file': os.path.join('_static', 'favicon.ico'),
     'backreferences_dir': 'generated',
     'filename_pattern': r'/.*(?<!_)\.py$',  # anything that isn't *_.py
     'capture_repr': (),
