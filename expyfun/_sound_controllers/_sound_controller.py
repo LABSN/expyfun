@@ -28,6 +28,7 @@ _SOUND_CARD_KEYS = (
     'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
     'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS',
     'SOUND_CARD_TRIGGER_SCALE', 'SOUND_CARD_TRIGGER_INSERTION',
+    'SOUND_CARD_TRIGGER_ID_AFTER_ONSET',
 )
 
 
@@ -76,6 +77,8 @@ class SoundCardController(object):
         by 8). The default value (``1. / (2 ** 32 - 1)``) is meant to
         be appropriate for bit-perfect mapping to the 24 bit output of
         a SPDIF channel.
+    - 'SOUND_CARD_TRIGGER_ID_AFTER_ONSET': bool
+        If True, TTL IDs will be stored and stamped after the 1 trigger.
 
     Note that the defaults are superseded on individual machines by
     the configuration file.
@@ -89,6 +92,7 @@ class SoundCardController(object):
             SOUND_CARD_TRIGGER_CHANNELS=0,
             SOUND_CARD_TRIGGER_SCALE=1. / float(2 ** 31 - 1),
             SOUND_CARD_TRIGGER_INSERTION='prepend',
+            SOUND_CARD_TRIGGER_ID_AFTER_ONSET=False,
         )  # any omitted become None
         params = _check_params(params, _SOUND_CARD_KEYS, defaults, 'params')
 
@@ -96,6 +100,9 @@ class SoundCardController(object):
             params['SOUND_CARD_BACKEND'])
         self._n_channels_stim = int(params['SOUND_CARD_TRIGGER_CHANNELS'])
         trig_scale = float(params['SOUND_CARD_TRIGGER_SCALE'])
+        self._id_after_onset = (
+            str(params['SOUND_CARD_TRIGGER_ID_AFTER_ONSET']).lower() == 'true')
+        self._extra_onset_triggers = list()
         assert self._n_channels_stim >= 0
         self._n_channels = int(operator.index(n_channels))
         del n_channels
@@ -198,7 +205,7 @@ class SoundCardController(object):
             self.audio.delete()
             self.audio = None
         if self._n_channels_stim > 0:
-            stim = self._make_digital_trigger([1])
+            stim = self._make_digital_trigger([1] + self._extra_onset_triggers)
             extra = len(samples) - len(stim)
             if extra > 0:  # stim shorter than samples (typical)
                 stim = np.pad(stim, ((0, extra), (0, 0)), 'constant')
@@ -250,7 +257,8 @@ class SoundCardController(object):
             offset += n_each
         return stim
 
-    def stamp_triggers(self, triggers, delay=None, wait_for_last=True):
+    def stamp_triggers(self, triggers, delay=None, wait_for_last=True,
+                       is_trial_id=False):
         """Stamp a list of triggers with a given inter-trigger delay.
 
         Parameters
@@ -263,7 +271,13 @@ class SoundCardController(object):
             If None, will use twice the trigger duration (50% duty cycle).
         wait_for_last : bool
             If True, wait for last trigger to be stamped before returning.
+        is_trial_id : bool
+            If True and SOUND_CARD_TRIGGER_ID_AFTER_ONSET, the triggers will
+            be stashed and appended to the 1 trigger for the sound onset.
         """
+        if is_trial_id and self._id_after_onset:
+            self._extra_onset_triggers = list(triggers)
+            return
         if delay is None:
             delay = 2 * self._trigger_duration
         stim = self._make_digital_trigger(triggers, delay)
@@ -274,12 +288,10 @@ class SoundCardController(object):
         t_each = self._trigger_duration + delay
         duration = len(triggers) * t_each
         extra_delay = 0.1
-        if not wait_for_last:
-            delta = (delay - self._trigger_duration)
-            duration -= delta
-            extra_delay += delta
-        self.ec.wait_secs(duration)
-        # Impose an extra delay on the "stop" action
+        if wait_for_last:
+            self.ec.wait_secs(duration)
+        else:
+            extra_delay += duration
         stim.stop(wait=False, extra_delay=extra_delay)
 
     def play(self):

@@ -98,8 +98,8 @@ class ExperimentController(object):
         If ``None``, the type will be read from the system configuration file.
         If a string, must be 'dummy', 'parallel', 'sound_card', or 'tdt'.
         By default the mode is 'dummy', since setting up the parallel port
-        can be a pain. Can also be a dict with entries 'type' ('parallel'),
-        and 'address' (None).
+        can be a pain. Can also be a dict with entries 'TYPE' ('parallel'),
+        and 'TRIGGER_ADDRESS' (None).
     session : str | None
         If ``None``, a GUI will be used to acquire this information.
     check_rms : str | None
@@ -420,15 +420,22 @@ class ExperimentController(object):
             if trigger_controller is None:
                 trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
             if isinstance(trigger_controller, string_types):
-                trigger_controller = dict(type=trigger_controller)
-            logger.info('Expyfun: Initializing {} triggering mode'
-                        ''.format(trigger_controller['type']))
-            if trigger_controller['type'] == 'tdt':
+                trigger_controller = dict(TYPE=trigger_controller)
+            assert isinstance(trigger_controller, dict)
+            trigger_controller = trigger_controller.copy()
+            known_keys = ('TYPE',)
+            if set(trigger_controller) != set(known_keys):
+                raise ValueError(
+                    'Unknown keys for trigger_controller, must be '
+                    f'{known_keys}, got {set(trigger_controller)}')
+            logger.info(f'Expyfun: Initializing {trigger_controller["TYPE"]} '
+                        'triggering mode')
+            if trigger_controller['TYPE'] == 'tdt':
                 if not isinstance(self._ac, TDTController):
                     raise ValueError('trigger_controller can only be "tdt" if '
                                      'tdt is used for audio')
                 self._tc = self._ac
-            elif trigger_controller['type'] == 'sound_card':
+            elif trigger_controller['TYPE'] == 'sound_card':
                 if not isinstance(self._ac, SoundCardController):
                     raise ValueError('trigger_controller can only be '
                                      '"sound_card" if the sound card is '
@@ -438,23 +445,21 @@ class ExperimentController(object):
                                      'when SOUND_CARD_TRIGGER_CHANNELS is '
                                      'zero')
                 self._tc = self._ac
-            elif trigger_controller['type'] in ['parallel', 'dummy']:
-                if 'address' not in trigger_controller:
-                    addr = get_config('TRIGGER_ADDRESS')
-                    trigger_controller['address'] = addr
+            elif trigger_controller['TYPE'] in ['parallel', 'dummy']:
+                addr = trigger_controller.get(
+                    'TRIGGER_ADDRESS', get_config('TRIGGER_ADDRESS', None))
                 self._tc = ParallelTrigger(
-                    trigger_controller['type'],
-                    trigger_controller.get('address'),
+                    trigger_controller['TYPE'], addr,
                     trigger_duration, ec=self)
                 self._extra_cleanup_fun.insert(0, self._tc.close)
                 # The TDT always stamps "1" on stimulus onset. Here we need
                 # to manually mimic that behavior.
                 self._ofp_critical_funs.insert(
-                    0, lambda: self._stamp_ttl_triggers([1], False))
+                    0, lambda: self._stamp_ttl_triggers([1], False, False))
             else:
                 raise ValueError('trigger_controller type must be '
                                  '"parallel", "dummy", "sound_card", or "tdt",'
-                                 'got {0}'.format(trigger_controller['type']))
+                                 'got {0}'.format(trigger_controller['TYPE']))
             self._id_call_dict['ttl_id'] = self._stamp_binary_id
 
             # other basic components
@@ -2072,7 +2077,7 @@ class ExperimentController(object):
         if not np.all(np.in1d(id_, [0, 1])):
             raise ValueError('All values of id must be 0 or 1')
         id_ = (id_.astype(int) + 1) << 2  # 0, 1 -> 4, 8
-        self._stamp_ttl_triggers(id_, wait_for_last)
+        self._stamp_ttl_triggers(id_, wait_for_last, True)
 
     def stamp_triggers(self, ids, check='binary', wait_for_last=True):
         """Stamp binary values
@@ -2087,6 +2092,7 @@ class ExperimentController(object):
             1 and 15.
         wait_for_last : bool
             If True, wait for last trigger to be stamped before returning.
+            If False, don't wait at all (if possible).
 
         Notes
         -----
@@ -2107,11 +2113,12 @@ class ExperimentController(object):
             if not all(id_ in _vals for id_ in ids):
                 raise ValueError('with check="binary", ids must all be '
                                  '1, 2, 4, or 8: {0}'.format(ids))
-        self._stamp_ttl_triggers(ids, wait_for_last)
+        self._stamp_ttl_triggers(ids, wait_for_last, False)
 
-    def _stamp_ttl_triggers(self, ids, wait_for_last):
+    def _stamp_ttl_triggers(self, ids, wait_for_last, is_trial_id):
         logger.exp('Stamping TTL triggers: %s', ids)
-        self._tc.stamp_triggers(ids, wait_for_last=wait_for_last)
+        self._tc.stamp_triggers(
+            ids, wait_for_last=wait_for_last, is_trial_id=is_trial_id)
         self.flush()
 
     def flush(self):
