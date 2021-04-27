@@ -11,6 +11,7 @@ install:
   - "python --version"
   - "pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet mne tdtpy joblib numpydoc pillow"
   - "python -c \"import mne; mne.sys_info()\""
+  - "python -c \"import pyglet; print(pyglet.version)\""
   # Get a virtual sound card / VBAudioVACWDM device
   - "git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git"
   - "powershell sound-ci-helpers/windows/setup_sound.ps1"

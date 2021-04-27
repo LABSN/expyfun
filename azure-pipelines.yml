@@ -35,6 +35,7 @@ jobs:
       pip install -q numpy scipy matplotlib coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet pyglet-ffmpeg mne tdtpy joblib numpydoc pillow
       python -c "import mne; mne.sys_info()"
       python -c "import matplotlib.pyplot as plt"
+      python -c "import pyglet; print(pyglet.version)"
     displayName: 'Install pip dependencies'
   - powershell: |
       git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git

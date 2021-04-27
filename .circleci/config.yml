@@ -23,6 +23,7 @@ jobs:
       - run: pip install --quiet --upgrade --user pip
       - run: pip install --quiet --upgrade --user numpy scipy matplotlib sphinx pillow pandas h5py mne pyglet psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
       - run: python -c "import mne; mne.sys_info()"
+      - run: python -c "import pyglet; print(pyglet.version)"
       - run: python setup.py develop --user
       - run: cd doc && make html
 

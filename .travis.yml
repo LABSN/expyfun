@@ -74,6 +74,7 @@ before_install:
           pip install pyglet;
         fi;
       fi;
+    - python -c "import pyglet; print(pyglet.version)"
     # Import matplotlib ahead of time so it doesn't affect test timings
     # (e.g., building fc-cache)
     - python -c "import matplotlib.pyplot as plt"
