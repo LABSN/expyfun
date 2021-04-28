@@ -28,7 +28,7 @@ _SOUND_CARD_KEYS = (
     'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
     'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS',
     'SOUND_CARD_TRIGGER_SCALE', 'SOUND_CARD_TRIGGER_INSERTION',
-    'SOUND_CARD_TRIGGER_ID_AFTER_ONSET',
+    'SOUND_CARD_TRIGGER_ID_AFTER_ONSET', 'SOUND_CARD_DRIFT_TRIGGER',
 )
 
 
@@ -79,6 +79,11 @@ class SoundCardController(object):
         a SPDIF channel.
     - 'SOUND_CARD_TRIGGER_ID_AFTER_ONSET': bool
         If True, TTL IDs will be stored and stamped after the 1 trigger.
+    - 'SOUND_CARD_DRIFT_TRIGGER': list-like
+        Defaults to ['end'] which places a 2 trigger at the very end of the 
+        trial. Can also be a scalar or list of scalars to insert 2
+        triggers at the time of the scalar(s) (in sec). Negative values will be
+        interpreted as time from end of trial.
 
     Note that the defaults are superseded on individual machines by
     the configuration file.
@@ -93,6 +98,7 @@ class SoundCardController(object):
             SOUND_CARD_TRIGGER_SCALE=1. / float(2 ** 31 - 1),
             SOUND_CARD_TRIGGER_INSERTION='prepend',
             SOUND_CARD_TRIGGER_ID_AFTER_ONSET=False,
+            SOUND_CARD_DRIFT_TRIGGER='end',
         )  # any omitted become None
         params = _check_params(params, _SOUND_CARD_KEYS, defaults, 'params')
 
@@ -103,6 +109,10 @@ class SoundCardController(object):
         self._id_after_onset = (
             str(params['SOUND_CARD_TRIGGER_ID_AFTER_ONSET']).lower() == 'true')
         self._extra_onset_triggers = list()
+        if np.isscalar(params['SOUND_CARD_DRIFT_TRIGGER']):
+            self._drift_trigger_time = [params['SOUND_CARD_DRIFT_TRIGGER']]
+        else:
+            self._drift_trigger_time = list(params['SOUND_CARD_DRIFT_TRIGGER'])
         assert self._n_channels_stim >= 0
         self._n_channels = int(operator.index(n_channels))
         del n_channels
@@ -212,6 +222,16 @@ class SoundCardController(object):
             elif extra < 0:  # samples shorter than stim (very brief stim)
                 samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
             samples = np.concatenate((stim, samples)[self._stim_sl], axis=1)
+        trig2 = self._make_digital_trigger([2])
+        trig2_len = trig2.shape[-1]
+        if self._drift_trigger_time == ['end']:
+            samples[:trig2.shape[0], -trig2_len:] += trig2
+        else:
+            trig2_starts = [int(np.round(trig2time * self.fs))
+                            for trig2time in self._drift_trigger_time]
+            for trig2_start in trig2_starts:
+                samples[:trig2.shape[0],
+                        trig2_start:trig2_start+trig2_len] += trig2
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def _make_digital_trigger(self, trigs, delay=None):
