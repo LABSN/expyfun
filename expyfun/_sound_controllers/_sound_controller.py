@@ -223,15 +223,15 @@ class SoundCardController(object):
                 samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
             samples = np.concatenate((stim, samples)[self._stim_sl], axis=1)
         trig2 = self._make_digital_trigger([2])
-        trig2_len = trig2.shape[-1]
+        trig2_len = trig2.shape[0]
         if self._drift_trigger_time == ['end']:
-            samples[:trig2.shape[0], -trig2_len:] += trig2
+            samples[-trig2_len:, :trig2.shape[-1]] += trig2
         else:
             trig2_starts = [int(np.round(trig2time * self.fs))
                             for trig2time in self._drift_trigger_time]
             for trig2_start in trig2_starts:
-                samples[:trig2.shape[0],
-                        trig2_start:trig2_start+trig2_len] += trig2
+                samples[trig2_start:trig2_start+trig2_len,
+                        :trig2.shape[-1]] += trig2
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def _make_digital_trigger(self, trigs, delay=None):
