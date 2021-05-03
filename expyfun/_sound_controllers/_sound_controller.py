@@ -14,6 +14,7 @@ import numpy as np
 
 from .._fixes import rfft, irfft, rfftfreq
 from .._utils import logger, flush_logger, _check_params
+import warnings
 
 
 _BACKENDS = tuple(sorted(
@@ -109,10 +110,22 @@ class SoundCardController(object):
         self._id_after_onset = (
             str(params['SOUND_CARD_TRIGGER_ID_AFTER_ONSET']).lower() == 'true')
         self._extra_onset_triggers = list()
-        if np.isscalar(params['SOUND_CARD_DRIFT_TRIGGER']):
-            self._drift_trigger_time = [params['SOUND_CARD_DRIFT_TRIGGER']]
-        else:
-            self._drift_trigger_time = list(params['SOUND_CARD_DRIFT_TRIGGER'])
+        drift_trigger = params['SOUND_CARD_DRIFT_TRIGGER']
+        if np.isscalar(drift_trigger):
+            drift_trigger = [drift_trigger]
+        # convert possible command-line option
+        if isinstance(drift_trigger, str) and drift_trigger != 'end':
+            drift_trigger = eval(drift_trigger)
+        if isinstance(drift_trigger, str):
+            drift_trigger = [drift_trigger]
+        assert isinstance(drift_trigger, (list, tuple)), type(drift_trigger)
+        drift_trigger = list(drift_trigger)  # make mutable
+        for trig in drift_trigger:
+            if isinstance(trig, str):
+                assert trig == 'end', trig
+            else:
+                assert isinstance(trig, (int, float)), type(trig)
+        self._drift_trigger_time = drift_trigger
         assert self._n_channels_stim >= 0
         self._n_channels = int(operator.index(n_channels))
         del n_channels
@@ -216,22 +229,46 @@ class SoundCardController(object):
             self.audio = None
         if self._n_channels_stim > 0:
             stim = self._make_digital_trigger([1] + self._extra_onset_triggers)
-            extra = len(samples) - len(stim)
+            stim_len = len(stim)
+            sample_len = len(samples)
+            extra = sample_len - stim_len
             if extra > 0:  # stim shorter than samples (typical)
                 stim = np.pad(stim, ((0, extra), (0, 0)), 'constant')
             elif extra < 0:  # samples shorter than stim (very brief stim)
                 samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
             samples = np.concatenate((stim, samples)[self._stim_sl], axis=1)
-        trig2 = self._make_digital_trigger([2])
-        trig2_len = trig2.shape[0]
-        if self._drift_trigger_time == ['end']:
-            samples[-trig2_len:, :trig2.shape[-1]] += trig2
-        else:
-            trig2_starts = [int(np.round(trig2time * self.fs))
-                            for trig2time in self._drift_trigger_time]
-            for trig2_start in trig2_starts:
-                samples[trig2_start:trig2_start+trig2_len,
-                        :trig2.shape[-1]] += trig2
+            # place the drift triggers
+            trig2 = self._make_digital_trigger([2])
+            trig2_len = trig2.shape[0]
+            trig2_starts = []
+            for trig2_time in self._drift_trigger_time:
+                if trig2_time == 'end':
+                    samples[-trig2_len:, :trig2.shape[-1]] += trig2
+                    trig2_starts += [sample_len-trig2_len]
+                else:
+                    trig2_start = int(np.round(trig2_time * self.fs))
+                    if ((trig2_start >= 0 and trig2_start <= stim_len) or
+                            (trig2_start < 0 and abs(trig2_start) >= extra)):
+                        warnings.warn('Drift triggers overlap'
+                                      ' with onset triggers')
+                    if ((trig2_start > 0 and
+                         trig2_start > sample_len-trig2_len) or
+                            (trig2_start < 0 and
+                             abs(trig2_start) >= sample_len)):
+                        warnings.warn('Drift trigger at {} seconds occurs'
+                                      ' outside stimulus window, '
+                                      'not stamping '
+                                      'trigger'.format(trig2_time))
+                    samples[trig2_start:trig2_start+trig2_len,
+                            :trig2.shape[-1]] += trig2
+                    if trig2_start > 0:
+                        trig2_starts += [trig2_start]
+                    else:
+                        trig2_starts += [sample_len + trig2_start]
+            if np.any(np.diff(trig2_starts)):
+                warnings.warn('Some 2-triggers overlap, times should be at'
+                              'least {} seconds apart.'.format(trig2_len /
+                                                               self.fs))
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def _make_digital_trigger(self, trigs, delay=None):
