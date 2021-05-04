@@ -1,0 +1,42 @@
+name: 'compat / old'
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  job:
+    name: 'py3.7'
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash -ef {0}
+    env:
+      DISPLAY: ':99.0'
+      MESA_GL_VERSION_OVERRIDE: '3.3'
+      _EXPYFUN_SILENT: 'true'
+    steps:
+      - uses: actions/checkout@v2
+      - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
+      - run: sudo apt-get install libavutil55 libglu1-mesa
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: 'test'
+          python-version: '3.7'
+          environment-file: 'environment_test.yml'
+        name: 'Setup conda'
+      - run: conda remove pandas h5py && pip install "pyglet<1.4"
+        name: Make minimal
+      - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/linux/setup_sound.sh
+        name: Get sound working
+      - run: python -m sounddevice
+      - run: python -c "import pyglet; print(pyglet.version)"
+      - run: python -c "import matplotlib.pyplot as plt"
+      - run: python setup.py develop
+      - run: pytest --tb=short -n 1 --cov=expyfun expyfun
+      - uses: codecov/codecov-action@v1
+        if: success()
+        name: 'Codecov'

@@ -1,0 +1,22 @@
+name:
+- test
+dependencies:
+- scipy
+- matplotlib
+- pandas
+- h5py
+- coverage
+- setuptools
+- pytest
+- pytest-cov
+- pytest-timeout
+- pytest-xdist
+- pillow
+- joblib
+- pip:
+  - codecov
+  - pytest-sugar
+  - numpydoc
+  - sounddevice
+  - rtmixer
+  - mne
