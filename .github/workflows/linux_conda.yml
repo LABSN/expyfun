@@ -17,7 +17,6 @@ jobs:
         shell: bash -ef {0}
     env:
       DISPLAY: ':99.0'
-      MESA_GL_VERSION_OVERRIDE: '3.3'
       _EXPYFUN_SILENT: 'true'
     steps:
       - uses: actions/checkout@v2

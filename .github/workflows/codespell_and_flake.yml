@@ -21,7 +21,7 @@ jobs:
           architecture: 'x64'
       - run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install flake8 pydocstyle check-manifest
+          python -m pip install flake8 pydocstyle check-manifest numpy
         name: 'Install dependencies'
       - uses: rbialon/flake8-annotations@v1
         name: 'Setup flake8 annotations'
