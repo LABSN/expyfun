@@ -14,7 +14,7 @@ Installing expyfun
 
 Python
 ^^^^^^
-The first step is to install a Python 3.6+ distribution. See tutorials on other
+The first step is to install a Python 3.7+ distribution. See tutorials on other
 sites for how to do this.
 
 Dependencies
@@ -47,7 +47,7 @@ expyfun requires several libraries for full functionality:
 - Optional system software:
 
   - ``git``: Command-line tools needed for automated version downloading.
-  - ``FFmpeg`` or ``AVBin`` (Pyglet >= or < 1.4, respectively): For playing compressed videos.
+  - ``FFmpeg`` or ``AVBin``: For playing compressed videos.
 
 To get started quickly, this should suffice for conda users on most systems:
 

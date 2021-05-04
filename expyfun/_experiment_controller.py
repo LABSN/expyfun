@@ -823,7 +823,8 @@ class ExperimentController(object):
         from PIL import Image
         tempdir = _TempDir()
         fname = op.join(tempdir, 'tmp.png')
-        pyglet.image.get_buffer_manager().get_color_buffer().save(fname)
+        with open(fname, 'wb') as fid:
+            pyglet.image.get_buffer_manager().get_color_buffer().save(file=fid)
         with Image.open(fname) as img:
             data = np.array(img)
         del tempdir
