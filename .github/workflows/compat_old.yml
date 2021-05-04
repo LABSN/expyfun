@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-      - run: sudo apt-get install libavutil55 libglu1-mesa
+      - run: sudo apt-get install libavutil56 libglu1-mesa
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
@@ -36,6 +36,7 @@ jobs:
       - run: python -c "import pyglet; print(pyglet.version)"
       - run: python -c "import matplotlib.pyplot as plt"
       - run: python setup.py develop
+      - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
       - run: pytest --tb=short -n 1 --cov=expyfun expyfun
       - uses: codecov/codecov-action@v1
         if: success()
