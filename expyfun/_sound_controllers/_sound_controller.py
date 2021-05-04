@@ -81,7 +81,7 @@ class SoundCardController(object):
     - 'SOUND_CARD_TRIGGER_ID_AFTER_ONSET': bool
         If True, TTL IDs will be stored and stamped after the 1 trigger.
     - 'SOUND_CARD_DRIFT_TRIGGER': list-like
-        Defaults to ['end'] which places a 2 trigger at the very end of the 
+        Defaults to ['end'] which places a 2 trigger at the very end of the
         trial. Can also be a scalar or list of scalars to insert 2
         triggers at the time of the scalar(s) (in sec). Negative values will be
         interpreted as time from end of trial.
@@ -236,14 +236,13 @@ class SoundCardController(object):
                 stim = np.pad(stim, ((0, extra), (0, 0)), 'constant')
             elif extra < 0:  # samples shorter than stim (very brief stim)
                 samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
-            samples = np.concatenate((stim, samples)[self._stim_sl], axis=1)
             # place the drift triggers
             trig2 = self._make_digital_trigger([2])
             trig2_len = trig2.shape[0]
             trig2_starts = []
             for trig2_time in self._drift_trigger_time:
                 if trig2_time == 'end':
-                    samples[-trig2_len:, :trig2.shape[-1]] += trig2
+                    stim[-trig2_len:] = np.bitwise_or(stim[-trig2_len:], trig2)
                     trig2_starts += [sample_len-trig2_len]
                 else:
                     trig2_start = int(np.round(trig2_time * self.fs))
@@ -259,8 +258,9 @@ class SoundCardController(object):
                                       ' outside stimulus window, '
                                       'not stamping '
                                       'trigger'.format(trig2_time))
-                    samples[trig2_start:trig2_start+trig2_len,
-                            :trig2.shape[-1]] += trig2
+                    stim[trig2_start:trig2_start+trig2_len] = \
+                        np.bitwise_or(stim[trig2_start:trig2_start+trig2_len],
+                                      trig2)
                     if trig2_start > 0:
                         trig2_starts += [trig2_start]
                     else:
@@ -269,6 +269,8 @@ class SoundCardController(object):
                 warnings.warn('Some 2-triggers overlap, times should be at'
                               'least {} seconds apart.'.format(trig2_len /
                                                                self.fs))
+            stim = self._scale_digital_trigger(stim)
+            samples = np.concatenate((stim, samples)[self._stim_sl], axis=1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
 
     def _make_digital_trigger(self, trigs, delay=None):
@@ -303,16 +305,19 @@ class SoundCardController(object):
         #
         #     np.float32(2 ** 32 - 1) == np.float32(4294967295) == 4294967300
         #
-        trigs = ((np.array(trigs, int) << 8) *
-                 self._trig_scale).astype(np.float32)
+        trigs = np.array(trigs, int)
         assert trigs.ndim == 1
         n_samples = n_each * len(trigs)
-        stim = np.zeros((n_samples, self._n_channels_stim), np.float32)
+        stim = np.zeros((n_samples, self._n_channels_stim), np.int32)
         offset = 0
         for trig in trigs:
             stim[offset:offset + n_on] = trig
             offset += n_each
         return stim
+
+    def _scale_digital_trigger(self, triggers):
+        return ((np.array(triggers, int) << 8) *
+                self._trig_scale).astype(np.float32)
 
     def stamp_triggers(self, triggers, delay=None, wait_for_last=True,
                        is_trial_id=False):
@@ -338,6 +343,7 @@ class SoundCardController(object):
         if delay is None:
             delay = 2 * self._trigger_duration
         stim = self._make_digital_trigger(triggers, delay)
+        stim = self._scale_digital_trigger(triggers)
         stim = np.pad(
             stim, ((0, 0), (0, self._n_channels)[self._stim_sl]), 'constant')
         stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
