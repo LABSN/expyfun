@@ -317,7 +317,7 @@ class SoundCardController(object):
         return stim
 
     def _scale_digital_trigger(self, triggers):
-        return ((np.array(triggers, int) << 8) *
+        return ((triggers << 8) *
                 self._trig_scale).astype(np.float32)
 
     def stamp_triggers(self, triggers, delay=None, wait_for_last=True,
