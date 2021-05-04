@@ -344,7 +344,7 @@ class SoundCardController(object):
         if delay is None:
             delay = 2 * self._trigger_duration
         stim = self._make_digital_trigger(triggers, delay)
-        stim = self._scale_digital_trigger(triggers)
+        stim = self._scale_digital_trigger(stim)
         stim = np.pad(
             stim, ((0, 0), (0, self._n_channels)[self._stim_sl]), 'constant')
         stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
