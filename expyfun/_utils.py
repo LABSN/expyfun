@@ -467,7 +467,7 @@ def _has_video(raise_error=False):
             if raise_error:
                 print('Found AVbinSource for old Pyglet 2')
     if raise_error and not good:
-        raise RuntimeError('Video support not enabled, got exception(s):\n\n%s'
+        raise RuntimeError('Video support not enabled, got exception(s):\n'
                            '\n***********************\n'.join(exceptions))
     return good
 

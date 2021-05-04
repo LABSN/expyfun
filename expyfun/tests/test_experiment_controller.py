@@ -283,9 +283,11 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.load_buffer(click)  # should pass
         with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(noise)
+        ec.wait_secs(SAFE_DELAY)
         ec.set_rms_checking('windowed')
         with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(click)
+        ec.wait_secs(SAFE_DELAY)
         with pytest.warns(UserWarning, match='exceeds stated'):
             ec.load_buffer(noise)
         if ac != 'tdt':  # too many samples there
@@ -298,6 +300,7 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.set_visible()
         ec.set_visible(False)
         ec.call_on_every_flip(partial(dummy_print, 'called start stimuli'))
+        ec.wait_secs(SAFE_DELAY)
 
         # Note: we put some wait_secs in here because otherwise the delay in
         # play start (e.g. for trigdel and onsetdel) can
