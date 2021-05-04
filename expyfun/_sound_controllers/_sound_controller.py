@@ -258,6 +258,7 @@ class SoundCardController(object):
                                       ' outside stimulus window, '
                                       'not stamping '
                                       'trigger'.format(trig2_time))
+                        continue
                     stim[trig2_start:trig2_start+trig2_len] = \
                         np.bitwise_or(stim[trig2_start:trig2_start+trig2_len],
                                       trig2)
@@ -265,7 +266,7 @@ class SoundCardController(object):
                         trig2_starts += [trig2_start]
                     else:
                         trig2_starts += [sample_len + trig2_start]
-            if np.any(np.diff(trig2_starts)):
+            if np.any(np.diff(trig2_starts) < trig2_len):
                 warnings.warn('Some 2-triggers overlap, times should be at'
                               'least {} seconds apart.'.format(trig2_len /
                                                                self.fs))
