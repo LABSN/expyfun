@@ -20,14 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-      - run: sudo apt-get install libavutil56 libglu1-mesa dbus-x11
+      - run: sudo apt-get install libavutil56 libavcodec58 libglu1-mesa dbus-x11
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
           python-version: '3.7'
           environment-file: 'environment_test.yml'
         name: 'Setup conda'
-      - run: conda remove -n test pandas h5py && pip install "pyglet<1.4"
+      - run: conda remove -n test pandas h5py && pip install "pyglet==1.4"
         name: Make minimal
       - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/linux/setup_sound.sh
         name: Get sound working
