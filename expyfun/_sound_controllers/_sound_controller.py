@@ -249,7 +249,7 @@ class SoundCardController(object):
                     if ((trig2_start >= 0 and trig2_start <= stim_len) or
                             (trig2_start < 0 and abs(trig2_start) >= extra)):
                         warnings.warn('Drift triggers overlap'
-                                      ' with onset triggers')
+                                      ' with onset triggers.')
                     if ((trig2_start > 0 and
                          trig2_start > sample_len-trig2_len) or
                             (trig2_start < 0 and
@@ -257,7 +257,7 @@ class SoundCardController(object):
                         warnings.warn('Drift trigger at {} seconds occurs'
                                       ' outside stimulus window, '
                                       'not stamping '
-                                      'trigger'.format(trig2_time))
+                                      'trigger.'.format(trig2_time))
                         continue
                     stim[trig2_start:trig2_start+trig2_len] = \
                         np.bitwise_or(stim[trig2_start:trig2_start+trig2_len],
@@ -267,7 +267,7 @@ class SoundCardController(object):
                     else:
                         trig2_starts += [sample_len + trig2_start]
             if np.any(np.diff(trig2_starts) < trig2_len):
-                warnings.warn('Some 2-triggers overlap, times should be at'
+                warnings.warn('Some 2-triggers overlap, times should be at '
                               'least {} seconds apart.'.format(trig2_len /
                                                                self.fs))
             self.ec.write_data_line('Drift triggers were stamped at the '

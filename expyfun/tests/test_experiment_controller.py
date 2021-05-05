@@ -629,7 +629,7 @@ def test_sound_card_triggering(hide_window):
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         with pytest.warns(UserWarning, match='Drift triggers overlap with '
-                          'onset triggers'):
+                          'onset triggers.'):
             ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
         ec.stop()
@@ -643,7 +643,7 @@ def test_sound_card_triggering(hide_window):
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         with pytest.warns(UserWarning, match='Drift trigger at 1.1 seconds '
                           'occurs outside stimulus window, not stamping '
-                          'trigger'):
+                          'trigger.'):
             ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
         ec.stop()
@@ -655,7 +655,7 @@ def test_sound_card_triggering(hide_window):
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         with pytest.warns(UserWarning, match='Some 2-triggers overlap, times '
-                          'should be atleast 0.02 seconds apart.'):
+                          'should be at least 0.02 seconds apart.'):
             ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
         ec.stop()
