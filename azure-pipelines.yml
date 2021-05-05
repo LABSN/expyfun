@@ -52,7 +52,7 @@ stages:
         versionSpec: $(PYTHON_VERSION)
         architecture: 'x64'
         addToPath: true
-    - script: echo "##vso[task.prependpath]C:\Users\VssAdministrator\AppData\Roaming\Python\Python39\site-packages\pywin32_system32"
+    - script: echo "##vso[task.prependpath]C:\Users\VssAdministrator\AppData\Roaming\Python\Python39\site-packages\pywin32_system32;"
       displayName: Add local bin to PATH
       condition: in(variables['PYTHON_VERSION'], '3.9')
     - bash: |
