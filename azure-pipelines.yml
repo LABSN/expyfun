@@ -54,6 +54,7 @@ stages:
         addToPath: true
     - script: echo "##vso[task.prependpath]C:\Users\VssAdministrator\AppData\Roaming\Python\Python39\Scripts;C:\Users\VssAdministrator\AppData\Roaming\Python\Python39\Library\bin"
       displayName: Add local bin to PATH
+      condition: in(variables['PYTHON_VERSION'], '3.9')
     - bash: |
         set -e
         pip install --user --upgrade pip setuptools wheel
