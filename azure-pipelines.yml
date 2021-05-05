@@ -94,7 +94,7 @@ stages:
       displayName: 'Check video support'
     - script: python setup.py develop
       displayName: 'Install'
-    - script: pytest -n 1 --tb=short --cov=expyfun expyfun
+    - script: pytest --tb=short --cov=expyfun expyfun
       displayName: 'Run tests'
     - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
       displayName: 'Codecov'
