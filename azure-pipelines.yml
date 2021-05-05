@@ -53,25 +53,28 @@ stages:
         architecture: 'x64'
         addToPath: true
     - bash: |
-        pip install --upgrade pip setuptools
-        pip install --upgrade numpy scipy vtk
+        set -e
+        pip install --user --upgrade pip setuptools
+        pip install --user --upgrade numpy scipy vtk matplotlib
         if [[ "$PYTHON_VERSION" == "3.9" ]]; then
-          pip install https://github.com/pyglet/pyglet/zipball/pyglet-1.5-maintenance
+          pip install --user --upgrade https://github.com/pyglet/pyglet/zipball/pyglet-1.5-maintenance
         else
-          pip install "pyglet!=1.5.16"
+          pip install --user --upgrade "pyglet!=1.5.16"
         fi
-        pip install -q coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet-ffmpeg mne tdtpy joblib numpydoc pillow
+        pip install --user -q coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet-ffmpeg mne tdtpy joblib numpydoc pillow
         python -c "import mne; mne.sys_info()"
         python -c "import matplotlib.pyplot as plt"
         python -c "import pyglet; print(pyglet.version)"
       displayName: 'Install pip dependencies'
-    - powershell: |
+    - bash: |
+        set -e
         git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git
         powershell sound-ci-helpers/windows/setup_sound.ps1
-        pip install -q rtmixer
+        pip install -q --user rtmixer
         python -m sounddevice
       displayName: 'Install rtmixer'
-    - powershell: |
+    - bash: |
+        set -e
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
         python -c "import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()"
