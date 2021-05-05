@@ -55,6 +55,9 @@ stages:
     - script: echo "##vso[task.prependpath]C:\Users\VssAdministrator\AppData\Roaming\Python\Python39\Scripts;C:\Users\VssAdministrator\AppData\Roaming\Python\Python39\Library\bin"
       displayName: Add local bin to PATH
       condition: in(variables['PYTHON_VERSION'], '3.9')
+    - script: echo "##vso[task.prependpath]C:\Users\VssAdministrator\AppData\Roaming\Python\Python37\Scripts;C:\Users\VssAdministrator\AppData\Roaming\Python\Python37\Library\bin"
+      displayName: Add local bin to PATH
+      condition: in(variables['PYTHON_VERSION'], '3.7')
     - bash: |
         set -e
         pip install --user --upgrade pip setuptools wheel
@@ -66,12 +69,13 @@ stages:
         fi
         pip install --user -q coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet-ffmpeg mne tdtpy joblib numpydoc pillow
         if [[ "$PYTHON_VERSION" == "3.9" ]]; then
-          echo "Copying DLL... " && cp -v /C/Users/VssAdministrator/AppData/Roaming/Python/Python39/site-packages/pywin32_system32/pywintypes39.dll /C/Users/VssAdministrator/AppData/Roaming/Python/Python39/site-packages/win32/lib && echo "Done"
+          cp -v /C/Users/VssAdministrator/AppData/Roaming/Python/Python39/site-packages/pywin32_system32/pywintypes39.dll /C/Users/VssAdministrator/AppData/Roaming/Python/Python39/site-packages/win32/lib
+          cp -v /C/Users/VssAdministrator/AppData/Roaming/Python/Python39/site-packages/pywin32_system32/pythoncom39.dll /C/Users/VssAdministrator/AppData/Roaming/Python/Python39/site-packages/win32/lib
         fi
         python -c "import mne; mne.sys_info()"
         python -c "import matplotlib.pyplot as plt"
         python -c "import pyglet; print(pyglet.version)"
-        python -c "import tdt"
+        python -c "import tdt; print(tdt.__version__)"
       displayName: 'Install pip dependencies'
     - bash: |
         set -e
