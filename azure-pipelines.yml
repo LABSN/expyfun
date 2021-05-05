@@ -61,7 +61,7 @@ stages:
         else
           pip install --user --upgrade "pyglet!=1.5.16"
         fi
-        pip install --user -q coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet-ffmpeg mne tdtpy pypiwin32 joblib numpydoc pillow
+        pip install --user -q coverage setuptools h5py pandas pytest pytest-cov pytest-timeout pytest-xdist codecov pyglet-ffmpeg mne tdtpy pywin32 joblib numpydoc pillow
         python -c "import mne; mne.sys_info()"
         python -c "import matplotlib.pyplot as plt"
         python -c "import pyglet; print(pyglet.version)"
