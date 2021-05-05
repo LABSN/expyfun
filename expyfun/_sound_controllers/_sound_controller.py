@@ -270,6 +270,9 @@ class SoundCardController(object):
                 warnings.warn('Some 2-triggers overlap, times should be at'
                               'least {} seconds apart.'.format(trig2_len /
                                                                self.fs))
+            self.ec.write_data_line('Drift triggers were stamped at the '
+                                    'folowing times: ',
+                                    str([t2s/self.fs for t2s in trig2_starts]))
             stim = self._scale_digital_trigger(stim)
             samples = np.concatenate((stim, samples)[self._stim_sl], axis=1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
