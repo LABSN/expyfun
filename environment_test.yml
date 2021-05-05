@@ -9,7 +9,6 @@ dependencies:
 - pytest
 - pytest-cov
 - pytest-timeout
-- pytest-xdist
 - pillow
 - joblib
 - pip:
