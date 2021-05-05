@@ -57,7 +57,7 @@ stages:
         pip install --user --upgrade pip setuptools
         pip install --user --upgrade numpy scipy matplotlib
         if [[ "$PYTHON_VERSION" == "3.9" ]]; then
-          pip install --user --upgrade https://github.com/pyglet/pyglet/zipball/pyglet-1.5-maintenance
+          pip install --user --upgrade https://github.com/larsoner/pyglet/zipball/font
         else
           pip install --user --upgrade "pyglet!=1.5.16"
         fi
