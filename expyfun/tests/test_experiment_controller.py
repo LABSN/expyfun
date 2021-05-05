@@ -654,8 +654,7 @@ def test_sound_card_triggering(hide_window):
                               n_channels=1,
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
-        with pytest.warns(UserWarning, match='Some 2-triggers overlap, times '
-                          'should be at least 0.02 seconds apart.'):
+        with pytest.warns(UserWarning, match='Some 2-triggers overlap.*'):
             ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
         ec.stop()
