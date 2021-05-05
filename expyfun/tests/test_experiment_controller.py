@@ -678,7 +678,6 @@ def test_sound_card_triggering(hide_window):
         ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
         ec.stop()
-    
 
 
 class _FakeJoystick(object):
