@@ -620,6 +620,64 @@ def test_sound_card_triggering(hide_window):
         ec.load_buffer([1e-2])
         ec.start_stimulus()
         ec.stop()
+    # Test the drift triggers
+    audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=0.001)
+    with ExperimentController(*std_args,
+                              audio_controller=audio_controller,
+                              trigger_controller='sound_card',
+                              n_channels=1,
+                              **std_kwargs) as ec:
+        ec.identify_trial(ttl_id=[1, 0], ec_id='')
+        with pytest.warns(UserWarning, match='Drift triggers overlap with '
+                          'onset triggers.'):
+            ec.load_buffer(np.zeros(ec.stim_fs))
+        ec.start_stimulus()
+        ec.stop()
+    audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=[1.1, 0.3, -0.3,
+                                                      'end'])
+    with ExperimentController(*std_args,
+                              audio_controller=audio_controller,
+                              trigger_controller='sound_card',
+                              n_channels=1,
+                              **std_kwargs) as ec:
+        ec.identify_trial(ttl_id=[1, 0], ec_id='')
+        with pytest.warns(UserWarning, match='Drift trigger at 1.1 seconds '
+                          'occurs outside stimulus window, not stamping '
+                          'trigger.'):
+            ec.load_buffer(np.zeros(ec.stim_fs))
+        ec.start_stimulus()
+        ec.stop()
+    audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=[0.5, 0.501])
+    with ExperimentController(*std_args,
+                              audio_controller=audio_controller,
+                              trigger_controller='sound_card',
+                              n_channels=1,
+                              **std_kwargs) as ec:
+        ec.identify_trial(ttl_id=[1, 0], ec_id='')
+        with pytest.warns(UserWarning, match='Some 2-triggers overlap.*'):
+            ec.load_buffer(np.zeros(ec.stim_fs))
+        ec.start_stimulus()
+        ec.stop()
+    audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=[])
+    with ExperimentController(*std_args,
+                              audio_controller=audio_controller,
+                              trigger_controller='sound_card',
+                              n_channels=1,
+                              **std_kwargs) as ec:
+        ec.identify_trial(ttl_id=[1, 0], ec_id='')
+        ec.load_buffer(np.zeros(ec.stim_fs))
+        ec.start_stimulus()
+        ec.stop()
+    audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=[0.2, 0.5, -0.3])
+    with ExperimentController(*std_args,
+                              audio_controller=audio_controller,
+                              trigger_controller='sound_card',
+                              n_channels=1,
+                              **std_kwargs) as ec:
+        ec.identify_trial(ttl_id=[1, 0], ec_id='')
+        ec.load_buffer(np.zeros(ec.stim_fs))
+        ec.start_stimulus()
+        ec.stop()
 
 
 class _FakeJoystick(object):
