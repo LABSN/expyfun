@@ -53,11 +53,14 @@ To get started quickly, this should suffice for conda users on most systems:
 
 .. code-block:: console
 
-    $ conda create -n expy python=3 numpy scipy matplotlib pandas pyglet h5py joblib pillow
+    $ conda create -n expy python=3 numpy scipy matplotlib pandas pyglet h5py joblib pillow -c conda-forge
     $ conda activate expy
     $ pip install mne pyparallel rtmixer expyfun
 
-where ``expy`` can be replaced with whatever name you find convenient.
+where ``expy`` can be replaced with whatever name you find convenient. If you
+cannot (or don't want to) use conda-forge as a package source, remove
+``-c conda-forge`` from the first command above, and move ``pyglet`` from the
+conda line to the pip line.
 
 Expyfun
 ^^^^^^^
