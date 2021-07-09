@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import atexit
 import sys
 
 import numpy as np
