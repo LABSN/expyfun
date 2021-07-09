@@ -16,29 +16,40 @@ from .._utils import logger, get_config
 _PRIORITY = 100
 _DEFAULT_NAME = None
 
-# only initialize each mixer once and reuse it until Python closes
-_MIXER_REGISTRY = {}
+
+# only initialize each mixer once and reuse it until this gets garbage
+# collected
+
+class _MixerRegistry(dict):
+
+    def __del__(self):
+        for mixer in self.values():
+            mixer.abort()
+            mixer.close()
+        self.clear()
+        super().__del__()
+
+    def _get_mixer(self, fs, n_channels, api, name, api_options):
+        """Select the API and device."""
+        # API
+        if api is None:
+            api = get_config('SOUND_CARD_API', None)
+        if api is None:
+            # Eventually we should maybe allow 'Windows WDM-KS',
+            # 'Windows DirectSound', or 'MME'
+            api = dict(
+                darwin='Core Audio',
+                win32='Windows WASAPI',
+                linux='ALSA',
+                linux2='ALSA',
+            )[sys.platform]
+        key = (fs, n_channels, api, name)
+        if key not in self:
+            self[key] = _init_mixer(fs, n_channels, api, name, api_options)
+        return self[key]
 
 
-def _get_mixer(fs, n_channels, api, name, api_options):
-    """Select the API and device."""
-    # API
-    if api is None:
-        api = get_config('SOUND_CARD_API', None)
-    if api is None:
-        # Eventually we should maybe allow 'Windows WDM-KS',
-        # 'Windows DirectSound', or 'MME'
-        api = dict(
-            darwin='Core Audio',
-            win32='Windows WASAPI',
-            linux='ALSA',
-            linux2='ALSA',
-        )[sys.platform]
-    key = (fs, n_channels, api, name)
-    if key not in _MIXER_REGISTRY:
-        _MIXER_REGISTRY[key] = _init_mixer(fs, n_channels, api, name,
-                                           api_options)
-    return _MIXER_REGISTRY[key]
+_mixer_registry = _MixerRegistry()
 
 
 def _init_mixer(fs, n_channels, api, name, api_options=None):
@@ -107,7 +118,6 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
     assert mixer.active
     logger.info('Expyfun: using %s, %0.1f ms nominal latency'
                 % (param_str, 1000 * device['default_low_output_latency']))
-    atexit.register(lambda: (mixer.abort(), mixer.close()))
     return mixer
 
 
@@ -124,7 +134,8 @@ class SoundPlayer(object):
         assert n_channels >= 1
         self._n_channels = n_channels
         self._mixer = None  # in case the next line crashes, __del__ works
-        self._mixer = _get_mixer(fs, self._n_channels, api, name, api_options)
+        self._mixer = _mixer_registry._get_mixer(
+            fs, self._n_channels, api, name, api_options)
         if loop:
             self._ring = RingBuffer(self._data.itemsize * self._n_channels,
                                     self._data.size)
