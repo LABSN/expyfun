@@ -40,8 +40,6 @@ from expyfun import ExperimentController, building_doc
 from expyfun.visual import Circle, Rectangle
 import expyfun.analyze as ea
 
-print(__doc__)
-
 n_channels = 2
 click_idx = [0]
 with ExperimentController('SyncTest', full_screen=True, noise_db=-np.inf,
