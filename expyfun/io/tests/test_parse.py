@@ -14,6 +14,7 @@ std_kwargs = dict(output_dir=temp_dir, full_screen=False, window_size=(1, 1),
                   verbose=True, version='dev')
 
 
+@pytest.mark.timeout(10)
 def test_parse_basic(hide_window, tmpdir):
     """Test .tab parsing."""
     with ExperimentController(*std_args, **std_kwargs) as ec:
