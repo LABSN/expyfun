@@ -23,10 +23,10 @@ class _MixerRegistry(dict):
 
     def __del__(self):
         for mixer in self.values():
+            print(f'Closing {mixer}')
             mixer.abort()
             mixer.close()
         self.clear()
-        super().__del__()
 
     def _get_mixer(self, fs, n_channels, api, name, api_options):
         """Select the API and device."""
