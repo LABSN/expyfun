@@ -56,12 +56,16 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
     if len(devices) == 0:
         raise OSError('No sound devices found!')
     apis = sounddevice.query_hostapis()
+    valid_apis = []
     for ai, this_api in enumerate(apis):
         if this_api['name'] == api:
             api = this_api
             break
+        else:
+            valid_apis.append(this_api['name'])
     else:
-        raise RuntimeError('Could not find host API %s' % (api,))
+        m = 'Could not find host API %s. Valid choices are "%s"'
+        raise RuntimeError(m % (api, ', '.join(valid_apis)))
     del this_api
 
     # Name
