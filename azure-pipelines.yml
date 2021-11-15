@@ -32,7 +32,7 @@ stages:
   jobs:
   - job: Windows
     pool:
-      vmIMage: 'windows-latest'
+      vmIMage: 'VS2017-Win2016'
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
