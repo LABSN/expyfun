@@ -197,7 +197,7 @@ def test_ec(ac, hide_window, monkeypatch):
                     suppress_resamp=suppress, **std_kwargs) as ec:
                 pass
         assert len(w) == (1 if ac == 'tdt' else 0)
-    SAFE_DELAY = 0.1
+    SAFE_DELAY = 0.2
     with ExperimentController(
             *std_args, audio_controller=ac, response_device=rd,
             trigger_controller=tc, stim_fs=fs, **std_kwargs) as ec:
