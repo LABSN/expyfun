@@ -8,7 +8,8 @@ jobs:
       - checkout
       - run: echo $(git log -1 --pretty=%B) | tee gitlog.txt
       - run: echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-      - run: sudo apt-get install libglu1-mesa ffmpeg
+      - run: sudo apt update
+      - run: sudo apt install libglu1-mesa ffmpeg
       - run:
          command: |
            if [[ $(cat merge.txt) != "" ]]; then
