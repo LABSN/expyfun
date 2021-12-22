@@ -262,6 +262,7 @@ sphinx_gallery_conf = {
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
     'backreferences_dir': 'generated',
+    'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
     'filename_pattern': r'/.*(?<!_)\.py$',  # anything that isn't *_.py
     'capture_repr': (),
 }

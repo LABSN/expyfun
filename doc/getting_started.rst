@@ -53,14 +53,36 @@ To get started quickly, this should suffice for conda users on most systems:
 
 .. code-block:: console
 
-    $ conda create -n expy python=3 numpy scipy matplotlib pandas pyglet h5py joblib pillow -c conda-forge
+    $ conda create -n expy mne pyglet -c conda-forge
     $ conda activate expy
-    $ pip install mne pyparallel rtmixer expyfun
+    $ pip install pyparallel rtmixer
+    $ pip install git+https://github.com/labsn/expyfun
 
 where ``expy`` can be replaced with whatever name you find convenient. If you
-cannot (or don't want to) use conda-forge as a package source, remove
-``-c conda-forge`` from the first command above, and move ``pyglet`` from the
-conda line to the pip line.
+cannot (or don't want to) use conda-forge as a package source, you'll have to
+do this instead:
+
+.. code-block:: console
+
+    $ conda create -n expy python=3 numpy scipy matplotlib pandas h5py joblib pillow
+    $ conda activate expy
+    $ pip install mne pyglet pyparallel rtmixer
+    $ pip install git+https://github.com/labsn/expyfun
+
+If you prefer using pip for everything, here are the minimum requirements:
+
+.. code-block:: console
+
+    $ pip install mne matplotlib pyglet pillow
+    $ pip install git+https://github.com/labsn/expyfun
+
+and this does a full pip install of all required and optional dependencies:
+
+.. code-block:: console
+
+    $ pip install mne matplotlib pyglet pillow rtmixer pyparallel pandas joblib h5py TDTPy
+    $ pip install git+https://github.com/labsn/expyfun
+
 
 Expyfun
 ^^^^^^^
