@@ -98,6 +98,9 @@ stages:
         python setup.py develop
       displayName: 'Install'
     - bash: |
+        python examples/stimuli/simple_video.py
+      displayName: 'Ensure that video works'
+    - bash: |
         pytest --tb=short --cov=expyfun expyfun
       displayName: 'Run tests'
     - bash: |
