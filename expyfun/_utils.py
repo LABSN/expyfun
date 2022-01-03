@@ -21,7 +21,6 @@ from shutil import rmtree
 import atexit
 import json
 from functools import partial
-from distutils.version import LooseVersion
 import logging
 import datetime
 from timeit import default_timer as clock
@@ -435,7 +434,7 @@ def verbose_dec(function, *args, **kwargs):
 
 def _new_pyglet():
     import pyglet
-    return LooseVersion(pyglet.version) >= LooseVersion('1.4')
+    return _compare_version(pyglet.version, '>=', '1.4')
 
 
 def _has_video(raise_error=False):
@@ -505,7 +504,7 @@ def requires_lib(lib):
 
 
 def _has_scipy_version(version):
-    return (LooseVersion(sp.__version__) >= LooseVersion(version))
+    return _compare_version(sp.__version__, '>=', version)
 
 
 def _get_user_home_path():
@@ -739,7 +738,7 @@ def _check_pyglet_version(raise_error=False):
     """Check pyglet version, return True if usable.
     """
     import pyglet
-    is_usable = LooseVersion(pyglet.version) >= LooseVersion('1.2')
+    is_usable = _compare_version(pyglet.version, '>=', '1.2')
     if raise_error is True and is_usable is False:
         raise ImportError('On Linux, you must run at least Pyglet '
                           'version 1.2, and you are running '
@@ -949,3 +948,13 @@ def _get_display():
     except AttributeError:  # < 1.4
         display = pyglet.window.get_platform().get_default_display()
     return display
+
+
+# Adapted from MNE-Python
+def _compare_version(version_a, operator, version_b):
+    try:
+        from pkg_resources import parse_version as parse  # noqa
+    except ImportError:
+        from distutils.version import LooseVersion as parse  # noqa
+
+    return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
