@@ -7,7 +7,6 @@
 
 import numpy as np
 import datetime
-from distutils.version import LooseVersion
 import os
 from os import path as op
 import sys
@@ -223,10 +222,10 @@ class EyelinkController(object):
         self._command('sample_rate = {0}'.format(fs))
 
         # retrieve tracker version and tracker software version
-        v = str(self._eyelink.getTrackerVersion())
+        v = str(self._eyelink.getTrackerVersion()).strip()
         logger.info('Eyelink: Running experiment on a version ''{0}'' '
                     'tracker.'.format(v))
-        v = LooseVersion(v).version
+        v = v.split('.')
 
         # set EDF file contents
         logger.debug('EyeLink: Setting file and event filters')
@@ -237,7 +236,7 @@ class EyelinkController(object):
         self._eyelink.setLinkEventFilter(lef)
         fsf = 'LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT'
         lsf = 'LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT'
-        if len(v) > 1 and v[0] == 3 and v[1] == 4:
+        if len(v) > 1 and v[0] == '3' and v[1] == '4':
             # remote mode possible add HTARGET ( head target)
             fsf += ',HTARGET'
             # set link data (used for gaze cursor)

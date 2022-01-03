@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 from copy import deepcopy
-from distutils.version import LooseVersion
 from functools import partial
 import sys
 
@@ -13,7 +12,8 @@ from expyfun import ExperimentController, visual, _experiment_controller
 from expyfun._experiment_controller import _get_dev_db
 from expyfun._utils import (_TempDir, fake_button_press, _check_skip_backend,
                             fake_mouse_click, requires_opengl21,
-                            _wait_secs as wait_secs, known_config_types)
+                            _wait_secs as wait_secs, known_config_types,
+                            _new_pyglet)
 from expyfun._sound_controllers._sound_controller import _SOUND_CARD_KEYS
 from expyfun.stimuli import get_tdt_rates
 
@@ -517,8 +517,7 @@ def test_button_presses_and_window_size(hide_window):
         fake_button_press(ec, 'comma', 0.45)
         fake_button_press(ec, 'return', 0.5)
         # XXX this fails on OSX travis for some reason
-        import pyglet
-        new_pyglet = LooseVersion(pyglet.version) >= LooseVersion('1.4')
+        new_pyglet = _new_pyglet()
         bad = sys.platform == 'darwin'
         bad |= sys.platform == 'win32' and new_pyglet
         if not bad:

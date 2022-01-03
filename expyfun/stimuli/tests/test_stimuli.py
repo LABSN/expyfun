@@ -147,7 +147,7 @@ def test_rms():
     assert_array_almost_equal(rms(np.ones((100, 2)) * 2, 0), [2, 2])
 
 
-@pytest.mark.timeout(15)  # can be slow to load on CIs
+@pytest.mark.timeout(30)  # can be slow to load on CIs
 @requires_lib('mne')
 def test_crm(tmpdir):
     """Test CRM Corpus functions."""
