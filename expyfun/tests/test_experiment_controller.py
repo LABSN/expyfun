@@ -550,6 +550,7 @@ def test_mouse_clicks(hide_window):
 
 
 @requires_opengl21
+@pytest.mark.timeout(30)
 def test_background_color(hide_window):
     """Test setting background color"""
     with ExperimentController(*std_args, participant='foo', session='01',
