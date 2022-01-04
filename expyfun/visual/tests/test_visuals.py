@@ -95,7 +95,7 @@ def test_visuals(hide_window):
 @requires_video()
 def test_video(hide_window):
     """Test EC video methods."""
-    std_kwargs.update(dict(enable_video=True, window_size=(640, 480)))
+    std_kwargs.update(dict(window_size=(640, 480)))
     video_path = fetch_data_file('video/example-video.mp4')
     with ExperimentController('test', **std_kwargs) as ec:
         ec.load_video(video_path)

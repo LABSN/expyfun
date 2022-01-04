@@ -186,6 +186,43 @@ def _check_log(obj, func):
         raise RuntimeError(message)
 
 
+def _create_program(ec, vert, frag):
+    program = gl.glCreateProgram()
+
+    vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
+    buf = create_string_buffer(vert.encode('ASCII'))
+    ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
+    gl.glShaderSource(vertex, 1, ptr, None)
+    gl.glCompileShader(vertex)
+    _check_log(vertex, gl.glGetShaderInfoLog)
+
+    fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
+    buf = create_string_buffer(frag.encode('ASCII'))
+    ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
+    gl.glShaderSource(fragment, 1, ptr, None)
+    gl.glCompileShader(fragment)
+    _check_log(fragment, gl.glGetShaderInfoLog)
+
+    gl.glAttachShader(program, vertex)
+    gl.glAttachShader(program, fragment)
+    gl.glLinkProgram(program)
+    _check_log(program, gl.glGetProgramInfoLog)
+
+    gl.glDetachShader(program, vertex)
+    gl.glDetachShader(program, fragment)
+
+    # Set the view matrix
+    gl.glUseProgram(program)
+    loc = gl.glGetUniformLocation(program, b'u_view')
+    view = ec.window_size_pix
+    view = np.diag([2. / view[0], 2. / view[1], 1., 1.])
+    view[-1, :2] = -1
+    view = view.astype(np.float32).ravel()
+    gl.glUniformMatrix4fv(loc, 1, False, (c_float * 16)(*view))
+    gl.glUseProgram(0)
+    return program
+
+
 class _Triangular(object):
     """Super class for objects that use triangulations and/or lines"""
 
@@ -195,38 +232,8 @@ class _Triangular(object):
         self._line_loop = line_loop  # whether or not lines drawn are looped
 
         # initialize program and shaders
-        self._program = gl.glCreateProgram()
-
-        vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
-        buf = create_string_buffer(tri_vert.encode('ASCII'))
-        ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
-        gl.glShaderSource(vertex, 1, ptr, None)
-        gl.glCompileShader(vertex)
-        _check_log(vertex, gl.glGetShaderInfoLog)
-
-        fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
-        buf = create_string_buffer(tri_frag.encode('ASCII'))
-        ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
-        gl.glShaderSource(fragment, 1, ptr, None)
-        gl.glCompileShader(fragment)
-        _check_log(fragment, gl.glGetShaderInfoLog)
-
-        gl.glAttachShader(self._program, vertex)
-        gl.glAttachShader(self._program, fragment)
-        gl.glLinkProgram(self._program)
-        _check_log(self._program, gl.glGetProgramInfoLog)
-
-        gl.glDetachShader(self._program, vertex)
-        gl.glDetachShader(self._program, fragment)
+        self._program = _create_program(ec, tri_vert, tri_frag)
         gl.glUseProgram(self._program)
-
-        # Prepare buffers and bind attributes
-        loc = gl.glGetUniformLocation(self._program, b'u_view')
-        view = ec.window_size_pix
-        view = np.diag([2. / view[0], 2. / view[1], 1., 1.])
-        view[-1, :2] = -1
-        view = view.astype(np.float32).ravel()
-        gl.glUniformMatrix4fv(loc, 1, False, (c_float * 16)(*view))
 
         self._counts = dict()
         self._colors = dict()
@@ -278,6 +285,8 @@ class _Triangular(object):
                             self._tris[kind].size * 4,
                             self._tris[kind].tobytes(),
                             gl.GL_STATIC_DRAW)
+            gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, 0)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glUseProgram(0)
 
     def _set_fill_points(self, points, tris):
@@ -348,11 +357,11 @@ class _Triangular(object):
                 loc_col = gl.glGetUniformLocation(self._program, b'u_color')
                 gl.glUniform4f(loc_col, *self._colors[kind])
                 cmd()
-                # The following line is probably only necessary because
-                # Pyglet makes some assumptions about the GL state that
-                # it perhaps shouldn't. Without it, Text might not
-                # render properly (see #252)
+                # cleanup
                 gl.glDisableVertexAttribArray(loc_pos)
+                if kind != 'line':
+                    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, 0)
+                gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glUseProgram(0)
 
 
@@ -1046,6 +1055,35 @@ class RawImage(object):
         return np.squeeze(np.concatenate([center, width_height]))
 
 
+tex_vert = '''
+#version 120
+
+attribute vec2 a_position;
+attribute vec2 a_texcoord;
+uniform mat4 u_view;
+varying vec2 v_texcoord;
+
+void main()
+{
+    gl_Position = u_view * vec4(a_position, 0.0, 1.0);
+    v_texcoord = a_texcoord;
+}
+'''
+
+tex_frag = '''
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+
+uniform sampler2DRect u_texture;
+varying vec2 v_texcoord;
+
+void main()
+{
+    gl_FragColor = texture2DRect(u_texture, v_texcoord);
+}
+'''
+
+
 class Video(object):
     """Read video file and draw it to the screen.
 
@@ -1074,10 +1112,6 @@ class Video(object):
         Whether to show the video when initialized. Can be toggled later using
         `Video.set_visible` method.
 
-    Returns
-    -------
-    None
-
     Notes
     -----
     This is a somewhat pared-down implementation of video playback. Looping is
@@ -1102,7 +1136,6 @@ class Video(object):
             logger.warning('Frame rate could not be determined')
             frame_rate = 60.
         self._dt = 1. / frame_rate
-        self._texture = None
         self._playing = False
         self._finished = False
         self._pos = pos
@@ -1111,6 +1144,20 @@ class Video(object):
         self.set_scale(scale)  # also calls set_pos
         self._visible = visible
         self._eos_fun = self._eos_new if _new_pyglet() else self._eos_old
+
+        self._program = _create_program(ec, tex_vert, tex_frag)
+        gl.glUseProgram(self._program)
+        self._buffers = dict()
+        for key in ('position', 'texcoord'):
+            self._buffers[key] = gl.GLuint(0)
+            gl.glGenBuffers(1, pointer(self._buffers[key]))
+        w, h = self.source_width, self.source_height
+        tex = np.array([(0, h), (w, h), (w, 0), (0, 0)], np.float32)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers['texcoord'])
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, tex.nbytes, tex.tobytes(),
+                        gl.GL_DYNAMIC_DRAW)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+        gl.glUseProgram(0)
 
     def play(self, auto_draw=True):
         """Play video from current position.
@@ -1165,11 +1212,6 @@ class Video(object):
             self.pause()
         self._player.delete()
 
-    def _scale_texture(self):
-        if self._texture:
-            self._texture.width = self.source_width * self._scale
-            self._texture.height = self.source_height * self._scale
-
     def set_scale(self, scale=1.):
         """Set video scale.
 
@@ -1195,7 +1237,6 @@ class Video(object):
         self._scale = float(scale)  # allows [1, 1., '1']; others: ValueError
         if self._scale <= 0:
             raise ValueError('Video scale factor must be strictly positive.')
-        self._scale_texture()
         self.set_pos(self._pos, self._units, self._center)
 
     def set_pos(self, pos, units='norm', center=True):
@@ -1224,10 +1265,32 @@ class Video(object):
         self._pos_centered = center
 
     def _draw(self):
-        self._texture = self._player.get_texture()
-        self._scale_texture()
+        tex = self._player.get_texture()
+        gl.glUseProgram(self._program)
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(tex.target, tex.id)
+        gl.glBindVertexArray(0)
+        x, y = self._actual_pos
+        w = self.source_width * self._scale
+        h = self.source_height * self._scale
+        pos = np.array(
+            [(x, y), (x + w, y), (x + w, y + h), (x, y + h)], np.float32)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers['position'])
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, pos.nbytes, pos.tobytes(),
+                        gl.GL_DYNAMIC_DRAW)
+        loc_pos = gl.glGetAttribLocation(self._program, b'a_position')
+        gl.glEnableVertexAttribArray(loc_pos)
+        gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers['texcoord'])
+        loc_tex = gl.glGetAttribLocation(self._program, b'a_texcoord')
+        gl.glEnableVertexAttribArray(loc_tex)
+        gl.glVertexAttribPointer(loc_tex, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-        self._texture.blit(*self._actual_pos)
+        gl.glDrawArrays(gl.GL_QUADS, 0, 4)
+        gl.glDisableVertexAttribArray(loc_pos)
+        gl.glDisableVertexAttribArray(loc_tex)
+        gl.glUseProgram(0)
+        gl.glBindTexture(tex.target, 0)
 
     def draw(self):
         """Draw the video texture to the screen buffer."""
