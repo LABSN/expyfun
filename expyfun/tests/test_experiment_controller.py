@@ -555,6 +555,7 @@ def test_background_color(hide_window):
     """Test setting background color"""
     with ExperimentController(*std_args, participant='foo', session='01',
                               output_dir=None, version='dev') as ec:
+        print((ec.window.width, ec.window.height))
         ec.set_background_color('red')
         ss = ec.screenshot()[:, :, :3]
         red_mask = (ss == [255, 0, 0]).all(axis=-1)
