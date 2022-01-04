@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
 import sys
+import warnings
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -18,7 +19,7 @@ from expyfun._sound_controllers._sound_controller import _SOUND_CARD_KEYS
 from expyfun.stimuli import get_tdt_rates
 
 std_args = ['test']  # experiment name
-std_kwargs = dict(output_dir=None, full_screen=False, window_size=(4, 4),
+std_kwargs = dict(output_dir=None, full_screen=False, window_size=(8, 8),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
                   verbose=True, version='dev')
 
@@ -190,12 +191,14 @@ def test_ec(ac, hide_window, monkeypatch):
         _check_skip_backend(ac)
         rd, tc, fs = 'keyboard', 'dummy', 44100
     for suppress in (True, False):
-        with pytest.warns(None) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             with ExperimentController(
                     *std_args, audio_controller=ac, response_device=rd,
                     trigger_controller=tc, stim_fs=100.,
                     suppress_resamp=suppress, **std_kwargs) as ec:
                 pass
+        w = [ww for ww in w if 'TDT is in dummy mode' in str(ww.message)]
         assert len(w) == (1 if ac == 'tdt' else 0)
     SAFE_DELAY = 0.2
     with ExperimentController(
