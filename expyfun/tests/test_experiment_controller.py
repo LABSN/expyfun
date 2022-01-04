@@ -18,7 +18,7 @@ from expyfun._sound_controllers._sound_controller import _SOUND_CARD_KEYS
 from expyfun.stimuli import get_tdt_rates
 
 std_args = ['test']  # experiment name
-std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
+std_kwargs = dict(output_dir=None, full_screen=False, window_size=(4, 4),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
                   verbose=True, version='dev')
 
