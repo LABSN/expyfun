@@ -5,6 +5,7 @@ from pkgutil import walk_packages
 import re
 import sys
 from unittest import SkipTest
+import warnings
 
 import pytest
 
@@ -72,7 +73,8 @@ def check_parameters_match(func, doc=None, cls=None):
         args = args[1:]
 
     if doc is None:
-        with pytest.warns(None) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             try:
                 doc = docscrape.FunctionDoc(func)
             except Exception as exp:
@@ -114,7 +116,8 @@ def test_docstring_parameters():
     from numpydoc import docscrape
     incorrect = []
     for name in public_modules:
-        with pytest.warns(None):  # traits warnings
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore')
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
@@ -122,7 +125,8 @@ def test_docstring_parameters():
         for cname, cls in classes:
             if cname.startswith('_') and cname not in _doc_special_members:
                 continue
-            with pytest.warns(None) as w:
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
                 cdoc = docscrape.ClassDoc(cls)
             for ww in w:
                 if 'Using or importing the ABCs' not in str(ww.message):
@@ -154,7 +158,8 @@ def test_tabs():
         if not ispkg and modname not in ignore:
             # mod = importlib.import_module(modname)  # not py26 compatible!
             try:
-                with pytest.warns(None):
+                with warnings.catch_warnings(record=True):
+                    warnings.simplefilter('ignore')
                     __import__(modname)
             except Exception:  # can't import properly
                 continue
@@ -206,7 +211,8 @@ def test_documented():
 
     missing = []
     for name in public_modules_:
-        with pytest.warns(None):  # traits warnings
+        with warnings.catch_warnings(record=True):  # traits warnings
+            warnings.simplefilter('ignore')
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
