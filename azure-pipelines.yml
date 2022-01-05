@@ -62,7 +62,7 @@ stages:
         if [[ "$PYTHON_VERSION" == "3.9" ]]; then
           # Until https://github.com/pyglet/pyglet/pull/516 is reverted or fixed, we need to use an older one
           # pip install --user --upgrade https://github.com/pyglet/pyglet/zipball/pyglet-1.5-maintenance
-          pip install --user --upgrade https://github.com/caffeinepills/pyglet/zipball/wic_file_object
+          pip install --user --upgrade https://github.com/pyglet/pyglet/zipball/69735d0ba65728f7093437149750b52c1fd1cd95
         else
           pip install --user --upgrade "pyglet!=1.5.16"
         fi
@@ -97,9 +97,6 @@ stages:
     - bash: |
         python setup.py develop
       displayName: 'Install'
-    - bash: |
-        python examples/stimuli/simple_video.py
-      displayName: 'Ensure that video works'
     - bash: |
         pytest --tb=short --cov=expyfun expyfun
       displayName: 'Run tests'
