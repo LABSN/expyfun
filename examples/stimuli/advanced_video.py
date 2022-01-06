@@ -20,7 +20,7 @@ movie_path = fetch_data_file('video/example-video.mp4')
 
 ec_args = dict(exp_name='advanced video example', window_size=(720, 480),
                full_screen=False, participant='foo', session='foo',
-               version='dev', enable_video=True, output_dir=None)
+               version='dev', output_dir=None)
 colors = [x for x in 'rgbcmyk']
 
 with ExperimentController(**ec_args) as ec:

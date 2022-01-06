@@ -19,7 +19,8 @@ movie_path = fetch_data_file('video/example-video.mp4')
 
 ec_args = dict(exp_name='simple video example', window_size=(720, 480),
                full_screen=False, participant='foo', session='foo',
-               version='dev', enable_video=True, output_dir=None)
+               version='dev', output_dir=None)
+screenshot = None
 
 with ExperimentController(**ec_args) as ec:
     ec.load_video(movie_path)
@@ -28,7 +29,8 @@ with ExperimentController(**ec_args) as ec:
     while not ec.video.finished:
         if ec.video.playing:
             fliptime = ec.flip()
-        screenshot = ec.screenshot()
+        if screenshot is None:
+            screenshot = ec.screenshot()
         if building_doc:
             break
     ec.delete_video()

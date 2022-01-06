@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 from os import path as op
+import warnings
 
 import pytest
 
@@ -30,7 +31,8 @@ def test_version_assertions():
             pytest.raises(RuntimeError, download_version, 'x' * 7, tempdir)
             ex_dir = op.join(tempdir, 'expyfun')
             assert not op.isdir(ex_dir)
-            with pytest.warns(None):  # Sometimes warns
+            with warnings.catch_warnings(record=True):  # Sometimes warns
+                warnings.simplefilter('ignore')
                 download_version(want_version, tempdir)
             assert op.isdir(ex_dir)
             assert op.isfile(op.join(ex_dir, '__init__.py'))

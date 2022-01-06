@@ -1,5 +1,7 @@
 import numpy as np
 from os import path as op
+import warnings
+
 import pytest
 from numpy.testing import assert_equal
 
@@ -104,7 +106,8 @@ def test_barplot_multiple():
     extns = ['pdf']  # jpg, tif not supported; 'png', 'raw', 'svg' not tested
     for ext in extns:
         fname = op.join(temp_dir, 'temp.' + ext)
-        with pytest.warns(None) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             ea.barplot(tmp, groups=[[0, 1, 2], [3]], err_bars='sd', axis=0,
                        fname=fname)
             plt.close()

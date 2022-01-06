@@ -114,8 +114,6 @@ class ExperimentController(object):
         the expected version of the expyfun codebase is being used when running
         experiments. To override version checking (e.g., during development)
         use ``version='dev'``.
-    enable_video : bool
-        If True, enable video mode.
     safe_flipping : bool | None
         If False, do not use ``glFinish`` when flipping. This can restore
         60 Hz on Linux systems where 30 Hz framerates occur, but the timing
@@ -150,7 +148,7 @@ class ExperimentController(object):
                  full_screen=True, force_quit=None, participant=None,
                  monitor=None, trigger_controller=None, session=None,
                  check_rms='windowed', suppress_resamp=False, version=None,
-                 enable_video=False, safe_flipping=None, n_channels=2,
+                 safe_flipping=None, n_channels=2,
                  trigger_duration=0.01, joystick=False, verbose=None):
         # initialize some values
         self._stim_fs = stim_fs
@@ -159,7 +157,6 @@ class ExperimentController(object):
         self._noise_db = noise_db
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
-        self._enable_video = enable_video
         self.video = None
         self._bgcolor = _convert_color('k')
         # placeholder for extra actions to do on flip-and-play
@@ -638,9 +635,8 @@ class ExperimentController(object):
         appropriate background color.
         """
         from pyglet import gl
-        if not self._enable_video:
-            # we go a little over here to be safe from round-off errors
-            Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
+        # we go a little over here to be safe from round-off errors
+        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
         self._bgcolor = _convert_color(color)
         gl.glClearColor(*[c / 255. for c in self._bgcolor])
 
@@ -1028,8 +1024,7 @@ class ExperimentController(object):
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         gl.glBegin(gl.GL_POINTS)
-        if not self._enable_video:
-            gl.glColor4f(0, 0, 0, 0)
+        gl.glColor4f(0, 0, 0, 0)
         gl.glVertex2i(10, 10)
         gl.glEnd()
         if self.safe_flipping:

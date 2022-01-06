@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 try:
@@ -159,7 +161,8 @@ def test_sigmoid():
     assert np.all(np.logical_and(y <= 1, y >= 0))
     p = ea.fit_sigmoid(x, y)
     assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
-    with pytest.warns(None):  # scipy convergence
+    with warnings.catch_warnings(record=True):  # scipy convergence
+        warnings.simplefilter('ignore')
         p = ea.fit_sigmoid(x, y, (0, 1, None, None), ('upper', 'lower'))
     assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
 
