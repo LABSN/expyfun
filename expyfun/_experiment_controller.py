@@ -890,13 +890,13 @@ class ExperimentController(object):
         self.video = None
 
 # ############################### PYGLET EVENTS ###############################
+# https://pyglet.readthedocs.io/en/latest/programming_guide/eventloop.html#dispatching-events-manually  # noqa
 
     def _setup_event_loop(self):
         from pyglet.app import platform_event_loop, event_loop
         event_loop.has_exit = False
         platform_event_loop.start()
         event_loop.dispatch_event('on_enter')
-
         event_loop.is_running = True
         self._extra_cleanup_fun.append(self._end_event_loop)
         # This is when Pyglet calls:
@@ -904,11 +904,12 @@ class ExperimentController(object):
         # which is a while loop with the contents of our dispatch_events.
 
     def _dispatch_events(self):
-        from pyglet.app import platform_event_loop
+        import pyglet
+        pyglet.clock.tick()
         self._win.dispatch_events()
         # timeout = self._event_loop.idle()
         timeout = 0
-        platform_event_loop.step(timeout)
+        pyglet.app.platform_event_loop.step(timeout)
 
     def _end_event_loop(self):
         from pyglet.app import platform_event_loop, event_loop
