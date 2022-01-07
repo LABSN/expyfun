@@ -33,6 +33,7 @@ with ExperimentController(**ec_args) as ec:
             screenshot = ec.screenshot()
         if building_doc:
             break
+        ec.check_force_quit()
     ec.delete_video()
     ec.flip()
     ec.screen_prompt('video over', max_wait=1.)
