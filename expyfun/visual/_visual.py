@@ -1080,6 +1080,7 @@ varying vec2 v_texcoord;
 void main()
 {
     gl_FragColor = texture2DRect(u_texture, v_texcoord);
+    gl_FragColor.a = 1.0;
 }
 '''
 
