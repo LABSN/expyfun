@@ -1160,8 +1160,6 @@ class Video(object):
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glUseProgram(0)
 
-        self._manual_update = not _new_pyglet()
-
     def play(self, auto_draw=True):
         """Play video from current position.
 
@@ -1297,8 +1295,7 @@ class Video(object):
 
     def draw(self):
         """Draw the video texture to the screen buffer."""
-        if self._manual_update:
-            self._player.update_texture()
+        self._player.update_texture()
         # detect end-of-stream to prevent pyglet from hanging:
         if not self._eos:
             if self._visible:
