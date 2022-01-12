@@ -953,21 +953,15 @@ class ExperimentController(object):
         # set the viewport size
         gl.glViewport(0, 0, int(self.window_size_pix[0]),
                       int(self.window_size_pix[1]))
-        # set the projection matrix
-        gl.glMatrixMode(gl.GL_PROJECTION)
-        gl.glLoadIdentity()
-        gl.gluOrtho2D(-1, 1, -1, 1)
-        # set the model matrix
-        gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glLoadIdentity()
         # disable depth testing
         gl.glDisable(gl.GL_DEPTH_TEST)
         # enable blending
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        gl.glShadeModel(gl.GL_SMOOTH)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
+        self._flip_rect = Rectangle(self, (0, 0, 1, 1), units='pix',
+                                    fill_color=(0., 0., 0., 0.))
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
         got_size = win.get_size()
@@ -1023,10 +1017,7 @@ class ExperimentController(object):
         self._win.flip()
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        gl.glBegin(gl.GL_POINTS)
-        gl.glColor4f(0, 0, 0, 0)
-        gl.glVertex2i(10, 10)
-        gl.glEnd()
+        self._flip_rect.draw()
         if self.safe_flipping:
             gl.glFinish()
         flip_time = self.get_time()
