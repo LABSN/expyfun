@@ -1127,7 +1127,17 @@ class Video(object):
                  center=True, visible=True):
         from pyglet.media import load, Player
         self._ec = ec
-        self._source = load(file_name)
+        # On Windows, the default is unaccelerated WMF, which is terribly slow.
+        decoder = None
+        if _new_pyglet():
+            try:
+                from pyglet.media.codecs.ffmpeg import FFmpegDecoder
+                decoder = FFmpegDecoder()
+            except Exception as exc:
+                warnings.warn(
+                    'FFmpeg decoder could not be instantiated, decoding '
+                    f'performance could be compromised:\n{exc}')
+        self._source = load(file_name, decoder=decoder)
         self._player = Player()
         with warnings.catch_warnings(record=True):  # deprecated eos_action
             self._player.queue(self._source)
