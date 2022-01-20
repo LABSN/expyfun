@@ -7,6 +7,7 @@
 *.orig
 .vscode
 doc/generated
+.DS_Store
 
 # C extensions
 *.so

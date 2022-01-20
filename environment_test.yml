@@ -12,7 +12,7 @@ dependencies:
 - pillow
 - joblib
 - pip:
-  - pyglet
+  - pyglet<1.6
   - codecov
   - pytest-sugar
   - numpydoc
