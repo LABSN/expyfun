@@ -8,7 +8,6 @@ dependencies:
 - h5py
 - coverage
 - setuptools
-- python-sounddevice
 - mne-base
 - numpydoc
 - pytest
@@ -20,4 +19,5 @@ dependencies:
 - ffmpeg
 - codecov
 - pip:
+  - sounddevice
   - rtmixer
