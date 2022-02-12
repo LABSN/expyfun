@@ -18,15 +18,14 @@ jobs:
     env:
       DISPLAY: ':99.0'
       _EXPYFUN_SILENT: 'true'
+      SOUND_CARD_BACKEND: 'pyglet'
     steps:
       - uses: actions/checkout@v2
         name: Checkout
       - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
         name: Start Xvfb
-      - run: sudo apt update -q && sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa dbus-x11 jackd
+      - run: sudo apt update -q && sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa dbus-x11
         name: Install system dependencies
-      - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jackd.pid --make-pidfile --background --exec /usr/bin/jackd -- -d dummy
-        name: Set up dummy audio (JACK)
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
