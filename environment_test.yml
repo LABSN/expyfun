@@ -8,7 +8,7 @@ dependencies:
 - h5py
 - coverage
 - setuptools
-- sounddevice
+- python-sounddevice
 - mne-base
 - numpydoc
 - pytest
