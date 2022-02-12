@@ -39,7 +39,7 @@ stages:
       PIP_DEPENDENCIES: 'codecov'
       OPENBLAS_NUM_THREADS: 1
       AZURE_CI_WINDOWS: 'true'
-      SOUND_CARD_NAME: 'CABLE'
+      SOUND_CARD_NAME: 'Speakers'
       SOUND_CARD_FS: '44100'
       SOUND_CARD_API: 'MME'
     strategy:
