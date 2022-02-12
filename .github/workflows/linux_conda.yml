@@ -20,9 +20,13 @@ jobs:
       _EXPYFUN_SILENT: 'true'
     steps:
       - uses: actions/checkout@v2
+        name: Checkout
       - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
+        name: Start Xvfb
       - run: sudo apt update -q && sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa dbus-x11 jackd
-      - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jackd.pid --make-pidfile --background --exec jackd -d dummy
+        name: Install system dependencies
+      - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_jackd.pid --make-pidfile --background --exec jackd -- -d dummy
+        name: Set up dummy audio (JACK)
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
@@ -32,11 +36,17 @@ jobs:
       - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/linux/setup_sound.sh
         name: Get sound working
       - run: python -m sounddevice
+        name: List sound devices
       - run: python -c "import pyglet; print(pyglet.version)"
+        name: Print Pyglet version
       - run: python -c "import matplotlib.pyplot as plt"
+        name: Make sure matplotlib works
       - run: python setup.py develop
+        name: Install
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
+        name: Check video
       - run: pytest --tb=short --cov=expyfun --cov-report=xml expyfun
+        name: Pytest
       - uses: codecov/codecov-action@v1
         if: success()
-        name: 'Codecov'
+        name: Codecov
