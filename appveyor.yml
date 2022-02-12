@@ -22,15 +22,12 @@ install:
   - "powershell gl-ci-helpers/appveyor/install_opengl.ps1"
   - "python -c \"import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()\""
   # expyfun
-  - "powershell make/get_video.ps1"
   - "python setup.py develop"
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Ensure that video works
-  - "python -c \"from ctypes import cdll; print(cdll.LoadLibrary('avcodec-58'))\""
-  - "python -c \"from ctypes import cdll; print(cdll.LoadLibrary('avformat-58'))\""
   - "python -c \"import expyfun; assert expyfun._utils._has_video(raise_error=True)\""
   # Run the project tests
   - "pytest -n 1 --tb=short --cov=expyfun expyfun"
