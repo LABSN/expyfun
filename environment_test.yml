@@ -15,9 +15,9 @@ dependencies:
 - pytest-cov
 - pytest-timeout
 - pillow
-- pyglet<1.6
 - joblib
 - ffmpeg
 - codecov
 - pip:
+  - pyglet<1.6  # conda is stuck on 1.5.16
   - rtmixer
