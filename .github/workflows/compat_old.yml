@@ -31,7 +31,7 @@ jobs:
       - run: |
           set -e
           conda remove -n test pandas h5py
-          pip install "pyglet<1.4" sounddevice python-rtmixer
+          pip install "pyglet<1.4" sounddevice rtmixer
         name: Make minimal
       - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
         name: Get sound working

@@ -31,7 +31,7 @@ jobs:
           activate-environment: 'test'
           python-version: '3.9'
           environment-file: 'environment_test.yml'
-      - run: pip install sounddevice python-rtmixer "pyglet<1.6"
+      - run: pip install sounddevice rtmixer "pyglet<1.6"
         name: 'Setup conda'
       - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
         name: Get sound working
