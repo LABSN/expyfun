@@ -9,16 +9,18 @@ on:
 
 jobs:
   job:
-    name: 'conda ${{ env.PYTHON_VERSION }}'
+    name: conda ${{ matrix.python }}
     runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash -el {0}
+    strategy:
+      matrix:
+        python: ['3.10']
     env:
       DISPLAY: ':99.0'
       _EXPYFUN_SILENT: 'true'
       SOUND_CARD_BACKEND: 'pyglet'
-      PYTHON_VERSION: '3.10'
     steps:
       - uses: actions/checkout@v2
         name: Checkout
@@ -29,7 +31,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.python }}
           environment-file: 'environment_test.yml'
         name: 'Setup conda'
       - run: pip install sounddevice rtmixer "pyglet<1.6"
