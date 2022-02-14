@@ -1,4 +1,4 @@
-name: 'linux / conda'
+name: 'linux'
 on:
   push:
     branches:
@@ -8,9 +8,8 @@ on:
       - '*'
 
 jobs:
-  # Linux
   job:
-    name: 'py3.9'
+    name: conda-${{ env.PYTHON_VERSION }}
     runs-on: ubuntu-20.04
     defaults:
       run:
@@ -19,6 +18,7 @@ jobs:
       DISPLAY: ':99.0'
       _EXPYFUN_SILENT: 'true'
       SOUND_CARD_BACKEND: 'pyglet'
+      PYTHON_VERSION: '3.10'
     steps:
       - uses: actions/checkout@v2
         name: Checkout
@@ -29,10 +29,11 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
-          python-version: '3.9'
+          python-version: ${{ env.PYTHON_VERSION }}
           environment-file: 'environment_test.yml'
-      - run: pip install sounddevice rtmixer "pyglet<1.6"
         name: 'Setup conda'
+      - run: pip install sounddevice rtmixer "pyglet<1.6"
+        name: Dependencies
       - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
         name: Get sound working
       - run: python -m sounddevice

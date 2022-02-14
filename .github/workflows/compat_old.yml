@@ -1,4 +1,4 @@
-name: 'compat / old'
+name: 'compat'
 on:
   push:
     branches:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   job:
-    name: 'py3.7'
+    name: conda-${{ env.PYTHON_VERSION }}
     runs-on: ubuntu-20.04
     defaults:
       run:
@@ -18,28 +18,37 @@ jobs:
       DISPLAY: ':99.0'
       _EXPYFUN_SILENT: 'true'
       SOUND_CARD_BACKEND: 'pyglet'
+      PYTHON_VERSION: '3.7'
     steps:
       - uses: actions/checkout@v2
+        name: Checkout
       - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-      - run: sudo apt-get install libglu1-mesa
+        name: Start Xvfb
+      - run: sudo apt update -q && sudo apt install -q libglu1-mesa
+        name: Install system dependencies
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
-          python-version: '3.7'
+          python-version: ${{ env.PYTHON_VERSION }}
           environment-file: 'environment_test.yml'
         name: 'Setup conda'
       - run: |
           set -e
           conda remove -n test pandas h5py
-          pip install "pyglet<1.4" sounddevice rtmixer
-        name: Make minimal
+          pip install sounddevice rtmixer "pyglet<1.4"
+        name: Dependencies
       - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
         name: Get sound working
       - run: python -m sounddevice
+        name: List sound devices
       - run: python -c "import pyglet; print(pyglet.version)"
+        name: Print Pyglet version
       - run: python -c "import matplotlib.pyplot as plt"
+        name: Make sure matplotlib works
       - run: python setup.py develop
+        name: Install
       - run: pytest --tb=short --cov=expyfun --cov-report=xml expyfun
+        name: Pytest
       - uses: codecov/codecov-action@v1
         if: success()
         name: 'Codecov'
