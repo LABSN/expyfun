@@ -22,7 +22,8 @@ jobs:
           python-version: '3.9'
           environment-file: 'environment_test.yml'
         name: 'Setup conda'
-      - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/macos/setup_sound.sh
+      - run: pip install sounddevice rtmixer "pyglet<1.6"
+      - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
         name: Get sound working
       - run: python -m sounddevice
       - run: python -c "import pyglet; print(pyglet.version)"

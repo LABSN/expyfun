@@ -17,7 +17,4 @@ dependencies:
 - joblib
 - ffmpeg
 - codecov
-- pip:
-  - sounddevice
-  - pyglet<1.6  # conda is stuck on 1.5.16
-  - rtmixer
+# Do pip separately

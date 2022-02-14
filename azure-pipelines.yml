@@ -77,7 +77,7 @@ stages:
     - bash: |
         set -e
         git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git
-        powershell sound-ci-helpers/windows/setup_sound.ps1
+        sound-ci-helpers/auto.sh
         pip install -q --user rtmixer
         python -m sounddevice
       displayName: 'Install rtmixer'
