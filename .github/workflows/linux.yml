@@ -12,7 +12,7 @@ on:
 
 jobs:
   job:
-    name: conda ${{ matrix.python }}
+    name: pip ${{ matrix.python }}
     runs-on: ubuntu-20.04
     defaults:
       run:
@@ -31,13 +31,13 @@ jobs:
         name: Start Xvfb
       - run: sudo apt update -q && sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa
         name: Install system dependencies
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/setup-python@v2
         with:
-          activate-environment: 'test'
-          python-version: ${{ matrix.python }}
-          environment-file: 'environment_test.yml'
-        name: 'Setup conda'
-      - run: pip install sounddevice rtmixer "pyglet<1.6"
+          python-version: ${{ matrix.PYTHON_VERSION }}
+        name: 'Setup python'
+      - run: pip install --upgrade pip setuptools wheel
+        name: Upgrade pip
+      - run: pip install sounddevice rtmixer "pyglet<1.6" pyglet_ffmpeg scipy matplotlib pandas h5py coverage mne numpydoc pytest pytest-cov pytest-timeout pillow joblib codecov
         name: Dependencies
       - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
         name: Get sound working
