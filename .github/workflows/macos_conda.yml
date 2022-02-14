@@ -1,4 +1,4 @@
-name: 'macos / conda'
+name: 'macos'
 on:
   push:
     branches:
