@@ -9,7 +9,7 @@ on:
 
 jobs:
   job:
-    name: conda-${{ env.PYTHON_VERSION }}
+    name: conda${{ env.PYTHON_VERSION }}
     runs-on: ubuntu-20.04
     defaults:
       run:
