@@ -102,6 +102,8 @@ class SoundCardController(object):
             SOUND_CARD_DRIFT_TRIGGER='end',
         )  # any omitted become None
         params = _check_params(params, _SOUND_CARD_KEYS, defaults, 'params')
+        if params['SOUND_CARD_FS'] is not None:
+            params['SOUND_CARD_FS'] = float(params['SOUND_CARD_FS'])
 
         self.backend, self.backend_name = _import_backend(
             params['SOUND_CARD_BACKEND'])

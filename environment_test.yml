@@ -1,4 +1,6 @@
 name: test
+channels:
+- conda-forge
 dependencies:
 - scipy
 - matplotlib
@@ -6,16 +8,13 @@ dependencies:
 - h5py
 - coverage
 - setuptools
+- mne-base
+- numpydoc
 - pytest
 - pytest-cov
 - pytest-timeout
 - pillow
 - joblib
-- pip:
-  - pyglet<1.6
-  - codecov
-  - pytest-sugar
-  - numpydoc
-  - sounddevice
-  - rtmixer
-  - mne
+- ffmpeg
+- codecov
+# Do pip separately

@@ -1,4 +1,7 @@
-name: 'macos / conda'
+name: 'macos'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
 on:
   push:
     branches:
@@ -9,8 +12,11 @@ on:
 
 jobs:
   job:
-    name: 'py3.9'
+    name: conda ${{ matrix.python }}
     runs-on: macos-latest
+    strategy:
+      matrix:
+        python: ['3.10']
     defaults:
       run:
         shell: bash -el {0}
@@ -19,10 +25,11 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
-          python-version: '3.9'
+          python-version: ${{ matrix.python  }}
           environment-file: 'environment_test.yml'
         name: 'Setup conda'
-      - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && brew install ffmpeg && sound-ci-helpers/macos/setup_sound.sh
+      - run: pip install sounddevice rtmixer "pyglet<1.6"
+      - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
         name: Get sound working
       - run: python -m sounddevice
       - run: python -c "import pyglet; print(pyglet.version)"

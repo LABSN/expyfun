@@ -32,13 +32,16 @@ stages:
   jobs:
   - job: Windows
     pool:
-      vmIMage: 'VS2017-Win2016'
+      vmIMage: 'windows-latest'
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
       PIP_DEPENDENCIES: 'codecov'
       OPENBLAS_NUM_THREADS: 1
       AZURE_CI_WINDOWS: 'true'
+      SOUND_CARD_NAME: 'Speakers'
+      SOUND_CARD_FS: '44100'
+      SOUND_CARD_API: 'MME'
     strategy:
       maxParallel: 4
       matrix:
@@ -74,7 +77,7 @@ stages:
     - bash: |
         set -e
         git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git
-        powershell sound-ci-helpers/windows/setup_sound.ps1
+        sound-ci-helpers/auto.sh
         pip install -q --user rtmixer
         python -m sounddevice
       displayName: 'Install rtmixer'
