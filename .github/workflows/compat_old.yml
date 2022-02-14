@@ -22,8 +22,6 @@ jobs:
         python: ['3.7']
     env:
       DISPLAY: ':99.0'
-      _EXPYFUN_SILENT: 'true'
-      SOUND_CARD_BACKEND: 'pyglet'
     steps:
       - uses: actions/checkout@v2
         name: Checkout

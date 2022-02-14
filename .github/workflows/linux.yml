@@ -22,8 +22,6 @@ jobs:
         python: ['3.10']
     env:
       DISPLAY: ':99.0'
-      _EXPYFUN_SILENT: 'true'
-      SOUND_CARD_BACKEND: 'pyglet'
     steps:
       - uses: actions/checkout@v2
         name: Checkout
@@ -47,7 +45,7 @@ jobs:
         name: Print Pyglet version
       - run: python -c "import matplotlib.pyplot as plt"
         name: Make sure matplotlib works
-      - run: python setup.py develop
+      - run: pip install -ve .
         name: Install
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         name: Check video
