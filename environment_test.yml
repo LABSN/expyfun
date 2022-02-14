@@ -8,7 +8,6 @@ dependencies:
 - h5py
 - coverage
 - setuptools
-- python-sounddevice
 - mne-base
 - numpydoc
 - pytest
@@ -19,5 +18,6 @@ dependencies:
 - ffmpeg
 - codecov
 - pip:
+  - sounddevice
   - pyglet<1.6  # conda is stuck on 1.5.16
   - rtmixer
