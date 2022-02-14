@@ -9,7 +9,7 @@ on:
 
 jobs:
   job:
-    name: 'py3.9'
+    name: 'conda ${{ env.PYTHON_VERSION}}'
     runs-on: macos-latest
     defaults:
       run:
