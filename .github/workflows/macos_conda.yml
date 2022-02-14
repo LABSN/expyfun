@@ -20,14 +20,12 @@ jobs:
     defaults:
       run:
         shell: bash -el {0}
-    env:
-      PYTHON_VERSION: '3.10'
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'test'
-          python-version: ${{ env.PYTHON_VERSION  }}
+          python-version: ${{ matrix.python  }}
           environment-file: 'environment_test.yml'
         name: 'Setup conda'
       - run: pip install sounddevice rtmixer "pyglet<1.6"
