@@ -238,6 +238,7 @@ def test_ec(ac, hide_window, monkeypatch):
         # test buffer data handling
         ec.set_rms_checking(None)
         ec.load_buffer([0, 0, 0, 0, 0, 0])
+        ec.wait_secs(SAFE_DELAY)
         ec.load_buffer([])
         ec.wait_secs(SAFE_DELAY)
         pytest.raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
