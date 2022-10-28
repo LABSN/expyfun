@@ -197,7 +197,7 @@ class SoundPlayer(object):
             mixer, self._mixer = self._mixer, None
             try:
                 stats = mixer.fetch_and_reset_stats().stats
-            except RuntimeError:  # action queue is full
+            except RuntimeError as exc:  # action queue is full
                 logger.exp(f'Could not fetch mixer stats ({exc})')
             else:
                 logger.exp(
