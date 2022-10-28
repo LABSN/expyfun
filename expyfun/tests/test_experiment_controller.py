@@ -239,6 +239,7 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.set_rms_checking(None)
         ec.load_buffer([0, 0, 0, 0, 0, 0])
         ec.load_buffer([])
+        ec.wait_secs(SAFE_DELAY)
         pytest.raises(ValueError, ec.load_buffer, [0, 2, 0, 0, 0, 0])
         ec.load_buffer(np.zeros((100,)))
         with pytest.raises(ValueError, match='100 did not match .* count 2'):
