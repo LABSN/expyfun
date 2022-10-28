@@ -63,7 +63,7 @@ def format_pval(pval, latex=True, scheme='default'):
                              brk_r + wrap for x in expon[pval < 0.0001]]
     if single_value:
         pv = pv[0]
-    return(pv)
+    return pv
 
 
 def _instantiate(obj, typ):

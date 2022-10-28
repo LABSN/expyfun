@@ -163,8 +163,8 @@ def add_pad(sounds, alignment='start'):
         will be 2-dimensional (channels, samples).
     """
     if alignment not in ['start', 'center', 'end']:
-        raise(ValueError("alignment must be either 'start', 'center', "
-                         "or 'end'"))
+        raise ValueError("alignment must be either 'start', 'center', "
+                         "or 'end'")
     x = [np.atleast_2d(y) for y in sounds]
     if not np.all(y.ndim == 2 for y in x):
         raise ValueError('Sound data must have no more than 2 dimensions.')

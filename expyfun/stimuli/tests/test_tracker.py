@@ -85,8 +85,8 @@ def test_tracker_ud(hide_window):
     with pytest.warns(UserWarning, match='exceeded x_min'):
         for r in responses:  # run long enough to encounter change_indices
             tr.respond(r)
-    assert(tr.check_valid(1))  # make sure checking validity is good
-    assert(not tr.check_valid(3))
+    assert tr.check_valid(1)  # make sure checking validity is good
+    assert not tr.check_valid(3)
     with pytest.raises(ValueError,
                        match="with reversals attempting to exceed x_min"):
         tr.threshold(1)
@@ -157,8 +157,8 @@ def test_tracker_binom(hide_window):
     tr = TrackerBinom(None, 0.05, 0.5, 2, stop_early=False)
     while not tr.stopped:
         tr.respond(False)
-    assert(tr.n_trials == 2)
-    assert(not tr.success)
+    assert tr.n_trials == 2
+    assert not tr.success
 
     tr = TrackerBinom(None, 0.05, 0.5, 1000)
     while not tr.stopped:
@@ -167,7 +167,7 @@ def test_tracker_binom(hide_window):
     tr = TrackerBinom(None, 0.05, 0.5, 1000, 100)
     while not tr.stopped:
         tr.respond(True)
-    assert(tr.n_trials == 100)
+    assert tr.n_trials == 100
 
     tr.alpha
     tr.chance
@@ -212,8 +212,8 @@ def test_tracker_dealer():
     rand = np.random.RandomState(0)
     for sub, x_current in dealer_ud:
         dealer_ud.respond(rand.rand() < x_current)
-        assert(np.abs(dealer_ud.trackers[0, 0].n_reversals -
-                      dealer_ud.trackers[1, 0].n_reversals) <= 1)
+        assert np.abs(dealer_ud.trackers[0, 0].n_reversals -
+                      dealer_ud.trackers[1, 0].n_reversals) <= 1
 
     # test array-like indexing
     dealer_ud.trackers[0]
@@ -268,7 +268,7 @@ def test_tracker_mhw(hide_window):
     rand = np.random.RandomState(0)
     while not tr.stopped:
         tr.respond(int(rand.rand() * 100) < tr.x_current)
-        assert(tr.check_valid(1))  # make sure checking validity is good
+        assert tr.check_valid(1)  # make sure checking validity is good
     # test responding after stopped
     with pytest.raises(RuntimeError, match="Tracker is stopped."):
         tr.respond(0)
@@ -324,7 +324,7 @@ def test_tracker_mhw(hide_window):
     with pytest.warns(UserWarning, match='exceeded x_min or x_max bounds'):
         for r in responses:
             tr.respond(r)
-    assert(not tr.check_valid(3))
+    assert not tr.check_valid(3)
 
     tr = TrackerMHW(None, 0, 120, 5, 2, 4, 40, 2)
     responses = [False, False, False, False, True, False, False, True]
