@@ -22,6 +22,7 @@ std_args = ['test']  # experiment name
 std_kwargs = dict(output_dir=None, full_screen=False, window_size=(8, 8),
                   participant='foo', session='01', stim_db=0.0, noise_db=0.0,
                   verbose=True, version='dev')
+SAFE_DELAY = 0.5 if sys.platform.startswith('win') else 0.2
 
 
 def dummy_print(string):
@@ -200,7 +201,6 @@ def test_ec(ac, hide_window, monkeypatch):
                 pass
         w = [ww for ww in w if 'TDT is in dummy mode' in str(ww.message)]
         assert len(w) == (1 if ac == 'tdt' else 0)
-    SAFE_DELAY = 0.2
     with ExperimentController(
             *std_args, audio_controller=ac, response_device=rd,
             trigger_controller=tc, stim_fs=fs, **std_kwargs) as ec:
@@ -245,6 +245,7 @@ def test_ec(ac, hide_window, monkeypatch):
             ec.load_buffer(np.zeros((100, 1)))
         with pytest.raises(ValueError, match='100 did not match .* count 2'):
             ec.load_buffer(np.zeros((100, 2)))
+        ec.wait_secs(SAFE_DELAY)
         ec.load_buffer(np.zeros((1, 100)))
         ec.load_buffer(np.zeros((2, 100)))
         data = np.zeros(int(5e6), np.float32)  # too long for TDT
