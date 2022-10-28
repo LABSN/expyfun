@@ -25,7 +25,7 @@ Users will want to take the "official" version of the software, make a copy of
 it on their own computer, and run the code from there. Using ``expyfun``
 software as an example, this is done on the command line like this::
 
-    $ git clone git://github.com/LABSN/expyfun.git
+    $ git clone https://github.com/LABSN/expyfun.git
     $ cd expyfun
     $ python setup.py install
 
@@ -48,8 +48,8 @@ command sets up a relationship between that folder on your computer and the
 "origin" of the code. You can see this by typing::
 
     $ git remote -v
-    origin	git://github.com/LABSN/expyfun.git (fetch)
-    origin	git://github.com/LABSN/expyfun.git (push)
+    origin	https://github.com/LABSN/expyfun.git (fetch)
+    origin	https://github.com/LABSN/expyfun.git (push)
 
 This tells you that :bash:`git` knows about two "remote" addresses of
 ``expyfun``: one to ``fetch`` new changes from (if the source code gets updated
@@ -117,7 +117,7 @@ connect to the official remote repo with the name ``upstream``. So after forking
 
     $ git clone git@github.com:/rkmaddox/expyfun.git
     $ cd expyfun
-    $ git remote add upstream git://github.com/LABSN/expyfun.git
+    $ git remote add upstream https://github.com/LABSN/expyfun.git
 
 Now this user has the standard ``origin``/``upstream`` configuration, as seen
 below. Note the difference in the URIs between ``origin`` and ``upstream``::
@@ -125,12 +125,12 @@ below. Note the difference in the URIs between ``origin`` and ``upstream``::
     $ git remote -v
     origin	git@github.com:/rkmaddox/expyfun.git (fetch)
     origin	git@github.com:/rkmaddox/expyfun.git (push)
-    upstream	git://github.com/LABSN/expyfun.git (fetch)
-    upstream	git://github.com/LABSN/expyfun.git (push)
+    upstream	https://github.com/LABSN/expyfun.git (fetch)
+    upstream	https://github.com/LABSN/expyfun.git (push)
     $ git branch
     * master
 
-URIs beginning with ``git://`` are read-only connections, so ``rkmaddox`` can
+URIs beginning with ``https://`` are read-only connections, so ``rkmaddox`` can
 pull down new changes from ``upstream``, but won't be able to directly push his
 local changes to upstream. Instead, he would have to push to his fork
 (``origin``) first, and create a
@@ -244,7 +244,7 @@ Maintainers
 ^^^^^^^^^^^
 Maintainers start out with a similar set up as Developers_. However, they might
 want to be able to push directly to the ``upstream`` repo as well as pushing to
-their fork. Having a repo set up with :bash:`git://` access instead of
+their fork. Having a repo set up with :bash:`https://` access instead of
 :bash:`git@github.com` or :bash:`https://` access will not allow pushing. So
 starting from scratch, a maintainer ``Eric89GXL`` might fork the upstream repo
 and then do::
@@ -252,7 +252,7 @@ and then do::
     $ git clone git@github.com:/Eric89GXL/expyfun.git
     $ cd expyfun
     $ git remote add upstream git@github.com:/LABSN/expyfun.git
-    $ git remote add ross git://github.com/rkmaddox/expyfun.git
+    $ git remote add ross https://github.com/rkmaddox/expyfun.git
 
 Now the maintainer's local repository has push/pull access to their own personal
 development fork and the upstream repo, and has read-only access to
@@ -261,8 +261,8 @@ development fork and the upstream repo, and has read-only access to
     $ git remote -v
     origin	git@github.com:/Eric89GXL/expyfun.git (fetch)
     origin	git@github.com:/Eric89GXL/expyfun.git (push)
-    ross	git://github.com/rkmaddox/expyfun.git (fetch)
-    ross	git://github.com/rkmaddox/expyfun.git (push)
+    ross	https://github.com/rkmaddox/expyfun.git (fetch)
+    ross	https://github.com/rkmaddox/expyfun.git (push)
     upstream	git@github.com:/LABSN/expyfun.git (fetch)
     upstream	git@github.com:/LABSN/expyfun.git (push)
 
