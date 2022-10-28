@@ -41,7 +41,6 @@ stages:
       AZURE_CI_WINDOWS: 'true'
       SOUND_CARD_NAME: 'Speakers'
       SOUND_CARD_FS: '44100'
-      SOUND_CARD_API: 'MME'
     strategy:
       maxParallel: 4
       matrix:
