@@ -100,7 +100,7 @@ stages:
         python setup.py develop
       displayName: 'Install'
     - bash: |
-        pytest --tb=short --cov=expyfun expyfun
+        pytest --tb=short --cov=expyfun expyfun -x
       displayName: 'Run tests'
     - bash: |
         codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
