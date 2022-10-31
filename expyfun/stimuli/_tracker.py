@@ -877,7 +877,7 @@ class TrackerDealer(object):
             The level of the selected tracker.
         """
         if self.stopped:
-            raise(StopIteration)
+            raise StopIteration
         if not self._trial_complete:
             # Chose a new tracker before responding, so record non-response
             self._response_history = np.append(self._response_history,

@@ -182,7 +182,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     n_targs = int(targ_prop * n_stimuli)
     targs = np.zeros(n_stimuli, bool)
     targs[np.linspace(0, n_stimuli - 1, n_targs + 2)[1:-1].astype(int)] = True
-    while(True):  # ensure we randomize but don't start with a target
+    while True:  # ensure we randomize but don't start with a target
         idx = rng.permutation(np.arange(n_stimuli))
         isis = isis[idx]
         targs = targs[idx]

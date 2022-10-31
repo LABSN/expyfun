@@ -65,7 +65,7 @@ def get_band_freqs(fs, n_bands=16, freq_lims=(200., 8000.), scale='erb',
         delta = np.diff(freq_lims) / n_bands
         cutoffs = freq_lims[0] + delta * np.arange(n_bands + 1)
     edges = zip(cutoffs[:-1], cutoffs[1:])
-    return(edges)
+    return edges
 
 
 def get_bands(data, fs, edges, order=2, zero_phase=False, axis=-1):
@@ -105,7 +105,7 @@ def get_bands(data, fs, edges, order=2, zero_phase=False, axis=-1):
         band = filt(b, a, data, axis=axis)
         bands.append(band)
         filts.append((b, a))
-    return(bands, filts)
+    return bands, filts
 
 
 def get_env(data, fs, lp_order=4, lp_cutoff=160., zero_phase=False, axis=-1):
@@ -140,7 +140,7 @@ def get_env(data, fs, lp_order=4, lp_cutoff=160., zero_phase=False, axis=-1):
     b, a = butter(lp_order, cutoff, 'lowpass')
     filt = filtfilt if zero_phase else lfilter
     env = filt(b, a, data, axis=axis)
-    return(env, (b, a))
+    return env, (b, a)
 
 
 def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
@@ -213,7 +213,7 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode='tone', rate=None,
             carrier /= np.sqrt(np.mean(carrier * carrier, axis=axis,
                                        keepdims=True))  # rms of 1
         carrs.append(carrier)
-    return(carrs)
+    return carrs
 
 
 @verbose_dec

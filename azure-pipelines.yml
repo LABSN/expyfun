@@ -40,15 +40,15 @@ stages:
       OPENBLAS_NUM_THREADS: 1
       AZURE_CI_WINDOWS: 'true'
       SOUND_CARD_NAME: 'Speakers'
-      SOUND_CARD_FS: '44100'
-      SOUND_CARD_API: 'MME'
+      SOUND_CARD_FS: '48000'
+      SOUND_CARD_API: 'Windows WDM-KS'
     strategy:
       maxParallel: 4
       matrix:
         Python37:
           PYTHON_VERSION: '3.7'
         Python39:
-          PYTHON_VERSION: '3.9'
+          PYTHON_VERSION: '3.10'
     steps:
     - task: UsePythonVersion@0
       inputs:
@@ -57,12 +57,12 @@ stages:
         addToPath: true
     - script: echo "##vso[task.prependpath]C:\Users\VssAdministrator\AppData\Roaming\Python\Python39\site-packages\pywin32_system32;"
       displayName: Add local bin to PATH
-      condition: in(variables['PYTHON_VERSION'], '3.9')
+      condition: in(variables['PYTHON_VERSION'], '3.10')
     - bash: |
         set -e
         pip install --user --upgrade pip setuptools wheel
         pip install --user --upgrade numpy scipy matplotlib
-        if [[ "$PYTHON_VERSION" == "3.9" ]]; then
+        if [[ "$PYTHON_VERSION" == "3.10" ]]; then
           # Until https://github.com/pyglet/pyglet/pull/516 is reverted or fixed, we need to use an older one
           pip install --user --upgrade https://github.com/pyglet/pyglet/zipball/pyglet-1.5-maintenance
         else
@@ -76,14 +76,14 @@ stages:
       displayName: 'Install pip dependencies'
     - bash: |
         set -e
-        git clone --depth 1 git://github.com/LABSN/sound-ci-helpers.git
+        git clone --depth 1 https://github.com/LABSN/sound-ci-helpers.git
         sound-ci-helpers/auto.sh
         pip install -q --user rtmixer
         python -m sounddevice
       displayName: 'Install rtmixer'
     - bash: |
         set -e
-        git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+        git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
         python -c "import pyglet; r = pyglet.gl.gl_info.get_renderer(); print(r); assert 'gallium' in r.lower()"
       displayName: 'Get OpenGL'
@@ -100,7 +100,7 @@ stages:
         python setup.py develop
       displayName: 'Install'
     - bash: |
-        pytest --tb=short --cov=expyfun expyfun
+        pytest --tb=short --cov=expyfun expyfun -x
       displayName: 'Run tests'
     - bash: |
         codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%

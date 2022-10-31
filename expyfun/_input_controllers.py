@@ -149,7 +149,7 @@ class Keyboard(object):
         Parameters
         ----------
         max_wait : float
-            Maxmimum time to wait.
+            Maximum time to wait.
         min_wait : float
             Minimum time to wait.
         live_keys : list | None
@@ -186,7 +186,7 @@ class Keyboard(object):
         Parameters
         ----------
         max_wait : float
-            Maxmimum time to wait.
+            Maximum time to wait.
         min_wait : float
             Minimum time to wait.
         live_keys : list | None

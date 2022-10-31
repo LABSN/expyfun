@@ -110,7 +110,8 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
             dither_off=True, device=di,
             extra_settings=extra_settings)
     except Exception as exp:
-        raise RuntimeError('Could not set up %s:\n%s' % (param_str, exp))
+        raise RuntimeError(
+            f'Could not set up {param_str}:\n{exp}') from None
     assert mixer.channels == n_channels
     if fs is None:
         param_str += ' @ %d Hz' % (mixer.samplerate,)
@@ -195,9 +196,30 @@ class SoundPlayer(object):
         if getattr(self, '_mixer', None) is not None:
             self.stop(wait=False)
             mixer, self._mixer = self._mixer, None
-            stats = mixer.fetch_and_reset_stats().stats
-            logger.exp('%d underflows %d blocks'
-                       % (stats.output_underflows, stats.blocks))
+            try:
+                stats = mixer.fetch_and_reset_stats().stats
+            except RuntimeError as exc:  # action queue is full
+                logger.exp(f'Could not fetch mixer stats ({exc})')
+            else:
+                logger.exp(
+                    f'{stats.output_underflows} underflows '
+                    f'{stats.blocks} blocks')
 
     def __del__(self):  # noqa
         self.delete()
+
+
+def _abort_all_queues():
+    for mixer in _mixer_registry.values():
+        if len(mixer.actions) == 0:
+            continue
+        do_start_stop = mixer.stopped
+        if do_start_stop:
+            mixer.start()
+        for action in list(mixer.actions):
+            mixer.wait(mixer.cancel(action))
+        mixer.wait()
+        assert len(mixer.actions) == 0, mixer.actions
+        if do_start_stop:
+            mixer.abort(ignore_errors=False)
+        assert len(mixer.actions) == 0, mixer.actions
