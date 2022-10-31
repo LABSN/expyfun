@@ -86,7 +86,7 @@ def test_play_sound(backend, hide_window):  # only works if windowing works
     pytest.raises(ValueError, play_sound, data[:, :, np.newaxis])
     # Make sure each backend can handle a lot of sounds
     for _ in range(10):
-        snd = play_sound(data)
+        snd = play_sound(data, fs=48000)
         # we manually stop and delete here, because we don't want to
         # have to wait for our Timer instances to get around to doing
         # it... this also checks to make sure calling `delete()` more
