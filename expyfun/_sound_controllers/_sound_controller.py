@@ -151,7 +151,7 @@ class SoundCardController(object):
         temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = float(temp_sound.fs)
-        temp_sound.stop(wait=True)
+        self._mixer = getattr(temp_sound, '_mixer', None)
         del temp_sound
 
         # Need to generate at RMS=1 to match TDT circuit, and use a power of
@@ -404,6 +404,8 @@ class SoundCardController(object):
         """Halt."""
         self.stop(wait=True)
         self.stop_noise(wait=True)
+        abort_all = getattr(self.backend, '_abort_all_queues', lambda: None)
+        abort_all()
 
 
 def _import_backend(backend):

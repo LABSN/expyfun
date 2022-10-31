@@ -302,7 +302,7 @@ def test_ec(ac, hide_window, monkeypatch):
                 ec.load_buffer(np.zeros(2, dtype=np.float32))
             monkeypatch.setattr(_experiment_controller, '_SLOW_LIMIT', 1e7)
 
-        ec.stop(wait=True)
+        ec.stop()
         ec.set_visible()
         ec.set_visible(False)
         ec.call_on_every_flip(partial(dummy_print, 'called start stimuli'))
@@ -329,7 +329,7 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.wait_secs(SAFE_DELAY)
         assert (ec._playing is True)
         pytest.raises(RuntimeError, ec.trial_ok)        # order violation
-        ec.stop(wait=True)
+        ec.stop()
         assert (ec._playing is False)
         # only binary for TTL
         pytest.raises(KeyError, ec.identify_trial, ec_id='foo')  # need ttl_id
@@ -355,7 +355,7 @@ def test_ec(ac, hide_window, monkeypatch):
             # ec._ac._playing -> GetTagVal('playing') always gives False
             pytest.raises(RuntimeError, ec.play)  # already played, must stop
         ec.wait_secs(SAFE_DELAY)
-        ec.stop(wait=True)
+        ec.stop()
         assert (ec._playing is False)
         #
         # Third: trial_ok
@@ -368,7 +368,7 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.start_stimulus(start_of_trial=False)         # should work
         pytest.raises(RuntimeError, ec.trial_ok)        # order violation
         ec.wait_secs(SAFE_DELAY)
-        ec.stop(wait=True)
+        ec.stop()
         assert (ec._playing is False)
 
         ec.flip(-np.inf)
@@ -385,12 +385,12 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.flip()
         ec.wait_secs(SAFE_DELAY)
         ec.stop_noise()
-        ec.stop(wait=True)
+        ec.stop()
         assert (ec._playing is False)
         ec.stop_noise()
         ec.wait_secs(SAFE_DELAY)
         ec.start_stimulus(start_of_trial=False)
-        ec.stop(wait=True)
+        ec.stop()
         ec.start_stimulus(start_of_trial=False)
         ec.get_mouse_position()
         ec.listen_clicks()
@@ -627,7 +627,7 @@ def test_sound_card_triggering(hide_window):
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         ec.load_buffer([1e-2])
         ec.start_stimulus()
-        ec.stop(wait=True)
+        ec.stop()
     # Test the drift triggers
     audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=0.001)
     with ExperimentController(*std_args,
@@ -640,7 +640,7 @@ def test_sound_card_triggering(hide_window):
                           'onset triggers.'):
             ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
-        ec.stop(wait=True)
+        ec.stop()
     audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=[1.1, 0.3, -0.3,
                                                       'end'])
     with ExperimentController(*std_args,
@@ -654,7 +654,7 @@ def test_sound_card_triggering(hide_window):
                           'trigger.'):
             ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
-        ec.stop(wait=True)
+        ec.stop()
     audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=[0.5, 0.501])
     with ExperimentController(*std_args,
                               audio_controller=audio_controller,
@@ -665,7 +665,7 @@ def test_sound_card_triggering(hide_window):
         with pytest.warns(UserWarning, match='Some 2-triggers overlap.*'):
             ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
-        ec.stop(wait=True)
+        ec.stop()
     audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=[])
     with ExperimentController(*std_args,
                               audio_controller=audio_controller,
@@ -675,7 +675,7 @@ def test_sound_card_triggering(hide_window):
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
-        ec.stop(wait=True)
+        ec.stop()
     audio_controller.update(SOUND_CARD_DRIFT_TRIGGER=[0.2, 0.5, -0.3])
     with ExperimentController(*std_args,
                               audio_controller=audio_controller,
@@ -685,7 +685,7 @@ def test_sound_card_triggering(hide_window):
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
-        ec.stop(wait=True)
+        ec.stop()
 
 
 class _FakeJoystick(object):

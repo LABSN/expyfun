@@ -207,3 +207,19 @@ class SoundPlayer(object):
 
     def __del__(self):  # noqa
         self.delete()
+
+
+def _abort_all_queues():
+    for mixer in _mixer_registry.values():
+        if len(mixer.actions) == 0:
+            continue
+        do_start_stop = mixer.stopped
+        if do_start_stop:
+            mixer.start()
+        for action in list(mixer.actions):
+            mixer.wait(mixer.cancel(action))
+        mixer.wait()
+        assert len(mixer.actions) == 0, mixer.actions
+        if do_start_stop:
+            mixer.abort(ignore_errors=False)
+        assert len(mixer.actions) == 0, mixer.actions
