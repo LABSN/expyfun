@@ -12,6 +12,7 @@ def _identity(x):
     return x
 
 
+@pytest.mark.timeout(15)
 @requires_lib('joblib')
 def test_parallel():
     """Test parallel support."""
