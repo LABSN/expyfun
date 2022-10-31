@@ -80,13 +80,15 @@ def test_hrtf_convolution():
 def test_play_sound(backend, hide_window):  # only works if windowing works
     """Test playing a sound."""
     _check_skip_backend(backend)
+    fs = 48000
     data = np.zeros((2, 100))
-    play_sound(data).stop()
-    play_sound(data[0], norm=False, wait=True)
-    pytest.raises(ValueError, play_sound, data[:, :, np.newaxis])
+    play_sound(data, fs=fs).stop()
+    play_sound(data[0], norm=False, wait=True, fs=fs)
+    with pytest.raises(ValueError, match='sound must be'):
+        play_sound(data[:, :, np.newaxis], fs=fs)
     # Make sure each backend can handle a lot of sounds
     for _ in range(10):
-        snd = play_sound(data, fs=48000)
+        snd = play_sound(data, fs=fs)
         # we manually stop and delete here, because we don't want to
         # have to wait for our Timer instances to get around to doing
         # it... this also checks to make sure calling `delete()` more

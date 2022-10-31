@@ -148,10 +148,12 @@ class SoundCardController(object):
                     % (self.backend_name, extra, self._n_channels))
         self._kwargs = {key: params['SOUND_CARD_' + key.upper()] for key in (
             'fs', 'api', 'name', 'fixed_delay', 'api_options')}
-        temp_sound = np.zeros((self._n_channels_tot, 1000))
-        temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
-        self.fs = temp_sound.fs
-        temp_sound.stop(wait=False)
+        if self._kwargs['fs'] is None:
+            temp_sound = np.zeros((self._n_channels_tot, 1000))
+            temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
+            self.fs = temp_sound.fs
+            temp_sound.stop(wait=False)
+            del temp_sound
         del temp_sound
 
         # Need to generate at RMS=1 to match TDT circuit, and use a power of
