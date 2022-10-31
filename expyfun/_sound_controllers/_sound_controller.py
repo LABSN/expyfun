@@ -148,14 +148,11 @@ class SoundCardController(object):
                     % (self.backend_name, extra, self._n_channels))
         self._kwargs = {key: params['SOUND_CARD_' + key.upper()] for key in (
             'fs', 'api', 'name', 'fixed_delay', 'api_options')}
-        if self._kwargs['fs'] is not None:
-            self.fs = float(self._kwargs['fs'])
-        else:
-            temp_sound = np.zeros((self._n_channels_tot, 1000))
-            temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
-            self.fs = float(temp_sound.fs)
-            temp_sound.stop(wait=False)
-            del temp_sound
+        temp_sound = np.zeros((self._n_channels_tot, 1000))
+        temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
+        self.fs = float(temp_sound.fs)
+        temp_sound.stop(wait=True)
+        del temp_sound
 
         # Need to generate at RMS=1 to match TDT circuit, and use a power of
         # 2 length for the RingBuffer (here make it >= 15 sec)
