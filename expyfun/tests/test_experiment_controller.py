@@ -307,6 +307,7 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.set_visible(False)
         ec.call_on_every_flip(partial(dummy_print, 'called start stimuli'))
         ec.wait_secs(SAFE_DELAY)
+        ec._ac_flush()
 
         # Note: we put some wait_secs in here because otherwise the delay in
         # play start (e.g. for trigdel and onsetdel) can

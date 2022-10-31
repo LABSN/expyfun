@@ -110,7 +110,8 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
             dither_off=True, device=di,
             extra_settings=extra_settings)
     except Exception as exp:
-        raise RuntimeError('Could not set up %s:\n%s' % (param_str, exp))
+        raise RuntimeError(
+            f'Could not set up {param_str}:\n{exp}') from None
     assert mixer.channels == n_channels
     if fs is None:
         param_str += ' @ %d Hz' % (mixer.samplerate,)

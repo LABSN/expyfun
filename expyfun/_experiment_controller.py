@@ -2237,6 +2237,14 @@ class ExperimentController(object):
         """
         return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.5)
 
+    # Testing cruft to work around "queue full" errors on Windows
+    def _ac_flush(self):
+        if isinstance(getattr(self, '_ac', None), SoundCardController):
+            if not self._ac.backend_name == 'rtmixer':
+                return
+            for mixer in self._ac.backend._mixer_registry.values():
+                mixer.wait()
+
 
 def get_keyboard_input(prompt, default=None, out_type=str, valid=None):
     """Get keyboard input of a specific type
