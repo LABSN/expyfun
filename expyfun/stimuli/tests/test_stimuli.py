@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 import numpy as np
 import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
@@ -76,6 +78,8 @@ def test_hrtf_convolution():
                 assert (rmss[0] > 4 * rmss[1])
 
 
+@pytest.mark.skipif(os.getenv('AZURE_CI_WINDOWS', '') == 'true',
+                    reason='Azure CI Windows has problems')
 @pytest.mark.parametrize('backend', ('auto',) + _BACKENDS)
 def test_play_sound(backend, hide_window):  # only works if windowing works
     """Test playing a sound."""
