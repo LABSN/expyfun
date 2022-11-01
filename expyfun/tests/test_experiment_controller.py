@@ -180,7 +180,7 @@ def test_degenerate():
                   **std_kwargs)
 
 
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(120)
 def test_ec(ac, hide_window, monkeypatch):
     """Test EC methods."""
     if ac == 'tdt':

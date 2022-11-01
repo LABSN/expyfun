@@ -81,7 +81,11 @@ class SoundPlayer(Player):
 
     def stop(self, wait=True, extra_delay=0.):
         """Stop."""
-        self.pause()
+        try:
+            self.pause()
+        # assert timestamp >= 0, 'Timestamp beyond dequeued source memory'
+        except AssertionError:
+            pass
         self.seek(0.)
 
     @property
