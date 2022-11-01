@@ -2182,6 +2182,7 @@ class ExperimentController(object):
             m_hWnd = self._win._hwnd
             hCurWnd = _user32.GetForegroundWindow()
             if hCurWnd != m_hWnd:
+                # m_hWnd, HWND_TOPMOST, ..., SWP_NOSIZE | SWP_NOMOVE
                 _user32.SetWindowPos(m_hWnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002)
                 dwMyID = _user32.GetWindowThreadProcessId(m_hWnd, 0)
                 dwCurID = _user32.GetWindowThreadProcessId(hCurWnd, 0)
