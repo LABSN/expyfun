@@ -22,7 +22,7 @@ jobs:
             set -eo pipefail
             echo "set -eo pipefail" >> $BASH_ENV
             sudo apt update
-            sudo apt install libglu1-mesa python3.10-venv python3-venv libxft2 ffmpeg ffmpeg
+            sudo apt install libglu1-mesa python3.10-venv python3-venv libxft2 ffmpeg ffmpeg xvfb
             /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
             python3.10 -m venv ~/python_env
             echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV
