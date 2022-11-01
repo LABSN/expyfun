@@ -37,11 +37,11 @@ jobs:
             ln -s ~/python_env/bin/python ~/.local/bin/python
             echo "BASH_ENV:"
             cat $BASH_ENV
-      - run: pip install --quiet --upgrade --user pip setuptools wheel
-      - run: pip install --quiet --upgrade --user numpy scipy matplotlib sphinx pillow pandas h5py mne pyglet psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
+      - run: pip install --quiet --upgrade pip setuptools wheel
+      - run: pip install --quiet --upgrade numpy scipy matplotlib sphinx pillow pandas h5py mne pyglet psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master
       - run: python -c "import mne; mne.sys_info()"
       - run: python -c "import pyglet; print(pyglet.version)"
-      - run: python setup.py develop --user
+      - run: python setup.py develop
       - run: cd doc && make html
 
       - store_artifacts:
