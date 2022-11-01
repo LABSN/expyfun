@@ -412,7 +412,7 @@ def verbose_dec(function, *args, **kwargs):
     else:
         default_level = None
 
-    if('verbose' in arg_names):
+    if 'verbose' in arg_names:
         verbose_level = args[arg_names.index('verbose')]
     else:
         verbose_level = default_level

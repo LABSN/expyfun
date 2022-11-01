@@ -1717,8 +1717,14 @@ class ExperimentController(object):
         """Whether or not a stimulus is currently playing"""
         return self._ac.playing
 
-    def stop(self):
+    def stop(self, wait=False):
         """Stop audio buffer playback and reset cursor to beginning of buffer
+
+        Parameters
+        ----------
+        wait : bool
+            If True, try to wait until the end of the sound stimulus
+            (not guaranteed to yield accurate timings!).
 
         See Also
         --------
@@ -1728,7 +1734,7 @@ class ExperimentController(object):
         ExperimentController.start_stimulus
         """
         if self._ac is not None:  # need to check b/c used in __exit__
-            self._ac.stop()
+            self._ac.stop(wait=wait)
         self.write_data_line('stop')
         logger.exp('Expyfun: Audio stopped and reset.')
 
@@ -2227,6 +2233,11 @@ class ExperimentController(object):
         """Quantify if sample rates substantively differ.
         """
         return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.5)
+
+    # Testing cruft to work around "queue full" errors on Windows
+    def _ac_flush(self):
+        if isinstance(getattr(self, '_ac', None), SoundCardController):
+            self._ac.halt()
 
 
 def get_keyboard_input(prompt, default=None, out_type=str, valid=None):

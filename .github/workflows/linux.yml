@@ -39,7 +39,7 @@ jobs:
         name: Upgrade pip
       - run: pip install --upgrade sounddevice rtmixer "pyglet<1.6" pyglet_ffmpeg scipy matplotlib pandas h5py coverage mne numpydoc pytest pytest-cov pytest-timeout pillow joblib codecov
         name: Dependencies
-      - run: git clone --depth=1 git://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
+      - run: git clone --depth=1 https://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
         name: Get sound working
       - run: python -m sounddevice
         name: List sound devices

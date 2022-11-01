@@ -66,7 +66,7 @@ def download_version(version='current', dest_dir=None):
     # fetch locally and get the proper version
     tempdir = _TempDir()
     expyfun_dir = op.join(tempdir, 'expyfun')  # git will auto-create this dir
-    repo_url = 'git://github.com/LABSN/expyfun.git'
+    repo_url = 'https://github.com/LABSN/expyfun.git'
     run_subprocess(['git', 'clone', repo_url, expyfun_dir])
     version = _active_version(expyfun_dir) if version == 'current' else version
     try:
