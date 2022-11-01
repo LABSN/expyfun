@@ -37,7 +37,7 @@ jobs:
         name: 'Setup conda'
       - run: |
           set -e
-          conda remove -n test pandas h5py
+          conda remove -n test pandas h5py alsa-lib
           pip install sounddevice rtmixer "pyglet<1.4"
         name: Dependencies
       - run: git clone --depth=1 https://github.com/LABSN/sound-ci-helpers.git && sound-ci-helpers/auto.sh
