@@ -27,7 +27,7 @@ jobs:
         name: Checkout
       - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
         name: Start Xvfb
-      - run: sudo apt update -q && sudo apt install -q libglu1-mesa
+      - run: sudo apt update -q && sudo apt install -q libglu1-mesa gstreamer1.0-alsa
         name: Install system dependencies
       - uses: conda-incubator/setup-miniconda@v2
         with:
