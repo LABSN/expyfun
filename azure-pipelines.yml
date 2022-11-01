@@ -66,7 +66,7 @@ stages:
           # Until https://github.com/pyglet/pyglet/pull/516 is reverted or fixed, we need to use an older one
           pip install --user --upgrade https://github.com/pyglet/pyglet/zipball/pyglet-1.5-maintenance
         else
-          pip install --user --upgrade "pyglet!=1.5.16"
+          pip install --user --upgrade "pyglet<2.0"
         fi
         pip install --user -q coverage setuptools h5py pandas pytest pytest-cov pytest-timeout codecov pyglet-ffmpeg mne tdtpy joblib numpydoc pillow
         python -c "import mne; mne.sys_info()"
