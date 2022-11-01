@@ -19,7 +19,7 @@ jobs:
         shell: bash -el {0}
     strategy:
       matrix:
-        python: ['3.7']
+        python: ['3.8']
     env:
       DISPLAY: ':99.0'
     steps:

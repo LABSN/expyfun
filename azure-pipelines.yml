@@ -46,7 +46,7 @@ stages:
       maxParallel: 4
       matrix:
         Python37:
-          PYTHON_VERSION: '3.7'
+          PYTHON_VERSION: '3.8'
         Python39:
           PYTHON_VERSION: '3.10'
     steps:
