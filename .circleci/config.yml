@@ -60,7 +60,7 @@ jobs:
     steps:
       - add_ssh_keys:
           fingerprints:
-            - d4:4f:25:af:ed:5f:61:01:dc:b6:3a:9e:b5:d6:8d:d1
+            - "25:b7:f2:bf:d7:38:6d:b6:c7:78:41:05:01:f8:41:7b"
       - attach_workspace:
           at: /tmp/_build
       - run:
