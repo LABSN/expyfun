@@ -15,5 +15,6 @@ dependencies:
 - pytest-timeout
 - pillow
 - joblib
+- ffmpeg
 - codecov
 # Do pip separately
