@@ -688,7 +688,8 @@ def test_sound_card_triggering(hide_window):
                               suppress_resamp=True,
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
-        ec.load_buffer(np.zeros(ec.stim_fs))
+        with pytest.warns(None):  # can warn sometimes
+            ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()
         ec.stop()
 
