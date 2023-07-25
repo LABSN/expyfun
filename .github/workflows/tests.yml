@@ -37,6 +37,7 @@ jobs:
       - uses: pyvista/setup-headless-display-action@main
         with:
           qt: true
+          pyvista: false
       - uses: LABSN/sound-ci-helpers@v1
       - uses: actions/setup-python@v2
         with:
@@ -49,12 +50,12 @@ jobs:
           environment-file: 'environment_test.yml'
         name: 'Setup conda'
         if: ${{ matrix.kind == 'conda' }}
-      - run: python -m pip install --upgrade pip setuptools wheel
-      - run: pip install sounddevice rtmixer "pyglet<1.4"
+      - run: pip install --upgrade pip setuptools wheel
+      - run: pip install sounddevice rtmixer "pyglet<1.4" matplotlib
         if: ${{ matrix.kind == 'old' }}
-      - run: python -m pip install --upgrade sounddevice rtmixer "pyglet<1.6" pyglet_ffmpeg scipy matplotlib pandas h5py coverage mne numpydoc pytest pytest-cov pytest-timeout pillow joblib codecov
+      - run: pip install --upgrade sounddevice rtmixer "pyglet<1.6" pyglet_ffmpeg scipy matplotlib pandas h5py coverage mne numpydoc pytest pytest-cov pytest-timeout pillow joblib codecov
         if: ${{ matrix.kind != 'old' }}
-      - run: python -m sounddevice
+      - run: sounddevice
       - run: python -c "import pyglet; print(pyglet.version)"
       - run: python -c "import matplotlib.pyplot as plt"
       - run: pip install -ve .
