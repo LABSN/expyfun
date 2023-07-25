@@ -634,6 +634,7 @@ def test_sound_card_triggering(hide_window):
                               audio_controller=audio_controller,
                               trigger_controller='sound_card',
                               n_channels=1,
+                              suppress_resamp=True,
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         with pytest.warns(UserWarning, match='Drift triggers overlap with '
@@ -647,6 +648,7 @@ def test_sound_card_triggering(hide_window):
                               audio_controller=audio_controller,
                               trigger_controller='sound_card',
                               n_channels=1,
+                              suppress_resamp=True,
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         with pytest.warns(UserWarning, match='Drift trigger at 1.1 seconds '
@@ -660,6 +662,7 @@ def test_sound_card_triggering(hide_window):
                               audio_controller=audio_controller,
                               trigger_controller='sound_card',
                               n_channels=1,
+                              suppress_resamp=True,
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         with pytest.warns(UserWarning, match='Some 2-triggers overlap.*'):
@@ -671,6 +674,7 @@ def test_sound_card_triggering(hide_window):
                               audio_controller=audio_controller,
                               trigger_controller='sound_card',
                               n_channels=1,
+                              suppress_resamp=True,
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         ec.load_buffer(np.zeros(ec.stim_fs))
@@ -681,6 +685,7 @@ def test_sound_card_triggering(hide_window):
                               audio_controller=audio_controller,
                               trigger_controller='sound_card',
                               n_channels=1,
+                              suppress_resamp=True,
                               **std_kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id='')
         ec.load_buffer(np.zeros(ec.stim_fs))

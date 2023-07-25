@@ -29,9 +29,6 @@ jobs:
           - os: 'ubuntu-20.04'
             kind: 'old'
             python: '3.8'
-    env:
-      _EXPYFUN_SILENT: 'true'
-      SOUND_CARD_BACKEND: 'pyglet'
     steps:
       - uses: actions/checkout@v2
         name: Checkout
@@ -45,6 +42,22 @@ jobs:
       - run: powershell make/get_video.ps1
         name: Install Windows video dependencies
         if: ${{ startsWith(matrix.os, 'windows') }}
+      - run: |
+          if [[ "${{ matrix.os }}" == "windows"* ]]; then
+            echo "Setting env vars for Windows"
+            echo "AZURE_CI_WINDOWS=true" >> $GITHUB_ENV
+            echo "SOUND_CARD_BACKEND=rtmixer"
+            echo "SOUND_CARD_NAME=Speakers" >> $GITHUB_ENV
+            echo "SOUND_CARD_FS=48000" >> $GITHUB_ENV
+            echo "SOUND_CARD_API=Windows WDM-KS" >> $GITHUB_ENV
+          elif [[ "${{ matrix.os }}" == "ubuntu"* ]]; then
+            echo "Setting env vars for Linux"
+            echo "_EXPYFUN_SILENT=true" >> $GITHUB_ENV
+            echo "SOUND_CARD_BACKEND=pyglet" >> $GITHUB_ENV
+          elif [[ "${{ matrix.os }}" == "macos"* ]]; then
+            echo "Setting env vars for macOS"
+          fi
+        name: Set env vars
       - uses: LABSN/sound-ci-helpers@v1
       - uses: actions/setup-python@v4
         with:
@@ -75,13 +88,6 @@ jobs:
       - run: pip install -ve .[test]
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         if: ${{ matrix.kind != 'old' }}
-      - run: |
-          echo "AZURE_CI_WINDOWS=true" >> $GITHUB_ENV
-          echo "SOUND_CARD_NAME=Speakers" >> $GITHUB_ENV
-          echo "SOUND_CARD_FS=48000" >> $GITHUB_ENV
-          echo "SOUND_CARD_API=Windows WDM-KS" >> $GITHUB_ENV
-        if: ${{ startsWith(matrix.os, 'windows') }}
-        name: Set env vars on Windows
       - run: pytest --tb=short --cov=expyfun --cov-report=xml expyfun
       - uses: codecov/codecov-action@v1
         if: success()
