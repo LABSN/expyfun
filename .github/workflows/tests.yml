@@ -40,12 +40,15 @@ jobs:
           qt: true
           pyvista: false
       - run: sudo apt update -q && sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav python3-gst-1.0
-        name: Install video dependencies
+        name: Install Linux video dependencies
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      - run: powershell make/get_video.ps1
+        name: Install Windows video dependencies
+        if: ${{ startsWith(matrix.os, 'windows') }}
       - uses: LABSN/sound-ci-helpers@v1
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: ${{ matrix.python }}
         if: ${{ matrix.kind != 'conda' }}
       - uses: mamba-org/setup-micromamba@v1
         with:
@@ -56,13 +59,17 @@ jobs:
         if: ${{ matrix.kind == 'conda' }}
       - run: python -m pip install --upgrade pip setuptools wheel
         if: ${{ matrix.kind != 'conda' }}
-      - run: python -m pip install sounddevice rtmixer "pyglet<1.4" numpy scipy matplotlib pillow codecov
+      - run: python -m pip install sounddevice rtmixer "pyglet<1.4" numpy scipy matplotlib "pillow<8" codecov
         if: ${{ matrix.kind == 'old' }}
       - run: python -m pip install --upgrade sounddevice rtmixer "pyglet<1.6" pyglet-ffmpeg scipy matplotlib pandas h5py mne numpydoc pillow joblib
         if: ${{ matrix.kind != 'old' }}
       - run: python -m pip install tdtpy
         if: ${{ startsWith(matrix.os, 'windows') }}
       - run: python -m sounddevice
+      - run: |
+          set -o pipefail
+          python -m sounddevice | grep "[82] out"
+        name: Check that there is some output device
       - run: python -c "import pyglet; print(pyglet.version)"
       - run: python -c "import matplotlib.pyplot as plt"
       - run: pip install -ve .[test]

@@ -38,7 +38,7 @@ jobs:
             echo "BASH_ENV:"
             cat $BASH_ENV
       - run: pip install --quiet --upgrade pip setuptools wheel
-      - run: pip install --quiet --upgrade numpy scipy matplotlib sphinx pandas h5py mne "pyglet<2.0" psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc git+https://api.github.com/repos/sphinx-gallery/sphinx-gallery
+      - run: pip install --quiet --upgrade numpy scipy matplotlib sphinx pandas h5py mne "pyglet<2.0" psutil sphinx_bootstrap_theme sphinx_fontawesome numpydoc git+https://github.com/sphinx-gallery/sphinx-gallery
       - run: python -m pip install -ve .
       - run: python -c "import mne; mne.sys_info()"
       - run: python -c "import pyglet; print(pyglet.version)"
