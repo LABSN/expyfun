@@ -20,7 +20,7 @@ jobs:
         shell: bash -el {0}
     strategy:
       matrix:
-        os: ['ubuntu-22.04', 'windows-2022']
+        os: ['ubuntu-20.04', 'windows-2022']
         kind: ['pip']
         python: ['3.10']
         include:
@@ -31,13 +31,14 @@ jobs:
             kind: 'old'
             python: '3.8'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         name: Checkout
+      - uses: LABSN/sound-ci-helpers@v1
       - uses: pyvista/setup-headless-display-action@main
         with:
           qt: true
           pyvista: false
-      - run: sudo apt update -q && sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav python3-gst-1.0
+      - run: sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav python3-gst-1.0
         name: Install Linux video dependencies
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
       - run: powershell make/get_video.ps1
@@ -47,7 +48,7 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows"* ]]; then
             echo "Setting env vars for Windows"
             echo "AZURE_CI_WINDOWS=true" >> $GITHUB_ENV
-            echo "SOUND_CARD_BACKEND=rtmixer"
+            echo "SOUND_CARD_BACKEND=rtmixer" >> $GITHUB_ENV
             echo "SOUND_CARD_NAME=Speakers" >> $GITHUB_ENV
             echo "SOUND_CARD_FS=48000" >> $GITHUB_ENV
             echo "SOUND_CARD_API=Windows WDM-KS" >> $GITHUB_ENV
@@ -59,7 +60,6 @@ jobs:
             echo "Setting env vars for macOS"
           fi
         name: Set env vars
-      - uses: LABSN/sound-ci-helpers@v1
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
