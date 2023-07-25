@@ -192,7 +192,10 @@ def run_subprocess(command, **kwargs):
     p = subprocess.Popen(command, **kw)
     stdout_, stderr = p.communicate()
 
-    output = (stdout_.decode(), stderr.decode())
+    output = (
+        stdout_.decode() if stdout_ else "",
+        stderr.decode() if stderr else "",
+    )
     if p.returncode:
         err_fun = subprocess.CalledProcessError.__init__
         if 'output' in _get_args(err_fun):
@@ -952,9 +955,5 @@ def _get_display():
 
 # Adapted from MNE-Python
 def _compare_version(version_a, operator, version_b):
-    try:
-        from pkg_resources import parse_version as parse  # noqa
-    except ImportError:
-        from distutils.version import LooseVersion as parse  # noqa
-
+    from packaging.version import parse  # noqa
     return eval(f'parse("{version_a}") {operator} parse("{version_b}")')

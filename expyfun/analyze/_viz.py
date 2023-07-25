@@ -397,7 +397,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         for ((_l, _r), (_bl, _br), _t, _c, _s) in zip(brk_lr, brk_b, brk_t,
                                                       brk_c, bracket_text):
             # bracket text
-            _t = float(_t)  # on newer Pandas it can be shape (1,)
+            _t = np.array(_t).item()  # on newer Pandas it can be shape (1,)
             defaults = dict(ha='center', annotation_clip=False,
                             textcoords='offset points')
             for k, v in defaults.items():

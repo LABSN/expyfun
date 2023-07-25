@@ -56,18 +56,25 @@ jobs:
         if: ${{ matrix.kind == 'conda' }}
       - run: python -m pip install --upgrade pip setuptools wheel
         if: ${{ matrix.kind != 'conda' }}
-      - run: python -m pip install sounddevice rtmixer "pyglet<1.4" numpy scipy matplotlib pillow codecov pytest pytest-cov pytest-timeout
+      - run: python -m pip install sounddevice rtmixer "pyglet<1.4" numpy scipy matplotlib pillow codecov
         if: ${{ matrix.kind == 'old' }}
-      - run: python -m pip install --upgrade sounddevice rtmixer "pyglet<1.6" pyglet_ffmpeg scipy matplotlib pandas h5py mne numpydoc pytest pytest-cov pytest-timeout pillow joblib codecov
+      - run: python -m pip install --upgrade sounddevice rtmixer "pyglet<1.6" pyglet-ffmpeg scipy matplotlib pandas h5py mne numpydoc pillow joblib
         if: ${{ matrix.kind != 'old' }}
       - run: python -m pip install tdtpy
         if: ${{ startsWith(matrix.os, 'windows') }}
       - run: python -m sounddevice
       - run: python -c "import pyglet; print(pyglet.version)"
       - run: python -c "import matplotlib.pyplot as plt"
-      - run: pip install -ve .
+      - run: pip install -ve .[test]
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         if: ${{ matrix.kind != 'old' }}
+      - run: |
+          echo "AZURE_CI_WINDOWS=true" >> $GITHUB_ENV
+          echo "SOUND_CARD_NAME=Speakers" >> $GITHUB_ENV
+          echo "SOUND_CARD_FS=48000" >> $GITHUB_ENV
+          echo "SOUND_CARD_API=Windows WDM-KS" >> $GITHUB_ENV
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        name: Set env vars on Windows
       - run: pytest --tb=short --cov=expyfun --cov-report=xml expyfun
       - uses: codecov/codecov-action@v1
         if: success()
