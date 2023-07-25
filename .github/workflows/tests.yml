@@ -75,7 +75,7 @@ jobs:
         if: ${{ matrix.kind != 'conda' }}
       - run: python -m pip install sounddevice rtmixer "pyglet<1.4" numpy scipy matplotlib "pillow<8" codecov
         if: ${{ matrix.kind == 'old' }}
-      - run: python -m pip install --upgrade sounddevice rtmixer "pyglet<1.6"
+      - run: python -m pip install sounddevice rtmixer "pyglet<1.6"
         if: ${{ matrix.kind == 'conda' }}
       - run: python -m pip install tdtpy
         if: ${{ startsWith(matrix.os, 'windows') }}
