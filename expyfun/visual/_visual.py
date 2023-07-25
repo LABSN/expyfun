@@ -99,7 +99,7 @@ class Text(object):
                  units='norm', wrap=False, attr=True):
         import pyglet
         pos = np.array(pos)[:, np.newaxis]
-        pos = ec._convert_units(pos, units, 'pix')
+        pos = ec._convert_units(pos, units, 'pix')[:, 0]
         if width == 'auto':
             width = float(ec.window_size_pix[0]) * 0.8
         elif isinstance(width, string_types):

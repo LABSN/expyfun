@@ -67,10 +67,16 @@ def download_version(version='current', dest_dir=None):
     tempdir = _TempDir()
     expyfun_dir = op.join(tempdir, 'expyfun')  # git will auto-create this dir
     repo_url = 'https://github.com/LABSN/expyfun.git'
-    run_subprocess(['git', 'clone', repo_url, expyfun_dir])
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"  # do not prompt for credentials
+    run_subprocess(
+        ['git', 'clone', repo_url, expyfun_dir,
+         "--single-branch", "--branch", "main"],
+        env=env,
+    )
     version = _active_version(expyfun_dir) if version == 'current' else version
     try:
-        run_subprocess(['git', 'checkout', version], cwd=expyfun_dir)
+        run_subprocess(['git', 'checkout', version], cwd=expyfun_dir, env=env)
     except Exception as exp:
         raise RuntimeError('Could not check out version {0}: {1}'
                            ''.format(version, str(exp)))

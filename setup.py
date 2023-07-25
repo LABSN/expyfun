@@ -79,7 +79,11 @@ def setup_package(script_args=None):
         version=FULL_VERSION,
         download_url=DOWNLOAD_URL,
         long_description=long_description,
-        python_requires=">=3.7",
+        python_requires=">=3.8",
+        install_requires=["packaging", "numpy", "scipy", "matplotlib", "pillow"],  # noqa
+        extras_require={
+            "test": ["pytest", "pytest-cov", "pytest-timeout"],
+        },
         zip_safe=False,  # the package can run out of an .egg file
         classifiers=['Intended Audience :: Science/Research',
                      'Intended Audience :: Developers',

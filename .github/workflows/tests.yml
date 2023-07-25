@@ -1,0 +1,96 @@
+name: 'tests'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  job:
+    name: ${{ matrix.os }} ${{ matrix.kind }}
+    continue-on-error: true
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    strategy:
+      matrix:
+        os: ['ubuntu-20.04', 'windows-2022']
+        kind: ['pip']
+        python: ['3.10']
+        include:
+          - os: 'macos-latest'
+            kind: 'conda'
+            python: '3.10'
+          - os: 'ubuntu-20.04'
+            kind: 'old'
+            python: '3.8'
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout
+      - uses: LABSN/sound-ci-helpers@v1
+      - uses: pyvista/setup-headless-display-action@main
+        with:
+          qt: true
+          pyvista: false
+      - run: sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav python3-gst-1.0
+        name: Install Linux video dependencies
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      - run: powershell make/get_video.ps1
+        name: Install Windows video dependencies
+        if: ${{ startsWith(matrix.os, 'windows') }}
+      - run: |
+          if [[ "${{ matrix.os }}" == "windows"* ]]; then
+            echo "Setting env vars for Windows"
+            echo "AZURE_CI_WINDOWS=true" >> $GITHUB_ENV
+            echo "SOUND_CARD_BACKEND=rtmixer" >> $GITHUB_ENV
+            echo "SOUND_CARD_NAME=Speakers" >> $GITHUB_ENV
+            echo "SOUND_CARD_FS=48000" >> $GITHUB_ENV
+            echo "SOUND_CARD_API=Windows WDM-KS" >> $GITHUB_ENV
+          elif [[ "${{ matrix.os }}" == "ubuntu"* ]]; then
+            echo "Setting env vars for Linux"
+            echo "_EXPYFUN_SILENT=true" >> $GITHUB_ENV
+            echo "SOUND_CARD_BACKEND=pyglet" >> $GITHUB_ENV
+          elif [[ "${{ matrix.os }}" == "macos"* ]]; then
+            echo "Setting env vars for macOS"
+          fi
+        name: Set env vars
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+        if: ${{ matrix.kind != 'conda' }}
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: 'environment_test.yml'
+          create-args: python=${{ matrix.python }}
+          init-shell: bash
+        name: 'Setup conda'
+        if: ${{ matrix.kind == 'conda' }}
+      - run: python -m pip install --upgrade pip setuptools wheel sounddevice
+        if: ${{ matrix.kind != 'conda' }}
+      - run: python -m pip install --upgrade sounddevice rtmixer "pyglet<1.6" pyglet-ffmpeg scipy matplotlib pandas h5py mne numpydoc pillow joblib
+        if: ${{ matrix.kind == 'pip' }}
+      - run: python -m pip install sounddevice rtmixer "pyglet<1.6"
+        if: ${{ matrix.kind == 'conda' }}
+      - run: python -m pip install sounddevice rtmixer "pyglet<1.4" numpy scipy matplotlib "pillow<8" codecov
+        if: ${{ matrix.kind == 'old' }}
+      - run: python -m pip install tdtpy
+        if: ${{ startsWith(matrix.os, 'windows') }}
+      - run: python -m sounddevice
+      - run: |
+          set -o pipefail
+          python -m sounddevice | grep "[82] out"
+        name: Check that there is some output device
+      - run: python -c "import pyglet; print(pyglet.version)"
+      - run: python -c "import matplotlib.pyplot as plt"
+      - run: pip install -ve .[test]
+      - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
+        if: ${{ matrix.kind != 'old' }}
+      - run: pytest --tb=short --cov=expyfun --cov-report=xml expyfun
+      - uses: codecov/codecov-action@v1
+        if: success()
