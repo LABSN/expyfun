@@ -17,20 +17,18 @@ import sys
 from datetime import date
 from os.path import dirname, relpath
 
-import sphinx_bootstrap_theme  # noqa
-import sphinx_gallery  # noqa
+import sphinx  # noqa
 from numpydoc import docscrape, numpydoc  # noqa
-
-import expyfun
 
 # Work around Pyglet annoyingness
 assert "pyglet" not in sys.modules
-if "sphinx" in sys.modules:
-    s = sys.modules.pop("sphinx")
-    import pyglet  # noqa
+s = sys.modules.pop("sphinx")
+import pyglet  # noqa
 
-    sys.modules["sphinx"] = s
-    del s
+sys.modules["sphinx"] = s
+del s
+
+import expyfun  # noqa: E402
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -60,9 +58,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     "sphinx_gallery.gen_gallery",
-    "sphinx_fontawesome",
     "numpydoc",
-    "sphinx_bootstrap_theme",
 ]
 
 autosummary_generate = True
@@ -143,25 +139,30 @@ modindex_common_prefix = ["expyfun."]
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "bootstrap"
+html_theme = "pydata_sphinx_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    "navbar_title": "expyfun",
-    "source_link_position": "nav",  # default
-    "bootswatch_theme": "yeti",
-    "navbar_sidebarrel": False,  # Render the next/prev links in navbar?
-    "navbar_pagenav": True,
-    "globaltoc_depth": 0,
-    "navbar_class": "navbar",
-    "bootstrap_version": "3",  # default
-    "navbar_links": [
-        ("Getting started", "getting_started"),
-        ("Examples", "auto_examples/index"),
-        ("API reference", "python_reference"),
+    "logo": {
+        "text": "expyfun",
+    },
+    "icon_links": [
+        dict(
+            name="GitHub",
+            url="https://github.com/LABSN/expyfun",
+            icon="fa-brands fa-square-github",
+        ),
     ],
+    "icon_links_label": "External Links",  # for screen reader
+    "use_edit_page_button": False,
+    "navigation_with_keys": False,
+    "show_toc_level": 1,
+    "article_header_start": [],  # disable breadcrumbs
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "footer_start": ["copyright"],
+    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
 }
 
 # The name for this set of Sphinx documents.  If None, it defaults to
@@ -173,7 +174,7 @@ html_theme_options = {
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "_static/favicon.ico"
+# html_logo = "_static/favicon.ico"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -252,13 +253,13 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/devdocs", None),
     "scipy": ("https://scipy.github.io/devdocs", None),
-    "matplotlib": ("https://matplotlib.org", None),
+    "matplotlib": ("https://matplotlib.org/stable", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "sounddevice": ("https://python-sounddevice.readthedocs.io", None),
     "rtmixer": ("https://python-rtmixer.readthedocs.io/en/latest", None),
     "pyglet": ("https://pyglet.readthedocs.io/en/latest", None),
-    "mne": ("https://mne-tools.github.io/dev", None),
+    "mne": ("https://mne.tools/dev", None),
 }
 
 examples_dirs = ["../examples"]

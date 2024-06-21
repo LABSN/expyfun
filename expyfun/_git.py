@@ -86,6 +86,14 @@ def download_version(version="current", dest_dir=None):
     # ensure our version-specific "setup" is imported
     sys.path.insert(0, expyfun_dir)
     orig_stdout = sys.stdout
+    # numpy.distutils is gone, but all we use is setup from it. Let's use the one
+    # from setuptools instead.
+    orig_numpy_distutils_core = None
+    if "numpy.distutils.core" in sys.modules:
+        orig_numpy_distutils_core = sys.modules["numpy.distutils.core"]
+    import setuptools
+
+    sys.modules["numpy.distutils.core"] = setuptools
     try:
         # on pytest with Py3k this can be problematic
         if "setup" in sys.modules:
@@ -100,6 +108,12 @@ def download_version(version="current", dest_dir=None):
             setup_version = setup_version[0]
         assert version.lower() == setup_version[:7].lower()
         del setup_version
+        # Now we need to monkey-patch to change FULL_VERSION, which can be for example:
+        # 2.0.0.dev-090948e
+        # to
+        # 2.0.0.dev0+090948e
+        if "-" in setup.FULL_VERSION:
+            setup.FULL_VERSION = setup.FULL_VERSION.replace("-", "0+")  # PEP440
         sys.stdout = StringIO()
         with warnings.catch_warnings(record=True):  # PEP440
             setup.setup_package(script_args=["build", "--build-purelib", dest_dir])
@@ -107,6 +121,8 @@ def download_version(version="current", dest_dir=None):
         sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))
         os.chdir(orig_dir)
+        if orig_numpy_distutils_core is not None:
+            sys.modules["numpy.distutils.core"] = orig_numpy_distutils_core
     print(
         "\n".join(
             [
