@@ -2,7 +2,7 @@ name: 'tests'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
-on:
+on:  # yamllint disable-line rule:truthy
   push:
     branches:
       - '*'
@@ -20,11 +20,14 @@ jobs:
         shell: bash -el {0}
     strategy:
       matrix:
-        os: ['ubuntu-20.04', 'windows-2022']
+        os: ['ubuntu-22.04', 'windows-2022']
         kind: ['pip']
-        python: ['3.10']
+        python: ['3.12']
         include:
-          - os: 'macos-latest'
+          - os: 'macos-latest'  # arm64
+            kind: 'conda'
+            python: '3.10'
+          - os: 'macos-13'  # intel
             kind: 'conda'
             python: '3.10'
           - os: 'ubuntu-20.04'
