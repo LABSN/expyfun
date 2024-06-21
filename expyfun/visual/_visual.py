@@ -122,7 +122,8 @@ class Text:
             text = text + "\n "  # weird Pyglet bug
         if self._attr:
             preamble = (
-                f"{{font_name '{font_name}'}}{{font_size {font_size}}}"
+                f"{{font_name '{font_name}'}}"
+                f"{{font_size {font_size}}}"
                 f"{{color {_convert_color(color)}}}"
             )
             doc = pyglet.text.decode_attributed(preamble + text)

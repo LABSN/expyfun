@@ -200,7 +200,7 @@ html_static_path = ["_static", "_images"]
 # html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-# html_sidebars = {}
+html_sidebars = {"getting_started": []}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -254,7 +254,6 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/devdocs", None),
     "scipy": ("https://scipy.github.io/devdocs", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
-    "sklearn": ("https://scikit-learn.org/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "sounddevice": ("https://python-sounddevice.readthedocs.io", None),
     "rtmixer": ("https://python-rtmixer.readthedocs.io/en/latest", None),

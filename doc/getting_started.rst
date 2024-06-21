@@ -1,5 +1,3 @@
-:orphan:
-
 Getting started
 ===============
 
@@ -166,42 +164,38 @@ an ``expyfun.json`` file. You can use :func:`expyfun.get_config_path` to
 get the path to your config file. Some sample configurations:
 
 A TDT-based M/EEG+pupillometry machine
---------------------------------------
+  .. code-block:: JSON
 
-.. code-block:: JSON
-
-  {
-  "AUDIO_CONTROLLER": "tdt",
-  "EXPYFUN_EYELINK": "100.1.1.1",
-  "RESPONSE_DEVICE": "keyboard",
-  "SCREEN_DISTANCE": "100",
-  "SCREEN_WIDTH": "51",
-  "TDT_DELAY": "44",
-  "TDT_INTERFACE": "GB",
-  "TDT_MODEL": "RZ6",
-  "TDT_TRIG_DELAY": "3",
-  "TRIGGER_CONTROLLER": "tdt"
-  }
+    {
+    "AUDIO_CONTROLLER": "tdt",
+    "EXPYFUN_EYELINK": "100.1.1.1",
+    "RESPONSE_DEVICE": "keyboard",
+    "SCREEN_DISTANCE": "100",
+    "SCREEN_WIDTH": "51",
+    "TDT_DELAY": "44",
+    "TDT_INTERFACE": "GB",
+    "TDT_MODEL": "RZ6",
+    "TDT_TRIG_DELAY": "3",
+    "TRIGGER_CONTROLLER": "tdt"
+    }
 
 A sound-card-based EEG system
------------------------------
+  .. code-block:: JSON
 
-.. code-block:: JSON
-
-  {
-  "AUDIO_CONTROLLER": "sound_card",
-  "RESPONSE_DEVICE": "keyboard",
-  "SCREEN_DISTANCE": "50",
-  "SCREEN_SIZE_PIX": "1920,1080",
-  "SCREEN_WIDTH": "53",
-  "SOUND_CARD_API": "ASIO",
-  "SOUND_CARD_BACKEND": "rtmixer",
-  "SOUND_CARD_FIXED_DELAY": 0.03,
-  "SOUND_CARD_FS": 48000,
-  "SOUND_CARD_NAME": "ASIO Fireface USB",
-  "SOUND_CARD_TRIGGER_CHANNELS": 2,
-  "TRIGGER_CONTROLLER": "sound_card"
-  }
+    {
+    "AUDIO_CONTROLLER": "sound_card",
+    "RESPONSE_DEVICE": "keyboard",
+    "SCREEN_DISTANCE": "50",
+    "SCREEN_SIZE_PIX": "1920,1080",
+    "SCREEN_WIDTH": "53",
+    "SOUND_CARD_API": "ASIO",
+    "SOUND_CARD_BACKEND": "rtmixer",
+    "SOUND_CARD_FIXED_DELAY": 0.03,
+    "SOUND_CARD_FS": 48000,
+    "SOUND_CARD_NAME": "ASIO Fireface USB",
+    "SOUND_CARD_TRIGGER_CHANNELS": 2,
+    "TRIGGER_CONTROLLER": "sound_card"
+    }
 
 Deploying experiments
 ---------------------

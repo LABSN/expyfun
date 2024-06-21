@@ -2280,7 +2280,7 @@ class ExperimentController:
         if not isinstance(id_, (list, tuple, np.ndarray)):
             raise TypeError("id must be array-like")
         id_ = np.array(id_)
-        if not np.all(np.in1d(id_, [0, 1])):
+        if not np.all(np.isin(id_, [0, 1])):
             raise ValueError("All values of id must be 0 or 1")
         id_ = (id_.astype(int) + 1) << 2  # 0, 1 -> 4, 8
         self._stamp_ttl_triggers(id_, wait_for_last, True)

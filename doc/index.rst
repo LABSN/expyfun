@@ -1,9 +1,11 @@
-====================
-Expyfun |headphones|
-====================
+=======
+expyfun
+=======
 
-A high-precision auditory and visual stimulus delivery library for
-psychoacoustics in Python.
+.. rst-class:: h4 font-weight-light my-4
+
+   A high-precision auditory and visual stimulus delivery library for
+   psychoacoustics in Python.
 
 Purpose
 -------
@@ -46,5 +48,5 @@ Hardware support
    :hidden:
 
    getting_started.rst
-   auto_examples/index.rst
    python_reference.rst
+   auto_examples/index.rst
