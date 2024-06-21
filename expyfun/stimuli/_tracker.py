@@ -1,14 +1,14 @@
-"""Adaptive tracks for psychophysics (individual, or multiple randomly dealt)
-"""
+"""Adaptive tracks for psychophysics (individual, or multiple randomly dealt)"""
 # Author: Ross Maddox <ross.maddox@rochester.edu>
 #
 # License: BSD (3-clause)
 
-import numpy as np
-import time
-from scipy.stats import binom
 import json
+import time
 import warnings
+
+import numpy as np
+from scipy.stats import binom
 
 from .. import ExperimentController
 
@@ -17,29 +17,29 @@ from .. import ExperimentController
 # Set up the logging callback (use write_data_line or do nothing)
 # =============================================================================
 def _callback_dummy(event_type, value=None, timestamp=None):
-    """Take the arguments of write_data_line, but do nothing.
-    """
+    """Take the arguments of write_data_line, but do nothing."""
     pass
 
 
 def _check_callback(callback):
-    """Check to see if the callback is of an allowable type.
-    """
+    """Check to see if the callback is of an allowable type."""
     if callback is None:
         callback = _callback_dummy
     elif isinstance(callback, ExperimentController):
         callback = callback.write_data_line
 
     if not callable(callback):
-        raise TypeError('callback must be a callable, None, or an instance of '
-                        'ExperimentController.')
+        raise TypeError(
+            "callback must be a callable, None, or an instance of "
+            "ExperimentController."
+        )
     return callback
 
 
 # =============================================================================
 # Define the TrackerUD Class
 # =============================================================================
-class TrackerUD(object):
+class TrackerUD:
     r"""Up-down adaptive tracker
 
     This class implements a standard up-down adaptive tracker object. Based on
@@ -126,22 +126,34 @@ class TrackerUD(object):
     None.
     """
 
-    def __init__(self, callback, up, down, step_size_up, step_size_down,
-                 stop_reversals, stop_trials, start_value, change_indices=None,
-                 change_rule='reversals', x_min=None, x_max=None,
-                 repeat_limit='reversals'):
+    def __init__(
+        self,
+        callback,
+        up,
+        down,
+        step_size_up,
+        step_size_down,
+        stop_reversals,
+        stop_trials,
+        start_value,
+        change_indices=None,
+        change_rule="reversals",
+        x_min=None,
+        x_max=None,
+        repeat_limit="reversals",
+    ):
         self._callback = _check_callback(callback)
         if not isinstance(up, int):
-            raise ValueError('up must be an integer')
+            raise ValueError("up must be an integer")
         self._up = up
         if not isinstance(down, int):
-            raise ValueError('down must be an integer')
+            raise ValueError("down must be an integer")
         self._down = down
-        if stop_reversals != np.inf and type(stop_reversals) != int:
-            raise ValueError('stop_reversals must be an integer or np.inf')
+        if stop_reversals != np.inf and not isinstance(stop_reversals, int):
+            raise ValueError("stop_reversals must be an integer or np.inf")
         self._stop_reversals = stop_reversals
-        if stop_trials != np.inf and type(stop_trials) != int:
-            raise ValueError('stop_trials must be an integer or np.inf')
+        if stop_trials != np.inf and not isinstance(stop_trials, int):
+            raise ValueError("stop_trials must be an integer or np.inf")
         self._stop_trials = stop_trials
         self._start_value = start_value
         self._x_min = -np.inf if x_min is None else float(x_min)
@@ -150,34 +162,41 @@ class TrackerUD(object):
         if change_indices is None:
             change_indices = [0]
             if not np.isscalar(step_size_up):
-                raise ValueError('If step_size_up is longer than 1, you must '
-                                 'specify change indices.')
+                raise ValueError(
+                    "If step_size_up is longer than 1, you must "
+                    "specify change indices."
+                )
             if not np.isscalar(step_size_down):
-                raise ValueError('If step_size_down is longer than 1, you must'
-                                 ' specify change indices.')
+                raise ValueError(
+                    "If step_size_down is longer than 1, you must"
+                    " specify change indices."
+                )
         self._change_indices = np.asarray(change_indices)
-        if change_rule not in ['trials', 'reversals']:
-            raise ValueError("change_rule must be either 'trials' or "
-                             "'reversals'")
+        if change_rule not in ["trials", "reversals"]:
+            raise ValueError("change_rule must be either 'trials' or " "'reversals'")
         self._change_rule = change_rule
 
         step_size_up = np.atleast_1d(step_size_up)
         if change_indices != [0]:
             if len(step_size_up) != len(change_indices) + 1:
-                raise ValueError('If step_size_up is not scalar it must be one'
-                                 ' element longer than change_indices.')
+                raise ValueError(
+                    "If step_size_up is not scalar it must be one"
+                    " element longer than change_indices."
+                )
         self._step_size_up = np.asarray(step_size_up, dtype=float)
 
         step_size_down = np.atleast_1d(step_size_down)
         if change_indices != [0]:
             if len(step_size_down) != len(change_indices) + 1:
-                raise ValueError('If step_size_down is not scalar it must be '
-                                 'one element longer than change_indices.')
+                raise ValueError(
+                    "If step_size_down is not scalar it must be "
+                    "one element longer than change_indices."
+                )
         self._step_size_down = np.asarray(step_size_down, dtype=float)
 
         self._x = np.asarray([start_value], dtype=float)
         if not np.isscalar(start_value):
-            raise TypeError('start_value must be a scalar')
+            raise TypeError("start_value must be a scalar")
         self._x_current = float(start_value)
         self._responses = np.asarray([], dtype=bool)
         self._reversals = np.asarray([], dtype=int)
@@ -193,25 +212,32 @@ class TrackerUD(object):
         self._limit_count = 0
 
         # Now write the initialization data out
-        self._tracker_id = '%s-%s' % (id(self), int(round(time.time() * 1e6)))
-        self._callback('tracker_identify', json.dumps(dict(
-            tracker_id=self._tracker_id,
-            tracker_type='TrackerUD')))
+        self._tracker_id = "%s-%s" % (id(self), int(round(time.time() * 1e6)))
+        self._callback(
+            "tracker_identify",
+            json.dumps(dict(tracker_id=self._tracker_id, tracker_type="TrackerUD")),
+        )
 
-        self._callback('tracker_%s_init' % self._tracker_id, json.dumps(dict(
-            callback=None,
-            up=self._up,
-            down=self._down,
-            step_size_up=[float(s) for s in self._step_size_up],
-            step_size_down=[float(s) for s in self._step_size_down],
-            stop_reversals=self._stop_reversals,
-            stop_trials=self._stop_trials,
-            start_value=self._start_value,
-            change_indices=[int(s) for s in self._change_indices],
-            change_rule=self._change_rule,
-            x_min=self._x_min,
-            x_max=self._x_max,
-            repeat_limit=self._repeat_limit)))
+        self._callback(
+            "tracker_%s_init" % self._tracker_id,
+            json.dumps(
+                dict(
+                    callback=None,
+                    up=self._up,
+                    down=self._down,
+                    step_size_up=[float(s) for s in self._step_size_up],
+                    step_size_down=[float(s) for s in self._step_size_down],
+                    stop_reversals=self._stop_reversals,
+                    stop_trials=self._stop_trials,
+                    start_value=self._start_value,
+                    change_indices=[int(s) for s in self._change_indices],
+                    change_rule=self._change_rule,
+                    x_min=self._x_min,
+                    x_max=self._x_max,
+                    repeat_limit=self._repeat_limit,
+                )
+            ),
+        )
 
     def respond(self, correct):
         """Update the tracker based on the last response.
@@ -222,7 +248,7 @@ class TrackerUD(object):
             Was the most recent subject response correct?
         """
         if self._stopped:
-            raise RuntimeError('Tracker is stopped.')
+            raise RuntimeError("Tracker is stopped.")
 
         bound = False
         bad = False
@@ -262,11 +288,9 @@ class TrackerUD(object):
         if step_dir == 0:
             self._x = np.append(self._x, self._x[-1])
         elif step_dir < 0:
-            self._x = np.append(self._x, self._x[-1] -
-                                self._current_step_size_down)
+            self._x = np.append(self._x, self._x[-1] - self._current_step_size_down)
         elif step_dir > 0:
-            self._x = np.append(self._x, self._x[-1] +
-                                self._current_step_size_up)
+            self._x = np.append(self._x, self._x[-1] + self._current_step_size_up)
 
         if self._x_min is not -np.inf:
             if self._x[-1] < self._x_min:
@@ -274,7 +298,7 @@ class TrackerUD(object):
                 self._limit_count += 1
                 if bound:
                     bad = True
-                    if self._repeat_limit == 'reversals':
+                    if self._repeat_limit == "reversals":
                         reversal = True
                         self._n_reversals += 1
         if self._x_max is not np.inf:
@@ -283,7 +307,7 @@ class TrackerUD(object):
                 self._limit_count += 1
                 if bound:
                     bad = True
-                    if self._repeat_limit == 'reversals':
+                    if self._repeat_limit == "reversals":
                         reversal = True
                         self._n_reversals += 1
 
@@ -299,15 +323,19 @@ class TrackerUD(object):
 
         if not self._stopped:
             self._x_current = self._x[-1]
-            self._callback('tracker_%s_respond' % self._tracker_id,
-                           correct)
+            self._callback("tracker_%s_respond" % self._tracker_id, correct)
         else:
             self._x = self._x[:-1]
             self._callback(
-                'tracker_%s_stop' % self._tracker_id, json.dumps(dict(
-                    responses=[int(s) for s in self._responses],
-                    reversals=[int(s) for s in self._reversals],
-                    x=[float(s) for s in self._x])))
+                "tracker_%s_stop" % self._tracker_id,
+                json.dumps(
+                    dict(
+                        responses=[int(s) for s in self._responses],
+                        reversals=[int(s) for s in self._reversals],
+                        x=[float(s) for s in self._x],
+                    )
+                ),
+            )
 
     def check_valid(self, n_reversals):
         """If last reversals contain reversals exceeding x_min or x_max.
@@ -323,8 +351,7 @@ class TrackerUD(object):
             True if none of the reversals are at x_min or x_max and False
             otherwise.
         """
-        self._valid = (not self._bad_reversals[self._reversals != 0]
-                       [-n_reversals:].any())
+        self._valid = not self._bad_reversals[self._reversals != 0][-n_reversals:].any()
         return self._valid
 
     def _stop_here(self):
@@ -335,14 +362,16 @@ class TrackerUD(object):
         else:
             self._n_stop = False
         if self._n_stop and self._limit_count > 0:
-            warnings.warn('Tracker {} exceeded x_min or x_max bounds {} times.'
-                          ''.format(self._tracker_id, self._limit_count))
+            warnings.warn(
+                f"Tracker {self._tracker_id} exceeded x_min or x_max bounds "
+                f"{self._limit_count} times."
+            )
         return self._n_stop
 
     def _step_index(self):
-        if self._change_rule.lower() == 'reversals':
+        if self._change_rule.lower() == "reversals":
             self._n_change = self._n_reversals
-        elif self._change_rule.lower() == 'trials':
+        elif self._change_rule.lower() == "trials":
             self._n_change = self._n_trials
         step_index = np.where(self._n_change >= self._change_indices)[0]
         if len(step_index) == 0 or np.array_equal(self._change_indices, [0]):
@@ -404,44 +433,37 @@ class TrackerUD(object):
 
     @property
     def stopped(self):
-        """Has the tracker stopped
-        """
+        """Has the tracker stopped"""
         return self._stopped
 
     @property
     def x(self):
-        """The staircase
-        """
+        """The staircase"""
         return self._x
 
     @property
     def x_current(self):
-        """The current level
-        """
+        """The current level"""
         return self._x_current
 
     @property
     def responses(self):
-        """The response history
-        """
+        """The response history"""
         return self._responses
 
     @property
     def n_trials(self):
-        """The number of trials so far
-        """
+        """The number of trials so far"""
         return self._n_trials
 
     @property
     def n_reversals(self):
-        """The number of reversals so far
-        """
+        """The number of reversals so far"""
         return self._n_reversals
 
     @property
     def reversals(self):
-        """The reversal history (0 where there was no reversal)
-        """
+        """The reversal history (0 where there was no reversal)"""
         return self._reversals
 
     @property
@@ -475,20 +497,22 @@ class TrackerUD(object):
             The handles to the staircase line and the reversal dots.
         """
         import matplotlib.pyplot as plt
+
         if ax is None:
             fig, ax = plt.subplots(1)
         else:
             fig = ax.figure
 
-        line = ax.plot(1 + np.arange(self._n_trials), self._x, 'k.-')
-        line[0].set_label('Trials')
-        dots = ax.plot(1 + np.where(self._reversals > 0)[0],
-                       self._x[self._reversals > 0], 'ro')
-        dots[0].set_label('Reversals')
-        ax.set(xlabel='Trial number', ylabel='Level')
+        line = ax.plot(1 + np.arange(self._n_trials), self._x, "k.-")
+        line[0].set_label("Trials")
+        dots = ax.plot(
+            1 + np.where(self._reversals > 0)[0], self._x[self._reversals > 0], "ro"
+        )
+        dots[0].set_label("Reversals")
+        ax.set(xlabel="Trial number", ylabel="Level")
         if threshold:
             thresh = self.plot_thresh(n_skip, ax)
-            thresh[0].set_label('Estimated Threshold')
+            thresh[0].set_label("Estimated Threshold")
         ax.legend()
         return fig, ax, line + dots
 
@@ -509,10 +533,12 @@ class TrackerUD(object):
             The handle to the threshold line, as returned from ``plt.plot``.
         """
         import matplotlib.pyplot as plt
+
         if ax is None:
             ax = plt.gca()
-        h = ax.plot([1, self._n_trials], [self.threshold(n_skip)] * 2,
-                    '--', color='gray')
+        h = ax.plot(
+            [1, self._n_trials], [self.threshold(n_skip)] * 2, "--", color="gray"
+        )
         return h
 
     def threshold(self, n_skip=2):
@@ -543,17 +569,20 @@ class TrackerUD(object):
             return np.nan
         else:
             if self._bad_reversals[rev_inds].any():
-                raise ValueError('Cannot calculate thresholds with reversals '
-                                 'attempting to exceed x_min or x_max. Try '
-                                 'increasing n_skip.')
-            return (np.mean(self._x[rev_inds[0::2]]) +
-                    np.mean(self._x[rev_inds[1::2]])) / 2
+                raise ValueError(
+                    "Cannot calculate thresholds with reversals "
+                    "attempting to exceed x_min or x_max. Try "
+                    "increasing n_skip."
+                )
+            return (
+                np.mean(self._x[rev_inds[0::2]]) + np.mean(self._x[rev_inds[1::2]])
+            ) / 2
 
 
 # =============================================================================
 # Define the TrackerBinom Class
 # =============================================================================
-class TrackerBinom(object):
+class TrackerBinom:
     """Binomial hypothesis testing tracker
 
     This class implements a tracker that runs a test at each trial with the
@@ -608,8 +637,16 @@ class TrackerBinom(object):
     of following them.
     """
 
-    def __init__(self, callback, alpha, chance, max_trials, min_trials=0,
-                 stop_early=True, x_current=np.nan):
+    def __init__(
+        self,
+        callback,
+        alpha,
+        chance,
+        max_trials,
+        min_trials=0,
+        stop_early=True,
+        x_current=np.nan,
+    ):
         self._callback = _check_callback(callback)
         self._alpha = alpha
         self._chance = chance
@@ -629,18 +666,25 @@ class TrackerBinom(object):
 
         # Now write the initialization data out
         self._tracker_id = id(self)
-        self._callback('tracker_identify', json.dumps(dict(
-            tracker_id=self._tracker_id,
-            tracker_type='TrackerBinom')))
+        self._callback(
+            "tracker_identify",
+            json.dumps(dict(tracker_id=self._tracker_id, tracker_type="TrackerBinom")),
+        )
 
-        self._callback('tracker_%s_init' % self._tracker_id, json.dumps(dict(
-            callback=None,
-            alpha=self._alpha,
-            chance=self._chance,
-            max_trials=self._max_trials,
-            min_trials=self._min_trials,
-            stop_early=self._stop_early,
-            x_current=self._x_current)))
+        self._callback(
+            "tracker_%s_init" % self._tracker_id,
+            json.dumps(
+                dict(
+                    callback=None,
+                    alpha=self._alpha,
+                    chance=self._chance,
+                    max_trials=self._max_trials,
+                    min_trials=self._min_trials,
+                    stop_early=self._stop_early,
+                    x_current=self._x_current,
+                )
+            ),
+        )
 
     def respond(self, correct):
         """Update the tracker based on the last response.
@@ -657,15 +701,16 @@ class TrackerBinom(object):
         else:
             self._n_correct += 1
         self._pc = float(self._n_correct) / self._n_trials
-        self._p_val = binom.cdf(self._n_wrong, self._n_trials,
-                                1 - self._chance)
-        self._min_p_val = binom.cdf(self._n_wrong, self._max_trials,
-                                    1 - self._chance)
-        self._max_p_val = binom.cdf(self._n_wrong + (self._max_trials -
-                                                     self._n_trials),
-                                    self._max_trials, 1 - self._chance)
-        if ((self._p_val <= self._alpha) or
-                (self._min_p_val >= self._alpha and self._stop_early)):
+        self._p_val = binom.cdf(self._n_wrong, self._n_trials, 1 - self._chance)
+        self._min_p_val = binom.cdf(self._n_wrong, self._max_trials, 1 - self._chance)
+        self._max_p_val = binom.cdf(
+            self._n_wrong + (self._max_trials - self._n_trials),
+            self._max_trials,
+            1 - self._chance,
+        )
+        if (self._p_val <= self._alpha) or (
+            self._min_p_val >= self._alpha and self._stop_early
+        ):
             if self._n_trials >= self._min_trials:
                 self._stopped = True
         if self._n_trials == self._max_trials:
@@ -673,12 +718,17 @@ class TrackerBinom(object):
 
         if self._stopped:
             self._callback(
-                'tracker_%s_stop' % self._tracker_id, json.dumps(dict(
-                    responses=[int(s) for s in self._responses],
-                    p_val=self._p_val,
-                    success=int(self.success))))
+                "tracker_%s_stop" % self._tracker_id,
+                json.dumps(
+                    dict(
+                        responses=[int(s) for s in self._responses],
+                        p_val=self._p_val,
+                        success=int(self.success),
+                    )
+                ),
+            )
         else:
-            self._callback('tracker_%s_respond' % self._tracker_id, correct)
+            self._callback("tracker_%s_respond" % self._tracker_id, correct)
 
     # =========================================================================
     # Define all the public properties
@@ -717,55 +767,47 @@ class TrackerBinom(object):
 
     @property
     def n_wrong(self):
-        """The number of incorrect trials so far
-        """
+        """The number of incorrect trials so far"""
         return self._n_wrong
 
     @property
     def n_correct(self):
-        """The number of correct trials so far
-        """
+        """The number of correct trials so far"""
         return self._n_correct
 
     @property
     def pc(self):
-        """Proportion correct (0-1, NaN before any responses made)
-        """
+        """Proportion correct (0-1, NaN before any responses made)"""
         return self._pc
 
     @property
     def responses(self):
-        """The response history
-        """
+        """The response history"""
         return self._responses
 
     @property
     def stopped(self):
-        """Is the tracker stopped
-        """
+        """Is the tracker stopped"""
         return self._stopped
 
     @property
     def success(self):
-        """Has the p-value reached significance
-        """
+        """Has the p-value reached significance"""
         return self._p_val <= self._alpha
 
     @property
     def x_current(self):
-        """Included only for compatibility with TrackerDealer
-        """
+        """Included only for compatibility with TrackerDealer"""
         return self._x_current
 
     @property
     def x(self):
-        """Included only for compatibility with TrackerDealer
-        """
+        """Included only for compatibility with TrackerDealer"""
         return np.array([self._x_current for _ in range(self._n_trials)])
 
     @property
     def stop_rule(self):
-        return 'trials'
+        return "trials"
 
 
 # =============================================================================
@@ -774,9 +816,10 @@ class TrackerBinom(object):
 # TODO: Make it so you can add a list of values for each dimension (such as the
 # phase in a BMLD task) and have it return that
 
+
 # TODO: eventually, make a BaseTracker class so that TrackerDealer can make
 # sure it has the methods / properties it needs
-class TrackerDealer(object):
+class TrackerDealer:
     """Class for selecting and pacing independent simultaneous trackers
 
     Parameters
@@ -817,36 +860,44 @@ class TrackerDealer(object):
     pace.
     """
 
-    def __init__(self, callback, trackers, max_lag=1, pace_rule='reversals',
-                 rand=None):
+    def __init__(self, callback, trackers, max_lag=1, pace_rule="reversals", rand=None):
         # dim will only be used for user output. Will be stored as 0-d
         self._callback = _check_callback(callback)
         self._trackers = np.asarray(trackers)
         for ti, t in enumerate(self._trackers.flat):
             if not isinstance(t, (TrackerUD, TrackerBinom)):
-                raise TypeError('trackers.ravel()[%d] is type %s, must be '
-                                'TrackerUD or TrackerBinom' % (ti, type(t)))
+                raise TypeError(
+                    "trackers.ravel()[%d] is type %s, must be "
+                    "TrackerUD or TrackerBinom" % (ti, type(t))
+                )
             if isinstance(t, TrackerBinom) and t.stop_early:
-                raise ValueError('stop_early for trackers.flat[%d] must be '
-                                 'False to deal trials from a TrackerBinom '
-                                 'object' % (ti,))
+                raise ValueError(
+                    "stop_early for trackers.flat[%d] must be "
+                    "False to deal trials from a TrackerBinom "
+                    "object" % (ti,)
+                )
 
         self._shape = self._trackers.shape
         self._n = np.prod(self._shape)
         self._max_lag = max_lag
         self._pace_rule = pace_rule
-        if any([isinstance(t, TrackerBinom) for t in
-                self._trackers]) and pace_rule == 'reversals':
-            raise ValueError('pace_rule must be ''trials'' to deal trials from'
-                             ' a TrackerBinom object')
+        if (
+            any([isinstance(t, TrackerBinom) for t in self._trackers])
+            and pace_rule == "reversals"
+        ):
+            raise ValueError(
+                "pace_rule must be "
+                "trials"
+                " to deal trials from"
+                " a TrackerBinom object"
+            )
         if rand is None:
             self._seed = int(time.time())
             rand = np.random.RandomState(self._seed)
         else:
             self._seed = None
         if not isinstance(rand, np.random.RandomState):
-            raise TypeError('rand must be of type '
-                            'numpy.random.RandomState')
+            raise TypeError("rand must be of type " "numpy.random.RandomState")
         self._rand = rand
         self._trial_complete = True
         self._tracker_history = np.array([], dtype=int)
@@ -854,14 +905,19 @@ class TrackerDealer(object):
         self._x_history = np.array([], dtype=float)
 
         self._dealer_id = id(self)
-        self._callback('dealer_identify', json.dumps(dict(
-            dealer_id=self._dealer_id)))
+        self._callback("dealer_identify", json.dumps(dict(dealer_id=self._dealer_id)))
 
-        self._callback('dealer_%s_init' % self._dealer_id, json.dumps(dict(
-            trackers=[s._tracker_id for s in self._trackers.ravel()],
-            shape=self._shape,
-            max_lag=self._max_lag,
-            pace_rule=self._pace_rule)))
+        self._callback(
+            "dealer_%s_init" % self._dealer_id,
+            json.dumps(
+                dict(
+                    trackers=[s._tracker_id for s in self._trackers.ravel()],
+                    shape=self._shape,
+                    max_lag=self._max_lag,
+                    pace_rule=self._pace_rule,
+                )
+            ),
+        )
 
     def __iter__(self):
         return self
@@ -880,12 +936,10 @@ class TrackerDealer(object):
             raise StopIteration
         if not self._trial_complete:
             # Chose a new tracker before responding, so record non-response
-            self._response_history = np.append(self._response_history,
-                                               np.nan)
+            self._response_history = np.append(self._response_history, np.nan)
         self._trial_complete = False
         self._current_tracker = self._pick()
-        self._tracker_history = np.append(self._tracker_history,
-                                          self._current_tracker)
+        self._tracker_history = np.append(self._tracker_history, self._current_tracker)
         ss = np.unravel_index(self._current_tracker, self.shape)
         level = self._trackers.flat[self._current_tracker].x_current
         self._x_history = np.append(self._x_history, level)
@@ -895,15 +949,14 @@ class TrackerDealer(object):
         return self.next()
 
     def _pick(self):
-        """Decide which tracker from which to draw a trial
-        """
+        """Decide which tracker from which to draw a trial"""
         if self.stopped:
-            raise RuntimeError('All trackers have stopped.')
+            raise RuntimeError("All trackers have stopped.")
         active = np.where([not t.stopped for t in self._trackers.flat])[0]
 
-        if self._pace_rule == 'reversals':
+        if self._pace_rule == "reversals":
             pace = np.asarray([t.n_reversals for t in self._trackers.flat])
-        elif self._pace_rule == 'trials':
+        elif self._pace_rule == "trials":
             pace = np.asarray([t.n_trials for t in self._trackers.flat])
         pace = pace[active]
         lag = pace.max() - pace
@@ -927,17 +980,21 @@ class TrackerDealer(object):
             Was the most recent subject response correct?
         """
         if self._trial_complete:
-            raise RuntimeError('You must get a trial before you can respond.')
+            raise RuntimeError("You must get a trial before you can respond.")
         self._trackers.flat[self._current_tracker].respond(correct)
         self._trial_complete = True
         self._response_history = np.append(self._response_history, correct)
         if self.stopped:
             self._callback(
-                'dealer_%s_stop' % self._dealer_id, json.dumps(dict(
-                    tracker_history=[int(s) for s in self._tracker_history],
-                    response_history=[float(s) for s in
-                                      self._response_history],
-                    x_history=[float(s) for s in self._x_history])))
+                "dealer_%s_stop" % self._dealer_id,
+                json.dumps(
+                    dict(
+                        tracker_history=[int(s) for s in self._tracker_history],
+                        response_history=[float(s) for s in self._response_history],
+                        x_history=[float(s) for s in self._x_history],
+                    )
+                ),
+            )
 
     def history(self, include_skips=False):
         """The history of the dealt trials and the responses
@@ -959,12 +1016,14 @@ class TrackerDealer(object):
             The response history (i.e., correct or incorrect)
         """
         if include_skips:
-            return (self._tracker_history, self._x_history,
-                    self._response_history)
+            return (self._tracker_history, self._x_history, self._response_history)
         else:
             inds = np.invert(np.isnan(self._response_history))
-            return (self._tracker_history[inds], self._x_history[inds],
-                    self._response_history[inds].astype(bool))
+            return (
+                self._tracker_history[inds],
+                self._x_history[inds],
+                self._response_history[inds].astype(bool),
+            )
 
     @property
     def shape(self):
@@ -972,21 +1031,19 @@ class TrackerDealer(object):
 
     @property
     def stopped(self):
-        """Are all the trackers stopped
-        """
+        """Are all the trackers stopped"""
         return all(t.stopped for t in self._trackers.flat)
 
     @property
     def trackers(self):
-        """All of the tracker objects in the container
-        """
+        """All of the tracker objects in the container"""
         return self._trackers
 
 
 # =============================================================================
 # Define the TrackerMHW Class
 # =============================================================================
-class TrackerMHW(object):
+class TrackerMHW:
     """Up-down adaptive tracker for the modified Hughson-Westlake Procedure
 
     This class implements a standard up-down adaptive tracker object. It is
@@ -1039,9 +1096,18 @@ class TrackerMHW(object):
     and finding threshold.
     """
 
-    def __init__(self, callback, x_min, x_max, base_step=5, factor_down=2,
-                 factor_up_nr=4, start_value=40, n_up_stop=2,
-                 repeat_limit='reversals'):
+    def __init__(
+        self,
+        callback,
+        x_min,
+        x_max,
+        base_step=5,
+        factor_down=2,
+        factor_up_nr=4,
+        start_value=40,
+        n_up_stop=2,
+        repeat_limit="reversals",
+    ):
         self._callback = _check_callback(callback)
         self._x_min = x_min
         self._x_max = x_max
@@ -1052,25 +1118,25 @@ class TrackerMHW(object):
         self._n_up_stop = n_up_stop
         self._repeat_limit = repeat_limit
 
-        if type(x_min) != int and type(x_min) != float:
-            raise TypeError('x_min must be a float or integer')
-        if type(x_max) != int and type(x_max) != float:
-            raise TypeError('x_max must be a float or integer')
+        if not isinstance(x_min, (int, float)):
+            raise TypeError("x_min must be a float or integer")
+        if not isinstance(x_max, (int, float)):
+            raise TypeError("x_max must be a float or integer")
 
         self._x = np.asarray([start_value], dtype=float)
         if not np.isscalar(start_value):
-            raise TypeError('start_value must be a scalar')
+            raise TypeError("start_value must be a scalar")
         else:
             if start_value % base_step != 0:
-                raise ValueError('start_value must be a multiple of base_step')
+                raise ValueError("start_value must be a multiple of base_step")
             else:
                 if (x_min - start_value) % base_step != 0:
-                    raise ValueError('x_min must be a multiple of base_step')
+                    raise ValueError("x_min must be a multiple of base_step")
                 if (x_max - start_value) % base_step != 0:
-                    raise ValueError('x_max must be a multiple of base_step')
+                    raise ValueError("x_max must be a multiple of base_step")
 
-        if type(n_up_stop) != int:
-            raise TypeError('n_up_stop must be an integer')
+        if not isinstance(n_up_stop, int):
+            raise TypeError("n_up_stop must be an integer")
 
         self._x_current = float(start_value)
         self._responses = np.asarray([], dtype=bool)
@@ -1090,21 +1156,28 @@ class TrackerMHW(object):
         self._threshold = np.nan
 
         # Now write the initialization data out
-        self._tracker_id = '%s-%s' % (id(self), int(round(time.time() * 1e6)))
-        self._callback('tracker_identify', json.dumps(dict(
-            tracker_id=self._tracker_id,
-            tracker_type='TrackerMHW')))
+        self._tracker_id = "%s-%s" % (id(self), int(round(time.time() * 1e6)))
+        self._callback(
+            "tracker_identify",
+            json.dumps(dict(tracker_id=self._tracker_id, tracker_type="TrackerMHW")),
+        )
 
-        self._callback('tracker_%s_init' % self._tracker_id, json.dumps(dict(
-            callback=None,
-            base_step=self._base_step,
-            factor_down=self._factor_down,
-            factor_up_nr=self._factor_up_nr,
-            start_value=self._start_value,
-            x_min=self._x_min,
-            x_max=self._x_max,
-            n_up_stop=self._n_up_stop,
-            repeat_limit=self._repeat_limit)))
+        self._callback(
+            "tracker_%s_init" % self._tracker_id,
+            json.dumps(
+                dict(
+                    callback=None,
+                    base_step=self._base_step,
+                    factor_down=self._factor_down,
+                    factor_up_nr=self._factor_up_nr,
+                    start_value=self._start_value,
+                    x_min=self._x_min,
+                    x_max=self._x_max,
+                    n_up_stop=self._n_up_stop,
+                    repeat_limit=self._repeat_limit,
+                )
+            ),
+        )
 
     def respond(self, correct):
         """Update the tracker based on the last response.
@@ -1115,7 +1188,7 @@ class TrackerMHW(object):
             Was the most recent subject response correct?
         """
         if self._stopped:
-            raise RuntimeError('Tracker is stopped.')
+            raise RuntimeError("Tracker is stopped.")
 
         bound = False
         bad = False
@@ -1153,12 +1226,14 @@ class TrackerMHW(object):
         if step_dir == 0:
             self._x = np.append(self._x, self._x[-1])
         elif step_dir < 0:
-            self._x = np.append(self._x, self._x[-1] -
-                                self._factor_down * self._base_step)
+            self._x = np.append(
+                self._x, self._x[-1] - self._factor_down * self._base_step
+            )
         elif step_dir > 0:
             if self._n_correct == 0:
-                self._x = np.append(self._x, self._x[-1] +
-                                    self._factor_up_nr * self._base_step)
+                self._x = np.append(
+                    self._x, self._x[-1] + self._factor_up_nr * self._base_step
+                )
             else:
                 self._x = np.append(self._x, self._x[-1] + self._base_step)
 
@@ -1167,10 +1242,10 @@ class TrackerMHW(object):
             self._limit_count += 1
             if bound:
                 bad = True
-                if self._repeat_limit == 'reversals':
+                if self._repeat_limit == "reversals":
                     reversal = True
                     self._n_reversals += 1
-                if self._repeat_limit == 'ignore':
+                if self._repeat_limit == "ignore":
                     reversal = False
                     self._direction = 0
         if self._x[-1] >= self._x_max:
@@ -1178,10 +1253,10 @@ class TrackerMHW(object):
             self._limit_count += 1
             if bound:
                 bad = True
-                if self._repeat_limit == 'reversals':
+                if self._repeat_limit == "reversals":
                     reversal = True
                     self._n_reversals += 1
-                if self._repeat_limit == 'ignore':
+                if self._repeat_limit == "ignore":
                     reversal = False
                     self._direction = 0
 
@@ -1197,18 +1272,23 @@ class TrackerMHW(object):
 
         if not self._stopped:
             self._x_current = self._x[-1]
-            self._callback('tracker_%s_respond' % self._tracker_id,
-                           correct)
+            self._callback("tracker_%s_respond" % self._tracker_id, correct)
         else:
             self._x = self._x[:-1]
             self._callback(
-                'tracker_%s_stop' % self._tracker_id, json.dumps(dict(
-                    responses=[int(s) for s in self._responses],
-                    reversals=[int(s) for s in self._reversals],
-                    x=[float(s) for s in self._x],
-                    threshold=self._threshold,
-                    n_correct_levels={int(k): v for k, v in
-                                      self._n_correct_levels.items()})))
+                "tracker_%s_stop" % self._tracker_id,
+                json.dumps(
+                    dict(
+                        responses=[int(s) for s in self._responses],
+                        reversals=[int(s) for s in self._reversals],
+                        x=[float(s) for s in self._x],
+                        threshold=self._threshold,
+                        n_correct_levels={
+                            int(k): v for k, v in self._n_correct_levels.items()
+                        },
+                    )
+                ),
+            )
 
     def check_valid(self, n_reversals):
         """If last reversals contain reversals exceeding x_min or x_max.
@@ -1224,15 +1304,18 @@ class TrackerMHW(object):
             True if none of the reversals are at x_min or x_max and False
             otherwise.
         """
-        self._valid = (not self._bad_reversals[self._reversals != 0]
-                       [-n_reversals:].any())
+        self._valid = not self._bad_reversals[self._reversals != 0][-n_reversals:].any()
         return self._valid
 
     def _stop_here(self):
-        self._threshold_reached = [self._n_correct_levels[level] ==
-                                   self._n_up_stop for level in self._levels]
-        if self._n_correct == 0 and self._x[
-                -2] == self._x_max and self._x[-1] == self._x_max:
+        self._threshold_reached = [
+            self._n_correct_levels[level] == self._n_up_stop for level in self._levels
+        ]
+        if (
+            self._n_correct == 0
+            and self._x[-2] == self._x_max
+            and self._x[-1] == self._x_max
+        ):
             self._n_stop = True
             self._threshold = np.nan
         elif len(self._x) > 3 and (self._x == self._x_max).sum() >= 4:
@@ -1246,8 +1329,10 @@ class TrackerMHW(object):
         else:
             self._n_stop = False
         if self._n_stop and self._limit_count > 0:
-            warnings.warn('Tracker {} exceeded x_min or x_max bounds {} times.'
-                          ''.format(self._tracker_id, self._limit_count))
+            warnings.warn(
+                f"Tracker {self._tracker_id} exceeded x_min or x_max bounds "
+                f"{self._limit_count} times."
+            )
         return self._n_stop
 
     # =========================================================================
@@ -1295,44 +1380,37 @@ class TrackerMHW(object):
 
     @property
     def stopped(self):
-        """Has the tracker stopped
-        """
+        """Has the tracker stopped"""
         return self._stopped
 
     @property
     def x(self):
-        """The staircase
-        """
+        """The staircase"""
         return self._x
 
     @property
     def x_current(self):
-        """The current level
-        """
+        """The current level"""
         return self._x_current
 
     @property
     def responses(self):
-        """The response history
-        """
+        """The response history"""
         return self._responses
 
     @property
     def n_trials(self):
-        """The number of trials so far
-        """
+        """The number of trials so far"""
         return self._n_trials
 
     @property
     def n_reversals(self):
-        """The number of reversals so far
-        """
+        """The number of reversals so far"""
         return self._n_reversals
 
     @property
     def reversals(self):
-        """The reversal history (0 where there was no reversal)
-        """
+        """The reversal history (0 where there was no reversal)"""
         return self._reversals
 
     @property
@@ -1369,20 +1447,22 @@ class TrackerMHW(object):
             The handles to the staircase line and the reversal dots.
         """
         import matplotlib.pyplot as plt
+
         if ax is None:
             fig, ax = plt.subplots(1)
         else:
             fig = ax.figure
 
-        line = ax.plot(1 + np.arange(self._n_trials), self._x, 'k.-')
-        line[0].set_label('Trials')
-        dots = ax.plot(1 + np.where(self._reversals > 0)[0],
-                       self._x[self._reversals > 0], 'ro')
-        dots[0].set_label('Reversals')
-        ax.set(xlabel='Trial number', ylabel='Level (dB)')
+        line = ax.plot(1 + np.arange(self._n_trials), self._x, "k.-")
+        line[0].set_label("Trials")
+        dots = ax.plot(
+            1 + np.where(self._reversals > 0)[0], self._x[self._reversals > 0], "ro"
+        )
+        dots[0].set_label("Reversals")
+        ax.set(xlabel="Trial number", ylabel="Level (dB)")
         if threshold:
             thresh = self.plot_thresh(ax)
-            thresh[0].set_label('Threshold')
+            thresh[0].set_label("Threshold")
         ax.legend()
         return fig, ax, line + dots
 
@@ -1401,8 +1481,8 @@ class TrackerMHW(object):
             The handle to the threshold line, as returned from ``plt.plot``.
         """
         import matplotlib.pyplot as plt
+
         if ax is None:
             ax = plt.gca()
-        h = ax.plot([1, self._n_trials], [self._threshold] * 2, '--',
-                    color='gray')
+        h = ax.plot([1, self._n_trials], [self._threshold] * 2, "--", color="gray")
         return h

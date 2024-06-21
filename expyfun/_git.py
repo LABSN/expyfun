@@ -1,16 +1,17 @@
-# -*- coding: utf-8 -*-
 import os
-from os import path as op
 import sys
 import warnings
+from importlib import reload
+from io import StringIO
+from os import path as op
 
-from ._utils import _TempDir, string_types, run_subprocess, StringIO, reload
+from ._utils import _TempDir, run_subprocess
 from ._version import __version__
 
 this_version = __version__[-7:]
 
 try:
-    run_subprocess(['git', '--help'])
+    run_subprocess(["git", "--help"])
 except Exception as exp:
     _has_git, why_not = False, str(exp)
 else:
@@ -20,22 +21,21 @@ else:
 def _check_git():
     """Helper to check the expyfun version"""
     if not _has_git:
-        raise RuntimeError('git not found: {0}'.format(why_not))
+        raise RuntimeError(f"git not found: {why_not}")
 
 
 def _check_version_format(version):
     """Helper to ensure version is of proper format"""
-    if not isinstance(version, string_types) or len(version) != 7:
-        raise TypeError('version must be a string of length 7, got {0}'
-                        ''.format(version))
+    if not isinstance(version, str) or len(version) != 7:
+        raise TypeError(f"version must be a string of length 7, got {version}" "")
 
 
 def _active_version(wd):
     """Helper to get the currently active version"""
-    return run_subprocess(['git', 'rev-parse', 'HEAD'], cwd=wd)[0][:7]
+    return run_subprocess(["git", "rev-parse", "HEAD"], cwd=wd)[0][:7]
 
 
-def download_version(version='current', dest_dir=None):
+def download_version(version="current", dest_dir=None):
     """Download specific expyfun version
 
     Parameters
@@ -56,30 +56,28 @@ def download_version(version='current', dest_dir=None):
     _check_version_format(version)
     if dest_dir is None:
         dest_dir = os.getcwd()
-    if not isinstance(dest_dir, string_types) or not op.isdir(dest_dir):
-        raise IOError('Destination directory {0} does not exist'
-                      ''.format(dest_dir))
-    if op.isdir(op.join(dest_dir, 'expyfun')):
-        raise IOError('Destination directory {0} already has "expyfun" '
-                      'subdirectory'.format(dest_dir))
+    if not isinstance(dest_dir, str) or not op.isdir(dest_dir):
+        raise OSError(f"Destination directory {dest_dir} does not exist" "")
+    if op.isdir(op.join(dest_dir, "expyfun")):
+        raise OSError(
+            f'Destination directory {dest_dir} already has "expyfun" ' "subdirectory"
+        )
 
     # fetch locally and get the proper version
     tempdir = _TempDir()
-    expyfun_dir = op.join(tempdir, 'expyfun')  # git will auto-create this dir
-    repo_url = 'https://github.com/LABSN/expyfun.git'
+    expyfun_dir = op.join(tempdir, "expyfun")  # git will auto-create this dir
+    repo_url = "https://github.com/LABSN/expyfun.git"
     env = os.environ.copy()
     env["GIT_TERMINAL_PROMPT"] = "0"  # do not prompt for credentials
     run_subprocess(
-        ['git', 'clone', repo_url, expyfun_dir,
-         "--single-branch", "--branch", "main"],
+        ["git", "clone", repo_url, expyfun_dir, "--single-branch", "--branch", "main"],
         env=env,
     )
-    version = _active_version(expyfun_dir) if version == 'current' else version
+    version = _active_version(expyfun_dir) if version == "current" else version
     try:
-        run_subprocess(['git', 'checkout', version], cwd=expyfun_dir, env=env)
+        run_subprocess(["git", "checkout", version], cwd=expyfun_dir, env=env)
     except Exception as exp:
-        raise RuntimeError('Could not check out version {0}: {1}'
-                           ''.format(version, str(exp)))
+        raise RuntimeError(f"Could not check out version {version}: {str(exp)}" "")
     assert _active_version(expyfun_dir) == version
 
     # install
@@ -90,27 +88,35 @@ def download_version(version='current', dest_dir=None):
     orig_stdout = sys.stdout
     try:
         # on pytest with Py3k this can be problematic
-        if 'setup' in sys.modules:
-            del sys.modules['setup']
+        if "setup" in sys.modules:
+            del sys.modules["setup"]
         import setup
+
         reload(setup)
         setup_version = setup.git_version()
         # This is necessary because for a while git_version returned
         # a tuple of (version, fork)
-        if not isinstance(setup_version, string_types):
+        if not isinstance(setup_version, str):
             setup_version = setup_version[0]
         assert version.lower() == setup_version[:7].lower()
         del setup_version
         sys.stdout = StringIO()
         with warnings.catch_warnings(record=True):  # PEP440
-            setup.setup_package(
-                script_args=['build', '--build-purelib', dest_dir])
+            setup.setup_package(script_args=["build", "--build-purelib", dest_dir])
     finally:
         sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))
         os.chdir(orig_dir)
-    print('\n'.join(['Successfully checked out expyfun version:', version,
-                     'into destination directory:', op.join(dest_dir)]))
+    print(
+        "\n".join(
+            [
+                "Successfully checked out expyfun version:",
+                version,
+                "into destination directory:",
+                op.join(dest_dir),
+            ]
+        )
+    )
 
 
 def assert_version(version):
@@ -123,5 +129,7 @@ def assert_version(version):
     """
     _check_version_format(version)
     if this_version.lower() != version.lower():
-        raise AssertionError('Requested version {0} does not match current '
-                             'version {1}'.format(version, this_version))
+        raise AssertionError(
+            f"Requested version {version} does not match current "
+            f"version {this_version}"
+        )

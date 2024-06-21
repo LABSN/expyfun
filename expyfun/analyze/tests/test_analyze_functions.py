@@ -2,6 +2,7 @@ import warnings
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
+
 try:
     from scipy.special import logit as splogit
 except ImportError:
@@ -18,10 +19,9 @@ def assert_rts_equal(actual, desired):
     assert isinstance(desired, (list, tuple))
     assert len(actual) == 2
     assert len(desired) == 2
-    kinds = ['hits', 'fas']
+    kinds = ["hits", "fas"]
     for act, des, kind in zip(actual, desired, kinds):
-        assert_allclose(act, des, atol=1e-7,
-                        err_msg='{0} mismatch'.format(kind))
+        assert_allclose(act, des, atol=1e-7, err_msg=f"{kind} mismatch")
 
 
 def assert_hmfc(presses, targets, foils, hmfco, rts, tmin=0.1, tmax=0.6):
@@ -30,14 +30,16 @@ def assert_hmfc(presses, targets, foils, hmfco, rts, tmin=0.1, tmax=0.6):
     assert_array_equal(out, hmfco)
     out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax)
     assert_array_equal(out, hmfco)
-    out = ea.press_times_to_hmfc(presses, targets, foils, tmin, tmax,
-                                 return_type=['counts', 'rts'])
+    out = ea.press_times_to_hmfc(
+        presses, targets, foils, tmin, tmax, return_type=["counts", "rts"]
+    )
     assert_array_equal(out[0][:4:2], list(map(len, out[1])))
     assert_array_equal(out[0], hmfco)
     assert_rts_equal(out[1], rts)
     # reversing targets and foils
-    out = ea.press_times_to_hmfc(presses, foils, targets, tmin, tmax,
-                                 return_type=['counts', 'rts'])
+    out = ea.press_times_to_hmfc(
+        presses, foils, targets, tmin, tmax, return_type=["counts", "rts"]
+    )
     assert_array_equal(out[0], np.array(hmfco)[[2, 3, 0, 1, 4]])
     assert_rts_equal(out[1], rts[::-1])
 
@@ -45,7 +47,7 @@ def assert_hmfc(presses, targets, foils, hmfco, rts, tmin=0.1, tmax=0.6):
 def test_presses_to_hmfc():
     """Test converting press times to HMFCO and RTs."""
     # Simple example
-    targets = [0., 1.]
+    targets = [0.0, 1.0]
     foils = [0.5, 1.5]
 
     presses = [0.1, 1.6]  # presses right at tmin/tmax
@@ -76,8 +78,8 @@ def test_presses_to_hmfc():
     # A complicated example: multiple preses to targ
     targets = [0, 2, 3]
     foils = [1, 4]
-    tmin, tmax = 0., 0.5
-    presses = [0.111, 0.2, 1.101, 1.3, 2.222, 2.333, 2.7, 5.]
+    tmin, tmax = 0.0, 0.5
+    presses = [0.111, 0.2, 1.101, 1.3, 2.222, 2.333, 2.7, 5.0]
     hmfco = [2, 1, 1, 1, 2]
     rts = [[0.111, 0.222], [0.101]]
     assert_hmfc(presses, targets, foils, hmfco, rts)
@@ -95,35 +97,37 @@ def test_presses_to_hmfc():
     # lots of presses
     targets = [1, 2, 5, 6, 7]
     foils = [0, 3, 4, 8]
-    presses = [0.201, 2.101, 4.202, 5.102, 6.103, 10.]
+    presses = [0.201, 2.101, 4.202, 5.102, 6.103, 10.0]
     hmfco = [3, 2, 2, 2, 1]
     rts = [[0.101, 0.102, 0.103], [0.201, 0.202]]
     assert_hmfc(presses, targets, foils, hmfco, rts)
 
     # Bad inputs
-    pytest.raises(ValueError, ea.press_times_to_hmfc,
-                  presses, targets, foils, tmin, 1.1)
-    pytest.raises(ValueError, ea.press_times_to_hmfc,
-                  presses, targets, foils, tmin, tmax, 'foo')
+    pytest.raises(
+        ValueError, ea.press_times_to_hmfc, presses, targets, foils, tmin, 1.1
+    )
+    pytest.raises(
+        ValueError, ea.press_times_to_hmfc, presses, targets, foils, tmin, tmax, "foo"
+    )
 
 
 def test_dprime():
     """Test dprime accuracy."""
-    with pytest.warns(RuntimeWarning, match='cast to'):
-        pytest.raises(IndexError, ea.dprime, 'foo')
-        pytest.raises(ValueError, ea.dprime, ['foo', 0, 0, 0])
-    with pytest.warns(RuntimeWarning, match='truncated'):
+    with pytest.warns(RuntimeWarning, match="cast to"):
+        pytest.raises(IndexError, ea.dprime, "foo")
+        pytest.raises(ValueError, ea.dprime, ["foo", 0, 0, 0])
+    with pytest.warns(RuntimeWarning, match="truncated"):
         ea.dprime((1.1, 0, 0, 0))
     for resp, want in (
-            ((1, 1, 1, 1), [0, 0]),
-            ((1, 0, 0, 1), [1.34898, 0.]),
-            ((0, 1, 0, 1), [0, 0.67449]),
-            ((0, 0, 1, 1), [0, 0]),
-            ((1, 0, 1, 0), [0, -0.67449]),
-            ((0, 1, 1, 0), [-1.34898, 0.]),
-            ((0, 1, 1, 0), [-1.34898, 0.])):
-        assert_allclose(ea.dprime(resp, return_bias=True),
-                        want, atol=1e-5)
+        ((1, 1, 1, 1), [0, 0]),
+        ((1, 0, 0, 1), [1.34898, 0.0]),
+        ((0, 1, 0, 1), [0, 0.67449]),
+        ((0, 0, 1, 1), [0, 0]),
+        ((1, 0, 1, 0), [0, -0.67449]),
+        ((0, 1, 1, 0), [-1.34898, 0.0]),
+        ((0, 1, 1, 0), [-1.34898, 0.0]),
+    ):
+        assert_allclose(ea.dprime(resp, return_bias=True), want, atol=1e-5)
     assert_allclose([np.inf, -np.inf], ea.dprime((1, 0, 2, 1), False, True))
     pytest.raises(ValueError, ea.dprime, np.ones((5, 4, 3)))
     pytest.raises(ValueError, ea.dprime, (1, 2, 3))
@@ -135,7 +139,7 @@ def test_logit():
     """Test logit calculations."""
     pytest.raises(ValueError, ea.logit, 2)
     # On some versions, this throws warnings about divide-by-zero
-    with np.errstate(divide='ignore'):
+    with np.errstate(divide="ignore"):
         assert ea.logit(0) == -np.inf
         assert ea.logit(1) == np.inf
     assert ea.logit(1, max_events=1) < np.inf
@@ -156,14 +160,14 @@ def test_sigmoid():
     """Test sigmoidal fitting and generation."""
     n_pts = 1000
     x = np.random.RandomState(0).randn(n_pts)
-    p0 = (0., 1., 0., 1.)
+    p0 = (0.0, 1.0, 0.0, 1.0)
     y = ea.sigmoid(x, *p0)
     assert np.all(np.logical_and(y <= 1, y >= 0))
     p = ea.fit_sigmoid(x, y)
     assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
     with warnings.catch_warnings(record=True):  # scipy convergence
-        warnings.simplefilter('ignore')
-        p = ea.fit_sigmoid(x, y, (0, 1, None, None), ('upper', 'lower'))
+        warnings.simplefilter("ignore")
+        p = ea.fit_sigmoid(x, y, (0, 1, None, None), ("upper", "lower"))
     assert_allclose(p, p0, atol=1e-4, rtol=1e-4)
 
     y += np.random.rand(n_pts) * 0.01
@@ -175,13 +179,13 @@ def test_rt_chisq():
     """Test reaction time chi-square fitting."""
     # 1D should return single float
     foo = np.random.RandomState(0).rand(30)
-    pytest.raises(ValueError, ea.rt_chisq, foo - 1.)
+    pytest.raises(ValueError, ea.rt_chisq, foo - 1.0)
     assert_equal(np.array(ea.rt_chisq(foo, warn=False)).shape, ())
     # 2D should return array with shape of input but without ``axis`` dimension
     foo = np.random.rand(30).reshape((2, 3, 5))
     for axis in range(-1, foo.ndim):
         bar = ea.rt_chisq(foo, axis=axis, warn=False)
         assert_array_equal(np.delete(foo.shape, axis), np.array(bar.shape))
-    foo_bad = np.concatenate((np.random.rand(30), [100.]))
-    with pytest.warns(UserWarning, match='likely bad'):
+    foo_bad = np.concatenate((np.random.rand(30), [100.0]))
+    with pytest.warns(UserWarning, match="likely bad"):
         bar = ea.rt_chisq(foo_bad)

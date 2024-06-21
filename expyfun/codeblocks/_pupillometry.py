@@ -1,12 +1,11 @@
-"""Analysis functions (mostly for psychophysics data).
-"""
+"""Analysis functions (mostly for psychophysics data)."""
 
 import numpy as np
 
-from ..visual import FixationDot
-from ..analyze import sigmoid
 from .._utils import logger, verbose_dec
+from ..analyze import sigmoid
 from ..stimuli import window_edges
+from ..visual import FixationDot
 
 
 def _check_pyeparse():
@@ -20,12 +19,13 @@ def _check_pyeparse():
 def _load_raw(el, fname):
     """Helper to load some pupil data"""
     import pyeparse
+
     fname = el.transfer_remote_file(fname)
     # Load and parse data
-    logger.info('Pupillometry: Parsing local file "{0}"'.format(fname))
+    logger.info(f'Pupillometry: Parsing local file "{fname}"')
     raw = pyeparse.RawEDF(fname)
     raw.remove_blink_artifacts()
-    events = raw.find_events('SYNCTIME', 1)
+    events = raw.find_events("SYNCTIME", 1)
     return raw, events
 
 
@@ -61,14 +61,17 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     """
     _check_pyeparse()
     import pyeparse
+
     if el.recording:
         el.stop()
     el.calibrate()
     if prompt:
-        ec.screen_prompt('We will now determine the dynamic '
-                         'range of your pupil.\n\n'
-                         'Press a button to continue.')
-    levels = np.concatenate(([0.], 2 ** np.arange(8) / 255.))
+        ec.screen_prompt(
+            "We will now determine the dynamic "
+            "range of your pupil.\n\n"
+            "Press a button to continue."
+        )
+    levels = np.concatenate(([0.0], 2 ** np.arange(8) / 255.0))
     fixs = levels + 0.2
     n_rep = 2
     # inter-rep interval (allow system to reset)
@@ -76,15 +79,14 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
     # amount of time between levels
     settle_time = 3.0 if not el.dummy_mode else 0.3
     fix = FixationDot(ec)
-    fix.set_colors([fixs[0] * np.ones(3), 'k'])
-    ec.set_background_color('k')
+    fix.set_colors([fixs[0] * np.ones(3), "k"])
+    ec.set_background_color("k")
     fix.draw()
     ec.flip()
     for ri in range(n_rep):
         ec.wait_secs(iri)
         for ii, (lev, fc) in enumerate(zip(levels, fixs)):
-            ec.identify_trial(ec_id='FPDR_%02i' % (ii + 1),
-                              el_id=[ii + 1], ttl_id=())
+            ec.identify_trial(ec_id="FPDR_%02i" % (ii + 1), el_id=[ii + 1], ttl_id=())
             bgcolor = np.ones(3) * lev
             fcolor = np.ones(3) * fc
             ec.set_background_color(bgcolor)
@@ -95,13 +97,12 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
             ec.check_force_quit()
             ec.stop()
             ec.trial_ok()
-        ec.set_background_color('k')
-        fix.set_colors([fixs[0] * np.ones(3), 'k'])
+        ec.set_background_color("k")
+        fix.set_colors([fixs[0] * np.ones(3), "k"])
         fix.draw()
         ec.flip()
     el.stop()  # stop the recording
-    ec.screen_prompt('Processing data, please wait...', max_wait=0,
-                     clear_after=False)
+    ec.screen_prompt("Processing data, please wait...", max_wait=0, clear_after=False)
 
     # now we need to parse the data
     if el.dummy_mode:
@@ -115,17 +116,18 @@ def find_pupil_dynamic_range(ec, el, prompt=True, verbose=None):
         epochs = pyeparse.Epochs(raw, events, 1, -0.5, settle_time)
         assert len(epochs) == len(levels) * n_rep
         idx = epochs.n_times // 2
-        resp = np.median(epochs.get_data('ps')[:, idx:], 1)
+        resp = np.median(epochs.get_data("ps")[:, idx:], 1)
     bgcolor = np.mean(resp.reshape((n_rep, len(levels))), 0)
     idx = np.argmin(np.diff(bgcolor)) + 1
     bgcolor = levels[idx] * np.ones(3)
     fcolor = fixs[idx] * np.ones(3)
-    logger.info('Pupillometry: optimal background color {0}'.format(bgcolor))
+    logger.info(f"Pupillometry: optimal background color {bgcolor}")
     return bgcolor, fcolor, np.tile(levels, n_rep), resp
 
 
-def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
-                                     verbose=None, targ_is_fm=True):
+def find_pupil_tone_impulse_response(
+    ec, el, bgcolor, fcolor, prompt=True, verbose=None, targ_is_fm=True
+):
     """Find pupil impulse response using responses to tones
 
     Parameters
@@ -162,6 +164,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     """
     _check_pyeparse()
     import pyeparse
+
     if el.recording:
         el.stop()
 
@@ -175,7 +178,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     delay_range = np.array(delay_range)
     targ_prop = 0.25
     stim_dur = 100e-3
-    f0 = 1000.  # Hz
+    f0 = 1000.0  # Hz
 
     rng = np.random.RandomState(0)
     isis = np.linspace(*delay_range, num=n_stimuli)
@@ -196,8 +199,9 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     n_samp = int(fs * stim_dur)
     t = np.arange(n_samp).astype(float) / fs
     steady = np.sin(2 * np.pi * f0 * t)
-    wobble = np.sin(np.cumsum(f0 + 100 * np.sin(2 * np.pi * (1 / stim_dur) * t)
-                              ) / fs * 2 * np.pi)
+    wobble = np.sin(
+        np.cumsum(f0 + 100 * np.sin(2 * np.pi * (1 / stim_dur) * t)) / fs * 2 * np.pi
+    )
     std_stim, dev_stim = (steady, wobble) if targ_is_fm else (wobble, steady)
     std_stim = window_edges(std_stim * ec._stim_rms * np.sqrt(2), fs)
     dev_stim = window_edges(dev_stim * ec._stim_rms * np.sqrt(2), fs)
@@ -207,17 +211,23 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
     #
     ec.stop()
     ec.set_background_color(bgcolor)
-    targstr, tonestr = ('wobble', 'beep') if targ_is_fm else ('beep', 'wobble')
-    instr = ('Remember to press the button as quickly as possible following '
-             'each "{}" sound.\n\nPress the response button to '
-             'continue.'.format(targstr))
+    targstr, tonestr = ("wobble", "beep") if targ_is_fm else ("beep", "wobble")
+    instr = (
+        "Remember to press the button as quickly as possible following "
+        f'each "{targstr}" sound.\n\nPress the response button to '
+        "continue."
+    )
     if prompt:
-        notes = [('We will now determine the response of your pupil to sound '
-                  'changes.\n\nYour job is to press the response button '
-                  'as quickly as possible when you hear a "{1}" instead '
-                  'of a "{0}".\n\nPress a button to hear the "{0}".'
-                  ''.format(tonestr, targstr)),
-                 ('Now press a button to hear the "{}".'.format(targstr))]
+        notes = [
+            (
+                "We will now determine the response of your pupil to sound "
+                "changes.\n\nYour job is to press the response button "
+                f'as quickly as possible when you hear a "{targstr}" instead '
+                f'of a "{tonestr}".\n\nPress a button to hear the "{tonestr}".'
+                ""
+            ),
+            (f'Now press a button to hear the "{targstr}".'),
+        ]
         for text, stim in zip(notes, (std_stim, dev_stim)):
             ec.screen_prompt(text)
             ec.load_buffer(stim)
@@ -235,10 +245,12 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
         if ii in cal_stim:
             if ii != 0:
                 el.stop()
-                perc = round((100. * ii) / n_stimuli)
-                ec.screen_prompt('Great work! You are {0}% done.\n\nFeel '
-                                 'free to take a break, then press the '
-                                 'button to continue.'.format(perc))
+                perc = round((100.0 * ii) / n_stimuli)
+                ec.screen_prompt(
+                    f"Great work! You are {perc}% done.\n\nFeel "
+                    "free to take a break, then press the "
+                    "button to continue."
+                )
             el.calibrate()
             ec.screen_prompt(instr)
             # let's put the initial color up to allow the system to settle
@@ -247,15 +259,15 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
             ec.wait_secs(10.0)  # let the pupil settle
         fix.draw()
         ec.load_buffer(dev_stim if targ else std_stim)
-        ec.identify_trial(ec_id='TONE_{0}'.format(int(targ)),
-                          el_id=[int(targ)], ttl_id=[int(targ)])
+        ec.identify_trial(
+            ec_id=f"TONE_{int(targ)}", el_id=[int(targ)], ttl_id=[int(targ)]
+        )
         flip_times.append(ec.start_stimulus())
         presses.append(ec.wait_for_presses(isi))
         ec.stop()
         ec.trial_ok()
     el.stop()  # stop the recording
-    ec.screen_prompt('Processing data, please wait...', max_wait=0,
-                     clear_after=False)
+    ec.screen_prompt("Processing data, please wait...", max_wait=0, clear_after=False)
 
     flip_times = np.array(flip_times)
     tmin = -0.5
@@ -275,8 +287,7 @@ def find_pupil_tone_impulse_response(ec, el, bgcolor, fcolor, prompt=True,
             raws.append(raw)
             events.append(event)
         assert sum(len(event) for event in events) == n_stimuli
-        epochs = pyeparse.Epochs(raws, events, 1,
-                                 tmin=tmin, tmax=delay_range[0])
+        epochs = pyeparse.Epochs(raws, events, 1, tmin=tmin, tmax=delay_range[0])
         response = epochs.pupil_zscores()
         assert response.shape[0] == n_stimuli
         std_err = np.std(response[~targs], axis=0)

@@ -6,12 +6,13 @@
 # License: BSD (3-clause)
 
 import sys
+
 import numpy as np
 
-from ._utils import verbose_dec, string_types, logger
+from ._utils import logger, verbose_dec
 
 
-class ParallelTrigger(object):
+class ParallelTrigger:
     """Parallel port and dummy triggering support.
 
     .. warning:: When using the parallel port, calling
@@ -46,34 +47,42 @@ class ParallelTrigger(object):
     """
 
     @verbose_dec
-    def __init__(self, mode='dummy', address=None, trigger_duration=0.01,
-                 ec=None, verbose=None):
+    def __init__(
+        self, mode="dummy", address=None, trigger_duration=0.01, ec=None, verbose=None
+    ):
         self.ec = ec
-        if mode == 'parallel':
-            if sys.platform.startswith('linux'):
-                address = '/dev/parport0' if address is None else address
-                if not isinstance(address, string_types):
-                    raise ValueError('addrss must be a string or None, got %s '
-                                     'of type %s' % (address, type(address)))
+        if mode == "parallel":
+            if sys.platform.startswith("linux"):
+                address = "/dev/parport0" if address is None else address
+                if not isinstance(address, str):
+                    raise ValueError(
+                        "address must be a string or None, got %s "
+                        "of type %s" % (address, type(address))
+                    )
                 from parallel import Parallel
-                logger.info('Expyfun: Using address %s' % (address,))
+
+                logger.info("Expyfun: Using address %s" % (address,))
                 self._port = Parallel(address)
                 self._portname = address
                 self._set_data = self._port.setData
-            elif sys.platform.startswith('win'):
+            elif sys.platform.startswith("win"):
                 from ctypes import windll
-                if not hasattr(windll, 'inpout32'):
-                    raise SystemError(
-                        'Must have inpout32 installed, see:\n\n'
-                        'http://www.highrez.co.uk/downloads/inpout32/')
 
-                base = '0x378' if address is None else address
-                logger.info('Expyfun: Using base address %s' % (base,))
-                if isinstance(base, string_types):
+                if not hasattr(windll, "inpout32"):
+                    raise SystemError(
+                        "Must have inpout32 installed, see:\n\n"
+                        "http://www.highrez.co.uk/downloads/inpout32/"
+                    )
+
+                base = "0x378" if address is None else address
+                logger.info("Expyfun: Using base address %s" % (base,))
+                if isinstance(base, str):
                     base = int(base, 16)
                 if not isinstance(base, int):
-                    raise ValueError('address must be int or None, got %s of '
-                                     'type %s' % (base, type(base)))
+                    raise ValueError(
+                        "address must be int or None, got %s of "
+                        "type %s" % (base, type(base))
+                    )
                 self._port = windll.inpout32
                 mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
                 # Use ECP to put the port into byte mode
@@ -87,18 +96,20 @@ class ParallelTrigger(object):
                 self._set_data = lambda data: self._port.Out32(base, data)
                 self._portname = str(base)
             else:
-                raise NotImplementedError('Parallel port triggering only '
-                                          'supported on Linux and Windows')
+                raise NotImplementedError(
+                    "Parallel port triggering only " "supported on Linux and Windows"
+                )
         else:  # mode == 'dummy':
             self._port = self._portname = None
             self._trigger_list = list()
-            self._set_data = lambda x: (self._trigger_list.append(x)
-                                        if x != 0 else None)
+            self._set_data = lambda x: (
+                self._trigger_list.append(x) if x != 0 else None
+            )
         self.trigger_duration = trigger_duration
         self.mode = mode
 
     def __repr__(self):
-        return '<ParallelTrigger : %s (%s)>' % (self.mode, self._portname)
+        return "<ParallelTrigger : %s (%s)>" % (self.mode, self._portname)
 
     def _stamp_trigger(self, trig):
         """Fake stamping."""
@@ -106,8 +117,9 @@ class ParallelTrigger(object):
         self.ec.wait_secs(self.trigger_duration)
         self._set_data(0)
 
-    def stamp_triggers(self, triggers, delay=None, wait_for_last=True,
-                       is_trial_id=False):
+    def stamp_triggers(
+        self, triggers, delay=None, wait_for_last=True, is_trial_id=False
+    ):
         """Stamp a list of triggers with a given inter-trigger delay.
 
         Parameters
@@ -132,7 +144,7 @@ class ParallelTrigger(object):
 
     def close(self):
         """Release hardware interfaces."""
-        if hasattr(self, '_port'):
+        if hasattr(self, "_port"):
             del self._port
 
     def __del__(self):
@@ -160,17 +172,16 @@ def decimals_to_binary(decimals, n_bits):
     """
     decimals = np.array(decimals, int)
     if decimals.ndim != 1 or (decimals < 0).any():
-        raise ValueError('decimals must be 1D with all nonnegative values')
+        raise ValueError("decimals must be 1D with all nonnegative values")
     n_bits = np.array(n_bits, int)
     if decimals.shape != n_bits.shape:
-        raise ValueError('n_bits must have same shape as decimals')
+        raise ValueError("n_bits must have same shape as decimals")
     if (n_bits <= 0).any():
-        raise ValueError('all n_bits must be positive')
+        raise ValueError("all n_bits must be positive")
     binary = list()
     for d, b in zip(decimals, n_bits):
-        if d > 2 ** b - 1:
-            raise ValueError('cannot convert number {0} using {1} bits'
-                             ''.format(d, b))
+        if d > 2**b - 1:
+            raise ValueError(f"cannot convert number {d} using {b} bits" "")
         binary.extend([int(bb) for bb in np.binary_repr(d, b)])
     assert len(binary) == n_bits.sum()  # make sure we didn't do something dumb
     return binary
@@ -192,21 +203,23 @@ def binary_to_decimals(binary, n_bits):
         Array of integers.
     """
     if not np.array_equal(binary, np.array(binary, bool)):
-        raise ValueError('binary must only contain zeros and ones')
+        raise ValueError("binary must only contain zeros and ones")
     binary = np.array(binary, bool)
     if binary.ndim != 1:
-        raise ValueError('binary must be 1 dimensional')
+        raise ValueError("binary must be 1 dimensional")
     n_bits = np.atleast_1d(n_bits).astype(int)
     if np.any(n_bits <= 0):
-        raise ValueError('n_bits must all be > 0')
+        raise ValueError("n_bits must all be > 0")
     if n_bits.sum() != len(binary):
-        raise ValueError('the sum of n_bits must be equal to the number of '
-                         'elements in binary')
+        raise ValueError(
+            "the sum of n_bits must be equal to the number of " "elements in binary"
+        )
     offset = 0
     outs = []
     for nb in n_bits:
-        outs.append(np.sum(binary[offset:offset + nb] *
-                           (2 ** np.arange(nb - 1, -1, -1))))
+        outs.append(
+            np.sum(binary[offset : offset + nb] * (2 ** np.arange(nb - 1, -1, -1)))
+        )
         offset += nb
     assert offset == len(binary)
     return np.array(outs)

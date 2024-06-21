@@ -1,10 +1,10 @@
 import numpy as np
-
-from expyfun.stimuli import TrackerUD, TrackerBinom, TrackerDealer, TrackerMHW
-from expyfun import ExperimentController
 import pytest
 from numpy.testing import assert_equal
+
+from expyfun import ExperimentController
 from expyfun._utils import requires_opengl21
+from expyfun.stimuli import TrackerBinom, TrackerDealer, TrackerMHW, TrackerUD
 
 
 def callback(event_type, value=None, timestamp=None):
@@ -12,11 +12,20 @@ def callback(event_type, value=None, timestamp=None):
     print(event_type, value, timestamp)
 
 
-std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
-                  participant='foo', session='01', stim_db=0.0, noise_db=0.0,
-                  trigger_controller='dummy', response_device='keyboard',
-                  audio_controller='sound_card',
-                  verbose=True, version='dev')
+std_kwargs = dict(
+    output_dir=None,
+    full_screen=False,
+    window_size=(1, 1),
+    participant="foo",
+    session="01",
+    stim_db=0.0,
+    noise_db=0.0,
+    trigger_controller="dummy",
+    response_device="keyboard",
+    audio_controller="sound_card",
+    verbose=True,
+    version="dev",
+)
 
 
 @pytest.mark.timeout(15)
@@ -24,8 +33,9 @@ std_kwargs = dict(output_dir=None, full_screen=False, window_size=(1, 1),
 def test_tracker_ud(hide_window):
     """Test TrackerUD"""
     import matplotlib.pyplot as plt
+
     tr = TrackerUD(callback, 3, 1, 1, 1, np.inf, 10, 1)
-    with ExperimentController('test', **std_kwargs) as ec:
+    with ExperimentController("test", **std_kwargs) as ec:
         tr = TrackerUD(ec, 3, 1, 1, 1, np.inf, 10, 1)
     tr = TrackerUD(None, 3, 1, 1, 1, 10, np.inf, 1)
     rand = np.random.RandomState(0)
@@ -70,89 +80,100 @@ def test_tracker_ud(hide_window):
     tr.check_valid(2)
 
     # bad callback type
-    with pytest.raises(TypeError,
-                       match="callback must be a callable, None, or an"):
-        TrackerUD('foo', 3, 1, 1, 1, 10, np.inf, 1)
+    with pytest.raises(TypeError, match="callback must be a callable, None, or an"):
+        TrackerUD("foo", 3, 1, 1, 1, 10, np.inf, 1)
 
     # test dynamic step size and error conditions
-    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
-                   change_indices=[2])
+    tr = TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1, change_indices=[2])
     tr.respond(True)
 
-    tr = TrackerUD(None, 1, 1, 0.75, 0.75, np.inf, 9, 1,
-                   x_min=0, x_max=2)
+    tr = TrackerUD(None, 1, 1, 0.75, 0.75, np.inf, 9, 1, x_min=0, x_max=2)
     responses = [True, True, True, False, False, False, False, True, False]
-    with pytest.warns(UserWarning, match='exceeded x_min'):
+    with pytest.warns(UserWarning, match="exceeded x_min"):
         for r in responses:  # run long enough to encounter change_indices
             tr.respond(r)
     assert tr.check_valid(1)  # make sure checking validity is good
     assert not tr.check_valid(3)
-    with pytest.raises(ValueError,
-                       match="with reversals attempting to exceed x_min"):
+    with pytest.raises(ValueError, match="with reversals attempting to exceed x_min"):
         tr.threshold(1)
         tr.threshold(3)
     assert_equal(tr.n_trials, tr.stop_trials)
 
     # run tests with ignore too--should generate warnings, but no error
-    tr = TrackerUD(None, 1, 1, 0.75, 0.25, np.inf, 8, 1,
-                   x_min=0, x_max=2, repeat_limit='ignore')
+    tr = TrackerUD(
+        None, 1, 1, 0.75, 0.25, np.inf, 8, 1, x_min=0, x_max=2, repeat_limit="ignore"
+    )
     responses = [False, True, False, False, True, True, False, True]
-    with pytest.warns(UserWarning, match='exceeded x_min'):
+    with pytest.warns(UserWarning, match="exceeded x_min"):
         for r in responses:  # run long enough to encounter change_indices
             tr.respond(r)
     tr.threshold(0)
 
     # bad stop_trials
-    with pytest.raises(ValueError,
-                       match="stop_trials must be an integer or np.inf"):
-        TrackerUD(None, 3, 1, 1, 1, 10, 'foo', 1)
+    with pytest.raises(ValueError, match="stop_trials must be an integer or np.inf"):
+        TrackerUD(None, 3, 1, 1, 1, 10, "foo", 1)
 
     # bad stop_reversals
-    with pytest.raises(ValueError,
-                       match="stop_reversals must be an integer or np.inf"):
-        TrackerUD(None, 3, 1, 1, 1, 'foo', 10, 1)
+    with pytest.raises(ValueError, match="stop_reversals must be an integer or np.inf"):
+        TrackerUD(None, 3, 1, 1, 1, "foo", 10, 1)
 
     # change_indices too long
-    with pytest.raises(ValueError,
-                       match="one element longer than change_indices"):
-        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
-                  change_indices=[1, 2])
+    with pytest.raises(ValueError, match="one element longer than change_indices"):
+        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1, change_indices=[1, 2])
     # step_size_up length mismatch
-    with pytest.raises(ValueError,
-                       match="step_size_up is not scalar it must be one"):
+    with pytest.raises(ValueError, match="step_size_up is not scalar it must be one"):
         TrackerUD(None, 3, 1, [1], [1, 0.5], 10, np.inf, 1, change_indices=[2])
     # step_size_down length mismatch
-    with pytest.raises(ValueError,
-                       match="If step_size_down is not scalar it must be one"):
+    with pytest.raises(
+        ValueError, match="If step_size_down is not scalar it must be one"
+    ):
         TrackerUD(None, 3, 1, [1, 0.5], [1], 10, np.inf, 1, change_indices=[2])
     # bad change_rule
-    with pytest.raises(ValueError,
-                       match="must be either 'trials' or 'reversals"):
-        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1,
-                  change_indices=[2], change_rule='foo')
+    with pytest.raises(ValueError, match="must be either 'trials' or 'reversals"):
+        TrackerUD(
+            None,
+            3,
+            1,
+            [1, 0.5],
+            [1, 0.5],
+            10,
+            np.inf,
+            1,
+            change_indices=[2],
+            change_rule="foo",
+        )
     # no change_indices (i.e. change_indices=None)
-    with pytest.raises(ValueError,
-                       match="If step_size_up is longer than 1, you must"):
+    with pytest.raises(ValueError, match="If step_size_up is longer than 1, you must"):
         TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, 1)
 
     # start_value scalar type checking
     with pytest.raises(TypeError, match="start_value must be a scalar"):
-        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, [9, 5],
-                  change_indices=[2])
+        TrackerUD(
+            None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, [9, 5], change_indices=[2]
+        )
     with pytest.raises(TypeError, match="start_value must be a scalar"):
-        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, None,
-                  change_indices=[2])
+        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, None, change_indices=[2])
 
     # test with multiple change_indices
-    tr = TrackerUD(None, 3, 1, [3, 2, 1], [3, 2, 1], 10, np.inf, 1,
-                   change_indices=[2, 4], change_rule='reversals')
+    tr = TrackerUD(
+        None,
+        3,
+        1,
+        [3, 2, 1],
+        [3, 2, 1],
+        10,
+        np.inf,
+        1,
+        change_indices=[2, 4],
+        change_rule="reversals",
+    )
 
 
 @requires_opengl21
 def test_tracker_binom(hide_window):
     """Test TrackerBinom"""
     tr = TrackerBinom(callback, 0.05, 0.1, 5)
-    with ExperimentController('test', **std_kwargs) as ec:
+    with ExperimentController("test", **std_kwargs) as ec:
         tr = TrackerBinom(ec, 0.05, 0.1, 5)
     tr = TrackerBinom(None, 0.05, 0.5, 2, stop_early=False)
     while not tr.stopped:
@@ -191,29 +212,38 @@ def test_tracker_binom(hide_window):
 def test_tracker_dealer():
     """Test TrackerDealer."""
     # test TrackerDealer with TrackerUD
-    trackers = [[TrackerUD(None, 1, 1, 0.06, 0.02, 20, np.inf,
-                           1) for _ in range(2)] for _ in range(3)]
+    trackers = [
+        [TrackerUD(None, 1, 1, 0.06, 0.02, 20, np.inf, 1) for _ in range(2)]
+        for _ in range(3)
+    ]
     dealer_ud = TrackerDealer(callback, trackers)
 
     # can't respond to a trial twice
     dealer_ud.next()
     dealer_ud.respond(True)
-    with pytest.raises(RuntimeError,
-                       match="You must get a trial before you can respond."):
+    with pytest.raises(
+        RuntimeError, match="You must get a trial before you can respond."
+    ):
         dealer_ud.respond(True)
 
     dealer_ud = TrackerDealer(callback, np.array(trackers))
 
     # can't respond before you pick a tracker and get a trial
-    with pytest.raises(RuntimeError,
-                       match="You must get a trial before you can respond."):
+    with pytest.raises(
+        RuntimeError, match="You must get a trial before you can respond."
+    ):
         dealer_ud.respond(True)
 
     rand = np.random.RandomState(0)
     for sub, x_current in dealer_ud:
         dealer_ud.respond(rand.rand() < x_current)
-        assert np.abs(dealer_ud.trackers[0, 0].n_reversals -
-                      dealer_ud.trackers[1, 0].n_reversals) <= 1
+        assert (
+            np.abs(
+                dealer_ud.trackers[0, 0].n_reversals
+                - dealer_ud.trackers[1, 0].n_reversals
+            )
+            <= 1
+        )
 
     # test array-like indexing
     dealer_ud.trackers[0]
@@ -225,39 +255,41 @@ def test_tracker_dealer():
     dealer_ud.history(True)
 
     # bad rand type
-    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 50, 1)
-                for _ in range(2)]
+    trackers = [TrackerUD(None, 1, 1, 0.06, 0.02, 20, 50, 1) for _ in range(2)]
     with pytest.raises(TypeError, match="argument"):
         TrackerDealer(trackers, rand=1)
 
     # test TrackerDealer with TrackerBinom
-    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=False)
-                for _ in range(2)]    # start_value scalar type checking
+    trackers = [
+        TrackerBinom(None, 0.05, 0.5, 50, stop_early=False) for _ in range(2)
+    ]  # start_value scalar type checking
     with pytest.raises(TypeError, match="start_value must be a scalar"):
-        TrackerUD(None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, [9, 5],
-                  change_indices=[2])
-    dealer_binom = TrackerDealer(callback, trackers, pace_rule='trials')
+        TrackerUD(
+            None, 3, 1, [1, 0.5], [1, 0.5], 10, np.inf, [9, 5], change_indices=[2]
+        )
+    dealer_binom = TrackerDealer(callback, trackers, pace_rule="trials")
     for sub, x_current in dealer_binom:
         dealer_binom.respond(True)
 
     # if you're dealing from TrackerBinom, you can't use stop_early feature
-    trackers = [TrackerBinom(None, 0.05, 0.5, 50, stop_early=True, x_current=3)
-                for _ in range(2)]
-    with pytest.raises(ValueError,
-                       match="be False to deal trials from a TrackerBinom"):
-        TrackerDealer(callback, trackers, 1, 'trials')
+    trackers = [
+        TrackerBinom(None, 0.05, 0.5, 50, stop_early=True, x_current=3)
+        for _ in range(2)
+    ]
+    with pytest.raises(ValueError, match="be False to deal trials from a TrackerBinom"):
+        TrackerDealer(callback, trackers, 1, "trials")
 
     # if you're dealing from TrackerBinom, you can't use reversals to pace
-    with pytest.raises(ValueError,
-                       match="be False to deal trials from a TrackerBinom"):
+    with pytest.raises(ValueError, match="be False to deal trials from a TrackerBinom"):
         TrackerDealer(callback, trackers, 1)
 
 
 def test_tracker_mhw(hide_window):
     """Test TrackerMHW"""
     import matplotlib.pyplot as plt
+
     tr = TrackerMHW(callback, 0, 120)
-    with ExperimentController('test', **std_kwargs) as ec:
+    with ExperimentController("test", **std_kwargs) as ec:
         tr = TrackerMHW(ec, 0, 120)
     tr = TrackerMHW(None, 0, 120)
     rand = np.random.RandomState(0)
@@ -273,11 +305,27 @@ def test_tracker_mhw(hide_window):
     with pytest.raises(RuntimeError, match="Tracker is stopped."):
         tr.respond(0)
 
-    for key in ('base_step', 'factor_down', 'factor_up_nr', 'start_value',
-                'x_min', 'x_max', 'n_up_stop', 'repeat_limit',
-                'n_correct_levels', 'threshold', 'stopped', 'x', 'x_current',
-                'responses', 'n_trials', 'n_reversals', 'reversals',
-                'reversal_inds', 'threshold_reached'):
+    for key in (
+        "base_step",
+        "factor_down",
+        "factor_up_nr",
+        "start_value",
+        "x_min",
+        "x_max",
+        "n_up_stop",
+        "repeat_limit",
+        "n_correct_levels",
+        "threshold",
+        "stopped",
+        "x",
+        "x_current",
+        "responses",
+        "n_trials",
+        "n_reversals",
+        "reversals",
+        "reversal_inds",
+        "threshold_reached",
+    ):
         assert hasattr(tr, key)
 
     fig, ax, lines = tr.plot()
@@ -289,45 +337,42 @@ def test_tracker_mhw(hide_window):
     plt.close(fig)
 
     # start_value scalar type checking
-    with pytest.raises(TypeError, match='start_value must be a scalar'):
+    with pytest.raises(TypeError, match="start_value must be a scalar"):
         TrackerMHW(None, 0, 120, 5, 2, 4, [5, 4], 2)
     # n_up_stop integer check
-    with pytest.raises(TypeError, match='n_up_stop must be an integer'):
+    with pytest.raises(TypeError, match="n_up_stop must be an integer"):
         TrackerMHW(None, 0, 120, 5, 2, 4, 40, 1.5)
     # x_min integer or float check
-    with pytest.raises(TypeError, match='x_min must be a float or integer'):
-        TrackerMHW(None, '5', 120, 5, 2, 4, 40, 2)
+    with pytest.raises(TypeError, match="x_min must be a float or integer"):
+        TrackerMHW(None, "5", 120, 5, 2, 4, 40, 2)
     # x_max integer or float check
-    with pytest.raises(TypeError, match='x_max must be a float or integer'):
-        TrackerMHW(None, 0, '90', 5, 2, 4, 40, 2)
+    with pytest.raises(TypeError, match="x_max must be a float or integer"):
+        TrackerMHW(None, 0, "90", 5, 2, 4, 40, 2)
     # start_value is a multiple of base_step
-    with pytest.raises(ValueError,
-                       match='start_value must be a multiple of base_step'):
+    with pytest.raises(ValueError, match="start_value must be a multiple of base_step"):
         TrackerMHW(None, 0, 120, 5, 2, 4, 41, 2)
     # x_min factor check
-    with pytest.raises(ValueError,
-                       match='x_min must be a multiple of base_step'):
+    with pytest.raises(ValueError, match="x_min must be a multiple of base_step"):
         TrackerMHW(None, 2, 120, 5, 2, 4, 40, 2)
     # x_max factor check
-    with pytest.raises(ValueError,
-                       match='x_max must be a multiple of base_step'):
+    with pytest.raises(ValueError, match="x_max must be a multiple of base_step"):
         TrackerMHW(None, 0, 93, 5, 2, 4, 40, 2)
 
     tr = TrackerMHW(None, 0, 120, 5, 2, 4, 10, 2)
     responses = [True, True, True, True]
-    with pytest.warns(UserWarning, match='exceeded x_min or x_max bounds'):
+    with pytest.warns(UserWarning, match="exceeded x_min or x_max bounds"):
         for r in responses:
             tr.respond(r)
 
     tr = TrackerMHW(None, 0, 120, 5, 2, 4, 40, 2)
     responses = [False, False, False, False, False]
-    with pytest.warns(UserWarning, match='exceeded x_min or x_max bounds'):
+    with pytest.warns(UserWarning, match="exceeded x_min or x_max bounds"):
         for r in responses:
             tr.respond(r)
     assert not tr.check_valid(3)
 
     tr = TrackerMHW(None, 0, 120, 5, 2, 4, 40, 2)
     responses = [False, False, False, False, True, False, False, True]
-    with pytest.warns(UserWarning, match='exceeded x_min or x_max bounds'):
+    with pytest.warns(UserWarning, match="exceeded x_min or x_max bounds"):
         for r in responses:
             tr.respond(r)

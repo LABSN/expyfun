@@ -22,7 +22,7 @@ print(__doc__)
 # directory so we don't break any other code examples, but usually you'd
 # want to do it in the experiment directory:
 temp_dir = tempfile.mkdtemp()
-download_version('c18133c', temp_dir)
+download_version("c18133c", temp_dir)
 
 # Now we would normally need to restart Python so the next ``import expyfun``
 # call imported the proper version. We'd want to add an ``assert_version``
@@ -36,11 +36,11 @@ from expyfun import assert_version
 assert_version('c18133c')
 """
 try:
-    run_subprocess(['python', '-c', cmd], cwd=temp_dir)
+    run_subprocess(["python", "-c", cmd], cwd=temp_dir)
 except Exception as exp:
-    print('Failure: {0}'.format(exp))
+    print(f"Failure: {exp}")
 else:
-    print('Success!')
+    print("Success!")
 
 # Try modifying the commit number to something invalid, and you should
 # see a failure.
