@@ -32,8 +32,10 @@ def _convert_color(color, byte=True):
     color = 255 * np.array(colorConverter.to_rgba(color))
     color = color.astype(np.uint8)
     if not byte:
-        color = (color / 255.0).astype(np.float32)
-    return tuple(color)
+        color = tuple((color / 255.0).astype(np.float32))
+    else:
+        color = tuple(int(c) for c in color)
+    return color
 
 
 def _replicate_color(color, pts):

@@ -521,7 +521,7 @@ class Mouse:
     def _point_in_tri(self, pos, tri):
         """Check to see if a point is in a single triangle"""
         signs = np.sign(
-            [np.cross(tri[np.mod(i + 1, 3)] - tri[i], pos - tri[i]) for i in range(3)]
+            [_cross_2d(tri[np.mod(i + 1, 3)] - tri[i], pos - tri[i]) for i in range(3)]
         )
         if np.all(signs[1:] == signs[0]):
             return True
@@ -694,3 +694,7 @@ for key in ("x", "y", "hat_x", "hat_y", "z", "rz", "rx", "ry"):
     setattr(Joystick, key, _wrap())
     del _wrap
 del key
+
+
+def _cross_2d(arr1, arr2):
+    return arr1[..., 0] * arr2[..., 1] - arr1[..., 1] * arr2[..., 0]

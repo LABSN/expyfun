@@ -42,7 +42,7 @@ jobs:
           pyvista: false
       - run: sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav python3-gst-1.0
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
-      - run: powershell make/get_video.ps1
+      - run: powershell tools/get_video.ps1
         if: ${{ startsWith(matrix.os, 'windows') }}
       - run: |
           set -xeo pipefail
@@ -91,7 +91,7 @@ jobs:
       - run: pip install -ve .[test]
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         if: ${{ matrix.kind != 'old' }}
-      - run: pytest --tb=short --cov=expyfun --cov-report=xml expyfun
+      - run: pytest expyfun
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
