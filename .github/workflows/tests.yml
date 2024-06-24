@@ -20,7 +20,7 @@ jobs:
         shell: bash -el {0}
     strategy:
       matrix:
-        os: ['ubuntu-22.04', 'windows-2022']
+        os: ['ubuntu-22.04', 'windows-2019']
         kind: ['pip']
         python: ['3.12']
         include:
