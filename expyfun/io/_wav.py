@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-"""WAV file IO functions
-"""
+"""WAV file IO functions"""
+
+import warnings
+from os import path as op
 
 import numpy as np
 from scipy.io import wavfile
-from os import path as op
-import warnings
 
-from .._utils import verbose_dec, logger, _has_scipy_version
+from .._utils import _has_scipy_version, logger, verbose_dec
 
 
 @verbose_dec
@@ -36,7 +35,7 @@ def read_wav(fname, verbose=None):
     orig_dtype = data.dtype
     max_val = _get_dtype_norm(orig_dtype)
     data = np.ascontiguousarray(data.astype(np.float64) / max_val)
-    _print_wav_info('Read', data, orig_dtype)
+    _print_wav_info("Read", data, orig_dtype)
     return data, fs
 
 
@@ -61,26 +60,30 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
         If not None, override default verbose level.
     """
     if not overwrite and op.isfile(fname):
-        raise IOError('File {} exists, overwrite=True must be '
-                      'used'.format(op.basename(fname)))
-    if not np.dtype(type(fs)).kind == 'i':
+        raise OSError(
+            f"File {op.basename(fname)} exists, overwrite=True must be " "used"
+        )
+    if not np.dtype(type(fs)).kind == "i":
         fs = int(fs)
-        warnings.warn('Warning: sampling rate is being cast to integer and '
-                      'may be truncated.')
+        warnings.warn(
+            "Warning: sampling rate is being cast to integer and " "may be truncated."
+        )
     data = np.atleast_2d(data)
-    if np.dtype(dtype).kind not in ['i', 'f']:
-        raise TypeError('dtype must be integer or float')
-    if np.dtype(dtype).kind == 'f':
-        if not _has_scipy_version('0.13'):
-            raise RuntimeError('cannot write float datatype unless '
-                               'scipy >= 0.13 is installed')
+    if np.dtype(dtype).kind not in ["i", "f"]:
+        raise TypeError("dtype must be integer or float")
+    if np.dtype(dtype).kind == "f":
+        if not _has_scipy_version("0.13"):
+            raise RuntimeError(
+                "cannot write float datatype unless " "scipy >= 0.13 is installed"
+            )
     elif np.dtype(dtype).itemsize == 8:
-        raise RuntimeError('Writing 64-bit integers is not supported')
-    if np.dtype(data.dtype).kind == 'f':
-        if np.dtype(dtype).kind == 'i' and np.max(np.abs(data)) > 1.:
-            raise ValueError('Data must be between -1 and +1 when saving '
-                             'with an integer dtype')
-    _print_wav_info('Writing', data, dtype)
+        raise RuntimeError("Writing 64-bit integers is not supported")
+    if np.dtype(data.dtype).kind == "f":
+        if np.dtype(dtype).kind == "i" and np.max(np.abs(data)) > 1.0:
+            raise ValueError(
+                "Data must be between -1 and +1 when saving " "with an integer dtype"
+            )
+    _print_wav_info("Writing", data, dtype)
     max_val = _get_dtype_norm(dtype)
     data = (data * max_val).astype(dtype)
     wavfile.write(fname, fs, data.T)
@@ -88,15 +91,16 @@ def write_wav(fname, data, fs, dtype=np.int16, overwrite=False, verbose=None):
 
 def _print_wav_info(pre, data, dtype):
     """Helper to print WAV info"""
-    logger.info('{0} WAV file with {1} channel{3} and {2} samples '
-                '(format {4})'.format(pre, data.shape[0], data.shape[1],
-                                      's' if data.shape[0] != 1 else '',
-                                      dtype))
+    logger.info(
+        "{0} WAV file with {1} channel{3} and {2} samples " "(format {4})".format(
+            pre, data.shape[0], data.shape[1], "s" if data.shape[0] != 1 else "", dtype
+        )
+    )
 
 
 def _get_dtype_norm(dtype):
     """Helper to get normalization factor for a given datatype"""
-    if np.dtype(dtype).kind == 'i':
+    if np.dtype(dtype).kind == "i":
         info = np.iinfo(dtype)
         maxval = min(-info.min, info.max)
     else:  # == 'f'

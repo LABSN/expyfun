@@ -4,12 +4,10 @@ File I/O
 File reading and writing routines.
 """
 
-# -*- coding: utf-8 -*-
+from h5io import read_hdf5 as _read_hdf5, write_hdf5 as _write_hdf5
+
 from ._wav import read_wav, write_wav
-from .._externals._h5io import (read_hdf5 as _read_hdf5,
-                                write_hdf5 as _write_hdf5)
-from ._parse import (read_tab, reconstruct_tracker,
-                     reconstruct_dealer, read_tab_raw)
+from ._parse import read_tab, reconstruct_tracker, reconstruct_dealer, read_tab_raw
 
 
 def read_hdf5(fname):
@@ -29,7 +27,7 @@ def read_hdf5(fname):
     --------
     write_hdf5
     """
-    return _read_hdf5(fname, title='expyfun')
+    return _read_hdf5(fname, title="expyfun")
 
 
 def write_hdf5(fname, data, overwrite=False, compression=4):
@@ -54,4 +52,4 @@ def write_hdf5(fname, data, overwrite=False, compression=4):
     --------
     read_hdf5
     """
-    return _write_hdf5(fname, data, overwrite, compression, title='expyfun')
+    return _write_hdf5(fname, data, overwrite, compression, title="expyfun")

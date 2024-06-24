@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Parallel util functions
-"""
+"""Parallel util functions"""
 
 # Adapted from mne-python with permission
 
@@ -62,9 +60,10 @@ def _check_n_jobs(n_jobs):
         The checked number of jobs. Always positive.
     """
     if not isinstance(n_jobs, int):
-        raise TypeError('n_jobs must be an integer')
+        raise TypeError("n_jobs must be an integer")
     if n_jobs <= 0:
         import multiprocessing
+
         n_cores = multiprocessing.cpu_count()
         n_jobs = max(min(n_cores + n_jobs + 1, n_cores), 1)
     return n_jobs

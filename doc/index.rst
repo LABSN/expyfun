@@ -1,17 +1,11 @@
-.. raw:: html
+=======
+expyfun
+=======
 
-   <div class="jumbotron">
+.. rst-class:: h4 font-weight-light my-4
 
-====================
-Expyfun |headphones|
-====================
-
-A high-precision auditory and visual stimulus delivery library for
-psychoacoustics in Python.
-
-.. raw:: html
-
-   </div></div>
+   A high-precision auditory and visual stimulus delivery library for
+   psychoacoustics in Python.
 
 Purpose
 -------
@@ -49,3 +43,10 @@ Hardware support
 - Mouse responses
 - Cedrus response boxes
 - Joystick control / responses
+
+.. toctree::
+   :hidden:
+
+   getting_started.rst
+   python_reference.rst
+   auto_examples/index.rst

@@ -1,11 +1,10 @@
-"""Stimulus generation functions
-"""
+"""Stimulus generation functions"""
 
 import numpy as np
 
-from ..io import read_hdf5
 from .._fixes import irfft
-from .._utils import fetch_data_file, _fix_audio_dims
+from .._utils import _fix_audio_dims, fetch_data_file
+from ..io import read_hdf5
 
 # This was used to generate "barb_anech.gz":
 #
@@ -54,42 +53,42 @@ def _get_hrtf(angle, source, fs, interp=False):
        Functions", Australian Government Department of Defence: Defence Science
        and Technology Organization, Melbourne, Victoria, Australia, 2007.
     """
-    fname = fetch_data_file('hrtf/{0}_{1}.hdf5'.format(source, fs))
+    fname = fetch_data_file(f"hrtf/{source}_{fs}.hdf5")
     data = read_hdf5(fname)
-    angles = data['angles']
+    angles = data["angles"]
     leftward = False
     read_angle = float(angle)
     if angle < 0:
         leftward = True
         read_angle = float(-angle)
     if read_angle not in angles and not interp:
-        raise ValueError('angle "{0}" must be one of +/-{1}'
-                         ''.format(angle, list(angles)))
-    brir = data['brir']
+        raise ValueError(f'angle "{angle}" must be one of +/-{list(angles)}' "")
+    brir = data["brir"]
     if read_angle in angles:
         interp = False
     if not interp:
         idx = np.where(angles == read_angle)[0]
         if len(idx) != 1:
-            raise ValueError('angle "{0}" not uniquely found in angles'
-                             ''.format(angle))
+            raise ValueError(f'angle "{angle}" not uniquely found in angles' "")
         brir = brir[idx[0]]
     else:  # interpolation
-        if source != 'cipic':
-            raise ValueError('source must be ''cipic'' when interp=True')
+        if source != "cipic":
+            raise ValueError("source must be " "cipic" " when interp=True")
 
         # pull in files containing known hrtfs and extract magnitude and phase
-        fname = fetch_data_file('hrtf/pair_cipic_{0}.hdf5'.format(fs))
+        fname = fetch_data_file(f"hrtf/pair_cipic_{fs}.hdf5")
         data = read_hdf5(fname)
-        hrtf_amp = data['hrtf_amp']
-        hrtf_phase = data['hrtf_phase']
-        pairs = data['pairs']
+        hrtf_amp = data["hrtf_amp"]
+        hrtf_phase = data["hrtf_phase"]
+        pairs = data["pairs"]
 
         # isolate appropriate pair of amplitude and phase
         idx = np.searchsorted(angles, read_angle)
         if idx > len(pairs):
-            raise ValueError('angle magnitude "{0}" must be smaller than "{1}"'
-                             ''.format(read_angle, pairs[-1][-1]))
+            raise ValueError(
+                f'angle magnitude "{read_angle}" must be smaller than "{pairs[-1][-1]}"'
+                ""
+            )
         knowns = np.array([angles[idx - 1], angles[idx]])
         index = np.where(pairs == knowns)[0][0]
         hrtf_amp = hrtf_amp[index]
@@ -98,20 +97,18 @@ def _get_hrtf(angle, source, fs, interp=False):
         # weighted averages of log magnitude and unwrapped phase
         step = float(knowns[1] - knowns[0])
         weights = (step - np.abs(read_angle - knowns)) / step
-        hrtf_amp = np.prod(hrtf_amp ** weights[:, np.newaxis, np.newaxis],
-                           axis=0)
-        hrtf_phase = np.sum(hrtf_phase * weights[:, np.newaxis, np.newaxis],
-                            axis=0)
+        hrtf_amp = np.prod(hrtf_amp ** weights[:, np.newaxis, np.newaxis], axis=0)
+        hrtf_phase = np.sum(hrtf_phase * weights[:, np.newaxis, np.newaxis], axis=0)
 
         # reconstruct hrtf and convert to time domain
         hrtf = hrtf_amp * np.exp(1j * hrtf_phase)
         brir = irfft(hrtf, int(hrtf.shape[-1]))
 
-    return brir, data['fs'], leftward
+    return brir, data["fs"], leftward
 
 
-def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
-    """Convolve a signal with a head-related transfer function
+def convolve_hrtf(data, fs, angle, source="cipic", interp=False):
+    """Convolve a signal with a head-related transfer function.
 
     Technically we will be convolving with binaural room impulse
     responses (BRIRs), but HRTFs (freq-domain equiv. representations)
@@ -147,7 +144,7 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
 
     Additional documentation:
 
-        http://earlab.bu.edu/databases/collections/cipic/documentation/hrir_data_documentation.pdf  # noqa
+        http://earlab.bu.edu/databases/collections/cipic/documentation/hrir_data_documentation.pdf
 
     The data were modified to suit our experimental needs. Below is the
     licensing information for the CIPIC data:
@@ -183,16 +180,17 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
 
     CIPIC- Center for Image Processing and Integrated Computing University of
     California 1 Shields Avenue Davis, CA 95616-8553
-    """
+    """  # noqa: E501
     fs = float(fs)
     angle = float(angle)
-    known_sources = ['barb', 'cipic']
+    known_sources = ["barb", "cipic"]
     known_fs = [24414, 44100]  # must be sorted
     if source not in known_sources:
-        raise ValueError('Source "{0}" unknown, must be one of {1}'
-                         ''.format(source, known_sources))
+        raise ValueError(
+            f'Source "{source}" unknown, must be one of {known_sources}' ""
+        )
     if not isinstance(interp, bool):
-        raise ValueError('interp must be bool')
+        raise ValueError("interp must be bool")
     data = np.array(data, np.float64)
     data = _fix_audio_dims(data, n_channels=1).ravel()
 
@@ -205,6 +203,7 @@ def convolve_hrtf(data, fs, angle, source='cipic', interp=False):
     order = [1, 0] if leftward else [0, 1]
     if not np.allclose(brir_fs, fs, rtol=0, atol=0.5):
         from mne.filter import resample
+
         brir = [resample(b, fs, brir_fs) for b in brir]
     out = np.array([np.convolve(data, brir[o]) for o in order])
     return out
