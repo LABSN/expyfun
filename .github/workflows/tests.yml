@@ -1,0 +1,107 @@
+name: 'tests'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  job:
+    name: ${{ matrix.os }} ${{ matrix.kind }}
+    continue-on-error: true
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    strategy:
+      matrix:
+        include:
+          # 24.04 works except for the video test, even though it works locally on 24.10
+          - os: ubuntu-22.04
+            kind: pip
+            python: '3.12'
+          # ARM64 will probably need to wait until
+          # - os: 'macos-latest'  # arm64
+          #   kind: 'conda'
+          #   python: '3.12'
+          - os: 'macos-13'  # intel
+            kind: 'conda'
+            python: '3.12'
+          # TODO: There is a bug on Python 3.12 on Windows :(
+          - os: 'windows-latest'
+            kind: 'pip'
+            python: '3.11'
+          - os: 'ubuntu-20.04'
+            kind: 'old'
+            python: '3.8'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: LABSN/sound-ci-helpers@v1
+      - uses: pyvista/setup-headless-display-action@main
+        with:
+          qt: true
+          pyvista: false
+      # Use -dev here just to get whichever version is right (e.g., 22.04 has a different version from 24.04)
+      - run: sudo apt install -q libavutil-dev libavcodec-dev libavformat-dev libswscale-dev libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      - run: powershell tools/get_video.ps1
+        if: ${{ startsWith(matrix.os, 'windows') }}
+      - run: |
+          set -xeo pipefail
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            echo "Setting env vars for Windows"
+            echo "AZURE_CI_WINDOWS=true" >> $GITHUB_ENV
+            echo "SOUND_CARD_BACKEND=rtmixer" >> $GITHUB_ENV
+            echo "SOUND_CARD_NAME=Speakers" >> $GITHUB_ENV
+            echo "SOUND_CARD_FS=48000" >> $GITHUB_ENV
+            echo "SOUND_CARD_API=Windows WDM-KS" >> $GITHUB_ENV
+          elif [[ "${{ runner.os }}" == "Linux" ]]; then
+            echo "Setting env vars for Linux"
+            echo "_EXPYFUN_SILENT=true" >> $GITHUB_ENV
+            echo "SOUND_CARD_BACKEND=pyglet" >> $GITHUB_ENV
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            echo "Setting env vars for macOS"
+          fi
+        name: Set env vars
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+        if: matrix.kind != 'conda'
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: 'environment_test.yml'
+          create-args: python=${{ matrix.python }}
+          init-shell: bash
+        if: matrix.kind == 'conda'
+      # Pyglet pin: https://github.com/pyglet/pyglet/issues/1089 (and need OpenGL2 compat for Pyglet>=2, too)
+      - run: python -m pip install --upgrade pip setuptools wheel sounddevice "pyglet<1.5.28"
+      - run: python -m pip install --upgrade --only-binary="rtmixer,scipy,matplotlib,pandas,numpy" rtmixer pyglet-ffmpeg scipy matplotlib pandas h5py mne numpydoc pillow joblib
+        if: matrix.kind == 'pip'
+      # arm64 has issues with rtmixer / PortAudio
+      - run: python -m pip install --only-binary="rtmixer" rtmixer
+        if: matrix.kind == 'conda' && matrix.os != 'macos-latest'
+      - run: python -m pip install --only-binary="rtmixer,numpy,scipy,matplotlib" rtmixer "pyglet<1.4" numpy scipy matplotlib "pillow<8"
+        if: matrix.kind == 'old'
+      - run: python -m pip install tdtpy
+        if: startsWith(matrix.os, 'windows')
+      - run: python -m sounddevice
+      - run: |
+          set -o pipefail
+          python -m sounddevice | grep "[82] out"
+        name: Check that there is some output device
+      - run: python -c "import pyglet; print(pyglet.version)"
+      - run: python -c "import matplotlib.pyplot as plt"
+      - run: pip install -ve .[test]
+      # Video hangs on macOS arm64, not sure why
+      - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
+        if: matrix.kind != 'old' && matrix.os != 'macos-latest'
+      - run: pytest expyfun --cov-report=xml --cov=expyfun
+      - uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+        if: always()

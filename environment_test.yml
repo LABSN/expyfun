@@ -1,20 +1,19 @@
 name: test
 channels:
-- conda-forge
+  - conda-forge
 dependencies:
-- scipy
-- matplotlib
-- pandas
-- h5py
-- coverage
-- setuptools
-- mne-base
-- numpydoc
-- pytest
-- pytest-cov
-- pytest-timeout
-- pillow
-- joblib
-- ffmpeg
-- codecov
+  - scipy
+  - matplotlib
+  - pandas
+  - h5py
+  - coverage
+  - setuptools
+  - mne-base
+  - numpydoc
+  - pytest
+  - pytest-cov
+  - pytest-timeout
+  - pillow
+  - joblib
+  - ffmpeg<6
 # Do pip separately

@@ -1,19 +1,14 @@
-# -*- coding: utf-8 -*-
-"""Analysis functions (mostly for psychophysics data).
-"""
+"""Analysis functions (mostly for psychophysics data)."""
 
-from collections import namedtuple
 import warnings
+from collections import namedtuple
 
 import numpy as np
 import scipy.stats as ss
 from scipy.optimize import curve_fit
 
-from .._utils import string_types
 
-
-def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
-                        return_type='counts'):
+def press_times_to_hmfc(presses, targets, foils, tmin, tmax, return_type="counts"):
     """Convert press times to hits/misses/FA/CR and reaction times
 
     Parameters
@@ -58,15 +53,15 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     press by this function. However, there is no such de-bouncing of responses
     to "other" times.
     """
-    known_types = ['counts', 'rts']
-    if isinstance(return_type, string_types):
+    known_types = ["counts", "rts"]
+    if isinstance(return_type, str):
         singleton = True
         return_type = [return_type]
     else:
         singleton = False
     for r in return_type:
-        if not isinstance(r, string_types) or r not in known_types:
-            raise ValueError('r must be one of %s, got %s' % (known_types, r))
+        if not isinstance(r, str) or r not in known_types:
+            raise ValueError("r must be one of %s, got %s" % (known_types, r))
     # Sanity check that targets and foils don't overlap (due to tmin/tmax)
     targets = np.atleast_1d(targets)
     foils = np.atleast_1d(foils)
@@ -77,7 +72,7 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     order = np.argsort(stim_times)
     stim_times = stim_times[order]
     if not np.all(stim_times[:-1] + tmax <= stim_times[1:] + tmin):
-        raise ValueError('Analysis windows for targets and foils overlap')
+        raise ValueError("Analysis windows for targets and foils overlap")
     # figure out what targ/mask times our presses correspond to
     press_to_stim = np.searchsorted(stim_times, presses - tmin) - 1
     if len(press_to_stim) > 0:
@@ -88,8 +83,7 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     assert (stim_times <= presses).all()
 
     # figure out which presses were valid (to target or masker)
-    valid_mask = ((presses >= stim_times + tmin) &
-                  (presses <= stim_times + tmax))
+    valid_mask = (presses >= stim_times + tmin) & (presses <= stim_times + tmax)
     n_other = np.sum(~valid_mask)
     press_to_stim = press_to_stim[valid_mask]
     presses = presses[valid_mask]
@@ -105,14 +99,16 @@ def press_times_to_hmfc(presses, targets, foils, tmin, tmax,
     del used_map_idx
 
     # figure out which valid presses were to target or masker
-    target_mask = (order <= len(targets))
+    target_mask = order <= len(targets)
     n_hit = np.sum(target_mask)
     n_fa = len(target_mask) - n_hit
     n_miss = len(targets) - n_hit
     n_cr = len(foils) - n_fa
-    outs = dict(counts=(n_hit, n_miss, n_fa, n_cr, n_other),
-                rts=(diffs[target_mask], diffs[~target_mask]))
-    assert outs['counts'][:4:2] == tuple(map(len, outs['rts']))
+    outs = dict(
+        counts=(n_hit, n_miss, n_fa, n_cr, n_other),
+        rts=(diffs[target_mask], diffs[~target_mask]),
+    )
+    assert outs["counts"][:4:2] == tuple(map(len, outs["rts"]))
     outs = tuple(outs[r] for r in return_type)
     if singleton:
         outs = outs[0]
@@ -141,7 +137,7 @@ def logit(prop, max_events=None):
     """
     prop = np.atleast_1d(prop).astype(float)
     if np.any([prop > 1, prop < 0]):
-        raise ValueError('Proportions must be in the range [0, 1].')
+        raise ValueError("Proportions must be in the range [0, 1].")
     if max_events is not None:
         # add equivalent of half an event to 0s, and subtract same from 1s
         max_events = np.atleast_1d(max_events) * np.ones_like(prop)
@@ -150,10 +146,10 @@ def logit(prop, max_events=None):
             prop[loc] = corr_factor[loc]
         for loc in zip(*np.where(prop == 1)):
             prop[loc] = 1 - corr_factor[loc]
-    return np.log(prop / (1. - prop))
+    return np.log(prop / (1.0 - prop))
 
 
-def sigmoid(x, lower=0., upper=1., midpt=0., slope=1.):
+def sigmoid(x, lower=0.0, upper=1.0, midpt=0.0, slope=1.0):
     """Calculate sigmoidal values along the x-axis
 
     Parameters
@@ -213,23 +209,21 @@ def fit_sigmoid(x, y, p0=None, fixed=()):
     # Initial estimates
     x = np.asarray(x)
     y = np.asarray(y)
-    k = 2 * 4. / (np.max(x) - np.min(x))
+    k = 2 * 4.0 / (np.max(x) - np.min(x))
     if p0 is None:
         p0 = [None] * 4
     p0 = list(p0)
-    for ii, p in enumerate([np.min(y), np.max(y),
-                            np.mean([np.max(x), np.min(x)]), k]):
+    for ii, p in enumerate([np.min(y), np.max(y), np.mean([np.max(x), np.min(x)]), k]):
         p0[ii] = p if p0[ii] is None else p0[ii]
     p0 = np.array(p0, dtype=np.float64)
     if p0.size != 4 or p0.ndim != 1:
-        raise ValueError('p0 must have 4 elements, or be None')
+        raise ValueError("p0 must have 4 elements, or be None")
 
     # Fixing values
-    p_types = ('lower', 'upper', 'midpt', 'slope')
+    p_types = ("lower", "upper", "midpt", "slope")
     for f in fixed:
         if f not in p_types:
-            raise ValueError('fixed {0} not in parameter list {1}'
-                             ''.format(f, p_types))
+            raise ValueError(f"fixed {f} not in parameter list {p_types}" "")
     fixed = np.array([(True if f in fixed else False) for f in p_types], bool)
 
     kwargs = dict()
@@ -243,7 +237,7 @@ def fit_sigmoid(x, y, p0=None, fixed=()):
             idx.append(ii)
     p0 = p0[idx]
     if len(idx) == 0:
-        raise RuntimeError('cannot fit with all fixed values')
+        raise RuntimeError("cannot fit with all fixed values")
 
     def wrapper(*args):
         assert len(args) == len(keys) + 1
@@ -255,7 +249,7 @@ def fit_sigmoid(x, y, p0=None, fixed=()):
     assert len(idx) == len(out)
     for ii, o in zip(idx, out):
         kwargs[p_types[ii]] = o
-    return namedtuple('params', p_types)(**kwargs)
+    return namedtuple("params", p_types)(**kwargs)
 
 
 def rt_chisq(x, axis=None, warn=True):
@@ -294,30 +288,29 @@ def rt_chisq(x, axis=None, warn=True):
     """
     x = np.asarray(x)
     if np.any(np.less(x, 0)):  # save the user some pain
-        raise ValueError('x cannot have negative values')
+        raise ValueError("x cannot have negative values")
     if axis is None:
         df, _, scale = ss.chi2.fit(x, floc=0)
     else:
+
         def fit(x):
             return np.array(ss.chi2.fit(x, floc=0))
+
         params = np.apply_along_axis(fit, axis=axis, arr=x)  # df, loc, scale
-        pmut = np.concatenate((np.atleast_1d(axis),
-                               np.delete(np.arange(x.ndim), axis)))
+        pmut = np.concatenate((np.atleast_1d(axis), np.delete(np.arange(x.ndim), axis)))
         df = np.transpose(params, pmut)[0]
         scale = np.transpose(params, pmut)[2]
     quartiles = np.percentile(x, (25, 75))
     whiskers = quartiles + np.array((-1.5, 1.5)) * np.diff(quartiles)
-    n_bad = np.sum(np.logical_or(np.less(x, whiskers[0]),
-                                 np.greater(x, whiskers[1])))
+    n_bad = np.sum(np.logical_or(np.less(x, whiskers[0]), np.greater(x, whiskers[1])))
     if n_bad > 0 and warn:
-        warnings.warn('{0} likely bad values in x (of {1})'
-                      ''.format(n_bad, x.size))
+        warnings.warn(f"{n_bad} likely bad values in x (of {x.size})" "")
     peak = np.maximum(0, (df - 2)) * scale
     return peak
 
 
 def dprime(hmfc, zero_correction=True, return_bias=False, two_interval=False):
-    u"""Estimate d′ and bias.
+    """Estimate d′ and bias.
 
     Parameters
     ----------
@@ -366,13 +359,11 @@ def dprime(hmfc, zero_correction=True, return_bias=False, two_interval=False):
     """
     hmfc = _check_dprime_inputs(hmfc)
     a = 0.5 if zero_correction else 0.0
-    z_hr = ss.norm.ppf((hmfc[..., 0] + a) /
-                       (hmfc[..., 0] + hmfc[..., 1] + 2 * a))
-    z_fr = ss.norm.ppf((hmfc[..., 2] + a) /
-                       (hmfc[..., 2] + hmfc[..., 3] + 2 * a))
-    cf = 1. / np.sqrt(2) if two_interval else 1.
+    z_hr = ss.norm.ppf((hmfc[..., 0] + a) / (hmfc[..., 0] + hmfc[..., 1] + 2 * a))
+    z_fr = ss.norm.ppf((hmfc[..., 2] + a) / (hmfc[..., 2] + hmfc[..., 3] + 2 * a))
+    cf = 1.0 / np.sqrt(2) if two_interval else 1.0
     dp = cf * (z_hr - z_fr)
-    bias = (z_hr + z_fr) / -2.
+    bias = (z_hr + z_fr) / -2.0
     return (dp, bias) if return_bias else dp
 
 
@@ -386,10 +377,13 @@ def _check_dprime_inputs(hmfc):
     """
     hmfc = np.asarray(hmfc)
     if hmfc.shape[-1] != 4:
-        raise ValueError('Array must have last dimension 4')
+        raise ValueError("Array must have last dimension 4")
     if hmfc.dtype not in (np.int64, np.int32):
-        warnings.warn('Argument (%s) to dprime() cast to np.int64; floating '
-                      'point values will have been truncated.' % hmfc.dtype,
-                      RuntimeWarning, stacklevel=3)
+        warnings.warn(
+            "Argument (%s) to dprime() cast to np.int64; floating "
+            "point values will have been truncated." % hmfc.dtype,
+            RuntimeWarning,
+            stacklevel=3,
+        )
         hmfc = hmfc.astype(np.int64)
     return hmfc

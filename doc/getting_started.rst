@@ -1,5 +1,3 @@
-:orphan:
-
 Getting started
 ===============
 
@@ -14,7 +12,7 @@ Installing expyfun
 
 Python
 ^^^^^^
-The first step is to install a Python 3.7+ distribution. See tutorials on other
+The first step is to install a Python 3.8+ distribution. See tutorials on other
 sites for how to do this.
 
 Dependencies
@@ -144,7 +142,7 @@ based on the screen size in pixels and physical screen width.
 
 Other settings depend on whether you use TDT / sound card / parallel port for
 auditory stimuli and triggering. Possibilities can be seen by looking at
-:py:obj:`expyfun.known_config_types`. Your current system configuration can be
+:obj:`expyfun.known_config_types`. Your current system configuration can be
 viewed by doing::
 
     >>> expyfun.get_config()
@@ -165,8 +163,7 @@ The fixed, hardware-dependent settings for a given system get written to
 an ``expyfun.json`` file. You can use :func:`expyfun.get_config_path` to
 get the path to your config file. Some sample configurations:
 
-- A TDT-based M/EEG+pupillometry machine:
-
+A TDT-based M/EEG+pupillometry machine
   .. code-block:: JSON
 
     {
@@ -182,8 +179,7 @@ get the path to your config file. Some sample configurations:
     "TRIGGER_CONTROLLER": "tdt"
     }
 
-- A sound-card-based EEG system:
-
+A sound-card-based EEG system
   .. code-block:: JSON
 
     {

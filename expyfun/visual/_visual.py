@@ -1,6 +1,4 @@
-"""
-Visual stimulus design
-======================
+"""Visual stimulus design.
 
 Tools for drawing shapes and text on the screen.
 """
@@ -11,41 +9,45 @@ Tools for drawing shapes and text on the screen.
 #
 # License: BSD (3-clause)
 
-from ctypes import (cast, pointer, POINTER, create_string_buffer, c_char,
-                    c_int, c_float)
-from functools import partial
 import re
-
 import warnings
+from ctypes import POINTER, c_char, c_float, c_int, cast, create_string_buffer, pointer
+from functools import partial
+
 import numpy as np
+
 try:
     from PyOpenGL import gl
 except ImportError:
     from pyglet import gl
 
-from .._utils import check_units, string_types, logger, _new_pyglet
+from .._utils import _new_pyglet, check_units, logger
 
 
 def _convert_color(color, byte=True):
-    """Convert 3- or 4-element color into OpenGL usable color"""
+    """Convert 3- or 4-element color into OpenGL usable color."""
     from matplotlib.colors import colorConverter
-    color = (0., 0., 0., 0.) if color is None else color
+
+    color = (0.0, 0.0, 0.0, 0.0) if color is None else color
     color = 255 * np.array(colorConverter.to_rgba(color))
     color = color.astype(np.uint8)
     if not byte:
-        color = (color / 255.).astype(np.float32)
-    return tuple(color)
+        color = tuple((color / 255.0).astype(np.float32))
+    else:
+        color = tuple(int(c) for c in color)
+    return color
 
 
 def _replicate_color(color, pts):
-    """Convert single color to color array for OpenGL trianglulations"""
+    """Convert single color to color array for OpenGL triangulations."""
     return np.tile(color, len(pts) // 2)
 
 
 ##############################################################################
 # Text
 
-class Text(object):
+
+class Text:
     """A text object.
 
     Parameters
@@ -93,31 +95,47 @@ class Text(object):
         The text object.
     """
 
-    def __init__(self, ec, text, pos=(0, 0), color='white',
-                 font_name='Arial', font_size=24, height=None,
-                 width='auto', anchor_x='center', anchor_y='center',
-                 units='norm', wrap=False, attr=True):
+    def __init__(
+        self,
+        ec,
+        text,
+        pos=(0, 0),
+        color="white",
+        font_name="Arial",
+        font_size=24,
+        height=None,
+        width="auto",
+        anchor_x="center",
+        anchor_y="center",
+        units="norm",
+        wrap=False,
+        attr=True,
+    ):
         import pyglet
+
         pos = np.array(pos)[:, np.newaxis]
-        pos = ec._convert_units(pos, units, 'pix')
-        if width == 'auto':
+        pos = ec._convert_units(pos, units, "pix")[:, 0]
+        if width == "auto":
             width = float(ec.window_size_pix[0]) * 0.8
-        elif isinstance(width, string_types):
+        elif isinstance(width, str):
             raise ValueError('"width", if str, must be "auto"')
         self._attr = attr
         if wrap:
-            text = text + '\n '  # weird Pyglet bug
+            text = text + "\n "  # weird Pyglet bug
         if self._attr:
-            preamble = ('{{font_name \'{}\'}}{{font_size {}}}{{color {}}}'
-                        '').format(font_name, font_size, _convert_color(color))
+            preamble = (
+                f"{{font_name '{font_name}'}}"
+                f"{{font_size {font_size}}}"
+                f"{{color {_convert_color(color)}}}"
+            )
             doc = pyglet.text.decode_attributed(preamble + text)
             self._text = pyglet.text.layout.TextLayout(
-                doc, width=width, height=height, multiline=wrap,
-                dpi=int(ec.dpi))
+                doc, width=width, height=height, multiline=wrap, dpi=int(ec.dpi)
+            )
         else:
             self._text = pyglet.text.Label(
-                text, width=width, height=height, multiline=wrap,
-                dpi=int(ec.dpi))
+                text, width=width, height=height, multiline=wrap, dpi=int(ec.dpi)
+            )
             self._text.color = _convert_color(color)
             self._text.font_name = font_name
             self._text.font_size = font_size
@@ -135,8 +153,9 @@ class Text(object):
             The color. Use None for no color.
         """
         if self._attr:
-            self._text.document.set_style(0, len(self._text.document.text),
-                                          {'color': _convert_color(color)})
+            self._text.document.set_style(
+                0, len(self._text.document.text), {"color": _convert_color(color)}
+            )
         else:
             self._text.color = _convert_color(color)
 
@@ -178,9 +197,11 @@ def _check_log(obj, func):
     func(obj, 4096, pointer(c_int()), ptr)
     message = log.value
     message = message.decode()
-    if message.startswith('No errors') or \
-            re.match('.*shader was successfully compiled.*', message) or \
-            message == 'Vertex shader(s) linked, fragment shader(s) linked.\n':
+    if (
+        message.startswith("No errors")
+        or re.match(".*shader was successfully compiled.*", message)
+        or message == "Vertex shader(s) linked, fragment shader(s) linked.\n"
+    ):
         pass
     elif message:
         raise RuntimeError(message)
@@ -190,14 +211,14 @@ def _create_program(ec, vert, frag):
     program = gl.glCreateProgram()
 
     vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
-    buf = create_string_buffer(vert.encode('ASCII'))
+    buf = create_string_buffer(vert.encode("ASCII"))
     ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
     gl.glShaderSource(vertex, 1, ptr, None)
     gl.glCompileShader(vertex)
     _check_log(vertex, gl.glGetShaderInfoLog)
 
     fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
-    buf = create_string_buffer(frag.encode('ASCII'))
+    buf = create_string_buffer(frag.encode("ASCII"))
     ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
     gl.glShaderSource(fragment, 1, ptr, None)
     gl.glCompileShader(fragment)
@@ -213,9 +234,9 @@ def _create_program(ec, vert, frag):
 
     # Set the view matrix
     gl.glUseProgram(program)
-    loc = gl.glGetUniformLocation(program, b'u_view')
+    loc = gl.glGetUniformLocation(program, b"u_view")
     view = ec.window_size_pix
-    view = np.diag([2. / view[0], 2. / view[1], 1., 1.])
+    view = np.diag([2.0 / view[0], 2.0 / view[1], 1.0, 1.0])
     view[-1, :2] = -1
     view = view.astype(np.float32).ravel()
     gl.glUniformMatrix4fv(loc, 1, False, (c_float * 16)(*view))
@@ -223,7 +244,7 @@ def _create_program(ec, vert, frag):
     return program
 
 
-class _Triangular(object):
+class _Triangular:
     """Super class for objects that use triangulations and/or lines"""
 
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
@@ -240,13 +261,13 @@ class _Triangular(object):
         self._buffers = dict()
         self._points = dict()
         self._tris = dict()
-        for kind in ('line', 'fill'):
+        for kind in ("line", "fill"):
             self._counts[kind] = 0
-            self._colors[kind] = (0., 0., 0., 0.)
+            self._colors[kind] = (0.0, 0.0, 0.0, 0.0)
             self._buffers[kind] = dict(array=gl.GLuint())
-            gl.glGenBuffers(1, pointer(self._buffers[kind]['array']))
-        self._buffers['fill']['index'] = gl.GLuint()
-        gl.glGenBuffers(1, pointer(self._buffers['fill']['index']))
+            gl.glGenBuffers(1, pointer(self._buffers[kind]["array"]))
+        self._buffers["fill"]["index"] = gl.GLuint()
+        gl.glGenBuffers(1, pointer(self._buffers["fill"]["index"]))
         gl.glUseProgram(0)
 
         self.set_fill_color(fill_color)
@@ -256,12 +277,12 @@ class _Triangular(object):
         """Set fill and line points."""
         if points is None:
             self._counts[kind] = 0
-        points = np.asarray(points, dtype=np.float32, order='C')
+        points = np.asarray(points, dtype=np.float32, order="C")
         assert points.ndim == 2 and points.shape[1] == 2
-        array_count = points.size // 2 if kind == 'line' else points.size
-        if kind == 'fill':
+        array_count = points.size // 2 if kind == "line" else points.size
+        if kind == "fill":
             assert tris is not None
-            tris = np.asarray(tris, dtype=np.uint32, order='C')
+            tris = np.asarray(tris, dtype=np.uint32, order="C")
             assert tris.ndim == 1 and tris.size % 3 == 0
             tris.shape = (-1, 3)
             assert (tris < len(points)).all()
@@ -271,29 +292,33 @@ class _Triangular(object):
         del points
 
         gl.glUseProgram(self._program)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers[kind]['array'])
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, self._points[kind].size * 4,
-                        self._points[kind].tobytes(),
-                        gl.GL_STATIC_DRAW)
-        if kind == 'line':
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers[kind]["array"])
+        gl.glBufferData(
+            gl.GL_ARRAY_BUFFER,
+            self._points[kind].size * 4,
+            self._points[kind].tobytes(),
+            gl.GL_STATIC_DRAW,
+        )
+        if kind == "line":
             self._counts[kind] = array_count
-        if kind == 'fill':
+        if kind == "fill":
             self._counts[kind] = self._tris[kind].size
-            gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER,
-                            self._buffers[kind]['index'])
-            gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER,
-                            self._tris[kind].size * 4,
-                            self._tris[kind].tobytes(),
-                            gl.GL_STATIC_DRAW)
+            gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self._buffers[kind]["index"])
+            gl.glBufferData(
+                gl.GL_ELEMENT_ARRAY_BUFFER,
+                self._tris[kind].size * 4,
+                self._tris[kind].tobytes(),
+                gl.GL_STATIC_DRAW,
+            )
             gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, 0)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glUseProgram(0)
 
     def _set_fill_points(self, points, tris):
-        self._set_points(points, 'fill', tris)
+        self._set_points(points, "fill", tris)
 
     def _set_line_points(self, points):
-        self._set_points(points, 'line', None)
+        self._set_points(points, "line", None)
 
     def set_fill_color(self, fill_color):
         """Set the object color
@@ -303,7 +328,7 @@ class _Triangular(object):
         fill_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
-        self._colors['fill'] = _convert_color(fill_color, byte=False)
+        self._colors["fill"] = _convert_color(fill_color, byte=False)
 
     def set_line_color(self, line_color):
         """Set the object color
@@ -313,7 +338,7 @@ class _Triangular(object):
         line_color : matplotlib Color | None
             The fill color. Use None for no fill.
         """
-        self._colors['line'] = _convert_color(line_color, byte=False)
+        self._colors["line"] = _convert_color(line_color, byte=False)
 
     def set_line_width(self, line_width):
         """Set the line width in pixels
@@ -326,15 +351,15 @@ class _Triangular(object):
         """
         line_width = float(line_width)
         if not (0.0 <= line_width <= 10.0):
-            raise ValueError('line_width must be between 0 and 10')
+            raise ValueError("line_width must be between 0 and 10")
         self._line_width = line_width
 
     def draw(self):
         """Draw the object to the display buffer."""
         gl.glUseProgram(self._program)
-        for kind in ('fill', 'line'):
+        for kind in ("fill", "line"):
             if self._counts[kind] > 0:
-                if kind == 'line':
+                if kind == "line":
                     if self._line_width <= 0.0:
                         continue
                     gl.glLineWidth(self._line_width)
@@ -344,22 +369,26 @@ class _Triangular(object):
                         mode = gl.GL_LINE_STRIP
                     cmd = partial(gl.glDrawArrays, mode, 0, self._counts[kind])
                 else:
-                    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER,
-                                    self._buffers[kind]['index'])
-                    cmd = partial(gl.glDrawElements, gl.GL_TRIANGLES,
-                                  self._counts[kind], gl.GL_UNSIGNED_INT, 0)
-                gl.glBindBuffer(gl.GL_ARRAY_BUFFER,
-                                self._buffers[kind]['array'])
-                loc_pos = gl.glGetAttribLocation(self._program, b'a_position')
+                    gl.glBindBuffer(
+                        gl.GL_ELEMENT_ARRAY_BUFFER, self._buffers[kind]["index"]
+                    )
+                    cmd = partial(
+                        gl.glDrawElements,
+                        gl.GL_TRIANGLES,
+                        self._counts[kind],
+                        gl.GL_UNSIGNED_INT,
+                        0,
+                    )
+                gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers[kind]["array"])
+                loc_pos = gl.glGetAttribLocation(self._program, b"a_position")
                 gl.glEnableVertexAttribArray(loc_pos)
-                gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE,
-                                         0, 0)
-                loc_col = gl.glGetUniformLocation(self._program, b'u_color')
+                gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+                loc_col = gl.glGetUniformLocation(self._program, b"u_color")
                 gl.glUniform4f(loc_col, *self._colors[kind])
                 cmd()
                 # cleanup
                 gl.glDisableVertexAttribArray(loc_pos)
-                if kind != 'line':
+                if kind != "line":
                     gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, 0)
                 gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glUseProgram(0)
@@ -390,14 +419,27 @@ class Line(_Triangular):
         The line object.
     """
 
-    def __init__(self, ec, coords, units='norm', line_color='white',
-                 line_width=1.0, line_loop=False):
-        _Triangular.__init__(self, ec, fill_color=None, line_color=line_color,
-                             line_width=line_width, line_loop=line_loop)
+    def __init__(
+        self,
+        ec,
+        coords,
+        units="norm",
+        line_color="white",
+        line_width=1.0,
+        line_loop=False,
+    ):
+        _Triangular.__init__(
+            self,
+            ec,
+            fill_color=None,
+            line_color=line_color,
+            line_width=line_width,
+            line_loop=line_loop,
+        )
         self.set_coords(coords, units)
         self.set_line_color(line_color)
 
-    def set_coords(self, coords, units='norm'):
+    def set_coords(self, coords, units="norm"):
         """Set line coordinates
 
         Parameters
@@ -412,10 +454,12 @@ class Line(_Triangular):
         if coords.ndim == 1:
             coords = coords[:, np.newaxis]
         if coords.ndim != 2 or coords.shape[0] != 2:
-            raise ValueError('coords must be a vector of length 2, or an '
-                             'array with 2 dimensions (with first dimension '
-                             'having length 2')
-        self._set_line_points(self._ec._convert_units(coords, units, 'pix').T)
+            raise ValueError(
+                "coords must be a vector of length 2, or an "
+                "array with 2 dimensions (with first dimension "
+                "having length 2"
+            )
+        self._set_line_points(self._ec._convert_units(coords, units, "pix").T)
 
 
 class Triangle(_Triangular):
@@ -443,15 +487,27 @@ class Triangle(_Triangular):
         The triangle object.
     """
 
-    def __init__(self, ec, coords, units='norm', fill_color='white',
-                 line_color=None, line_width=1.0):
-        _Triangular.__init__(self, ec, fill_color=fill_color,
-                             line_color=line_color, line_width=line_width,
-                             line_loop=True)
+    def __init__(
+        self,
+        ec,
+        coords,
+        units="norm",
+        fill_color="white",
+        line_color=None,
+        line_width=1.0,
+    ):
+        _Triangular.__init__(
+            self,
+            ec,
+            fill_color=fill_color,
+            line_color=line_color,
+            line_width=line_width,
+            line_loop=True,
+        )
         self.set_coords(coords, units)
         self.set_fill_color(fill_color)
 
-    def set_coords(self, coords, units='norm'):
+    def set_coords(self, coords, units="norm"):
         """Set triangle coordinates
 
         Parameters
@@ -464,9 +520,10 @@ class Triangle(_Triangular):
         check_units(units)
         coords = np.array(coords, dtype=float)
         if coords.shape != (2, 3):
-            raise ValueError('coords must be an array of shape (2, 3), got %s'
-                             % (coords.shape,))
-        points = self._ec._convert_units(coords, units, 'pix')
+            raise ValueError(
+                "coords must be an array of shape (2, 3), got %s" % (coords.shape,)
+            )
+        points = self._ec._convert_units(coords, units, "pix")
         points = points.T
         self._set_fill_points(points, [0, 1, 2])
         self._set_line_points(points)
@@ -498,14 +555,20 @@ class Rectangle(_Triangular):
         The rectangle object.
     """
 
-    def __init__(self, ec, pos, units='norm', fill_color='white',
-                 line_color=None, line_width=1.0):
-        _Triangular.__init__(self, ec, fill_color=fill_color,
-                             line_color=line_color, line_width=line_width,
-                             line_loop=True)
+    def __init__(
+        self, ec, pos, units="norm", fill_color="white", line_color=None, line_width=1.0
+    ):
+        _Triangular.__init__(
+            self,
+            ec,
+            fill_color=fill_color,
+            line_color=line_color,
+            line_width=line_width,
+            line_loop=True,
+        )
         self.set_pos(pos, units)
 
-    def set_pos(self, pos, units='norm'):
+    def set_pos(self, pos, units="norm"):
         """Set the position of the rectangle
 
         Parameters
@@ -519,16 +582,20 @@ class Rectangle(_Triangular):
         # do this in normalized units, then convert
         pos = np.array(pos)
         if not (pos.ndim == 1 and pos.size == 4):
-            raise ValueError('pos must be a 4-element array-like vector')
+            raise ValueError("pos must be a 4-element array-like vector")
         self._pos = pos
         w = self._pos[2]
         h = self._pos[3]
-        points = np.array([[-w / 2., -h / 2.],
-                           [-w / 2., h / 2.],
-                           [w / 2., h / 2.],
-                           [w / 2., -h / 2.]]).T
+        points = np.array(
+            [
+                [-w / 2.0, -h / 2.0],
+                [-w / 2.0, h / 2.0],
+                [w / 2.0, h / 2.0],
+                [w / 2.0, -h / 2.0],
+            ]
+        ).T
         points += np.array(self._pos[:2])[:, np.newaxis]
-        points = self._ec._convert_units(points, units, 'pix')
+        points = self._ec._convert_units(points, units, "pix")
         points = points.T
         self._set_fill_points(points, [0, 1, 2, 0, 2, 3])
         self._set_line_points(points)  # all 4 points used for line drawing
@@ -560,14 +627,20 @@ class Diamond(_Triangular):
         The rectangle object.
     """
 
-    def __init__(self, ec, pos, units='norm', fill_color='white',
-                 line_color=None, line_width=1.0):
-        _Triangular.__init__(self, ec, fill_color=fill_color,
-                             line_color=line_color, line_width=line_width,
-                             line_loop=True)
+    def __init__(
+        self, ec, pos, units="norm", fill_color="white", line_color=None, line_width=1.0
+    ):
+        _Triangular.__init__(
+            self,
+            ec,
+            fill_color=fill_color,
+            line_color=line_color,
+            line_width=line_width,
+            line_loop=True,
+        )
         self.set_pos(pos, units)
 
-    def set_pos(self, pos, units='norm'):
+    def set_pos(self, pos, units="norm"):
         """Set the position of the rectangle
 
         Parameters
@@ -581,16 +654,15 @@ class Diamond(_Triangular):
         # do this in normalized units, then convert
         pos = np.array(pos)
         if not (pos.ndim == 1 and pos.size == 4):
-            raise ValueError('pos must be a 4-element array-like vector')
+            raise ValueError("pos must be a 4-element array-like vector")
         self._pos = pos
         w = self._pos[2]
         h = self._pos[3]
-        points = np.array([[w / 2., 0.],
-                           [0., h / 2.],
-                           [-w / 2., 0.],
-                           [0., -h / 2.]]).T
+        points = np.array(
+            [[w / 2.0, 0.0], [0.0, h / 2.0], [-w / 2.0, 0.0], [0.0, -h / 2.0]]
+        ).T
         points += np.array(self._pos[:2])[:, np.newaxis]
-        points = self._ec._convert_units(points, units, 'pix')
+        points = self._ec._convert_units(points, units, "pix")
         points = points.T
         self._set_fill_points(points, [0, 1, 2, 0, 2, 3])
         self._set_line_points(points)
@@ -626,16 +698,29 @@ class Circle(_Triangular):
         The circle object.
     """
 
-    def __init__(self, ec, radius=1, pos=(0, 0), units='norm',
-                 n_edges=200, fill_color='white', line_color=None,
-                 line_width=1.0):
-        _Triangular.__init__(self, ec, fill_color=fill_color,
-                             line_color=line_color, line_width=line_width,
-                             line_loop=True)
+    def __init__(
+        self,
+        ec,
+        radius=1,
+        pos=(0, 0),
+        units="norm",
+        n_edges=200,
+        fill_color="white",
+        line_color=None,
+        line_width=1.0,
+    ):
+        _Triangular.__init__(
+            self,
+            ec,
+            fill_color=fill_color,
+            line_color=line_color,
+            line_width=line_width,
+            line_loop=True,
+        )
         if not isinstance(n_edges, int):
-            raise TypeError('n_edges must be an int')
+            raise TypeError("n_edges must be an int")
         if n_edges < 4:
-            raise ValueError('n_edges must be >= 4 for a reasonable circle')
+            raise ValueError("n_edges must be >= 4 for a reasonable circle")
         self._n_edges = n_edges
 
         # construct triangulation (never changes so long as n_edges is fixed)
@@ -645,11 +730,11 @@ class Circle(_Triangular):
         self._orig_tris = tris
 
         # need to set a dummy value here so recalculation doesn't fail
-        self._radius = np.array([1., 1.])
+        self._radius = np.array([1.0, 1.0])
         self.set_pos(pos, units)
         self.set_radius(radius, units)
 
-    def set_radius(self, radius, units='norm'):
+    def set_radius(self, radius, units="norm"):
         """Set the position and radius of the circle
 
         Parameters
@@ -663,19 +748,19 @@ class Circle(_Triangular):
         check_units(units)
         radius = np.atleast_1d(radius).astype(float)
         if radius.ndim != 1 or radius.size > 2:
-            raise ValueError('radius must be a 1- or 2-element '
-                             'array-like vector')
+            raise ValueError("radius must be a 1- or 2-element " "array-like vector")
         if radius.size == 1:
             radius = np.r_[radius, radius]
         # convert to pixel (OpenGL) units
-        self._radius = self._ec._convert_units(radius[:, np.newaxis],
-                                               units, 'pix')[:, 0]
+        self._radius = self._ec._convert_units(radius[:, np.newaxis], units, "pix")[
+            :, 0
+        ]
         # need to subtract center position
-        ctr = self._ec._convert_units(np.zeros((2, 1)), units, 'pix')[:, 0]
+        ctr = self._ec._convert_units(np.zeros((2, 1)), units, "pix")[:, 0]
         self._radius -= ctr
         self._recalculate()
 
-    def set_pos(self, pos, units='norm'):
+    def set_pos(self, pos, units="norm"):
         """Set the position and radius of the circle
 
         Parameters
@@ -688,18 +773,18 @@ class Circle(_Triangular):
         check_units(units)
         pos = np.array(pos, dtype=float)
         if not (pos.ndim == 1 and pos.size == 2):
-            raise ValueError('pos must be a 2-element array-like vector')
+            raise ValueError("pos must be a 2-element array-like vector")
         # convert to pixel (OpenGL) units
-        self._pos = self._ec._convert_units(pos[:, np.newaxis],
-                                            units, 'pix')[:, 0]
+        self._pos = self._ec._convert_units(pos[:, np.newaxis], units, "pix")[:, 0]
         self._recalculate()
 
     def _recalculate(self):
         """Helper to recalculate point coordinates"""
         edges = self._n_edges
         arg = 2 * np.pi * (np.arange(edges) / float(edges))
-        points = np.array([self._radius[0] * np.cos(arg),
-                           self._radius[1] * np.sin(arg)])
+        points = np.array(
+            [self._radius[0] * np.cos(arg), self._radius[1] * np.sin(arg)]
+        )
         points = np.c_[np.zeros((2, 1)), points]  # prepend the center
         points += np.array(self._pos[:2], dtype=float)[:, np.newaxis]
         points = points.T
@@ -707,7 +792,7 @@ class Circle(_Triangular):
         self._set_line_points(points[1:])  # omit center point for lines
 
 
-class ConcentricCircles(object):
+class ConcentricCircles:
     """A set of filled concentric circles drawn without edges.
 
     Parameters
@@ -732,23 +817,26 @@ class ConcentricCircles(object):
         The circle object.
     """
 
-    def __init__(self, ec, radii=(0.2, 0.05), pos=(0, 0), units='norm',
-                 colors=('w', 'k')):
+    def __init__(
+        self, ec, radii=(0.2, 0.05), pos=(0, 0), units="norm", colors=("w", "k")
+    ):
         radii = np.array(radii, float)
         if radii.ndim != 1:
-            raise ValueError('radii must be 1D')
+            raise ValueError("radii must be 1D")
         if not isinstance(colors, (tuple, list)):
-            raise TypeError('colors must be a tuple, list, or array')
+            raise TypeError("colors must be a tuple, list, or array")
         if len(colors) != len(radii):
-            raise ValueError('colors and radii must be the same length')
+            raise ValueError("colors and radii must be the same length")
         # need to set a dummy value here so recalculation doesn't fail
-        self._circles = [Circle(ec, r, pos, units, fill_color=c, line_width=0)
-                         for r, c in zip(radii, colors)]
+        self._circles = [
+            Circle(ec, r, pos, units, fill_color=c, line_width=0)
+            for r, c in zip(radii, colors)
+        ]
 
     def __len__(self):
         return len(self._circles)
 
-    def set_pos(self, pos, units='norm'):
+    def set_pos(self, pos, units="norm"):
         """Set the position of the circles
 
         Parameters
@@ -761,7 +849,7 @@ class ConcentricCircles(object):
         for circle in self._circles:
             circle.set_pos(pos, units)
 
-    def set_radius(self, radius, idx, units='norm'):
+    def set_radius(self, radius, idx, units="norm"):
         """Set the radius of one of the circles
 
         Parameters
@@ -775,7 +863,7 @@ class ConcentricCircles(object):
         """
         self._circles[idx].set_radius(radius, units)
 
-    def set_radii(self, radii, units='norm'):
+    def set_radii(self, radii, units="norm"):
         """Set the color of each circle
 
         Parameters
@@ -788,8 +876,7 @@ class ConcentricCircles(object):
         """
         radii = np.array(radii, float)
         if radii.ndim != 1 or radii.size != len(self):
-            raise ValueError('radii must contain exactly {0} radii'
-                             ''.format(len(self)))
+            raise ValueError(f"radii must contain exactly {len(self)} radii" "")
         for idx, radius in enumerate(radii):
             self.set_radius(radius, idx, units)
 
@@ -815,8 +902,9 @@ class ConcentricCircles(object):
             colors as the number of circles.
         """
         if not isinstance(colors, (tuple, list)) or len(colors) != len(self):
-            raise ValueError('colors must be a list or tuple with {0} colors'
-                             ''.format(len(self)))
+            raise ValueError(
+                f"colors must be a list or tuple with {len(self)} colors" ""
+            )
         for idx, color in enumerate(colors):
             self.set_color(color, idx)
 
@@ -846,16 +934,14 @@ class FixationDot(ConcentricCircles):
         The fixation dot.
     """
 
-    def __init__(self, ec, colors=('w', 'k')):
+    def __init__(self, ec, colors=("w", "k")):
         if len(colors) != 2:
-            raise ValueError('colors must have length 2')
-        super(FixationDot, self).__init__(ec, radii=[0.2, 0.2],
-                                          pos=[0, 0], units='deg',
-                                          colors=colors)
-        self.set_radius(1, 1, units='pix')
+            raise ValueError("colors must have length 2")
+        super().__init__(ec, radii=[0.2, 0.2], pos=[0, 0], units="deg", colors=colors)
+        self.set_radius(1, 1, units="pix")
 
 
-class ProgressBar(object):
+class ProgressBar:
     """A progress bar that can be displayed between sections.
 
     This uses two rectangles, one outline, and one solid to show how much
@@ -876,12 +962,12 @@ class ProgressBar(object):
         white.
     """
 
-    def __init__(self, ec, pos, units='norm', colors=('g', 'w')):
+    def __init__(self, ec, pos, units="norm", colors=("g", "w")):
         self._ec = ec
         if len(colors) != 2:
-            raise ValueError('colors must have length 2')
-        if units not in ['norm', 'pix']:
-            raise ValueError('units must be either \'norm\' or \'pix\'')
+            raise ValueError("colors must have length 2")
+        if units not in ["norm", "pix"]:
+            raise ValueError("units must be either 'norm' or 'pix'")
 
         pos = np.array(pos, dtype=float)
         self._pos = pos
@@ -894,9 +980,10 @@ class ProgressBar(object):
         self._init_x = self._pos_bar[0]
         self._pos_bar[2] = 0
 
-        self._rectangles = [Rectangle(ec, self._pos_bar, units, colors[0],
-                                      None),
-                            Rectangle(ec, self._pos, units, None, colors[1])]
+        self._rectangles = [
+            Rectangle(ec, self._pos_bar, units, colors[0], None),
+            Rectangle(ec, self._pos, units, None, colors[1]),
+        ]
 
     def update_bar(self, percent):
         """Update the progress of the bar.
@@ -907,8 +994,8 @@ class ProgressBar(object):
             The percentage of the bar to be filled. Must be between 0 and 1.
         """
         if percent > 100 or percent < 0:
-            raise ValueError('percent must be a float between 0 and 100')
-        self._pos_bar[2] = percent * self._width / 100.
+            raise ValueError("percent must be a float between 0 and 100")
+        self._pos_bar[2] = percent * self._width / 100.0
         self._pos_bar[0] = self._init_x + self._pos_bar[2] * 0.5
         self._rectangles[0].set_pos(self._pos_bar, self._units)
 
@@ -921,7 +1008,8 @@ class ProgressBar(object):
 ##############################################################################
 # Image display
 
-class RawImage(object):
+
+class RawImage:
     """Create image from array for on-screen display.
 
     Parameters
@@ -944,7 +1032,7 @@ class RawImage(object):
         The image object.
     """
 
-    def __init__(self, ec, image_buffer, pos=(0, 0), scale=1., units='norm'):
+    def __init__(self, ec, image_buffer, pos=(0, 0), scale=1.0, units="norm"):
         self._ec = ec
         self._img = None
         self.set_image(image_buffer)
@@ -962,26 +1050,28 @@ class RawImage(object):
             ``np.uint8`` is slightly more efficient.
         """
         from pyglet import image, sprite
+
         image_buffer = np.ascontiguousarray(image_buffer)
         if image_buffer.dtype not in (np.float64, np.uint8):
-            raise TypeError('image_buffer must be np.float64 or np.uint8')
+            raise TypeError("image_buffer must be np.float64 or np.uint8")
         if image_buffer.dtype == np.float64:
             if image_buffer.max() > 1 or image_buffer.min() < 0:
-                raise ValueError('all float values must be between 0 and 1')
-            image_buffer = (image_buffer * 255).astype('uint8')
+                raise ValueError("all float values must be between 0 and 1")
+            image_buffer = (image_buffer * 255).astype("uint8")
         if image_buffer.ndim == 2:  # grayscale
             image_buffer = np.tile(image_buffer[..., np.newaxis], (1, 1, 3))
         if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
-            raise RuntimeError('image_buffer incorrect size: {}'
-                               ''.format(image_buffer.shape))
+            raise RuntimeError(f"image_buffer incorrect size: {image_buffer.shape}" "")
         # add alpha channel if necessary
         dims = image_buffer.shape
-        fmt = 'RGB' if dims[2] == 3 else 'RGBA'
-        self._sprite = sprite.Sprite(image.ImageData(dims[1], dims[0], fmt,
-                                                     image_buffer.tobytes(),
-                                                     -dims[1] * dims[2]))
+        fmt = "RGB" if dims[2] == 3 else "RGBA"
+        self._sprite = sprite.Sprite(
+            image.ImageData(
+                dims[1], dims[0], fmt, image_buffer.tobytes(), -dims[1] * dims[2]
+            )
+        )
 
-    def set_pos(self, pos, units='norm'):
+    def set_pos(self, pos, units="norm"):
         """Set image position.
 
         Parameters
@@ -993,17 +1083,16 @@ class RawImage(object):
         """
         pos = np.array(pos, float)
         if pos.ndim != 1 or pos.size != 2:
-            raise ValueError('pos must be a 2-element array')
+            raise ValueError("pos must be a 2-element array")
         pos = np.reshape(pos, (2, 1))
-        self._pos = self._ec._convert_units(pos, units, 'pix').ravel()
+        self._pos = self._ec._convert_units(pos, units, "pix").ravel()
 
     @property
     def bounds(self):
         """Left, Right, Bottom, Top (in pixels) of the image."""
         pos = np.array(self._pos, float)
-        size = np.array([self._sprite.width,
-                         self._sprite.height], float)
-        bounds = np.concatenate((pos - size / 2., pos + size / 2.))
+        size = np.array([self._sprite.width, self._sprite.height], float)
+        bounds = np.concatenate((pos - size / 2.0, pos + size / 2.0))
         return bounds[[0, 2, 1, 3]]
 
     @property
@@ -1026,14 +1115,14 @@ class RawImage(object):
     def draw(self):
         """Draw the image to the buffer"""
         self._sprite.scale = self._scale
-        pos = self._pos - [self._sprite.width / 2., self._sprite.height / 2.]
+        pos = self._pos - [self._sprite.width / 2.0, self._sprite.height / 2.0]
         try:
             self._sprite.position = (pos[0], pos[1])
         except AttributeError:
             self._sprite.set_position(pos[0], pos[1])
         self._sprite.draw()
 
-    def get_rect(self, units='norm'):
+    def get_rect(self, units="norm"):
         """X, Y center, Width, Height of image.
 
         Parameters
@@ -1047,15 +1136,13 @@ class RawImage(object):
             The rect.
         """
         # left,right,bottom,top
-        lrbt = self._ec._convert_units(self.bounds.reshape(2, -1),
-                                       fro='pix', to=units)
-        center = self._ec._convert_units(self._pos.reshape(2, -1),
-                                         fro='pix', to=units)
+        lrbt = self._ec._convert_units(self.bounds.reshape(2, -1), fro="pix", to=units)
+        center = self._ec._convert_units(self._pos.reshape(2, -1), fro="pix", to=units)
         width_height = np.diff(lrbt, axis=-1)
         return np.squeeze(np.concatenate([center, width_height]))
 
 
-tex_vert = '''
+tex_vert = """
 #version 120
 
 attribute vec2 a_position;
@@ -1068,9 +1155,9 @@ void main()
     gl_Position = u_view * vec4(a_position, 0.0, 1.0);
     v_texcoord = a_texcoord;
 }
-'''
+"""
 
-tex_frag = '''
+tex_frag = """
 #version 120
 #extension GL_ARB_texture_rectangle : enable
 
@@ -1082,10 +1169,10 @@ void main()
     gl_FragColor = texture2DRect(u_texture, v_texcoord);
     gl_FragColor.a = 1.0;
 }
-'''
+"""
 
 
-class Video(object):
+class Video:
     """Read video file and draw it to the screen.
 
     Parameters
@@ -1123,20 +1210,31 @@ class Video(object):
     entertainment for the participant during a passive auditory task).
     """
 
-    def __init__(self, ec, file_name, pos=(0, 0), units='norm', scale=1.,
-                 center=True, visible=True):
-        from pyglet.media import load, Player
+    def __init__(
+        self,
+        ec,
+        file_name,
+        pos=(0, 0),
+        units="norm",
+        scale=1.0,
+        center=True,
+        visible=True,
+    ):
+        from pyglet.media import Player, load
+
         self._ec = ec
         # On Windows, the default is unaccelerated WMF, which is terribly slow.
         decoder = None
         if _new_pyglet():
             try:
                 from pyglet.media.codecs.ffmpeg import FFmpegDecoder
+
                 decoder = FFmpegDecoder()
             except Exception as exc:
                 warnings.warn(
-                    'FFmpeg decoder could not be instantiated, decoding '
-                    f'performance could be compromised:\n{exc}')
+                    "FFmpeg decoder could not be instantiated, decoding "
+                    f"performance could be compromised:\n{exc}"
+                )
         self._source = load(file_name, decoder=decoder)
         self._player = Player()
         with warnings.catch_warnings(record=True):  # deprecated eos_action
@@ -1144,9 +1242,9 @@ class Video(object):
         self._player._audio_player = None
         frame_rate = self.frame_rate
         if frame_rate is None:
-            logger.warning('Frame rate could not be determined')
-            frame_rate = 60.
-        self._dt = 1. / frame_rate
+            logger.warning("Frame rate could not be determined")
+            frame_rate = 60.0
+        self._dt = 1.0 / frame_rate
         self._playing = False
         self._finished = False
         self._pos = pos
@@ -1159,14 +1257,15 @@ class Video(object):
         self._program = _create_program(ec, tex_vert, tex_frag)
         gl.glUseProgram(self._program)
         self._buffers = dict()
-        for key in ('position', 'texcoord'):
+        for key in ("position", "texcoord"):
             self._buffers[key] = gl.GLuint(0)
             gl.glGenBuffers(1, pointer(self._buffers[key]))
         w, h = self.source_width, self.source_height
         tex = np.array([(0, h), (w, h), (w, 0), (0, 0)], np.float32)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers['texcoord'])
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, tex.nbytes, tex.tobytes(),
-                        gl.GL_DYNAMIC_DRAW)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["texcoord"])
+        gl.glBufferData(
+            gl.GL_ARRAY_BUFFER, tex.nbytes, tex.tobytes(), gl.GL_DYNAMIC_DRAW
+        )
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glUseProgram(0)
 
@@ -1190,8 +1289,9 @@ class Video(object):
             self._player.play()
             self._playing = True
         else:
-            warnings.warn('ExperimentController.video.play() called when '
-                          'already playing.')
+            warnings.warn(
+                "ExperimentController.video.play() called when " "already playing."
+            )
         return self._ec.get_time()
 
     def pause(self):
@@ -1213,8 +1313,9 @@ class Video(object):
             self._player.pause()
             self._playing = False
         else:
-            warnings.warn('ExperimentController.video.pause() called when '
-                          'already paused.')
+            warnings.warn(
+                "ExperimentController.video.pause() called when " "already paused."
+            )
         return self._ec.get_time()
 
     def _delete(self):
@@ -1223,7 +1324,7 @@ class Video(object):
             self.pause()
         self._player.delete()
 
-    def set_scale(self, scale=1.):
+    def set_scale(self, scale=1.0):
         """Set video scale.
 
         Parameters
@@ -1237,20 +1338,20 @@ class Video(object):
             while ensuring none of the video is offscreen, which may result in
             letterboxing).
         """
-        if isinstance(scale, string_types):
-            _scale = self._ec.window_size_pix / np.array((self.source_width,
-                                                          self.source_height),
-                                                         dtype=float)
-            if scale == 'fit':
+        if isinstance(scale, str):
+            _scale = self._ec.window_size_pix / np.array(
+                (self.source_width, self.source_height), dtype=float
+            )
+            if scale == "fit":
                 scale = _scale.min()
-            elif scale == 'fill':
+            elif scale == "fill":
                 scale = _scale.max()
         self._scale = float(scale)  # allows [1, 1., '1']; others: ValueError
         if self._scale <= 0:
-            raise ValueError('Video scale factor must be strictly positive.')
+            raise ValueError("Video scale factor must be strictly positive.")
         self.set_pos(self._pos, self._units, self._center)
 
-    def set_pos(self, pos, units='norm', center=True):
+    def set_pos(self, pos, units="norm", center=True):
         """Set video position.
 
         Parameters
@@ -1266,9 +1367,9 @@ class Video(object):
         """
         pos = np.array(pos, float)
         if pos.size != 2:
-            raise ValueError('pos must be a 2-element array')
+            raise ValueError("pos must be a 2-element array")
         pos = np.reshape(pos, (2, 1))
-        pix = self._ec._convert_units(pos, units, 'pix').ravel()
+        pix = self._ec._convert_units(pos, units, "pix").ravel()
         offset = np.array((self.width, self.height)) // 2 if center else 0
         self._pos = pos
         self._actual_pos = pix - offset
@@ -1284,16 +1385,16 @@ class Video(object):
         x, y = self._actual_pos
         w = self.source_width * self._scale
         h = self.source_height * self._scale
-        pos = np.array(
-            [(x, y), (x + w, y), (x + w, y + h), (x, y + h)], np.float32)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers['position'])
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, pos.nbytes, pos.tobytes(),
-                        gl.GL_DYNAMIC_DRAW)
-        loc_pos = gl.glGetAttribLocation(self._program, b'a_position')
+        pos = np.array([(x, y), (x + w, y), (x + w, y + h), (x, y + h)], np.float32)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["position"])
+        gl.glBufferData(
+            gl.GL_ARRAY_BUFFER, pos.nbytes, pos.tobytes(), gl.GL_DYNAMIC_DRAW
+        )
+        loc_pos = gl.glGetAttribLocation(self._program, b"a_position")
         gl.glEnableVertexAttribArray(loc_pos)
         gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers['texcoord'])
-        loc_tex = gl.glGetAttribLocation(self._program, b'a_texcoord')
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["texcoord"])
+        loc_tex = gl.glGetAttribLocation(self._program, b"a_texcoord")
         gl.glEnableVertexAttribArray(loc_tex)
         gl.glVertexAttribPointer(loc_tex, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
@@ -1345,9 +1446,11 @@ class Video(object):
         return self._eos_fun()
 
     def _eos_old(self):
-        return (self._player._last_video_timestamp is not None and
-                self._player._last_video_timestamp ==
-                self._source.get_next_video_timestamp())
+        return (
+            self._player._last_video_timestamp is not None
+            and self._player._last_video_timestamp
+            == self._source.get_next_video_timestamp()
+        )
 
     def _eos_new(self):
         done = self._player.source is None
