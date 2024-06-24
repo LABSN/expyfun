@@ -21,7 +21,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-24.04
+          # 24.04 works except for the video test, even though it works locally on 24.10
+          - os: ubuntu-22.04
             kind: pip
             python: '3.12'
           # ARM64 will probably need to wait until
@@ -100,7 +101,7 @@ jobs:
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         if: matrix.kind != 'old' && matrix.os != 'macos-latest'
       - run: pytest expyfun
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: always()
