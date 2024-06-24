@@ -25,7 +25,7 @@ jobs:
             kind: 'old'
             python: '3.8'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: LABSN/sound-ci-helpers@v1
       - uses: pyvista/setup-headless-display-action@main
         with:
@@ -53,9 +53,11 @@ jobs:
           fi
         name: Set env vars
         shell: bash
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+      - run: brew install ffmpeg
+        if: runner.os == 'macOS'
       - run: python -m pip install --upgrade pip setuptools wheel sounddevice
       - run: python -m pip install --upgrade --only-binary="sounddevice,rtmixer,scipy,matplotlib,pandas,numpy" sounddevice rtmixer "pyglet<1.6" scipy matplotlib pandas h5py mne numpydoc pillow joblib
         if: ${{ matrix.kind == 'pip' }}
