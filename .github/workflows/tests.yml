@@ -68,6 +68,11 @@ jobs:
         if: ${{ matrix.kind == 'old' }}
       - run: python -m pip install tdtpy
         if: ${{ startsWith(matrix.os, 'windows') }}
+      - run:
+          set -xeo pipefail
+          systemctl --user restart pulseaudio.service
+          systemctl --user restart pulseaudio.socket
+          pulseaudio --check
       - run: aplay -l
       - run: pactl list
       - run: python -m sounddevice
