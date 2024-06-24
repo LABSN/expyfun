@@ -72,9 +72,8 @@ jobs:
           set -xeo pipefail
           systemctl --user restart pulseaudio.service
           systemctl --user restart pulseaudio.socket
-          pulseaudio --check
-      - run: aplay -l
       - run: pactl list
+      - run: aplay -l
       - run: python -m sounddevice
       - run: |
           set -xeo pipefail
