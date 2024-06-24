@@ -9,7 +9,7 @@ import subprocess
 
 # we are using a setuptools namespace
 import setuptools  # noqa, analysis:ignore
-from numpy.distutils.core import setup
+from setuptools import setup
 
 descr = """Experiment controller functions."""
 
@@ -80,7 +80,15 @@ def setup_package(script_args=None):
         download_url=DOWNLOAD_URL,
         long_description=long_description,
         python_requires=">=3.8",
-        install_requires=["packaging", "numpy", "scipy", "matplotlib", "pillow"],  # noqa
+        install_requires=[
+            "packaging",
+            "numpy",
+            "scipy",
+            "matplotlib",
+            "pillow",
+            "h5io",
+            "decorator",
+        ],
         extras_require={
             "test": ["pytest", "pytest-cov", "pytest-timeout"],
         },

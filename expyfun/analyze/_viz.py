@@ -1,13 +1,11 @@
-"""Analysis visualization functions
-"""
+"""Analysis visualization functions"""
 
-import numpy as np
 from itertools import chain
 
-from .._utils import string_types
+import numpy as np
 
 
-def format_pval(pval, latex=True, scheme='default'):
+def format_pval(pval, latex=True, scheme="default"):
     """Format a p-value using one of several schemes.
 
     Parameters
@@ -36,38 +34,42 @@ def format_pval(pval, latex=True, scheme='default'):
     expon = np.trunc(np.log10(pval)).astype(int)  # exponents
     pv = np.zeros_like(pval, dtype=object)
     if latex:
-        wrap = '$'
-        brk_l = '{{'
-        brk_r = '}}'
+        wrap = "$"
+        brk_l = "{{"
+        brk_r = "}}"
     else:
-        wrap = ''
-        brk_l = ''
-        brk_r = ''
-    if scheme == 'ross':  # (exact value up to 4 decimal places)
-        pv[pval >= 0.0001] = [wrap + 'p = {:.4f}'.format(x) + wrap
-                              for x in pval[pval > 0.0001]]
-        pv[pval < 0.0001] = [wrap + 'p < 10^' + brk_l + '{}'.format(x) +
-                             brk_r + wrap for x in expon[pval < 0.0001]]
-    elif scheme == 'stars':
-        star = '{*}' if latex else '*'
-        pv[pval >= 0.05] = wrap + '' + wrap
+        wrap = ""
+        brk_l = ""
+        brk_r = ""
+    if scheme == "ross":  # (exact value up to 4 decimal places)
+        pv[pval >= 0.0001] = [wrap + f"p = {x:.4f}" + wrap for x in pval[pval > 0.0001]]
+        pv[pval < 0.0001] = [
+            wrap + "p < 10^" + brk_l + f"{x}" + brk_r + wrap
+            for x in expon[pval < 0.0001]
+        ]
+    elif scheme == "stars":
+        star = "{*}" if latex else "*"
+        pv[pval >= 0.05] = wrap + "" + wrap
         pv[pval < 0.05] = wrap + star + wrap
         pv[pval < 0.01] = wrap + star * 2 + wrap
         pv[pval < 0.001] = wrap + star * 3 + wrap
     else:  # scheme == 'default'
-        pv[pval >= 0.05] = wrap + 'n.s.' + wrap
-        pv[pval < 0.05] = wrap + 'p < 0.05' + wrap
-        pv[pval < 0.01] = wrap + 'p < 0.01' + wrap
-        pv[pval < 0.001] = wrap + 'p < 0.001' + wrap
-        pv[pval < 0.0001] = [wrap + 'p < 10^' + brk_l + '{}'.format(x) +
-                             brk_r + wrap for x in expon[pval < 0.0001]]
+        pv[pval >= 0.05] = wrap + "n.s." + wrap
+        pv[pval < 0.05] = wrap + "p < 0.05" + wrap
+        pv[pval < 0.01] = wrap + "p < 0.01" + wrap
+        pv[pval < 0.001] = wrap + "p < 0.001" + wrap
+        pv[pval < 0.0001] = [
+            wrap + "p < 10^" + brk_l + f"{x}" + brk_r + wrap
+            for x in expon[pval < 0.0001]
+        ]
     if single_value:
         pv = pv[0]
     return pv
 
 
 def _instantiate(obj, typ):
-    """Returns obj if obj is not None, else returns new instance of typ
+    """Return obj if obj is not None, else returns new instance of typ.
+
     obj : an object
         An object (most likely one that a user passed into a function) that,
         if ``None``, should be initiated as an empty object of some other type.
@@ -77,13 +79,31 @@ def _instantiate(obj, typ):
     return typ() if obj is None else obj
 
 
-def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
-            groups=None, eq_group_widths=False, gap_size=0.2,
-            brackets=None, bracket_text=None, bracket_inline=False,
-            bracket_group_lines=False, bar_names=None, group_names=None,
-            bar_kwargs=None, err_kwargs=None, line_kwargs=None,
-            bracket_kwargs=None, pval_kwargs=None, figure_kwargs=None,
-            smart_defaults=True, fname=None, ax=None):
+def barplot(
+    h,
+    axis=-1,
+    ylim=None,
+    err_bars=None,
+    lines=False,
+    groups=None,
+    eq_group_widths=False,
+    gap_size=0.2,
+    brackets=None,
+    bracket_text=None,
+    bracket_inline=False,
+    bracket_group_lines=False,
+    bar_names=None,
+    group_names=None,
+    bar_kwargs=None,
+    err_kwargs=None,
+    line_kwargs=None,
+    bracket_kwargs=None,
+    pval_kwargs=None,
+    figure_kwargs=None,
+    smart_defaults=True,
+    fname=None,
+    ax=None,
+):
     """Makes barplots w/ optional line overlays, grouping, & signif. brackets.
 
     Parameters
@@ -198,7 +218,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         bracket color: dark gray (30%)
 
     """
-    from matplotlib import pyplot as plt, rcParams
+    from matplotlib import pyplot as plt
+    from matplotlib import rcParams
+
     try:
         from pandas.core.frame import DataFrame
     except Exception:
@@ -210,24 +232,26 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             bar_names = h.columns.tolist() if axis == 0 else h.index.tolist()
     # check arg errors
     if gap_size < 0 or gap_size >= 1:
-        raise ValueError('Barplot argument "gap_size" must be in the range '
-                         '[0, 1).')
+        raise ValueError('Barplot argument "gap_size" must be in the range ' "[0, 1).")
     if err_bars is not None:
-        if isinstance(err_bars, string_types) and \
-                err_bars not in ['sd', 'se', 'ci']:
-            raise ValueError('err_bars must be "sd", "se", or "ci" (or an '
-                             'array of error bar magnitudes).')
+        if isinstance(err_bars, str) and err_bars not in ["sd", "se", "ci"]:
+            raise ValueError(
+                'err_bars must be "sd", "se", or "ci" (or an '
+                "array of error bar magnitudes)."
+            )
     if brackets is not None:
         if any([len(x) != 2 for x in brackets]):
-            raise ValueError('Each top-level element of brackets must have '
-                             'length 2.')
+            raise ValueError(
+                "Each top-level element of brackets must have " "length 2."
+            )
         if not len(brackets) == len(bracket_text):
-            raise ValueError('Mismatch between number of brackets and bracket '
-                             'labels.')
+            raise ValueError(
+                "Mismatch between number of brackets and bracket " "labels."
+            )
     # handle single-element args
-    if isinstance(bracket_text, string_types):
+    if isinstance(bracket_text, str):
         bracket_text = [bracket_text]
-    if isinstance(group_names, string_types):
+    if isinstance(group_names, str):
         group_names = [group_names]
     # arg defaults: if arg is None, instantiate as given type
     brackets = _instantiate(brackets, list)
@@ -239,20 +263,20 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     bracket_kwargs = _instantiate(bracket_kwargs, dict)
     # user-supplied Axes
     if ax is not None:
-        bar_kwargs['axes'] = ax
+        bar_kwargs["axes"] = ax
     # smart defaults
     if smart_defaults:
-        if 'color' not in bar_kwargs.keys():
-            bar_kwargs['color'] = '0.7'
-        if 'color' not in line_kwargs.keys():
-            line_kwargs['color'] = 'k'
-        if 'ecolor' not in err_kwargs.keys():
-            err_kwargs['ecolor'] = 'k'
-        if 'color' not in bracket_kwargs.keys():
-            bracket_kwargs['color'] = '0.3'
+        if "color" not in bar_kwargs.keys():
+            bar_kwargs["color"] = "0.7"
+        if "color" not in line_kwargs.keys():
+            line_kwargs["color"] = "k"
+        if "ecolor" not in err_kwargs.keys():
+            err_kwargs["ecolor"] = "k"
+        if "color" not in bracket_kwargs.keys():
+            bracket_kwargs["color"] = "0.3"
     # fix bar alignment (defaults to 'center' in more recent versions of MPL)
-    if 'align' not in bar_kwargs.keys():
-        bar_kwargs['align'] = 'edge'
+    if "align" not in bar_kwargs.keys():
+        bar_kwargs["align"] = "edge"
     # parse heights
     h = np.array(h)
     if len(h.shape) > 2:
@@ -265,54 +289,61 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     groups = [list(x) for x in groups]  # forgive list/tuple mix-ups
     # calculate bar positions
     non_gap = 1 - gap_size
-    offset = gap_size / 2.
+    offset = gap_size / 2.0
     if eq_group_widths:
         group_sizes = np.array([float(len(_grp)) for _grp in groups], int)
         group_widths = [non_gap for _ in groups]
         group_edges = [offset + _ix for _ix in range(len(groups))]
         group_ixs = list(chain.from_iterable([range(x) for x in group_sizes]))
-        bar_widths = np.repeat(np.array(group_widths) / group_sizes,
-                               group_sizes).tolist()
-        bar_edges = (np.repeat(group_edges, group_sizes) +
-                     bar_widths * np.array(group_ixs)).tolist()
+        bar_widths = np.repeat(
+            np.array(group_widths) / group_sizes, group_sizes
+        ).tolist()
+        bar_edges = (
+            np.repeat(group_edges, group_sizes) + bar_widths * np.array(group_ixs)
+        ).tolist()
     else:
         bar_widths = [[non_gap for _ in _grp] for _grp in groups]
         # next line: offset + cumul. gap widths + cumul. bar widths
-        bar_edges = [[offset + _ix * gap_size + _bar * non_gap
-                      for _bar in _grp] for _ix, _grp in enumerate(groups)]
+        bar_edges = [
+            [offset + _ix * gap_size + _bar * non_gap for _bar in _grp]
+            for _ix, _grp in enumerate(groups)
+        ]
         group_widths = [np.sum(_width) for _width in bar_widths]
         group_edges = [_edge[0] for _edge in bar_edges]
         bar_edges = list(chain.from_iterable(bar_edges))
         bar_widths = list(chain.from_iterable(bar_widths))
-    bar_centers = np.array(bar_edges) + np.array(bar_widths) / 2.
-    group_centers = np.array(group_edges) + np.array(group_widths) / 2.
+    bar_centers = np.array(bar_edges) + np.array(bar_widths) / 2.0
+    group_centers = np.array(group_edges) + np.array(group_widths) / 2.0
     # calculate error bars
     err = np.zeros(num_bars)  # default if no err_bars
     if err_bars is not None:
         if h.ndim == 2:
-            if err_bars == 'sd':  # sample standard deviation
+            if err_bars == "sd":  # sample standard deviation
                 err = h.std(axis)
-            elif err_bars == 'se':  # standard error
+            elif err_bars == "se":  # standard error
                 err = h.std(axis) / np.sqrt(h.shape[axis])
             else:  # 95% conf int
                 err = 1.96 * h.std(axis) / np.sqrt(h.shape[axis])
         else:  # h.ndim == 1
-            if isinstance(err_bars, string_types):
-                raise ValueError('string arguments to "err_bars" ignored when '
-                                 '"h" has fewer than 2 dimensions.')
+            if isinstance(err_bars, str):
+                raise ValueError(
+                    'string arguments to "err_bars" ignored when '
+                    '"h" has fewer than 2 dimensions.'
+                )
             elif not h.shape == np.array(err_bars).shape:
-                raise ValueError('When "err_bars" is array-like it must have '
-                                 'the same shape as "h".')
+                raise ValueError(
+                    'When "err_bars" is array-like it must have '
+                    'the same shape as "h".'
+                )
             err = np.atleast_1d(err_bars)
-        bar_kwargs['yerr'] = err
+        bar_kwargs["yerr"] = err
     # plot (bars and error bars)
     if ax is None:
         plt.figure(**figure_kwargs)
         p = plt.subplot(111)
     else:
         p = ax
-    b = p.bar(bar_edges, heights, bar_widths, error_kw=err_kwargs,
-              **bar_kwargs)
+    b = p.bar(bar_edges, heights, bar_widths, error_kw=err_kwargs, **bar_kwargs)
     # plot within-subject lines
     if lines:
         _h = h if axis == 0 else h.T
@@ -326,41 +357,53 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
         brk_min_h = np.diff(p.get_ylim()) * 0.05
         # temporarily plot a textbox to get its height
         t = plt.annotate(bracket_text[0], (0, 0), **pval_kwargs)
-        t.set_bbox(dict(boxstyle='round, pad=0.25'))
+        t.set_bbox(dict(boxstyle="round, pad=0.25"))
         plt.draw()
         bb = t.get_bbox_patch().get_window_extent()
-        txth = np.diff(p.transData.inverted().transform(bb),
-                       axis=0).ravel()[-1]
+        txth = np.diff(p.transData.inverted().transform(bb), axis=0).ravel()[-1]
         if bracket_inline:
-            txth = txth / 2.
+            txth = txth / 2.0
         t.remove()
         # find highest points
         if lines and h.ndim == 2:  # brackets must be above lines & error bars
-            apex = np.amax(np.r_[np.atleast_2d(heights + err),
-                                 np.atleast_2d(np.amax(h, axis))], axis=0)
+            apex = np.amax(
+                np.r_[np.atleast_2d(heights + err), np.atleast_2d(np.amax(h, axis))],
+                axis=0,
+            )
         else:
             apex = np.atleast_1d(heights + err)
         apex = np.maximum(apex, 0)  # for negative-going bars
         apex = apex + brk_offset
         gr_apex = np.array([np.amax(apex[_g]) for _g in groups])
         # boolean for whether each half of a bracket is a group
-        is_group = [[hasattr(_b, 'append') for _b in _br] for _br in brackets]
+        is_group = [[hasattr(_b, "append") for _b in _br] for _br in brackets]
         # bracket left & right coords
-        brk_lr = [[group_centers[groups.index(_ix)] if _g
-                   else bar_centers[_ix] for _ix, _g in zip(_brk, _isg)]
-                  for _brk, _isg in zip(brackets, is_group)]
+        brk_lr = [
+            [
+                group_centers[groups.index(_ix)] if _g else bar_centers[_ix]
+                for _ix, _g in zip(_brk, _isg)
+            ]
+            for _brk, _isg in zip(brackets, is_group)
+        ]
         # bracket L/R midpoints (label position)
         brk_c = [np.mean(_lr) for _lr in brk_lr]
         # bracket bottom coords (first pass)
-        brk_b = [[gr_apex[groups.index(_ix)] if _g else apex[_ix]
-                  for _ix, _g in zip(_brk, _isg)]
-                 for _brk, _isg in zip(brackets, is_group)]
+        brk_b = [
+            [
+                gr_apex[groups.index(_ix)] if _g else apex[_ix]
+                for _ix, _g in zip(_brk, _isg)
+            ]
+            for _brk, _isg in zip(brackets, is_group)
+        ]
         # main bracket positioning loop
         brk_t = []
         for _ix, (_brk, _isg) in enumerate(zip(brackets, is_group)):
             # which bars does this bracket span?
-            spanned_bars = list(chain.from_iterable(
-                [_b if hasattr(_b, 'append') else [_b] for _b in _brk]))
+            spanned_bars = list(
+                chain.from_iterable(
+                    [_b if hasattr(_b, "append") else [_b] for _b in _brk]
+                )
+            )
             spanned_bars = range(min(spanned_bars), max(spanned_bars) + 1)
             # raise apex a bit extra if prev bracket label centered on bar
             prev_label_pos = brk_c[_ix - 1] if _ix else -1
@@ -375,41 +418,42 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                     apex[label_bar_more] += txth
             gr_apex = np.array([np.amax(apex[_g]) for _g in groups])
             # recalc lower tips of bracket: apex / gr_apex may have changed
-            brk_b[_ix] = [gr_apex[groups.index(_b)] if _g else apex[_b]
-                          for _b, _g in zip(_brk, _isg)]
+            brk_b[_ix] = [
+                gr_apex[groups.index(_b)] if _g else apex[_b]
+                for _b, _g in zip(_brk, _isg)
+            ]
             # calculate top span position
             _min_t = max(apex[spanned_bars]) + brk_min_h
             brk_t.append(_min_t)
             # raise apex on spanned bars to account for bracket
-            apex[spanned_bars] = np.maximum(apex[spanned_bars],
-                                            _min_t) + brk_offset
+            apex[spanned_bars] = np.maximum(apex[spanned_bars], _min_t) + brk_offset
             gr_apex = np.array([np.amax(apex[_g]) for _g in groups])
         # draw horz line spanning groups if desired
         if bracket_group_lines:
             for _brk, _isg, _blr in zip(brackets, is_group, brk_b):
                 for _bk, _g, _b in zip(_brk, _isg, _blr):
                     if _g:
-                        _lr = [bar_centers[_ix]
-                               for _ix in groups[groups.index(_bk)]]
+                        _lr = [bar_centers[_ix] for _ix in groups[groups.index(_bk)]]
                         _lr = (min(_lr), max(_lr))
                         p.plot(_lr, (_b, _b), **bracket_kwargs)
         # draw (left, right, bottom-left, bottom-right, top, center, string)
-        for ((_l, _r), (_bl, _br), _t, _c, _s) in zip(brk_lr, brk_b, brk_t,
-                                                      brk_c, bracket_text):
+        for (_l, _r), (_bl, _br), _t, _c, _s in zip(
+            brk_lr, brk_b, brk_t, brk_c, bracket_text
+        ):
             # bracket text
             _t = np.array(_t).item()  # on newer Pandas it can be shape (1,)
-            defaults = dict(ha='center', annotation_clip=False,
-                            textcoords='offset points')
+            defaults = dict(
+                ha="center", annotation_clip=False, textcoords="offset points"
+            )
             for k, v in defaults.items():
                 if k not in pval_kwargs.keys():
                     pval_kwargs[k] = v
-            if 'va' not in pval_kwargs.keys():
-                pval_kwargs['va'] = 'center' if bracket_inline else 'baseline'
-            if 'xytext' not in pval_kwargs.keys():
-                pval_kwargs['xytext'] = (0, 0) if bracket_inline else (0, 2)
+            if "va" not in pval_kwargs.keys():
+                pval_kwargs["va"] = "center" if bracket_inline else "baseline"
+            if "xytext" not in pval_kwargs.keys():
+                pval_kwargs["xytext"] = (0, 0) if bracket_inline else (0, 2)
             txt = p.annotate(_s, (_c, _t), **pval_kwargs)
-            txt.set_bbox(dict(facecolor='w', alpha=0,
-                              boxstyle='round, pad=0.2'))
+            txt.set_bbox(dict(facecolor="w", alpha=0, boxstyle="round, pad=0.2"))
             plt.draw()
             # bracket lines
             lline = ((_l, _l), (_bl, _t))
@@ -417,10 +461,9 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
             tline = ((_l, _r), (_t, _t))
             if bracket_inline:
                 bb = txt.get_bbox_patch().get_window_extent()
-                txtw = np.diff(p.transData.inverted().transform(bb),
-                               axis=0).ravel()[0]
-                _m = _c - txtw / 2.
-                _n = _c + txtw / 2.
+                txtw = np.diff(p.transData.inverted().transform(bb), axis=0).ravel()[0]
+                _m = _c - txtw / 2.0
+                _n = _c + txtw / 2.0
                 tline = [((_l, _m), (_t, _t)), ((_n, _r), (_t, _t))]
             else:
                 tline = [((_l, _r), (_t, _t))]
@@ -432,17 +475,23 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
                 p.set_ybound(ybnd[0], _t + txth)
     # annotation
     box_off(p)
-    p.tick_params(axis='x', length=0, pad=12)
+    p.tick_params(axis="x", length=0, pad=12)
     p.xaxis.set_ticks(bar_centers)
     if bar_names is not None:
-        p.xaxis.set_ticklabels(bar_names, va='baseline')
+        p.xaxis.set_ticklabels(bar_names, va="baseline")
     if group_names is not None:
         ymin = ylim[0] if ylim is not None else p.get_ylim()[0]
-        yoffset = -2.5 * rcParams['font.size']
+        yoffset = -2.5 * rcParams["font.size"]
         for gn, gp in zip(group_names, group_centers):
-            p.annotate(gn, xy=(gp, ymin), xytext=(0, yoffset),
-                       xycoords='data', textcoords='offset points',
-                       ha='center', va='baseline')
+            p.annotate(
+                gn,
+                xy=(gp, ymin),
+                xytext=(0, yoffset),
+                xycoords="data",
+                textcoords="offset points",
+                ha="center",
+                va="baseline",
+            )
     # axis limits
     p.set_xlim(0, bar_edges[-1] + bar_widths[-1] + gap_size / 2)
     if ylim is not None:
@@ -450,6 +499,7 @@ def barplot(h, axis=-1, ylim=None, err_bars=None, lines=False,
     # output file
     if fname is not None:
         from os.path import splitext
+
         fmt = splitext(fname)[-1][1:]
         plt.savefig(fname, format=fmt, transparent=True)
     # return handles for subplot and barplot instances
@@ -467,10 +517,10 @@ def box_off(ax):
     """
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
-    ax.tick_params(axis='x', direction='out')
-    ax.tick_params(axis='y', direction='out')
-    ax.spines['right'].set_color('none')
-    ax.spines['top'].set_color('none')
+    ax.tick_params(axis="x", direction="out")
+    ax.tick_params(axis="y", direction="out")
+    ax.spines["right"].set_color("none")
+    ax.spines["top"].set_color("none")
 
 
 def plot_screen(screen, ax=None):
@@ -490,12 +540,13 @@ def plot_screen(screen, ax=None):
         The axes used to plot the image.
     """
     import matplotlib.pyplot as plt
+
     screen = np.array(screen)
     if screen.ndim != 3 or screen.shape[2] not in [3, 4]:
-        raise ValueError('screen must be a 3D array with 3 or 4 channels')
+        raise ValueError("screen must be a 3D array with 3 or 4 channels")
     if ax is None:
         plt.figure()
         ax = plt.axes([0, 0, 1, 1])
     ax.imshow(screen)
-    ax.axis('off')
+    ax.axis("off")
     return ax

@@ -1,5 +1,4 @@
-"""Functions for fixing data.
-"""
+"""Functions for fixing data."""
 
 import numpy as np
 from scipy import linalg
@@ -36,8 +35,10 @@ def restore_values(correct, other, idx):
     correct = np.array(correct, np.float64)
     other = np.array(other, np.float64)
     if correct.ndim != 1 or other.ndim != 1 or other.size > correct.size:
-        raise RuntimeError('correct and other must be 1D, and correct must '
-                           'be at least as long as other')
+        raise RuntimeError(
+            "correct and other must be 1D, and correct must "
+            "be at least as long as other"
+        )
     keep = np.ones(len(correct), bool)
     for ii in idx:
         keep[ii] = False
@@ -49,7 +50,7 @@ def restore_values(correct, other, idx):
     X = np.dot(X, other)
     test = np.dot(np.array((np.ones_like(use), use)).T, X)
     if not np.allclose(other, test):  # validate fit
-        raise RuntimeError('data could not be fit')
+        raise RuntimeError("data could not be fit")
     miss = correct[replace]
     vals = np.dot(np.array((np.ones_like(miss), miss)).T, X)
     out = np.zeros(len(correct), np.float64)

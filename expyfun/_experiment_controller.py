@@ -6,31 +6,43 @@
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict
 import inspect
 import json
 import os
-import sys
-import warnings
-from os import path as op
-from functools import partial
-import traceback as tb
 import string
+import sys
+import traceback as tb
+import warnings
+from collections import OrderedDict
+from functools import partial
+from os import path as op
 
 import numpy as np
 
-from ._utils import (get_config, verbose_dec, _check_pyglet_version,
-                     running_rms, _sanitize, logger, ZeroClock, date_str,
-                     check_units, set_log_file, flush_logger, _TempDir,
-                     string_types, _fix_audio_dims, input, _get_args,
-                     _get_display, _wait_secs)
+from ._git import __version__, assert_version
+from ._input_controllers import CedrusBox, Joystick, Keyboard, Mouse
+from ._sound_controllers import _AUTO_BACKENDS, SoundCardController, SoundPlayer
 from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
-from ._sound_controllers import (SoundPlayer, SoundCardController,
-                                 _AUTO_BACKENDS)
-from ._input_controllers import Keyboard, CedrusBox, Mouse, Joystick
-from .visual import Text, Rectangle, Video, _convert_color
-from ._git import assert_version, __version__
+from ._utils import (
+    ZeroClock,
+    _check_pyglet_version,
+    _fix_audio_dims,
+    _get_args,
+    _get_display,
+    _sanitize,
+    _TempDir,
+    _wait_secs,
+    check_units,
+    date_str,
+    flush_logger,
+    get_config,
+    logger,
+    running_rms,
+    set_log_file,
+    verbose_dec,
+)
+from .visual import Rectangle, Text, Video, _convert_color
 
 # Note: ec._trial_progress has three values:
 # 1. 'stopped', which ec.identify_trial turns into...
@@ -40,7 +52,7 @@ from ._git import assert_version, __version__
 _SLOW_LIMIT = 10000000
 
 
-class ExperimentController(object):
+class ExperimentController:
     """Interface for hardware control (audio, buttonbox, eye tracker, etc.)
 
     Parameters
@@ -142,14 +154,33 @@ class ExperimentController(object):
     """
 
     @verbose_dec
-    def __init__(self, exp_name, audio_controller=None, response_device=None,
-                 stim_rms=0.01, stim_fs=24414, stim_db=65, noise_db=45,
-                 output_dir='data', window_size=None, screen_num=None,
-                 full_screen=True, force_quit=None, participant=None,
-                 monitor=None, trigger_controller=None, session=None,
-                 check_rms='windowed', suppress_resamp=False, version=None,
-                 safe_flipping=None, n_channels=2,
-                 trigger_duration=0.01, joystick=False, verbose=None):
+    def __init__(
+        self,
+        exp_name,
+        audio_controller=None,
+        response_device=None,
+        stim_rms=0.01,
+        stim_fs=24414,
+        stim_db=65,
+        noise_db=45,
+        output_dir="data",
+        window_size=None,
+        screen_num=None,
+        full_screen=True,
+        force_quit=None,
+        participant=None,
+        monitor=None,
+        trigger_controller=None,
+        session=None,
+        check_rms="windowed",
+        suppress_resamp=False,
+        version=None,
+        safe_flipping=None,
+        n_channels=2,
+        trigger_duration=0.01,
+        joystick=False,
+        verbose=None,
+    ):
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -158,7 +189,7 @@ class ExperimentController(object):
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
         self.video = None
-        self._bgcolor = _convert_color('k')
+        self._bgcolor = _convert_color("k")
         # placeholder for extra actions to do on flip-and-play
         self._on_every_flip = []
         self._on_next_flip = []
@@ -179,19 +210,23 @@ class ExperimentController(object):
             _check_pyglet_version(raise_error=True)
             # assure proper formatting for force-quit keys
             if force_quit is None:
-                force_quit = ['lctrl', 'rctrl']
-            elif isinstance(force_quit, (int, string_types)):
+                force_quit = ["lctrl", "rctrl"]
+            elif isinstance(force_quit, (int, str)):
                 force_quit = [str(force_quit)]
-            if 'escape' in force_quit:
-                logger.warning('Expyfun: using "escape" as a force-quit key '
-                               'is not recommended because it has special '
-                               'status in pyglet.')
+            if "escape" in force_quit:
+                logger.warning(
+                    'Expyfun: using "escape" as a force-quit key '
+                    "is not recommended because it has special "
+                    "status in pyglet."
+                )
             # check expyfun version
             if version is None:
-                raise RuntimeError('You must specify an expyfun version string'
-                                   ' to use ExperimentController, or specify '
-                                   'version=\'dev\' to override.')
-            elif version.lower() != 'dev':
+                raise RuntimeError(
+                    "You must specify an expyfun version string"
+                    " to use ExperimentController, or specify "
+                    "version='dev' to override."
+                )
+            elif version.lower() != "dev":
                 assert_version(version)
             # set up timing
             # Use ZeroClock, which uses the "clock" fn but starts at zero
@@ -203,28 +238,28 @@ class ExperimentController(object):
             self._exp_info = OrderedDict()
 
             for name in _get_args(self.__init__):
-                if name != 'self':
+                if name != "self":
                     self._exp_info[name] = locals()[name]
-            self._exp_info['date'] = date_str()
+            self._exp_info["date"] = date_str()
             # skip verbose decorator frames
-            self._exp_info['file'] = \
-                op.abspath(inspect.getfile(sys._getframe(3)))
-            self._exp_info['version_used'] = __version__
+            self._exp_info["file"] = op.abspath(inspect.getfile(sys._getframe(3)))
+            self._exp_info["version_used"] = __version__
 
             # session start dialog, if necessary
-            show_list = ['exp_name', 'date', 'file', 'participant', 'session']
-            edit_list = ['participant', 'session']  # things editable in GUI
+            show_list = ["exp_name", "date", "file", "participant", "session"]
+            edit_list = ["participant", "session"]  # things editable in GUI
             for key in show_list:
                 value = self._exp_info[key]
-                if key in edit_list and value is not None and \
-                        not isinstance(value, string_types):
-                    raise TypeError('{} must be string or None'
-                                    ''.format(value))
+                if (
+                    key in edit_list
+                    and value is not None
+                    and not isinstance(value, str)
+                ):
+                    raise TypeError(f"{value} must be string or None" "")
                 if key in edit_list and value is None:
-                    self._exp_info[key] = get_keyboard_input(
-                        '{0}: '.format(key))
+                    self._exp_info[key] = get_keyboard_input(f"{key}: ")
                 else:
-                    print('{0}: {1}'.format(key, value))
+                    print(f"{key}: {value}")
 
             #
             # initialize log file
@@ -235,92 +270,103 @@ class ExperimentController(object):
                 output_dir = op.abspath(output_dir)
                 if not op.isdir(output_dir):
                     os.mkdir(output_dir)
-                basename = op.join(output_dir, '{}_{}'
-                                   ''.format(self._exp_info['participant'],
-                                             self._exp_info['date']))
+                basename = op.join(
+                    output_dir,
+                    "{}_{}" "".format(
+                        self._exp_info["participant"], self._exp_info["date"]
+                    ),
+                )
                 self._output_dir = basename
-                self._log_file = self._output_dir + '.log'
+                self._log_file = self._output_dir + ".log"
                 set_log_file(self._log_file)
                 closer = partial(set_log_file, None)
                 # initialize data file
-                self._data_file = open(self._output_dir + '.tab', 'a')
+                self._data_file = open(self._output_dir + ".tab", "a")
                 self._extra_cleanup_fun.append(self.flush)  # flush
                 self._extra_cleanup_fun.append(self._data_file.close)  # close
                 self._extra_cleanup_fun.append(closer)  # un-set log file
-                self._data_file.write('# ' + json.dumps(self._exp_info) + '\n')
-                self.write_data_line('event', 'value', 'timestamp')
-            logger.info('Expyfun: Using version %s (requested %s)'
-                        % (__version__, version))
+                self._data_file.write("# " + json.dumps(self._exp_info) + "\n")
+                self.write_data_line("event", "value", "timestamp")
+            logger.info(
+                "Expyfun: Using version %s (requested %s)" % (__version__, version)
+            )
 
             #
             # set up monitor
             #
             if safe_flipping is None:
-                safe_flipping = not (get_config('SAFE_FLIPPING', '').lower() ==
-                                     'false')
+                safe_flipping = not (get_config("SAFE_FLIPPING", "").lower() == "false")
             if not safe_flipping:
-                logger.warning('Expyfun: Unsafe flipping mode enabled, flip '
-                               'timing not guaranteed')
+                logger.warning(
+                    "Expyfun: Unsafe flipping mode enabled, flip "
+                    "timing not guaranteed"
+                )
             self.safe_flipping = safe_flipping
 
             if screen_num is None:
-                screen_num = int(get_config('SCREEN_NUM', '0'))
+                screen_num = int(get_config("SCREEN_NUM", "0"))
             display = _get_display()
             screen = display.get_screens()[screen_num]
             if monitor is None:
                 mon_size = [screen.width, screen.height]
-                mon_size = ','.join([str(d) for d in mon_size])
+                mon_size = ",".join([str(d) for d in mon_size])
                 monitor = dict()
-                width = float(get_config('SCREEN_WIDTH', '51.0'))
-                dist = float(get_config('SCREEN_DISTANCE', '48.0'))
-                monitor['SCREEN_WIDTH'] = width
-                monitor['SCREEN_DISTANCE'] = dist
-                mon_size = get_config('SCREEN_SIZE_PIX', mon_size).split(',')
+                width = float(get_config("SCREEN_WIDTH", "51.0"))
+                dist = float(get_config("SCREEN_DISTANCE", "48.0"))
+                monitor["SCREEN_WIDTH"] = width
+                monitor["SCREEN_DISTANCE"] = dist
+                mon_size = get_config("SCREEN_SIZE_PIX", mon_size).split(",")
                 mon_size = [int(p) for p in mon_size]
-                monitor['SCREEN_SIZE_PIX'] = mon_size
+                monitor["SCREEN_SIZE_PIX"] = mon_size
             if not isinstance(monitor, dict):
-                raise TypeError('monitor must be a dict, got %r' % (monitor,))
-            req_mon_keys = ['SCREEN_WIDTH', 'SCREEN_DISTANCE',
-                            'SCREEN_SIZE_PIX']
+                raise TypeError("monitor must be a dict, got %r" % (monitor,))
+            req_mon_keys = ["SCREEN_WIDTH", "SCREEN_DISTANCE", "SCREEN_SIZE_PIX"]
             missing_keys = [key for key in req_mon_keys if key not in monitor]
             if missing_keys:
-                raise KeyError('monitor is missing required keys {0}'
-                               ''.format(missing_keys))
-            mon_size = monitor['SCREEN_SIZE_PIX']
-            monitor['SCREEN_DPI'] = (monitor['SCREEN_SIZE_PIX'][0] /
-                                     (monitor['SCREEN_WIDTH'] * 0.393701))
-            monitor['SCREEN_HEIGHT'] = (monitor['SCREEN_WIDTH'] /
-                                        float(monitor['SCREEN_SIZE_PIX'][0]) *
-                                        float(monitor['SCREEN_SIZE_PIX'][1]))
+                raise KeyError(f"monitor is missing required keys {missing_keys}" "")
+            mon_size = monitor["SCREEN_SIZE_PIX"]
+            monitor["SCREEN_DPI"] = monitor["SCREEN_SIZE_PIX"][0] / (
+                monitor["SCREEN_WIDTH"] * 0.393701
+            )
+            monitor["SCREEN_HEIGHT"] = (
+                monitor["SCREEN_WIDTH"]
+                / float(monitor["SCREEN_SIZE_PIX"][0])
+                * float(monitor["SCREEN_SIZE_PIX"][1])
+            )
             self._monitor = monitor
 
             #
             # parse audio controller
             #
             if audio_controller is None:
-                audio_controller = {'TYPE': get_config('AUDIO_CONTROLLER',
-                                                       'sound_card')}
-            elif isinstance(audio_controller, string_types):
+                audio_controller = {
+                    "TYPE": get_config("AUDIO_CONTROLLER", "sound_card")
+                }
+            elif isinstance(audio_controller, str):
                 # old option, backward compat / shortcut
                 if audio_controller in _AUTO_BACKENDS:
                     audio_controller = {
-                        'TYPE': 'sound_card',
-                        'SOUND_CARD_BACKEND': audio_controller}
+                        "TYPE": "sound_card",
+                        "SOUND_CARD_BACKEND": audio_controller,
+                    }
                 else:
-                    audio_controller = {'TYPE': audio_controller.lower()}
+                    audio_controller = {"TYPE": audio_controller.lower()}
             elif not isinstance(audio_controller, dict):
-                raise TypeError('audio_controller must be a str or dict, got '
-                                'type %s' % (type(audio_controller),))
-            audio_type = audio_controller['TYPE'].lower()
+                raise TypeError(
+                    "audio_controller must be a str or dict, got "
+                    "type %s" % (type(audio_controller),)
+                )
+            audio_type = audio_controller["TYPE"].lower()
 
             #
             # parse response device
             #
             if response_device is None:
-                response_device = get_config('RESPONSE_DEVICE', 'keyboard')
-            if response_device not in ['keyboard', 'tdt', 'cedrus']:
-                raise ValueError('response_device must be "keyboard", "tdt", '
-                                 '"cedrus", or None')
+                response_device = get_config("RESPONSE_DEVICE", "keyboard")
+            if response_device not in ["keyboard", "tdt", "cedrus"]:
+                raise ValueError(
+                    'response_device must be "keyboard", "tdt", ' '"cedrus", or None'
+                )
             self._response_device = response_device
 
             #
@@ -329,28 +375,40 @@ class ExperimentController(object):
 
             trigger_duration = float(trigger_duration)
             if not 0.001 < trigger_duration <= 0.02:  # probably an error
-                raise ValueError('high_duration must be between 0.001 and '
-                                 '0.02 sec, got %s' % (trigger_duration,))
+                raise ValueError(
+                    "high_duration must be between 0.001 and "
+                    "0.02 sec, got %s" % (trigger_duration,)
+                )
 
             # Audio (and for TDT, potentially keyboard)
-            if audio_type == 'tdt':
-                logger.info('Expyfun: Setting up TDT')
+            if audio_type == "tdt":
+                logger.info("Expyfun: Setting up TDT")
                 if n_channels != 2:
-                    raise ValueError('n_channels must be equal to 2 for the '
-                                     'TDT backend, got %s' % (n_channels,))
+                    raise ValueError(
+                        "n_channels must be equal to 2 for the "
+                        "TDT backend, got %s" % (n_channels,)
+                    )
                 if trigger_duration != 0.01:
-                    raise ValueError('trigger_duration must be 0.01 for TDT, '
-                                     'got %s' % (trigger_duration,))
+                    raise ValueError(
+                        "trigger_duration must be 0.01 for TDT, "
+                        "got %s" % (trigger_duration,)
+                    )
                 self._ac = TDTController(audio_controller, ec=self)
                 self.audio_type = self._ac.model
-            elif audio_type == 'sound_card':
+            elif audio_type == "sound_card":
                 self._ac = SoundCardController(
-                    audio_controller, self.stim_fs, n_channels,
-                    trigger_duration=trigger_duration, ec=self)
+                    audio_controller,
+                    self.stim_fs,
+                    n_channels,
+                    trigger_duration=trigger_duration,
+                    ec=self,
+                )
                 self.audio_type = self._ac.backend_name
             else:
-                raise ValueError('audio_controller[\'TYPE\'] must be "tdt" '
-                                 'or "sound_card", got %r.' % (audio_type,))
+                raise ValueError(
+                    "audio_controller['TYPE'] must be \"tdt\" "
+                    'or "sound_card", got %r.' % (audio_type,)
+                )
             del audio_type
             self._extra_cleanup_fun.insert(0, self._ac.halt)
             # audio scaling factor; ensure uniform intensity across devices
@@ -358,46 +416,50 @@ class ExperimentController(object):
             self.set_noise_db(self._noise_db)
 
             if self._fs_mismatch:
-                msg = ('Expyfun: Mismatch between reported stim sample '
-                       'rate ({0}) and device sample rate ({1}). '
-                       .format(self.stim_fs, self.fs))
+                msg = (
+                    "Expyfun: Mismatch between reported stim sample "
+                    f"rate ({self.stim_fs}) and device sample rate ({self.fs}). "
+                )
                 if self._suppress_resamp:
-                    msg += ('Nothing will be done about this because '
-                            'suppress_resamp is "True"')
+                    msg += (
+                        "Nothing will be done about this because "
+                        'suppress_resamp is "True"'
+                    )
                 else:
-                    msg += ('Experiment Controller will resample for you, but '
-                            'this takes a non-trivial amount of processing '
-                            'time and may compromise your experimental '
-                            'timing and/or cause artifacts.')
+                    msg += (
+                        "Experiment Controller will resample for you, but "
+                        "this takes a non-trivial amount of processing "
+                        "time and may compromise your experimental "
+                        "timing and/or cause artifacts."
+                    )
                 logger.warning(msg)
 
             #
             # set up visual window (must be done before keyboard and mouse)
             #
-            logger.info('Expyfun: Setting up screen')
+            logger.info("Expyfun: Setting up screen")
             if full_screen:
                 if window_size is None:
-                    window_size = monitor['SCREEN_SIZE_PIX']
+                    window_size = monitor["SCREEN_SIZE_PIX"]
             else:
                 if window_size is None:
-                    window_size = get_config('WINDOW_SIZE',
-                                             '800,600').split(',')
+                    window_size = get_config("WINDOW_SIZE", "800,600").split(",")
                     window_size = [int(w) for w in window_size]
             window_size = np.array(window_size)
             if window_size.ndim != 1 or window_size.size != 2:
-                raise ValueError('window_size must be 2-element array-like or '
-                                 'None')
+                raise ValueError("window_size must be 2-element array-like or " "None")
 
             # open window and setup GL config
             self._setup_window(window_size, exp_name, full_screen, screen)
 
             # Keyboard
-            if response_device == 'keyboard':
+            if response_device == "keyboard":
                 self._response_handler = Keyboard(self, force_quit)
-            elif response_device == 'tdt':
+            elif response_device == "tdt":
                 if not isinstance(self._ac, TDTController):
-                    raise ValueError('response_device can only be "tdt" if '
-                                     'tdt is used for audio')
+                    raise ValueError(
+                        'response_device can only be "tdt" if ' "tdt is used for audio"
+                    )
                 self._response_handler = self._ac
                 self._ac._add_keyboard_init(self, force_quit)
             else:  # response_device == 'cedrus'
@@ -415,67 +477,79 @@ class ExperimentController(object):
             #
             self._ofp_critical_funs = list()
             if trigger_controller is None:
-                trigger_controller = get_config('TRIGGER_CONTROLLER', 'dummy')
-            if isinstance(trigger_controller, string_types):
+                trigger_controller = get_config("TRIGGER_CONTROLLER", "dummy")
+            if isinstance(trigger_controller, str):
                 trigger_controller = dict(TYPE=trigger_controller)
             assert isinstance(trigger_controller, dict)
             trigger_controller = trigger_controller.copy()
-            known_keys = ('TYPE',)
+            known_keys = ("TYPE",)
             if set(trigger_controller) != set(known_keys):
                 raise ValueError(
-                    'Unknown keys for trigger_controller, must be '
-                    f'{known_keys}, got {set(trigger_controller)}')
-            logger.info(f'Expyfun: Initializing {trigger_controller["TYPE"]} '
-                        'triggering mode')
-            if trigger_controller['TYPE'] == 'tdt':
+                    "Unknown keys for trigger_controller, must be "
+                    f"{known_keys}, got {set(trigger_controller)}"
+                )
+            logger.info(
+                f'Expyfun: Initializing {trigger_controller["TYPE"]} ' 'triggering mode'
+            )
+            if trigger_controller["TYPE"] == "tdt":
                 if not isinstance(self._ac, TDTController):
-                    raise ValueError('trigger_controller can only be "tdt" if '
-                                     'tdt is used for audio')
+                    raise ValueError(
+                        'trigger_controller can only be "tdt" if '
+                        "tdt is used for audio"
+                    )
                 self._tc = self._ac
-            elif trigger_controller['TYPE'] == 'sound_card':
+            elif trigger_controller["TYPE"] == "sound_card":
                 if not isinstance(self._ac, SoundCardController):
-                    raise ValueError('trigger_controller can only be '
-                                     '"sound_card" if the sound card is '
-                                     'used for audio')
+                    raise ValueError(
+                        "trigger_controller can only be "
+                        '"sound_card" if the sound card is '
+                        "used for audio"
+                    )
                 if self._ac._n_channels_stim == 0:
-                    raise ValueError('cannot use sound card for triggering '
-                                     'when SOUND_CARD_TRIGGER_CHANNELS is '
-                                     'zero')
+                    raise ValueError(
+                        "cannot use sound card for triggering "
+                        "when SOUND_CARD_TRIGGER_CHANNELS is "
+                        "zero"
+                    )
                 self._tc = self._ac
-            elif trigger_controller['TYPE'] in ['parallel', 'dummy']:
+            elif trigger_controller["TYPE"] in ["parallel", "dummy"]:
                 addr = trigger_controller.get(
-                    'TRIGGER_ADDRESS', get_config('TRIGGER_ADDRESS', None))
+                    "TRIGGER_ADDRESS", get_config("TRIGGER_ADDRESS", None)
+                )
                 self._tc = ParallelTrigger(
-                    trigger_controller['TYPE'], addr,
-                    trigger_duration, ec=self)
+                    trigger_controller["TYPE"], addr, trigger_duration, ec=self
+                )
                 self._extra_cleanup_fun.insert(0, self._tc.close)
                 # The TDT always stamps "1" on stimulus onset. Here we need
                 # to manually mimic that behavior.
                 self._ofp_critical_funs.insert(
-                    0, lambda: self._stamp_ttl_triggers([1], False, False))
+                    0, lambda: self._stamp_ttl_triggers([1], False, False)
+                )
             else:
-                raise ValueError('trigger_controller type must be '
-                                 '"parallel", "dummy", "sound_card", or "tdt",'
-                                 'got {0}'.format(trigger_controller['TYPE']))
-            self._id_call_dict['ttl_id'] = self._stamp_binary_id
+                raise ValueError(
+                    "trigger_controller type must be "
+                    '"parallel", "dummy", "sound_card", or "tdt",'
+                    "got {0}".format(trigger_controller["TYPE"])
+                )
+            self._id_call_dict["ttl_id"] = self._stamp_binary_id
 
             # other basic components
             self._mouse_handler = Mouse(self)
-            t = np.arange(44100 // 3) / 44100.
+            t = np.arange(44100 // 3) / 44100.0
             car = sum([np.sin(2 * np.pi * f * t) for f in [800, 1000, 1200]])
             self._beep = None
             self._beep_data = np.tile(car * np.exp(-t * 10) / 4, (2, 3))
 
             # finish initialization
-            logger.info('Expyfun: Initialization complete')
-            logger.exp('Expyfun: Participant: {0}'
-                       ''.format(self._exp_info['participant']))
-            logger.exp('Expyfun: Session: {0}'
-                       ''.format(self._exp_info['session']))
-            ok_log = partial(self.write_data_line, 'trial_ok', None)
+            logger.info("Expyfun: Initialization complete")
+            logger.exp(
+                "Expyfun: Participant: {0}" "".format(self._exp_info["participant"])
+            )
+            logger.exp("Expyfun: Session: {0}" "".format(self._exp_info["session"]))
+            ok_log = partial(self.write_data_line, "trial_ok", None)
             self._on_trial_ok.append(ok_log)
             self._on_trial_ok.append(self.flush)
-            self._trial_progress = 'stopped'
+            self._trial_progress = "stopped"
         except Exception:
             self.close()
             raise
@@ -483,19 +557,28 @@ class ExperimentController(object):
         self.flip()
 
     def __repr__(self):
-        """Return a useful string representation of the experiment
-        """
-        string = ('<ExperimentController ({3}): "{0}" {1} ({2})>'
-                  ''.format(self._exp_info['exp_name'],
-                            self._exp_info['participant'],
-                            self._exp_info['session'],
-                            self.audio_type))
+        """Return a useful string representation of the experiment"""
+        string = '<ExperimentController ({3}): "{0}" {1} ({2})>' "".format(
+            self._exp_info["exp_name"],
+            self._exp_info["participant"],
+            self._exp_info["session"],
+            self.audio_type,
+        )
         return string
 
-# ############################### SCREEN METHODS ##############################
-    def screen_text(self, text, pos=[0, 0], color='white', font_name='Arial',
-                    font_size=24, wrap=True, units='norm', attr=True,
-                    log_data=True):
+    # ############################### SCREEN METHODS ##############################
+    def screen_text(
+        self,
+        text,
+        pos=(0, 0),
+        color="white",
+        font_name="Arial",
+        font_size=24,
+        wrap=True,
+        units="norm",
+        attr=True,
+        log_data=True,
+    ):
         """Show some text on the screen.
 
         Parameters
@@ -534,18 +617,39 @@ class ExperimentController(object):
         ExperimentController.screen_prompt
         """
         check_units(units)
-        scr_txt = Text(self, text, pos, color, font_name, font_size,
-                       wrap=wrap, units=units, attr=attr)
+        scr_txt = Text(
+            self,
+            text,
+            pos,
+            color,
+            font_name,
+            font_size,
+            wrap=wrap,
+            units=units,
+            attr=attr,
+        )
         scr_txt.draw()
         if log_data:
-            self.call_on_next_flip(partial(self.write_data_line, 'screen_text',
-                                           text))
+            self.call_on_next_flip(partial(self.write_data_line, "screen_text", text))
         return scr_txt
 
-    def screen_prompt(self, text, max_wait=np.inf, min_wait=0, live_keys=None,
-                      timestamp=False, clear_after=True, pos=[0, 0],
-                      color='white', font_name='Arial', font_size=24,
-                      wrap=True, units='norm', attr=True, click=False):
+    def screen_prompt(
+        self,
+        text,
+        max_wait=np.inf,
+        min_wait=0,
+        live_keys=None,
+        timestamp=False,
+        clear_after=True,
+        pos=(0, 0),
+        color="white",
+        font_name="Arial",
+        font_size=24,
+        wrap=True,
+        units="norm",
+        attr=True,
+        click=False,
+    ):
         """Display text and (optionally) wait for user continuation
 
         Parameters
@@ -605,12 +709,19 @@ class ExperimentController(object):
         """
         if not isinstance(text, list):
             text = [text]
-        if not all([isinstance(t, string_types) for t in text]):
-            raise TypeError('text must be a string or list of strings')
+        if not all(isinstance(t, str) for t in text):
+            raise TypeError("text must be a string or list of strings")
         for t in text:
-            self.screen_text(t, pos=pos, color=color, font_name=font_name,
-                             font_size=font_size, wrap=wrap, units=units,
-                             attr=attr)
+            self.screen_text(
+                t,
+                pos=pos,
+                color=color,
+                font_name=font_name,
+                font_size=font_size,
+                wrap=wrap,
+                units=units,
+                attr=attr,
+            )
             self.flip()
             fun = self.wait_one_click if click else self.wait_one_press
             out = fun(max_wait, min_wait, live_keys, timestamp)
@@ -618,7 +729,7 @@ class ExperimentController(object):
             self.flip()
         return out
 
-    def set_background_color(self, color='black'):
+    def set_background_color(self, color="black"):
         """Set and draw a solid background color
 
         Parameters
@@ -635,10 +746,11 @@ class ExperimentController(object):
         appropriate background color.
         """
         from pyglet import gl
+
         # we go a little over here to be safe from round-off errors
         Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
         self._bgcolor = _convert_color(color)
-        gl.glClearColor(*[c / 255. for c in self._bgcolor])
+        gl.glClearColor(*[c / 255.0 for c in self._bgcolor])
 
     def start_stimulus(self, start_of_trial=True, flip=True, when=None):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
@@ -679,17 +791,19 @@ class ExperimentController(object):
         `call_on_next_flip` and `call_on_every_flip`.
         """
         if start_of_trial:
-            if self._trial_progress != 'identified':
-                raise RuntimeError('Trial ID must be stamped before starting '
-                                   'the trial')
-            self._trial_progress = 'started'
-        extra = 'flipping screen and ' if flip else ''
-        logger.exp('Expyfun: Starting stimuli: {0}playing audio'.format(extra))
+            if self._trial_progress != "identified":
+                raise RuntimeError(
+                    "Trial ID must be stamped before starting " "the trial"
+                )
+            self._trial_progress = "started"
+        extra = "flipping screen and " if flip else ""
+        logger.exp(f"Expyfun: Starting stimuli: {extra}playing audio")
         # ensure self._play comes first in list, followed by other critical
         # private functions (e.g., EL stamping), then user functions:
         if flip:
-            self._on_next_flip = ([self._play] + self._ofp_critical_funs +
-                                  self._on_next_flip)
+            self._on_next_flip = (
+                [self._play] + self._ofp_critical_funs + self._on_next_flip
+            )
             stimulus_time = self.flip(when)
         else:
             if when is not None:
@@ -757,51 +871,56 @@ class ExperimentController(object):
         check_units(fro)
         verts = np.array(np.atleast_2d(verts), dtype=float)
         if verts.shape[0] != 2:
-            raise RuntimeError('verts must have 2 rows')
+            raise RuntimeError("verts must have 2 rows")
 
         if fro == to:
             return verts
 
         # simplify by using two if neither is in normalized (native) units
-        if 'norm' not in [to, fro]:
+        if "norm" not in [to, fro]:
             # convert to normal
-            verts = self._convert_units(verts, fro, 'norm')
+            verts = self._convert_units(verts, fro, "norm")
             # convert from normal to dest
-            verts = self._convert_units(verts, 'norm', to)
+            verts = self._convert_units(verts, "norm", to)
             return verts
 
         # figure out our actual transition, knowing one is 'norm'
         win_w_pix, win_h_pix = self.window_size_pix
         mon_w_pix, mon_h_pix = self.monitor_size_pix
-        wh_cm = np.array([self._monitor['SCREEN_WIDTH'],
-                          self._monitor['SCREEN_HEIGHT']], float)
-        d_cm = self._monitor['SCREEN_DISTANCE']
-        cm_factors = (self.window_size_pix / self.monitor_size_pix *
-                      wh_cm / 2.)[:, np.newaxis]
-        if 'pix' in [to, fro]:
-            if 'pix' == to:
+        wh_cm = np.array(
+            [self._monitor["SCREEN_WIDTH"], self._monitor["SCREEN_HEIGHT"]], float
+        )
+        d_cm = self._monitor["SCREEN_DISTANCE"]
+        cm_factors = (self.window_size_pix / self.monitor_size_pix * wh_cm / 2.0)[
+            :, np.newaxis
+        ]
+        if "pix" in [to, fro]:
+            if "pix" == to:
                 # norm to pixels
-                x = np.array([[win_w_pix / 2., 0, win_w_pix / 2.],
-                              [0, win_h_pix / 2., win_h_pix / 2.]])
+                x = np.array(
+                    [
+                        [win_w_pix / 2.0, 0, win_w_pix / 2.0],
+                        [0, win_h_pix / 2.0, win_h_pix / 2.0],
+                    ]
+                )
             else:
                 # pixels to norm
-                x = np.array([[2. / win_w_pix, 0, -1.],
-                              [0, 2. / win_h_pix, -1.]])
+                x = np.array([[2.0 / win_w_pix, 0, -1.0], [0, 2.0 / win_h_pix, -1.0]])
             verts = np.dot(x, np.r_[verts, np.ones((1, verts.shape[1]))])
-        elif 'deg' in [to, fro]:
-            if 'deg' == to:
+        elif "deg" in [to, fro]:
+            if "deg" == to:
                 # norm (window) to norm (whole screen), then to deg
                 verts = np.rad2deg(np.arctan2(verts * cm_factors, d_cm))
             else:
                 # deg to norm (whole screen), to norm (window)
                 verts = (d_cm * np.tan(np.deg2rad(verts))) / cm_factors
-        elif 'cm' in [to, fro]:
-            if 'cm' == to:
+        elif "cm" in [to, fro]:
+            if "cm" == to:
                 verts = verts * cm_factors
             else:
                 verts = verts / cm_factors
         else:
-            raise KeyError('unknown conversion "{}" to "{}"'.format(fro, to))
+            raise KeyError(f'unknown conversion "{fro}" to "{to}"')
         return verts
 
     def screenshot(self):
@@ -817,9 +936,10 @@ class ExperimentController(object):
         """
         import pyglet
         from PIL import Image
+
         tempdir = _TempDir()
-        fname = op.join(tempdir, 'tmp.png')
-        with open(fname, 'wb') as fid:
+        fname = op.join(tempdir, "tmp.png")
+        with open(fname, "wb") as fid:
             pyglet.image.get_buffer_manager().get_color_buffer().save(file=fid)
         with Image.open(fname) as img:
             data = np.array(img)
@@ -844,7 +964,7 @@ class ExperimentController(object):
 
     @property
     def dpi(self):
-        return self._monitor['SCREEN_DPI']
+        return self._monitor["SCREEN_DPI"]
 
     @property
     def window_size_pix(self):
@@ -852,10 +972,10 @@ class ExperimentController(object):
 
     @property
     def monitor_size_pix(self):
-        return np.array(self._monitor['SCREEN_SIZE_PIX'])
+        return np.array(self._monitor["SCREEN_SIZE_PIX"])
 
-# ############################### VIDEO METHODS ###############################
-    def load_video(self, file_name, pos=(0, 0), units='norm', center=True):
+    # ############################### VIDEO METHODS ###############################
+    def load_video(self, file_name, pos=(0, 0), units="norm", center=True):
         """Load a video.
 
         Parameters
@@ -877,26 +997,27 @@ class ExperimentController(object):
             self.video = Video(self, file_name, pos, units)
         except MediaFormatException as exp:
             raise RuntimeError(
-                'Something is wrong; probably you tried to load a '
-                'compressed video file but you do not have FFmpeg/Avbin '
-                'installed. Download and install it; if you are on Windows, '
-                'you may also need to manually copy the .dll file(s) '
-                'from C:\\Windows\\system32 to C:\\Windows\\SysWOW64.:\n%s'
-                % (exp,))
+                "Something is wrong; probably you tried to load a "
+                "compressed video file but you do not have FFmpeg/Avbin "
+                "installed. Download and install it; if you are on Windows, "
+                "you may also need to manually copy the .dll file(s) "
+                "from C:\\Windows\\system32 to C:\\Windows\\SysWOW64.:\n%s" % (exp,)
+            )
 
     def delete_video(self):
         """Delete the video."""
         self.video._delete()
         self.video = None
 
-# ############################### PYGLET EVENTS ###############################
-# https://pyglet.readthedocs.io/en/latest/programming_guide/eventloop.html#dispatching-events-manually  # noqa
+    # ############################### PYGLET EVENTS ###############################
+    # https://pyglet.readthedocs.io/en/latest/programming_guide/eventloop.html#dispatching-events-manually  # noqa
 
     def _setup_event_loop(self):
-        from pyglet.app import platform_event_loop, event_loop
+        from pyglet.app import event_loop, platform_event_loop
+
         event_loop.has_exit = False
         platform_event_loop.start()
-        event_loop.dispatch_event('on_enter')
+        event_loop.dispatch_event("on_enter")
         event_loop.is_running = True
         self._extra_cleanup_fun.append(self._end_event_loop)
         # This is when Pyglet calls:
@@ -905,6 +1026,7 @@ class ExperimentController(object):
 
     def _dispatch_events(self):
         import pyglet
+
         pyglet.clock.tick()
         self._win.dispatch_events()
         # timeout = self._event_loop.idle()
@@ -912,27 +1034,40 @@ class ExperimentController(object):
         pyglet.app.platform_event_loop.step(timeout)
 
     def _end_event_loop(self):
-        from pyglet.app import platform_event_loop, event_loop
+        from pyglet.app import event_loop, platform_event_loop
+
         event_loop.is_running = False
-        event_loop.dispatch_event('on_exit')
+        event_loop.dispatch_event("on_exit")
         platform_event_loop.stop()
 
-# ############################### OPENGL METHODS ##############################
+    # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen):
         import pyglet
         from pyglet import gl
+
         # Use 16x sampling here
-        config_kwargs = dict(depth_size=8, double_buffer=True, stereo=False,
-                             stencil_size=0, samples=0, sample_buffers=0)
+        config_kwargs = dict(
+            depth_size=8,
+            double_buffer=True,
+            stereo=False,
+            stencil_size=0,
+            samples=0,
+            sample_buffers=0,
+        )
         # Travis can't handle multi-sampling, but our production machines must
-        if os.getenv('TRAVIS') == 'true':
-            del config_kwargs['samples'], config_kwargs['sample_buffers']
+        if os.getenv("TRAVIS") == "true":
+            del config_kwargs["samples"], config_kwargs["sample_buffers"]
         self._full_screen = full_screen
-        win_kwargs = dict(width=int(window_size[0]),
-                          height=int(window_size[1]),
-                          caption=exp_name, fullscreen=False,
-                          screen=screen, style='borderless', visible=False,
-                          config=pyglet.gl.Config(**config_kwargs))
+        win_kwargs = dict(
+            width=int(window_size[0]),
+            height=int(window_size[1]),
+            caption=exp_name,
+            fullscreen=False,
+            screen=screen,
+            style="borderless",
+            visible=False,
+            config=pyglet.gl.Config(**config_kwargs),
+        )
 
         max_try = 5  # sometimes it fails for unknown reasons
         for ii in range(max_try):
@@ -944,16 +1079,15 @@ class ExperimentController(object):
             else:
                 break
         if not full_screen:
-            x = int(win.screen.width / 2. - win.width / 2.)
-            y = int(win.screen.height / 2. - win.height / 2.)
+            x = int(win.screen.width / 2.0 - win.width / 2.0)
+            y = int(win.screen.height / 2.0 - win.height / 2.0)
             win.set_location(x, y)
         self._win = win
         # with the context set up, do basic GL initialization
         gl.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
         gl.glClearDepth(1.0)  # clear value for the depth buffer
         # set the viewport size
-        gl.glViewport(0, 0, int(self.window_size_pix[0]),
-                      int(self.window_size_pix[1]))
+        gl.glViewport(0, 0, int(self.window_size_pix[0]), int(self.window_size_pix[1]))
         # set the projection matrix
         gl.glMatrixMode(gl.GL_PROJECTION)
         gl.glLoadIdentity()
@@ -968,18 +1102,21 @@ class ExperimentController(object):
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         gl.glShadeModel(gl.GL_SMOOTH)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        v_ = False if os.getenv('_EXPYFUN_WIN_INVISIBLE') == 'true' else True
+        v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
         got_size = win.get_size()
         if not np.array_equal(got_size, window_size):
-            raise RuntimeError('Window size requested by config (%s) does not '
-                               'match obtained window size (%s), is the '
-                               'screen resolution set incorrectly?'
-                               % (window_size, got_size))
+            raise RuntimeError(
+                "Window size requested by config (%s) does not "
+                "match obtained window size (%s), is the "
+                "screen resolution set incorrectly?" % (window_size, got_size)
+            )
         self._dispatch_events()
-        logger.info('Initialized %s window on screen %s with DPI %0.2f'
-                    % (window_size, screen, self.dpi))
+        logger.info(
+            "Initialized %s window on screen %s with DPI %0.2f"
+            % (window_size, screen, self.dpi)
+        )
 
     def flip(self, when=None):
         """Flip screen, then run any "on-flip" functions.
@@ -1013,6 +1150,7 @@ class ExperimentController(object):
         `call_on_every_flip`.
         """
         from pyglet import gl
+
         if when is not None:
             self.wait_until(when)
         call_list = self._on_next_flip + self._on_every_flip
@@ -1033,7 +1171,7 @@ class ExperimentController(object):
         flip_time = self.get_time()
         for function in call_list:
             function()
-        self.write_data_line('flip', flip_time)
+        self.write_data_line("flip", flip_time)
         self._on_next_flip = []
         return flip_time
 
@@ -1056,7 +1194,7 @@ class ExperimentController(object):
         """
         n_rep = int(n_rep)
         times = [self.flip() for _ in range(n_rep)]
-        return 1. / np.median(np.diff(times[1:]))
+        return 1.0 / np.median(np.diff(times[1:]))
 
     def set_visible(self, visible=True, flip=True):
         """Set the window visibility
@@ -1075,13 +1213,13 @@ class ExperimentController(object):
         """
         self._win.set_fullscreen(self._full_screen)
         self._win.set_visible(visible)
-        logger.exp('Expyfun: Set screen visibility {0}'.format(visible))
+        logger.exp(f"Expyfun: Set screen visibility {visible}")
         if visible and flip:
             self.flip()
             # it seems like newer Pyglet sometimes messes up without two flips
             self.flip()
 
-# ############################## KEYPRESS METHODS #############################
+    # ############################## KEYPRESS METHODS #############################
     def listen_presses(self):
         """Start listening for keypresses.
 
@@ -1093,8 +1231,14 @@ class ExperimentController(object):
         """
         self._response_handler.listen_presses()
 
-    def get_presses(self, live_keys=None, timestamp=True, relative_to=None,
-                    kind='presses', return_kinds=False):
+    def get_presses(
+        self,
+        live_keys=None,
+        timestamp=True,
+        relative_to=None,
+        kind="presses",
+        return_kinds=False,
+    ):
         """Get the entire keyboard / button box buffer.
 
         This will also clear events that are not requested per ``type``.
@@ -1140,10 +1284,17 @@ class ExperimentController(object):
         ExperimentController.wait_for_presses
         """
         return self._response_handler.get_presses(
-            live_keys, timestamp, relative_to, kind, return_kinds)
+            live_keys, timestamp, relative_to, kind, return_kinds
+        )
 
-    def wait_one_press(self, max_wait=np.inf, min_wait=0.0, live_keys=None,
-                       timestamp=True, relative_to=None):
+    def wait_one_press(
+        self,
+        max_wait=np.inf,
+        min_wait=0.0,
+        live_keys=None,
+        timestamp=True,
+        relative_to=None,
+    ):
         """Returns only the first button pressed after min_wait.
 
         Parameters
@@ -1182,10 +1333,12 @@ class ExperimentController(object):
         ExperimentController.wait_for_presses
         """
         return self._response_handler.wait_one_press(
-            max_wait, min_wait, live_keys, timestamp, relative_to)
+            max_wait, min_wait, live_keys, timestamp, relative_to
+        )
 
-    def wait_for_presses(self, max_wait, min_wait=0.0, live_keys=None,
-                         timestamp=True, relative_to=None):
+    def wait_for_presses(
+        self, max_wait, min_wait=0.0, live_keys=None, timestamp=True, relative_to=None
+    ):
         """Returns all button presses between min_wait and max_wait.
 
         Parameters
@@ -1222,9 +1375,10 @@ class ExperimentController(object):
         ExperimentController.wait_one_press
         """
         return self._response_handler.wait_for_presses(
-            max_wait, min_wait, live_keys, timestamp, relative_to)
+            max_wait, min_wait, live_keys, timestamp, relative_to
+        )
 
-    def _log_presses(self, pressed, kind='key'):
+    def _log_presses(self, pressed, kind="key"):
         """Write key presses to data file."""
         # This function will typically be called by self._response_handler
         # after it retrieves some button presses
@@ -1235,10 +1389,18 @@ class ExperimentController(object):
         """Check to see if any force quit keys were pressed."""
         self._response_handler.check_force_quit()
 
-    def text_input(self, stop_key='return', instruction_string='Type'
-                   ' response below', pos=[0, 0], color='white',
-                   font_name='Arial', font_size=24,  wrap=True, units='norm',
-                   all_caps=True):
+    def text_input(
+        self,
+        stop_key="return",
+        instruction_string="Type" " response below",
+        pos=(0, 0),
+        color="white",
+        font_name="Arial",
+        font_size=24,
+        wrap=True,
+        units="norm",
+        all_caps=True,
+    ):
         """Allows participant to input text and view on the screen.
 
         Parameters
@@ -1271,28 +1433,34 @@ class ExperimentController(object):
         text : str
             The final input string.
         """
-        letters = string.ascii_letters + ' '
-        text = str()
+        letters = string.ascii_letters + " "
+        text = ""
         while True:
-            self.screen_text(instruction_string + '\n\n' + text + '|',
-                             pos=pos, color=color,
-                             font_name=font_name, font_size=font_size,
-                             wrap=wrap, units=units, log_data=False)
+            self.screen_text(
+                instruction_string + "\n\n" + text + "|",
+                pos=pos,
+                color=color,
+                font_name=font_name,
+                font_size=font_size,
+                wrap=wrap,
+                units=units,
+                log_data=False,
+            )
             self.flip()
             letter = self.wait_one_press(timestamp=False)
             if letter == stop_key:
                 self.flip()
                 break
-            if letter == 'backspace':
+            if letter == "backspace":
                 text = text[:-1]
             else:
-                letter = ' ' if letter == 'space' else letter
+                letter = " " if letter == "space" else letter
                 letter = letter.upper() if all_caps else letter
-                text += letter if letter in letters else ''
-        self.write_data_line('text_input', text)
+                text += letter if letter in letters else ""
+        self.write_data_line("text_input", text)
         return text
 
-# ############################## KEYPRESS METHODS #############################
+    # ############################## KEYPRESS METHODS #############################
     def listen_joystick_button_presses(self):
         """Start listening for joystick buttons.
 
@@ -1302,8 +1470,9 @@ class ExperimentController(object):
         """
         self._joystick_handler.listen_presses()
 
-    def get_joystick_button_presses(self, timestamp=True, relative_to=None,
-                                    kind='presses', return_kinds=False):
+    def get_joystick_button_presses(
+        self, timestamp=True, relative_to=None, kind="presses", return_kinds=False
+    ):
         """Get the entire joystick buffer.
 
         This will also clear events that are not requested per ``type``.
@@ -1338,7 +1507,8 @@ class ExperimentController(object):
         """
         self._dispatch_events()
         return self._joystick_handler.get_presses(
-            None, timestamp, relative_to, kind, return_kinds)
+            None, timestamp, relative_to, kind, return_kinds
+        )
 
     def get_joystick_value(self, kind):
         """Get the current joystick x direction.
@@ -1355,7 +1525,7 @@ class ExperimentController(object):
         """
         return getattr(self._joystick_handler, kind)
 
-# ############################## MOUSE METHODS ################################
+    # ############################## MOUSE METHODS ################################
 
     def listen_clicks(self):
         """Start listening for mouse clicks.
@@ -1401,10 +1571,9 @@ class ExperimentController(object):
         ExperimentController.wait_one_click
         ExperimentController.wait_for_clicks
         """
-        return self._mouse_handler.get_clicks(live_buttons, timestamp,
-                                              relative_to)
+        return self._mouse_handler.get_clicks(live_buttons, timestamp, relative_to)
 
-    def get_mouse_position(self, units='pix'):
+    def get_mouse_position(self, units="pix"):
         """Mouse position in screen coordinates
 
         Parameters
@@ -1427,7 +1596,7 @@ class ExperimentController(object):
         """
         check_units(units)
         pos = np.array(self._mouse_handler.pos)
-        pos = self._convert_units(pos[:, np.newaxis], 'norm', units)[:, 0]
+        pos = self._convert_units(pos[:, np.newaxis], "norm", units)[:, 0]
         return pos
 
     def toggle_cursor(self, visibility, flip=False):
@@ -1456,8 +1625,15 @@ class ExperimentController(object):
         if flip:
             self.flip()
 
-    def wait_one_click(self, max_wait=np.inf, min_wait=0.0, live_buttons=None,
-                       timestamp=True, relative_to=None, visible=None):
+    def wait_one_click(
+        self,
+        max_wait=np.inf,
+        min_wait=0.0,
+        live_buttons=None,
+        timestamp=True,
+        relative_to=None,
+        visible=None,
+    ):
         """Returns only the first mouse button clicked after min_wait.
 
         Parameters
@@ -1501,11 +1677,11 @@ class ExperimentController(object):
         ExperimentController.toggle_cursor
         ExperimentController.wait_for_clicks
         """
-        return self._mouse_handler.wait_one_click(max_wait, min_wait,
-                                                  live_buttons, timestamp,
-                                                  relative_to, visible)
+        return self._mouse_handler.wait_one_click(
+            max_wait, min_wait, live_buttons, timestamp, relative_to, visible
+        )
 
-    def move_mouse_to(self, pos, units='norm'):
+    def move_mouse_to(self, pos, units="norm"):
         """Move the mouse position to the specified position.
 
         Parameters
@@ -1517,8 +1693,15 @@ class ExperimentController(object):
         """
         self._mouse_handler._move_to(pos, units)
 
-    def wait_for_clicks(self, max_wait=np.inf, min_wait=0.0, live_buttons=None,
-                        timestamp=True, relative_to=None, visible=None):
+    def wait_for_clicks(
+        self,
+        max_wait=np.inf,
+        min_wait=0.0,
+        live_buttons=None,
+        timestamp=True,
+        relative_to=None,
+        visible=None,
+    ):
         """Returns all clicks between min_wait and max_wait.
 
         Parameters
@@ -1561,12 +1744,19 @@ class ExperimentController(object):
         ExperimentController.toggle_cursor
         ExperimentController.wait_one_click
         """
-        return self._mouse_handler.wait_for_clicks(max_wait, min_wait,
-                                                   live_buttons, timestamp,
-                                                   relative_to, visible)
+        return self._mouse_handler.wait_for_clicks(
+            max_wait, min_wait, live_buttons, timestamp, relative_to, visible
+        )
 
-    def wait_for_click_on(self, objects, max_wait=np.inf, min_wait=0.0,
-                          live_buttons=None, timestamp=True, relative_to=None):
+    def wait_for_click_on(
+        self,
+        objects,
+        max_wait=np.inf,
+        min_wait=0.0,
+        live_buttons=None,
+        timestamp=True,
+        relative_to=None,
+    ):
         """Returns the first click after min_wait over a visual object.
 
         Parameters
@@ -1608,21 +1798,19 @@ class ExperimentController(object):
         if isinstance(objects, legal_types):
             objects = [objects]
         elif not isinstance(objects, list):
-            raise TypeError('objects must be a list or one of: %s' %
-                            (legal_types,))
+            raise TypeError("objects must be a list or one of: %s" % (legal_types,))
         return self._mouse_handler.wait_for_click_on(
-            objects, max_wait, min_wait, live_buttons, timestamp, relative_to)
+            objects, max_wait, min_wait, live_buttons, timestamp, relative_to
+        )
 
     def _log_clicks(self, clicked):
-        """Write mouse clicks to data file.
-        """
+        """Write mouse clicks to data file."""
         # This function will typically be called by self._response_handler
         # after it retrieves some mouse clicks
         for button, x, y, stamp in clicked:
-            self.write_data_line('mouseclick', '%s,%i,%i' % (button, x, y),
-                                 stamp)
+            self.write_data_line("mouseclick", "%s,%i,%i" % (button, x, y), stamp)
 
-# ############################## AUDIO METHODS ################################
+    # ############################## AUDIO METHODS ################################
     def system_beep(self):
         """Play a system beep
 
@@ -1674,13 +1862,13 @@ class ExperimentController(object):
         ExperimentController.stop
         """
         if self._playing:
-            raise RuntimeError('Previous audio must be stopped before loading '
-                               'the buffer')
+            raise RuntimeError(
+                "Previous audio must be stopped before loading " "the buffer"
+            )
         samples = self._validate_audio(samples)
-        if not np.isclose(self._stim_scaler, 1.):
+        if not np.isclose(self._stim_scaler, 1.0):
             samples = samples * self._stim_scaler
-        logger.exp('Expyfun: Loading {} samples to buffer'
-                   ''.format(samples.size))
+        logger.exp(f"Expyfun: Loading {samples.size} samples to buffer" "")
         self._ac.load_buffer(samples)
 
     def play(self):
@@ -1698,19 +1886,18 @@ class ExperimentController(object):
         ExperimentController.start_stimulus
         ExperimentController.stop
         """
-        logger.exp('Expyfun: Playing audio')
+        logger.exp("Expyfun: Playing audio")
         # ensure self._play comes first in list:
         self._play()
         return self.get_time()
 
     def _play(self):
-        """Play the audio buffer.
-        """
+        """Play the audio buffer."""
         if self._playing:
-            raise RuntimeError('Previous audio must be stopped before playing')
+            raise RuntimeError("Previous audio must be stopped before playing")
         self._ac.play()
-        logger.debug('Expyfun: started audio')
-        self.write_data_line('play')
+        logger.debug("Expyfun: started audio")
+        self.write_data_line("play")
 
     @property
     def _playing(self):
@@ -1735,8 +1922,8 @@ class ExperimentController(object):
         """
         if self._ac is not None:  # need to check b/c used in __exit__
             self._ac.stop(wait=wait)
-        self.write_data_line('stop')
-        logger.exp('Expyfun: Audio stopped and reset.')
+        self.write_data_line("stop")
+        logger.exp("Expyfun: Audio stopped and reset.")
 
     def set_noise_db(self, new_db):
         """Set the level of the background noise.
@@ -1775,10 +1962,9 @@ class ExperimentController(object):
         # not immediate: new value is applied on the next load_buffer call
 
     def _update_sound_scaler(self, desired_db, orig_rms):
-        """Calcs coefficient ensuring stim ampl equivalence across devices.
-        """
-        exponent = (-(_get_dev_db(self.audio_type) - desired_db) / 20.0)
-        return (10 ** exponent) / float(orig_rms)
+        """Calcs coefficient ensuring stim ampl equivalence across devices."""
+        exponent = -(_get_dev_db(self.audio_type) - desired_db) / 20.0
+        return (10**exponent) / float(orig_rms)
 
     def _validate_audio(self, samples):
         """Converts audio sample data to the required format.
@@ -1799,7 +1985,7 @@ class ExperimentController(object):
 
         # check values
         if samples.size and np.max(np.abs(samples)) > 1:
-            raise ValueError('Sound data exceeds +/- 1.')
+            raise ValueError("Sound data exceeds +/- 1.")
             # samples /= np.max(np.abs(samples),axis=0)
 
         # check shape and dimensions, make stereo
@@ -1810,52 +1996,60 @@ class ExperimentController(object):
         if np.isclose(self.stim_fs, 24414, atol=1):
             max_samples = 4000000 - 1
             if samples.shape[0] > max_samples:
-                raise RuntimeError('Sample too long {0} > {1}'
-                                   ''.format(samples.shape[0], max_samples))
+                raise RuntimeError(
+                    f"Sample too long {samples.shape[0]} > {max_samples}" ""
+                )
 
         # resample if needed
         if self._fs_mismatch and not self._suppress_resamp:
-            logger.warning('Expyfun: Resampling {} seconds of audio'
-                           ''.format(round(len(samples) / self.stim_fs, 2)))
+            logger.warning(
+                f"Expyfun: Resampling {round(len(samples) / self.stim_fs, 2)} "
+                "seconds of audio"
+            )
             with warnings.catch_warnings(record=True):
-                warnings.simplefilter('ignore')
+                warnings.simplefilter("ignore")
                 from mne.filter import resample
             if samples.size:
                 samples = resample(
-                    samples.astype(np.float64), self.fs, self.stim_fs,
-                    axis=0).astype(np.float32)
+                    samples.astype(np.float64), self.fs, self.stim_fs, axis=0
+                ).astype(np.float32)
 
         # check RMS
         if self._check_rms is not None and samples.size:
             chans = [samples[:, x] for x in range(samples.shape[1])]
-            if self._check_rms == 'wholefile':
-                chan_rms = [np.sqrt(np.mean(x ** 2)) for x in chans]
+            if self._check_rms == "wholefile":
+                chan_rms = [np.sqrt(np.mean(x**2)) for x in chans]
                 max_rms = max(chan_rms)
             else:  # 'windowed'
                 # ~226 sec at 44100 Hz
                 if samples.size >= _SLOW_LIMIT and not self._slow_rms_warned:
                     warnings.warn(
-                        'Checking RMS with a 10 ms window and many samples is '
-                        'slow, consider using None or "wholefile" modes.')
+                        "Checking RMS with a 10 ms window and many samples is "
+                        'slow, consider using None or "wholefile" modes.'
+                    )
                     self._slow_rms_warned = True
                 win_length = int(self.fs * 0.01)  # 10ms running window
                 max_rms = [running_rms(x, win_length).max() for x in chans]
                 max_rms = max(max_rms)
             if max_rms > 2 * self._stim_rms:
-                warn_string = ('Expyfun: Stimulus max RMS ({}) exceeds stated '
-                               'RMS ({}) by more than 6 dB.'
-                               ''.format(max_rms, self._stim_rms))
+                warn_string = (
+                    f"Expyfun: Stimulus max RMS ({max_rms}) exceeds stated "
+                    f"RMS ({self._stim_rms}) by more than 6 dB."
+                    ""
+                )
                 logger.warning(warn_string)
                 warnings.warn(warn_string)
             elif max_rms < 0.5 * self._stim_rms:
-                warn_string = ('Expyfun: Stimulus max RMS ({}) is less than '
-                               'stated RMS ({}) by more than 6 dB.'
-                               ''.format(max_rms, self._stim_rms))
+                warn_string = (
+                    f"Expyfun: Stimulus max RMS ({max_rms}) is less than "
+                    f"stated RMS ({self._stim_rms}) by more than 6 dB."
+                    ""
+                )
                 logger.warning(warn_string)
 
         # let's make sure we don't change our version of this array later
         samples = samples.view()
-        samples.flags['WRITEABLE'] = False
+        samples.flags["WRITEABLE"] = False
         return samples
 
     def set_rms_checking(self, check_rms):
@@ -1870,24 +2064,25 @@ class ExperimentController(object):
             ``stim_rms``.  ``'wholefile'`` checks the RMS of the stimulus as a
             whole, while ``None`` disables RMS checking.
         """
-        if check_rms not in [None, 'wholefile', 'windowed']:
-            raise ValueError('check_rms must be one of "wholefile", "windowed"'
-                             ', or None.')
+        if check_rms not in [None, "wholefile", "windowed"]:
+            raise ValueError(
+                'check_rms must be one of "wholefile", "windowed"' ", or None."
+            )
         self._slow_rms_warned = False
         self._check_rms = check_rms
 
-# ############################## OTHER METHODS ################################
+    # ############################## OTHER METHODS ################################
     @property
     def participant(self):
-        return self._exp_info['participant']
+        return self._exp_info["participant"]
 
     @property
     def session(self):
-        return self._exp_info['session']
+        return self._exp_info["session"]
 
     @property
     def exp_name(self):
-        return self._exp_info['exp_name']
+        return self._exp_info["exp_name"]
 
     @property
     def data_fname(self):
@@ -1923,35 +2118,38 @@ class ExperimentController(object):
         """
         if timestamp is None:
             timestamp = self._master_clock()
-        ll = '\t'.join(_sanitize(x) for x in [timestamp, event_type,
-                                              value]) + '\n'
+        ll = "\t".join(_sanitize(x) for x in [timestamp, event_type, value]) + "\n"
         if self._data_file is not None:
             if self._data_file.closed:
-                logger.warning('Data line not written due to closed file %s:\n'
-                               '%s' % (self.data_fname, ll[:-1]))
+                logger.warning(
+                    "Data line not written due to closed file %s:\n"
+                    "%s" % (self.data_fname, ll[:-1])
+                )
             else:
                 self._data_file.write(ll)
             self.flush()
 
     def _get_time_correction(self, clock_type):
-        """Clock correction (sec) for different devices (screen, bbox, etc.)
-        """
-        time_correction = (self._master_clock() -
-                           self._time_correction_fxns[clock_type]())
+        """Clock correction (sec) for different devices (screen, bbox, etc.)"""
+        time_correction = (
+            self._master_clock() - self._time_correction_fxns[clock_type]()
+        )
         if clock_type not in self._time_corrections:
             self._time_corrections[clock_type] = time_correction
 
         diff = time_correction - self._time_corrections[clock_type]
         max_dt = self._time_correction_maxs.get(clock_type, 50e-6)
         if np.abs(diff) > max_dt:
-            logger.warning('Expyfun: drift of > {} microseconds ({}) '
-                           'between {} clock and EC master clock.'
-                           ''.format(max_dt * 1e6, int(round(diff * 1e6)),
-                                     clock_type))
-        logger.debug('Expyfun: time correction between {} clock and EC '
-                     'master clock is {}. This is a change of {}.'
-                     ''.format(clock_type, time_correction, time_correction -
-                               self._time_corrections[clock_type]))
+            logger.warning(
+                f"Expyfun: drift of > {max_dt * 1e6} microseconds "
+                f"({int(round(diff * 1e6))}) "
+                f"between {clock_type} clock and EC master clock."
+            )
+        logger.debug(
+            f"Expyfun: time correction between {clock_type} clock and EC "
+            f"master clock is {time_correction}. This is a change of "
+            f"{time_correction - self._time_corrections[clock_type]}."
+        )
         return time_correction
 
     def wait_secs(self, secs):
@@ -1997,9 +2195,11 @@ class ExperimentController(object):
         """
         time_left = timestamp - self._master_clock()
         if time_left < 0:
-            logger.warning('Expyfun: wait_until was called with a timestamp '
-                           '({}) that had already passed {} seconds prior.'
-                           ''.format(timestamp, -time_left))
+            logger.warning(
+                "Expyfun: wait_until was called with a timestamp "
+                f"({timestamp}) that had already passed {-time_left} seconds prior."
+                ""
+            )
         else:
             self.wait_secs(time_left)
         return time_left
@@ -2024,22 +2224,23 @@ class ExperimentController(object):
         ExperimentController.stop
         ExperimentController.trial_ok
         """
-        if self._trial_progress != 'stopped':
-            raise RuntimeError('Cannot identify a trial twice')
+        if self._trial_progress != "stopped":
+            raise RuntimeError("Cannot identify a trial twice")
         call_set = set(self._id_call_dict.keys())
         passed_set = set(ids.keys())
         if not call_set == passed_set:
-            raise KeyError('All keys passed in {0} must match the set of '
-                           'keys required {1}'.format(passed_set, call_set))
+            raise KeyError(
+                f"All keys passed in {passed_set} must match the set of "
+                f"keys required {call_set}"
+            )
         ll = max([len(key) for key in ids.keys()])
         for key, id_ in ids.items():
-            logger.exp('Expyfun: Stamp trial ID to {0} : {1}'
-                       ''.format(key.ljust(ll), str(id_)))
+            logger.exp(f"Expyfun: Stamp trial ID to {key.ljust(ll)} : {str(id_)}" "")
             if isinstance(id_, dict):
                 self._id_call_dict[key](**id_)
             else:
                 self._id_call_dict[key](id_)
-        self._trial_progress = 'identified'
+        self._trial_progress = "identified"
 
     def trial_ok(self):
         """Report that the trial was okay and do post-trial tasks.
@@ -2053,19 +2254,21 @@ class ExperimentController(object):
         ExperimentController.start_stimulus
         ExperimentController.stop
         """
-        if self._trial_progress != 'started':
-            raise RuntimeError('trial cannot be okay unless it was started, '
-                               'did you call ec.start_stimulus?')
+        if self._trial_progress != "started":
+            raise RuntimeError(
+                "trial cannot be okay unless it was started, "
+                "did you call ec.start_stimulus?"
+            )
         if self._playing:
-            logger.warning('ec.trial_ok called before stimulus had stopped')
+            logger.warning("ec.trial_ok called before stimulus had stopped")
         for func in self._on_trial_ok:
             func()
-        logger.exp('Expyfun: Trial OK')
-        self._trial_progress = 'stopped'
+        logger.exp("Expyfun: Trial OK")
+        self._trial_progress = "stopped"
 
     def _stamp_ec_id(self, id_):
         """Stamp id -- currently anything allowed"""
-        self.write_data_line('trial_id', id_)
+        self.write_data_line("trial_id", id_)
 
     def _stamp_binary_id(self, id_, wait_for_last=True):
         """Helper for ec to stamp a set of IDs using binary controller
@@ -2075,14 +2278,14 @@ class ExperimentController(object):
         but for now it's unified. ``delay`` is the inter-trigger delay.
         """
         if not isinstance(id_, (list, tuple, np.ndarray)):
-            raise TypeError('id must be array-like')
+            raise TypeError("id must be array-like")
         id_ = np.array(id_)
-        if not np.all(np.in1d(id_, [0, 1])):
-            raise ValueError('All values of id must be 0 or 1')
+        if not np.all(np.isin(id_, [0, 1])):
+            raise ValueError("All values of id must be 0 or 1")
         id_ = (id_.astype(int) + 1) << 2  # 0, 1 -> 4, 8
         self._stamp_ttl_triggers(id_, wait_for_last, True)
 
-    def stamp_triggers(self, ids, check='binary', wait_for_last=True):
+    def stamp_triggers(self, ids, check="binary", wait_for_last=True):
         """Stamp binary values
 
         Parameters
@@ -2106,22 +2309,24 @@ class ExperimentController(object):
         --------
         ExperimentController.identify_trial
         """
-        if check not in ('int4', 'binary'):
+        if check not in ("int4", "binary"):
             raise ValueError('Check must be either "int4" or "binary"')
         ids = [ids] if not isinstance(ids, list) else ids
         if not all(isinstance(id_, int) and 1 <= id_ <= 15 for id_ in ids):
-            raise ValueError('ids must all be integers between 1 and 15')
-        if check == 'binary':
+            raise ValueError("ids must all be integers between 1 and 15")
+        if check == "binary":
             _vals = [1, 2, 4, 8]
             if not all(id_ in _vals for id_ in ids):
-                raise ValueError('with check="binary", ids must all be '
-                                 '1, 2, 4, or 8: {0}'.format(ids))
+                raise ValueError(
+                    'with check="binary", ids must all be ' f"1, 2, 4, or 8: {ids}"
+                )
         self._stamp_ttl_triggers(ids, wait_for_last, False)
 
     def _stamp_ttl_triggers(self, ids, wait_for_last, is_trial_id):
-        logger.exp('Stamping TTL triggers: %s', ids)
+        logger.exp("Stamping TTL triggers: %s", ids)
         self._tc.stamp_triggers(
-            ids, wait_for_last=wait_for_last, is_trial_id=is_trial_id)
+            ids, wait_for_last=wait_for_last, is_trial_id=is_trial_id
+        )
         self.flush()
 
     def flush(self):
@@ -2131,24 +2336,22 @@ class ExperimentController(object):
             self._data_file.flush()
 
     def close(self):
-        """Close all connections in experiment controller.
-        """
+        """Close all connections in experiment controller."""
         self.__exit__(None, None, None)
 
     def __enter__(self):
-        logger.debug('Expyfun: Entering')
+        logger.debug("Expyfun: Entering")
         return self
 
     def __exit__(self, err_type, value, traceback):
-        """
-        Notes
-        -----
+        """Exit cleanly.
+
         err_type, value and traceback will be None when called by self.close()
         """
-        logger.info('Expyfun: Exiting')
+        logger.info("Expyfun: Exiting")
         # do external cleanups
         cleanup_actions = []
-        if hasattr(self, '_win'):
+        if hasattr(self, "_win"):
             cleanup_actions.append(self._win.close)
         cleanup_actions.extend([self.stop_noise, self.stop])
         cleanup_actions.extend(self._extra_cleanup_fun)
@@ -2177,8 +2380,9 @@ class ExperimentController(object):
 
         This function currently does nothing on Linux and OSX.
         """  # noqa: E501
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             from pyglet.libs.win32 import _user32
+
             m_hWnd = self._win._hwnd
             hCurWnd = _user32.GetForegroundWindow()
             if hCurWnd != m_hWnd:
@@ -2192,52 +2396,45 @@ class ExperimentController(object):
                 _user32.SetFocus(m_hWnd)
                 _user32.SetActiveWindow(m_hWnd)
 
-# ############################## READ-ONLY PROPERTIES #########################
+    # ############################## READ-ONLY PROPERTIES #########################
     @property
     def id_types(self):
-        """Trial ID types needed for each trial.
-        """
+        """Trial ID types needed for each trial."""
         return sorted(self._id_call_dict.keys())
 
     @property
     def fs(self):
-        """Playback frequency of the audio controller (samples / second).
-        """
+        """Playback frequency of the audio controller (samples / second)."""
         return self._ac.fs  # not user-settable
 
     @property
     def stim_fs(self):
-        """Sampling rate at which the stimuli were generated.
-        """
+        """Sampling rate at which the stimuli were generated."""
         return self._stim_fs  # not user-settable
 
     @property
     def stim_db(self):
-        """Sound power in dB of the stimuli.
-        """
+        """Sound power in dB of the stimuli."""
         return self._stim_db  # not user-settable
 
     @property
     def noise_db(self):
-        """Sound power in dB of the background noise.
-        """
+        """Sound power in dB of the background noise."""
         return self._noise_db  # not user-settable
 
     @property
     def current_time(self):
-        """Timestamp from the experiment master clock.
-        """
+        """Timestamp from the experiment master clock."""
         return self._master_clock()
 
     @property
     def _fs_mismatch(self):
-        """Quantify if sample rates substantively differ.
-        """
+        """Quantify if sample rates substantively differ."""
         return not np.allclose(self.stim_fs, self.fs, rtol=0, atol=0.5)
 
     # Testing cruft to work around "queue full" errors on Windows
     def _ac_flush(self):
-        if isinstance(getattr(self, '_ac', None), SoundCardController):
+        if isinstance(getattr(self, "_ac", None), SoundCardController):
             self._ac.halt()
 
 
@@ -2267,11 +2464,11 @@ def get_keyboard_input(prompt, default=None, out_type=str, valid=None):
     # pass a lambda, e.g., that made sure a float was in a given range
     # TODO: add tests
     if not isinstance(out_type, type):
-        raise TypeError('out_type must be a type')
+        raise TypeError("out_type must be a type")
     good = False
     while not good:
         response = input(prompt)
-        if response == '' and default is not None:
+        if response == "" and default is not None:
             response = default
         try:
             response = out_type(response)
@@ -2285,27 +2482,28 @@ def get_keyboard_input(prompt, default=None, out_type=str, valid=None):
 
 
 def _get_dev_db(audio_controller):
-    """Selects device-specific amplitude to ensure equivalence across devices.
-    """
+    """Selects device-specific amplitude to ensure equivalence across devices."""
     # First try to get the level from the expyfun.json file.
-    level = get_config('DB_OF_SINE_AT_1KHZ_1RMS')
+    level = get_config("DB_OF_SINE_AT_1KHZ_1RMS")
     if level is None:
         level = dict(
-            RM1=108.,  # approx w/ knob @ 12 o'clock (knob not detented)
-            RP2=108.,
-            RP2legacy=108.,
-            RZ6=114.,
+            RM1=108.0,  # approx w/ knob @ 12 o'clock (knob not detented)
+            RP2=108.0,
+            RP2legacy=108.0,
+            RZ6=114.0,
             # TODO: these values not calibrated, system-dependent
-            pyglet=100.,
-            rtmixer=100.,
-            dummy=100.,  # only used for testing
+            pyglet=100.0,
+            rtmixer=100.0,
+            dummy=100.0,  # only used for testing
         ).get(audio_controller, None)
     else:
         level = float(level)
     if level is None:
-        logger.warning('Expyfun: Unknown audio controller %s: stim scaler may '
-                       'not work correctly. You may want to remove your '
-                       'headphones if this is the first run of your '
-                       'experiment.' % (audio_controller,))
+        logger.warning(
+            "Expyfun: Unknown audio controller %s: stim scaler may "
+            "not work correctly. You may want to remove your "
+            "headphones if this is the first run of your "
+            "experiment." % (audio_controller,)
+        )
         level = 100  # for untested TDT models
     return level

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 ==========================================================================
 Adaptive tracking for two trial types and tracker reconstruction from .tab
@@ -15,12 +14,13 @@ type: 1 & 2).
 @author: maddycapp27
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
+
 from expyfun import ExperimentController
-from expyfun.stimuli import TrackerUD, TrackerDealer
 from expyfun.analyze import sigmoid
 from expyfun.io import reconstruct_dealer
-import matplotlib.pyplot as plt
+from expyfun.stimuli import TrackerDealer, TrackerUD
 
 # define parameters of modeled subject (using sigmoid probability)
 true_thresh = [30, 40]  # true thresholds for trial types 1 and 2
@@ -45,13 +45,13 @@ stop_reversals = 30
 stop_trials = np.inf
 start_value = 45
 change_indices = [5]
-change_rule = 'reversals'
+change_rule = "reversals"
 x_min = 0
 x_max = 90
 
 # parameters for the tracker dealer
 max_lag = 2
-pace_rule = 'reversals'
+pace_rule = "reversals"
 rng_dealer = np.random.RandomState(3)  # random seed to select trial type
 
 ###############################################################################
@@ -63,18 +63,37 @@ rng_dealer = np.random.RandomState(3)  # random seed to select trial type
 # for that trial can be acquired. :class:`expyfun.ExperimentController` is used
 # to generate log files with :class:`expyfun.stimuli.TrackerUD` and
 # :class:`expyfun.stimuli.TrackerDealer` information.
-std_args = ['test']  # experiment name
-std_kwargs = dict(full_screen=False, window_size=(1, 1), participant='foo',
-                  session='01', stim_db=0.0, noise_db=0.0, verbose=True,
-                  version='dev')
+std_args = ["test"]  # experiment name
+std_kwargs = dict(
+    full_screen=False,
+    window_size=(1, 1),
+    participant="foo",
+    session="01",
+    stim_db=0.0,
+    noise_db=0.0,
+    verbose=True,
+    version="dev",
+)
 
 with ExperimentController(*std_args, **std_kwargs) as ec:
-
     # initialize two tracker objects--one for each trial type
-    tr_ud = [TrackerUD(ec, up, down, step_size_up, step_size_down,
-                       stop_reversals, stop_trials, start_value,
-                       change_indices, change_rule, x_min,
-                       x_max) for _ in range(2)]
+    tr_ud = [
+        TrackerUD(
+            ec,
+            up,
+            down,
+            step_size_up,
+            step_size_down,
+            stop_reversals,
+            stop_trials,
+            start_value,
+            change_indices,
+            change_rule,
+            x_min,
+            x_max,
+        )
+        for _ in range(2)
+    ]
 
     # initialize TrackerDealer object
     td = TrackerDealer(ec, tr_ud, max_lag, pace_rule, rng_dealer)
@@ -85,8 +104,10 @@ with ExperimentController(*std_args, **std_kwargs) as ec:
     for ss, level in td:
         # Get information of which trial type is next and what the level is at
         # that time from TrackerDealer
-        td.respond(rng_human.rand() < sigmoid(level - true_thresh[sum(ss)],
-                                              lower=chance, slope=slope))
+        td.respond(
+            rng_human.rand()
+            < sigmoid(level - true_thresh[sum(ss)], lower=chance, slope=slope)
+        )
 
 ###############################################################################
 # Reconstructing the TrackerDealer Object
@@ -107,7 +128,9 @@ axes = plt.subplots(2, 1)[1]
 for i in [0, 1]:
     fig, ax, lines = td_tab.trackers.ravel()[i].plot(ax=axes[i], n_skip=4)
 
-    ax.legend(loc='best')
-    ax.set_title('Adaptive track of model human trial type {} (true threshold '
-                 'is {})'.format(i + 1, true_thresh[i]))
+    ax.legend(loc="best")
+    ax.set_title(
+        f"Adaptive track of model human trial type {i + 1} (true threshold "
+        f"is {true_thresh[i]})"
+    )
     fig.tight_layout()

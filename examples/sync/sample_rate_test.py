@@ -44,18 +44,25 @@ from expyfun import ExperimentController, building_doc
 print(__doc__)
 
 stim = np.zeros(int(1e6) + 1)
-stim[[0, -1]] = 1.
-with ExperimentController('FsTest', full_screen=False, noise_db=-np.inf,
-                          participant='s', session='0', output_dir=None,
-                          suppress_resamp=True, check_rms=None,
-                          version='dev') as ec:
-    ec.identify_trial(ec_id='', ttl_id=[0])
+stim[[0, -1]] = 1.0
+with ExperimentController(
+    "FsTest",
+    full_screen=False,
+    noise_db=-np.inf,
+    participant="s",
+    session="0",
+    output_dir=None,
+    suppress_resamp=True,
+    check_rms=None,
+    version="dev",
+) as ec:
+    ec.identify_trial(ec_id="", ttl_id=[0])
     ec.load_buffer(stim)
-    print('Starting stimulus.')
+    print("Starting stimulus.")
     ec.start_stimulus()
-    wait_dur = len(stim) / ec.fs + 1.
-    print('Stimulus started. Please wait %d seconds.' % wait_dur)
+    wait_dur = len(stim) / ec.fs + 1.0
+    print("Stimulus started. Please wait %d seconds." % wait_dur)
     if not building_doc:
         ec.wait_secs(wait_dur)
     ec.stop()
-    print('Stimulus done.')
+    print("Stimulus done.")
