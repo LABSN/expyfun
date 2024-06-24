@@ -1096,9 +1096,10 @@ class ExperimentController:
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self._flip_rect = Rectangle(
-            self, (0, 0, 1, 1),
-            units='pix',
-            fill_color=(0., 0., 0., 0.),
+            self,
+            (0, 0, 1, 1),
+            units="pix",
+            fill_color=(0.0, 0.0, 0.0, 0.0),
         )
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
