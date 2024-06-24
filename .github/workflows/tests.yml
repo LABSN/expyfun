@@ -45,7 +45,8 @@ jobs:
         with:
           qt: true
           pyvista: false
-      - run: sudo apt install -q libavutil56 libavcodec58 libavformat58 libswscale5 libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav python3-gst-1.0
+      # Use -dev here just to get whichever version is right (e.g., 22.04 has a different version from 24.04)
+      - run: sudo apt install -q libavutil-dev libavcodec-dev libavformat-dev libswscale5 libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
       - run: powershell tools/get_video.ps1
         if: ${{ startsWith(matrix.os, 'windows') }}
