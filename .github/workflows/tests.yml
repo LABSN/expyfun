@@ -20,7 +20,7 @@ jobs:
         shell: bash -el {0}
     strategy:
       matrix:
-        os: ['ubuntu-22.04', 'windows-2019']
+        os: ['ubuntu-22.04']
         kind: ['pip']
         python: ['3.12']
         include:
@@ -31,6 +31,9 @@ jobs:
           - os: 'macos-13'  # intel
             kind: 'conda'
             python: '3.12'
+          - os: 'windows-latest'
+            kind: 'pip'
+            python: '3.11'
           - os: 'ubuntu-20.04'
             kind: 'old'
             python: '3.8'
@@ -76,9 +79,6 @@ jobs:
       - run: python -m pip install --upgrade pip setuptools wheel sounddevice "pyglet<1.5.28"
       - run: python -m pip install --upgrade --only-binary="rtmixer,scipy,matplotlib,pandas,numpy" rtmixer pyglet-ffmpeg scipy matplotlib pandas h5py mne numpydoc pillow joblib
         if: matrix.kind == 'pip'
-      # TODO: Need to update Windows for NumPy 2 repr probably
-      - run: python -m pip install "numpy<2"
-        if: runner.os == 'Windows'
       # arm64 has issues with rtmixer / PortAudio
       - run: python -m pip install --only-binary="rtmixer" rtmixer
         if: matrix.kind == 'conda' && matrix.os != 'macos-latest'
