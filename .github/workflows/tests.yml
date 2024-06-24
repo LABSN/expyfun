@@ -68,6 +68,8 @@ jobs:
         if: ${{ matrix.kind == 'old' }}
       - run: python -m pip install tdtpy
         if: ${{ startsWith(matrix.os, 'windows') }}
+      - run: aplay -l
+      - run: pactl list
       - run: python -m sounddevice
       - run: |
           set -xeo pipefail
