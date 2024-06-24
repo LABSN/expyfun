@@ -36,6 +36,7 @@ jobs:
       - run: powershell make/get_video.ps1
         if: ${{ startsWith(matrix.os, 'windows') }}
       - run: |
+          set -xeo pipefail
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             echo "Setting env vars for Windows"
             echo "AZURE_CI_WINDOWS=true" >> $GITHUB_ENV
@@ -51,11 +52,12 @@ jobs:
             echo "Setting env vars for macOS"
           fi
         name: Set env vars
+        shell: bash
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install --upgrade pip setuptools wheel sounddevice
-      - run: python -m pip install --upgrade --only-binary="sounddevice,rtmixer,scipy,matplotlib,pandas,numpy" sounddevice rtmixer "pyglet<1.6" pyglet-ffmpeg scipy matplotlib pandas h5py mne numpydoc pillow joblib
+      - run: python -m pip install --upgrade --only-binary="sounddevice,rtmixer,scipy,matplotlib,pandas,numpy" sounddevice rtmixer "pyglet<1.6" scipy matplotlib pandas h5py mne numpydoc pillow joblib
         if: ${{ matrix.kind == 'pip' }}
       - run: python -m pip install --only-binary="sounddevice,rtmixer,numpy,scipy,matplotlib" sounddevice rtmixer "pyglet<1.4" numpy scipy matplotlib "pillow<8"
         if: ${{ matrix.kind == 'old' }}
@@ -63,8 +65,9 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows') }}
       - run: python -m sounddevice
       - run: |
-          set -o pipefail
+          set -xeo pipefail
           python -m sounddevice | grep "[82] out"
+        shell: bash
         name: Check that there is some output device
       - run: python -c "import pyglet; print(pyglet.version)"
       - run: python -c "import matplotlib.pyplot as plt"
