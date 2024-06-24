@@ -20,10 +20,10 @@ jobs:
         shell: bash -el {0}
     strategy:
       matrix:
-        os: ['ubuntu-22.04']
-        kind: ['pip']
-        python: ['3.12']
         include:
+          - os: ubuntu-24.04
+            kind: pip
+            python: '3.12'
           # ARM64 will probably need to wait until
           # - os: 'macos-latest'  # arm64
           #   kind: 'conda'
@@ -31,6 +31,7 @@ jobs:
           - os: 'macos-13'  # intel
             kind: 'conda'
             python: '3.12'
+          # TODO: There is a bug on Python 3.12 on Windows :(
           - os: 'windows-latest'
             kind: 'pip'
             python: '3.11'
