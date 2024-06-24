@@ -696,5 +696,6 @@ for key in ("x", "y", "hat_x", "hat_y", "z", "rz", "rx", "ry"):
 del key
 
 
-def _cross_2d(arr1, arr2):
-    return arr1[..., 0] * arr2[..., 1] - arr1[..., 1] * arr2[..., 0]
+# https://github.com/numpy/numpy/pull/26694/files
+def _cross_2d(x, y):
+    return x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]
