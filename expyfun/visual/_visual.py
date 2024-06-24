@@ -1406,12 +1406,17 @@ class Video:
 
     def draw(self):
         """Draw the video texture to the screen buffer."""
-        self._player.update_texture()
-        # detect end-of-stream to prevent pyglet from hanging:
-        if not self._eos:
-            if self._visible:
+        done = False
+        if self._player.source is None:
+            done = True
+        if not done:
+            self._player.update_texture()
+            # detect end-of-stream to prevent pyglet from hanging:
+            if self._eos:
+                done = True
+            elif self._visible:
                 self._draw()
-        else:
+        if done:
             self._finished = True
             self.pause()
         self._ec.check_force_quit()
@@ -1448,9 +1453,10 @@ class Video:
         )
 
     def _eos_new(self):
+        done = self._player.source is None
         ts = self._source.get_next_video_timestamp()
         dur = self._source._duration
-        return ts is None or ts >= dur
+        return done or ts is None or ts >= dur
 
     @property
     def playing(self):
