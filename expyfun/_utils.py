@@ -902,7 +902,7 @@ def object_diff(a, b, pre=""):
     Taken from mne-python with permission.
     """
     out = ""
-    if type(a) != type(b):
+    if type(a) is not type(b):
         out += pre + " type mismatch (%s, %s)\n" % (type(a), type(b))
     elif isinstance(a, dict):
         k1s = _sort_keys(a)
