@@ -73,6 +73,7 @@ filterwarnings = '''
     ignore:.*isSet\(\) is deprecated.*:DeprecationWarning
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
     ignore:Invalid dash-separated options.*:
+    ignore:__array__ implementation doesn.*:DeprecationWarning
     always:.*Exception ignored in.*__del__.*:
 '''
 
