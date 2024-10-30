@@ -13,12 +13,12 @@ on:  # yamllint disable-line rule:truthy
 jobs:
   job:
     name: ${{ matrix.os }} ${{ matrix.kind }}
-    continue-on-error: true
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -el {0}
     strategy:
+      fail-fast: false
       matrix:
         include:
           # 24.04 works except for the video test, even though it works locally on 24.10
@@ -104,4 +104,4 @@ jobs:
       - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-        if: always()
+        if: success() || failure()
