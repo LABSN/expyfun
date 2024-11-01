@@ -72,7 +72,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: matrix.kind != 'conda'
-      - uses: mamba-org/setup-micromamba@v1
+      - uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: 'environment_test.yml'
           create-args: python=${{ matrix.python }}
