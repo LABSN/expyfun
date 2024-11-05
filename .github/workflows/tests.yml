@@ -5,10 +5,10 @@ concurrency:
 on:  # yamllint disable-line rule:truthy
   push:
     branches:
-      - '*'
+      - main
   pull_request:
     branches:
-      - '*'
+      - main
 
 jobs:
   job:
@@ -25,7 +25,7 @@ jobs:
           - os: ubuntu-22.04
             kind: pip
             python: '3.12'
-          # ARM64 will probably need to wait until
+          # ARM64 will probably need to wait until we transition to Pyglet 2
           # - os: 'macos-latest'  # arm64
           #   kind: 'conda'
           #   python: '3.12'
