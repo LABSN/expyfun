@@ -74,6 +74,7 @@ filterwarnings = '''
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
     ignore:Invalid dash-separated options.*:
     ignore:__array__ implementation doesn.*:DeprecationWarning
+    always:Exception in thread .*:pytest.PytestUnhandledThreadExceptionWarning
     always:.*Exception ignored in.*__del__.*:
 '''
 

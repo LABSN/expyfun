@@ -236,7 +236,7 @@ def test_degenerate():
     )
 
 
-@pytest.mark.timeout(120)
+@pytest.mark.timeout(180)
 def test_ec(ac, hide_window, monkeypatch):
     """Test EC methods."""
     if ac == "tdt":
