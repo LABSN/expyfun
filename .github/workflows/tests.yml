@@ -101,7 +101,7 @@ jobs:
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         if: matrix.kind != 'old' && matrix.os != 'macos-latest'
       - run: pytest expyfun --cov-report=xml --cov=expyfun
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()
