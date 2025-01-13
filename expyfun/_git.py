@@ -27,7 +27,7 @@ def _check_git():
 def _check_version_format(version):
     """Helper to ensure version is of proper format"""
     if not isinstance(version, str) or len(version) != 7:
-        raise TypeError(f"version must be a string of length 7, got {version}" "")
+        raise TypeError(f"version must be a string of length 7, got {version}")
 
 
 def _active_version(wd):
@@ -57,10 +57,10 @@ def download_version(version="current", dest_dir=None):
     if dest_dir is None:
         dest_dir = os.getcwd()
     if not isinstance(dest_dir, str) or not op.isdir(dest_dir):
-        raise OSError(f"Destination directory {dest_dir} does not exist" "")
+        raise OSError(f"Destination directory {dest_dir} does not exist")
     if op.isdir(op.join(dest_dir, "expyfun")):
         raise OSError(
-            f'Destination directory {dest_dir} already has "expyfun" ' "subdirectory"
+            f'Destination directory {dest_dir} already has "expyfun" subdirectory'
         )
 
     # fetch locally and get the proper version
@@ -77,7 +77,7 @@ def download_version(version="current", dest_dir=None):
     try:
         run_subprocess(["git", "checkout", version], cwd=expyfun_dir, env=env)
     except Exception as exp:
-        raise RuntimeError(f"Could not check out version {version}: {str(exp)}" "")
+        raise RuntimeError(f"Could not check out version {version}: {str(exp)}")
     assert _active_version(expyfun_dir) == version
 
     # install
@@ -146,6 +146,5 @@ def assert_version(version):
     _check_version_format(version)
     if this_version.lower() != version.lower():
         raise AssertionError(
-            f"Requested version {version} does not match current "
-            f"version {this_version}"
+            f"Requested version {version} does not match current version {this_version}"
         )

@@ -30,8 +30,7 @@ def _check_callback(callback):
 
     if not callable(callback):
         raise TypeError(
-            "callback must be a callable, None, or an instance of "
-            "ExperimentController."
+            "callback must be a callable, None, or an instance of ExperimentController."
         )
     return callback
 
@@ -163,8 +162,7 @@ class TrackerUD:
             change_indices = [0]
             if not np.isscalar(step_size_up):
                 raise ValueError(
-                    "If step_size_up is longer than 1, you must "
-                    "specify change indices."
+                    "If step_size_up is longer than 1, you must specify change indices."
                 )
             if not np.isscalar(step_size_down):
                 raise ValueError(
@@ -173,7 +171,7 @@ class TrackerUD:
                 )
         self._change_indices = np.asarray(change_indices)
         if change_rule not in ["trials", "reversals"]:
-            raise ValueError("change_rule must be either 'trials' or " "'reversals'")
+            raise ValueError("change_rule must be either 'trials' or 'reversals'")
         self._change_rule = change_rule
 
         step_size_up = np.atleast_1d(step_size_up)
@@ -886,10 +884,7 @@ class TrackerDealer:
             and pace_rule == "reversals"
         ):
             raise ValueError(
-                "pace_rule must be "
-                "trials"
-                " to deal trials from"
-                " a TrackerBinom object"
+                "pace_rule must be trials to deal trials from a TrackerBinom object"
             )
         if rand is None:
             self._seed = int(time.time())
@@ -897,7 +892,7 @@ class TrackerDealer:
         else:
             self._seed = None
         if not isinstance(rand, np.random.RandomState):
-            raise TypeError("rand must be of type " "numpy.random.RandomState")
+            raise TypeError("rand must be of type numpy.random.RandomState")
         self._rand = rand
         self._trial_complete = True
         self._tracker_history = np.array([], dtype=int)

@@ -53,7 +53,7 @@ crm_prepare_corpus(
 )
 
 # print the valid callsigns
-print(f'Valid callsigns are {crm_info()["callsign"]}')
+print(f"Valid callsigns are {crm_info()['callsign']}")
 
 # read a sentence in from the hard drive
 x1 = 0.5 * crm_sentence(fs, "m", "0", "c", "r", "5", path=crm_path)
@@ -79,7 +79,7 @@ with ExperimentController(
     stim_fs=40000,
 ) as ec:
     ec.screen_text(
-        "Report the color and number spoken by the female " "talker.", wrap=True
+        "Report the color and number spoken by the female talker.", wrap=True
     )
     screenshot = ec.screenshot()
     ec.flip()

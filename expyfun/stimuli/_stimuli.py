@@ -55,7 +55,7 @@ def window_edges(sig, fs, dur=0.01, axis=-1, window="hann", edges="both"):
         win = signal.windows.get_window(window, 2 * win_len)[:win_len]
     valid_edges = ("leading", "trailing", "both")
     if edges not in valid_edges:
-        raise ValueError(f'edges must be one of {valid_edges}, not "{edges}"' "")
+        raise ValueError(f'edges must be one of {valid_edges}, not "{edges}"')
     # now we can actually do the calculation
     flattop = np.ones(sig_len, dtype=np.float64)
     if edges in ("trailing", "both"):  # eliminate trailing
@@ -165,7 +165,7 @@ def add_pad(sounds, alignment="start"):
         will be 2-dimensional (channels, samples).
     """
     if alignment not in ["start", "center", "end"]:
-        raise ValueError("alignment must be either 'start', 'center', " "or 'end'")
+        raise ValueError("alignment must be either 'start', 'center', or 'end'")
     x = [np.atleast_2d(y) for y in sounds]
     if not np.all(y.ndim == 2 for y in x):
         raise ValueError("Sound data must have no more than 2 dimensions.")

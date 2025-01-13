@@ -736,7 +736,7 @@ def test_sound_card_triggering(hide_window):
     with ExperimentController(*std_args, n_channels=1, **kwargs) as ec:
         ec.identify_trial(ttl_id=[1, 0], ec_id="")
         with pytest.warns(
-            UserWarning, match="Drift triggers overlap with " "onset triggers."
+            UserWarning, match="Drift triggers overlap with onset triggers."
         ):
             ec.load_buffer(np.zeros(ec.stim_fs))
         ec.start_stimulus()

@@ -147,11 +147,9 @@ with ExperimentController(
             message = "Too slow!"
         elif int(pressed) == stim_num + 1:
             running_total += 1
-            message = "Correct! Your reaction time was " f"{round(timestamp, 3)}"
+            message = f"Correct! Your reaction time was {round(timestamp, 3)}"
         else:
-            message = (
-                f"You pressed {pressed}, the correct answer was " f"{stim_num + 1}."
-            )
+            message = f"You pressed {pressed}, the correct answer was {stim_num + 1}."
         ec.screen_prompt(message, max_wait=feedback_dur)
         ec.wait_secs(isi)
 
@@ -184,7 +182,7 @@ with ExperimentController(
     running_total += sum(correct)
     ec.call_on_next_flip(ec.stop_noise())
     ec.screen_prompt(
-        f"You got {sum(correct)} out of {len(answers)} correct." "",
+        f"You got {sum(correct)} out of {len(answers)} correct.",
         max_wait=feedback_dur,
     )
     ec.trial_ok()

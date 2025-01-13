@@ -269,7 +269,7 @@ def check_units(units):
     """
     good_units = ["norm", "pix", "deg", "cm"]
     if units not in good_units:
-        raise ValueError(f'"units" must be one of {good_units}, not {units}' "")
+        raise ValueError(f'"units" must be one of {good_units}, not {units}')
 
 
 ###############################################################################
@@ -551,7 +551,7 @@ def fetch_data_file(fname):
     fname_out = op.join(path, fname)
     if not op.isdir(op.dirname(fname_out)):
         os.makedirs(op.dirname(fname_out))
-    fname_url = f"https://github.com/LABSN/expyfun-data/raw/master/{fname}" ""
+    fname_url = f"https://github.com/LABSN/expyfun-data/raw/master/{fname}"
     try:
         # until we get proper certificates
         context = ssl._create_unverified_context()
@@ -709,7 +709,7 @@ def set_config(key, value):
     else:
         config = dict()
         logger.info(
-            "Attempting to create new expyfun configuration " "file:\n%s" % config_path
+            "Attempting to create new expyfun configuration file:\n%s" % config_path
         )
     if value is None:
         config.pop(key, None)
@@ -961,7 +961,7 @@ def _check_params(params, keys, defaults, name):
     for k in params.keys():
         if k not in keys:
             raise KeyError(
-                'Unrecognized key in {0}["{1}"], must be ' "one of {2}".format(
+                'Unrecognized key in {0}["{1}"], must be one of {2}'.format(
                     name, k, ", ".join(keys)
                 )
             )

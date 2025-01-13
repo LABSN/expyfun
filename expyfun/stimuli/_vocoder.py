@@ -177,7 +177,7 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode="tone", rate=None, seed
     """
     # check args
     if mode not in ("noise", "tone", "poisson"):
-        raise ValueError(f'mode must be "noise", "tone", or "poisson", not {mode}' "")
+        raise ValueError(f'mode must be "noise", "tone", or "poisson", not {mode}')
     if isinstance(seed, np.random.RandomState):
         rng = seed
     elif seed is None:
@@ -186,8 +186,7 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode="tone", rate=None, seed
         rng = np.random.RandomState(seed)
     else:
         raise TypeError(
-            '"seed" must be an int, an instance of '
-            "numpy.random.RandomState, or None."
+            '"seed" must be an int, an instance of numpy.random.RandomState, or None.'
         )
     carrs = []
     fs = float(fs)

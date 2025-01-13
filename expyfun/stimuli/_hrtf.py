@@ -62,18 +62,18 @@ def _get_hrtf(angle, source, fs, interp=False):
         leftward = True
         read_angle = float(-angle)
     if read_angle not in angles and not interp:
-        raise ValueError(f'angle "{angle}" must be one of +/-{list(angles)}' "")
+        raise ValueError(f'angle "{angle}" must be one of +/-{list(angles)}')
     brir = data["brir"]
     if read_angle in angles:
         interp = False
     if not interp:
         idx = np.where(angles == read_angle)[0]
         if len(idx) != 1:
-            raise ValueError(f'angle "{angle}" not uniquely found in angles' "")
+            raise ValueError(f'angle "{angle}" not uniquely found in angles')
         brir = brir[idx[0]]
     else:  # interpolation
         if source != "cipic":
-            raise ValueError("source must be " "cipic" " when interp=True")
+            raise ValueError("source must be cipic when interp=True")
 
         # pull in files containing known hrtfs and extract magnitude and phase
         fname = fetch_data_file(f"hrtf/pair_cipic_{fs}.hdf5")
@@ -87,7 +87,6 @@ def _get_hrtf(angle, source, fs, interp=False):
         if idx > len(pairs):
             raise ValueError(
                 f'angle magnitude "{read_angle}" must be smaller than "{pairs[-1][-1]}"'
-                ""
             )
         knowns = np.array([angles[idx - 1], angles[idx]])
         index = np.where(pairs == knowns)[0][0]
@@ -186,9 +185,7 @@ def convolve_hrtf(data, fs, angle, source="cipic", interp=False):
     known_sources = ["barb", "cipic"]
     known_fs = [24414, 44100]  # must be sorted
     if source not in known_sources:
-        raise ValueError(
-            f'Source "{source}" unknown, must be one of {known_sources}' ""
-        )
+        raise ValueError(f'Source "{source}" unknown, must be one of {known_sources}')
     if not isinstance(interp, bool):
         raise ValueError("interp must be bool")
     data = np.array(data, np.float64)

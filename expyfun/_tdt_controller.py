@@ -124,9 +124,7 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         tdt_params = _check_params(tdt_params, keys, defaults, "tdt_params")
         if tdt_params["TYPE"] != "tdt":
             raise ValueError(
-                'tdt_params["TYPE"] must be "tdt", not ' "{0}".format(
-                    tdt_params["TYPE"]
-                )
+                'tdt_params["TYPE"] must be "tdt", not {0}'.format(tdt_params["TYPE"])
             )
         for key in ("TDT_DELAY", "TDT_TRIG_DELAY"):
             tdt_params[key] = int(tdt_params[key])
@@ -135,9 +133,7 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         self._model = tdt_params["TDT_MODEL"]
         legal_models = ["RM1", "RP2", "RZ6", "RP2legacy", "dummy"]
         if self.model not in legal_models:
-            raise ValueError(
-                f'TDT_MODEL="{self.model}" must be one of ' f"{legal_models}"
-            )
+            raise ValueError(f'TDT_MODEL="{self.model}" must be one of {legal_models}')
 
         if tdt_params["TDT_CIRCUIT_PATH"] is None and self.model != "dummy":
             cl = dict(RM1="RM1", RP2="RM1", RP2legacy="RP2legacy", RZ6="RZ6")

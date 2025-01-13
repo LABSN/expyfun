@@ -255,7 +255,7 @@ class ExperimentController:
                     and value is not None
                     and not isinstance(value, str)
                 ):
-                    raise TypeError(f"{value} must be string or None" "")
+                    raise TypeError(f"{value} must be string or None")
                 if key in edit_list and value is None:
                     self._exp_info[key] = get_keyboard_input(f"{key}: ")
                 else:
@@ -272,7 +272,7 @@ class ExperimentController:
                     os.mkdir(output_dir)
                 basename = op.join(
                     output_dir,
-                    "{}_{}" "".format(
+                    "{}_{}".format(
                         self._exp_info["participant"], self._exp_info["date"]
                     ),
                 )
@@ -298,8 +298,7 @@ class ExperimentController:
                 safe_flipping = not (get_config("SAFE_FLIPPING", "").lower() == "false")
             if not safe_flipping:
                 logger.warning(
-                    "Expyfun: Unsafe flipping mode enabled, flip "
-                    "timing not guaranteed"
+                    "Expyfun: Unsafe flipping mode enabled, flip timing not guaranteed"
                 )
             self.safe_flipping = safe_flipping
 
@@ -323,7 +322,7 @@ class ExperimentController:
             req_mon_keys = ["SCREEN_WIDTH", "SCREEN_DISTANCE", "SCREEN_SIZE_PIX"]
             missing_keys = [key for key in req_mon_keys if key not in monitor]
             if missing_keys:
-                raise KeyError(f"monitor is missing required keys {missing_keys}" "")
+                raise KeyError(f"monitor is missing required keys {missing_keys}")
             mon_size = monitor["SCREEN_SIZE_PIX"]
             monitor["SCREEN_DPI"] = monitor["SCREEN_SIZE_PIX"][0] / (
                 monitor["SCREEN_WIDTH"] * 0.393701
@@ -365,7 +364,7 @@ class ExperimentController:
                 response_device = get_config("RESPONSE_DEVICE", "keyboard")
             if response_device not in ["keyboard", "tdt", "cedrus"]:
                 raise ValueError(
-                    'response_device must be "keyboard", "tdt", ' '"cedrus", or None'
+                    'response_device must be "keyboard", "tdt", "cedrus", or None'
                 )
             self._response_device = response_device
 
@@ -447,7 +446,7 @@ class ExperimentController:
                     window_size = [int(w) for w in window_size]
             window_size = np.array(window_size)
             if window_size.ndim != 1 or window_size.size != 2:
-                raise ValueError("window_size must be 2-element array-like or " "None")
+                raise ValueError("window_size must be 2-element array-like or None")
 
             # open window and setup GL config
             self._setup_window(window_size, exp_name, full_screen, screen)
@@ -458,7 +457,7 @@ class ExperimentController:
             elif response_device == "tdt":
                 if not isinstance(self._ac, TDTController):
                     raise ValueError(
-                        'response_device can only be "tdt" if ' "tdt is used for audio"
+                        'response_device can only be "tdt" if tdt is used for audio'
                     )
                 self._response_handler = self._ac
                 self._ac._add_keyboard_init(self, force_quit)
@@ -489,13 +488,12 @@ class ExperimentController:
                     f"{known_keys}, got {set(trigger_controller)}"
                 )
             logger.info(
-                f'Expyfun: Initializing {trigger_controller["TYPE"]} ' 'triggering mode'
+                f"Expyfun: Initializing {trigger_controller['TYPE']} triggering mode"
             )
             if trigger_controller["TYPE"] == "tdt":
                 if not isinstance(self._ac, TDTController):
                     raise ValueError(
-                        'trigger_controller can only be "tdt" if '
-                        "tdt is used for audio"
+                        'trigger_controller can only be "tdt" if tdt is used for audio'
                     )
                 self._tc = self._ac
             elif trigger_controller["TYPE"] == "sound_card":
@@ -543,9 +541,9 @@ class ExperimentController:
             # finish initialization
             logger.info("Expyfun: Initialization complete")
             logger.exp(
-                "Expyfun: Participant: {0}" "".format(self._exp_info["participant"])
+                "Expyfun: Participant: {0}".format(self._exp_info["participant"])
             )
-            logger.exp("Expyfun: Session: {0}" "".format(self._exp_info["session"]))
+            logger.exp("Expyfun: Session: {0}".format(self._exp_info["session"]))
             ok_log = partial(self.write_data_line, "trial_ok", None)
             self._on_trial_ok.append(ok_log)
             self._on_trial_ok.append(self.flush)
@@ -558,7 +556,7 @@ class ExperimentController:
 
     def __repr__(self):
         """Return a useful string representation of the experiment"""
-        string = '<ExperimentController ({3}): "{0}" {1} ({2})>' "".format(
+        string = '<ExperimentController ({3}): "{0}" {1} ({2})>'.format(
             self._exp_info["exp_name"],
             self._exp_info["participant"],
             self._exp_info["session"],
@@ -792,9 +790,7 @@ class ExperimentController:
         """
         if start_of_trial:
             if self._trial_progress != "identified":
-                raise RuntimeError(
-                    "Trial ID must be stamped before starting " "the trial"
-                )
+                raise RuntimeError("Trial ID must be stamped before starting the trial")
             self._trial_progress = "started"
         extra = "flipping screen and " if flip else ""
         logger.exp(f"Expyfun: Starting stimuli: {extra}playing audio")
@@ -1392,7 +1388,7 @@ class ExperimentController:
     def text_input(
         self,
         stop_key="return",
-        instruction_string="Type" " response below",
+        instruction_string="Type response below",
         pos=(0, 0),
         color="white",
         font_name="Arial",
@@ -1863,12 +1859,12 @@ class ExperimentController:
         """
         if self._playing:
             raise RuntimeError(
-                "Previous audio must be stopped before loading " "the buffer"
+                "Previous audio must be stopped before loading the buffer"
             )
         samples = self._validate_audio(samples)
         if not np.isclose(self._stim_scaler, 1.0):
             samples = samples * self._stim_scaler
-        logger.exp(f"Expyfun: Loading {samples.size} samples to buffer" "")
+        logger.exp(f"Expyfun: Loading {samples.size} samples to buffer")
         self._ac.load_buffer(samples)
 
     def play(self):
@@ -1997,7 +1993,7 @@ class ExperimentController:
             max_samples = 4000000 - 1
             if samples.shape[0] > max_samples:
                 raise RuntimeError(
-                    f"Sample too long {samples.shape[0]} > {max_samples}" ""
+                    f"Sample too long {samples.shape[0]} > {max_samples}"
                 )
 
         # resample if needed
@@ -2066,7 +2062,7 @@ class ExperimentController:
         """
         if check_rms not in [None, "wholefile", "windowed"]:
             raise ValueError(
-                'check_rms must be one of "wholefile", "windowed"' ", or None."
+                'check_rms must be one of "wholefile", "windowed", or None.'
             )
         self._slow_rms_warned = False
         self._check_rms = check_rms
@@ -2235,7 +2231,7 @@ class ExperimentController:
             )
         ll = max([len(key) for key in ids.keys()])
         for key, id_ in ids.items():
-            logger.exp(f"Expyfun: Stamp trial ID to {key.ljust(ll)} : {str(id_)}" "")
+            logger.exp(f"Expyfun: Stamp trial ID to {key.ljust(ll)} : {str(id_)}")
             if isinstance(id_, dict):
                 self._id_call_dict[key](**id_)
             else:
@@ -2318,7 +2314,7 @@ class ExperimentController:
             _vals = [1, 2, 4, 8]
             if not all(id_ in _vals for id_ in ids):
                 raise ValueError(
-                    'with check="binary", ids must all be ' f"1, 2, 4, or 8: {ids}"
+                    f'with check="binary", ids must all be 1, 2, 4, or 8: {ids}'
                 )
         self._stamp_ttl_triggers(ids, wait_for_last, False)
 

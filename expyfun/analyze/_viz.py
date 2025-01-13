@@ -232,7 +232,7 @@ def barplot(
             bar_names = h.columns.tolist() if axis == 0 else h.index.tolist()
     # check arg errors
     if gap_size < 0 or gap_size >= 1:
-        raise ValueError('Barplot argument "gap_size" must be in the range ' "[0, 1).")
+        raise ValueError('Barplot argument "gap_size" must be in the range [0, 1).')
     if err_bars is not None:
         if isinstance(err_bars, str) and err_bars not in ["sd", "se", "ci"]:
             raise ValueError(
@@ -241,13 +241,9 @@ def barplot(
             )
     if brackets is not None:
         if any([len(x) != 2 for x in brackets]):
-            raise ValueError(
-                "Each top-level element of brackets must have " "length 2."
-            )
+            raise ValueError("Each top-level element of brackets must have length 2.")
         if not len(brackets) == len(bracket_text):
-            raise ValueError(
-                "Mismatch between number of brackets and bracket " "labels."
-            )
+            raise ValueError("Mismatch between number of brackets and bracket labels.")
     # handle single-element args
     if isinstance(bracket_text, str):
         bracket_text = [bracket_text]
@@ -332,8 +328,7 @@ def barplot(
                 )
             elif not h.shape == np.array(err_bars).shape:
                 raise ValueError(
-                    'When "err_bars" is array-like it must have '
-                    'the same shape as "h".'
+                    'When "err_bars" is array-like it must have the same shape as "h".'
                 )
             err = np.atleast_1d(err_bars)
         bar_kwargs["yerr"] = err

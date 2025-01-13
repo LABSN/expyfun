@@ -748,7 +748,7 @@ class Circle(_Triangular):
         check_units(units)
         radius = np.atleast_1d(radius).astype(float)
         if radius.ndim != 1 or radius.size > 2:
-            raise ValueError("radius must be a 1- or 2-element " "array-like vector")
+            raise ValueError("radius must be a 1- or 2-element array-like vector")
         if radius.size == 1:
             radius = np.r_[radius, radius]
         # convert to pixel (OpenGL) units
@@ -876,7 +876,7 @@ class ConcentricCircles:
         """
         radii = np.array(radii, float)
         if radii.ndim != 1 or radii.size != len(self):
-            raise ValueError(f"radii must contain exactly {len(self)} radii" "")
+            raise ValueError(f"radii must contain exactly {len(self)} radii")
         for idx, radius in enumerate(radii):
             self.set_radius(radius, idx, units)
 
@@ -902,9 +902,7 @@ class ConcentricCircles:
             colors as the number of circles.
         """
         if not isinstance(colors, (tuple, list)) or len(colors) != len(self):
-            raise ValueError(
-                f"colors must be a list or tuple with {len(self)} colors" ""
-            )
+            raise ValueError(f"colors must be a list or tuple with {len(self)} colors")
         for idx, color in enumerate(colors):
             self.set_color(color, idx)
 
@@ -1061,7 +1059,7 @@ class RawImage:
         if image_buffer.ndim == 2:  # grayscale
             image_buffer = np.tile(image_buffer[..., np.newaxis], (1, 1, 3))
         if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
-            raise RuntimeError(f"image_buffer incorrect size: {image_buffer.shape}" "")
+            raise RuntimeError(f"image_buffer incorrect size: {image_buffer.shape}")
         # add alpha channel if necessary
         dims = image_buffer.shape
         fmt = "RGB" if dims[2] == 3 else "RGBA"
@@ -1290,7 +1288,7 @@ class Video:
             self._playing = True
         else:
             warnings.warn(
-                "ExperimentController.video.play() called when " "already playing."
+                "ExperimentController.video.play() called when already playing."
             )
         return self._ec.get_time()
 
@@ -1314,7 +1312,7 @@ class Video:
             self._playing = False
         else:
             warnings.warn(
-                "ExperimentController.video.pause() called when " "already paused."
+                "ExperimentController.video.pause() called when already paused."
             )
         return self._ec.get_time()
 

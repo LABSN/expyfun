@@ -37,7 +37,7 @@ with ExperimentController(
     ###############
     # screen_prompt
     pressed = ec.screen_prompt(
-        "press any key\n\nscreen_prompt(" f"max_wait={wait_dur})",
+        f"press any key\n\nscreen_prompt(max_wait={wait_dur})",
         max_wait=wait_dur,
         timestamp=True,
     )
@@ -51,7 +51,7 @@ with ExperimentController(
 
     ##################
     # wait_for_presses
-    ec.screen_text(f"press some keys\n\nwait_for_presses(max_wait={wait_dur})" "")
+    ec.screen_text(f"press some keys\n\nwait_for_presses(max_wait={wait_dur})")
     screenshot = ec.screenshot()
     ec.flip()
     pressed = ec.wait_for_presses(wait_dur)
@@ -60,7 +60,7 @@ with ExperimentController(
         message = "no keys pressed"
     else:
         message = [
-            f"{key} pressed after {round(time, 4)} secs\n" "" for key, time in pressed
+            f"{key} pressed after {round(time, 4)} secs\n" for key, time in pressed
         ]
         message = "".join(message)
     ec.screen_prompt(message, msg_dur)
@@ -69,7 +69,7 @@ with ExperimentController(
     ############################################
     # wait_for_presses, relative to master clock
     ec.screen_text(
-        f"press some keys\n\nwait_for_presses(max_wait={wait_dur}, " "relative_to=0.0)"
+        f"press some keys\n\nwait_for_presses(max_wait={wait_dur}, relative_to=0.0)"
     )
     ec.flip()
     pressed = ec.wait_for_presses(wait_dur, relative_to=0.0)
@@ -77,9 +77,7 @@ with ExperimentController(
     if not len(pressed):
         message = "no keys pressed"
     else:
-        message = [
-            f"{key} pressed at {round(time, 4)} secs\n" "" for key, time in pressed
-        ]
+        message = [f"{key} pressed at {round(time, 4)} secs\n" for key, time in pressed]
         message = "".join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
@@ -87,7 +85,7 @@ with ExperimentController(
     ##########################################
     # listen_presses / wait_secs / get_presses
     ec.screen_text(
-        f"press some keys\n\nlisten_presses()\nwait_secs({wait_dur})" "\nget_presses()"
+        f"press some keys\n\nlisten_presses()\nwait_secs({wait_dur})\nget_presses()"
     )
     ec.flip()
     ec.listen_presses()
@@ -98,7 +96,7 @@ with ExperimentController(
         message = "no keys pressed"
     else:
         message = [
-            f"{key} pressed after {round(time, 4)} secs\n" "" for key, time in pressed
+            f"{key} pressed after {round(time, 4)} secs\n" for key, time in pressed
         ]
         message = "".join(message)
     ec.screen_prompt(message, msg_dur)
@@ -119,9 +117,7 @@ with ExperimentController(
     if not len(pressed):
         message = "no keys pressed"
     else:
-        message = [
-            f"{key} pressed at {round(time, 4)} secs\n" "" for key, time in pressed
-        ]
+        message = [f"{key} pressed at {round(time, 4)} secs\n" for key, time in pressed]
         message = "".join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)
@@ -132,7 +128,7 @@ with ExperimentController(
     countdown = ec.current_time + disp_time
     ec.call_on_next_flip(ec.listen_presses)
     ec.screen_text(
-        "press some keys\n\nlisten_presses()" f"\nwhile loop {disp_time}\nget_presses()"
+        f"press some keys\n\nlisten_presses()\nwhile loop {disp_time}\nget_presses()"
     )
     ec.flip()
     while ec.current_time < countdown:
@@ -151,7 +147,7 @@ with ExperimentController(
         message = "no keys pressed"
     else:
         message = [
-            f"{key} pressed after {round(time, 4)} secs\n" "" for key, time in pressed
+            f"{key} pressed after {round(time, 4)} secs\n" for key, time in pressed
         ]
         message = "".join(message)
     ec.screen_prompt(message, msg_dur)
@@ -183,9 +179,7 @@ with ExperimentController(
     if not len(pressed):
         message = "no keys pressed"
     else:
-        message = [
-            f"{key} pressed at {round(time, 4)} secs\n" "" for key, time in pressed
-        ]
+        message = [f"{key} pressed at {round(time, 4)} secs\n" for key, time in pressed]
         message = "".join(message)
     ec.screen_prompt(message, msg_dur)
 

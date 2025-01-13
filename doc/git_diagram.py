@@ -20,9 +20,9 @@ Remote repositories</TD></TR>
 legend = "".join(legend.split("\n"))
 
 nodes = dict(
-    upstream="LABSN/expyfun\n" "master\n" " ",
-    maint="Eric89GXL/expyfun\n" "master\n" "other_branch",
-    dev="rkmaddox/expyfun\n" "master\n" "fix_branch",
+    upstream="LABSN/expyfun\nmaster\n ",
+    maint="Eric89GXL/expyfun\nmaster\nother_branch",
+    dev="rkmaddox/expyfun\nmaster\nfix_branch",
     maint_clone="/home/larsoner/expyfun\n"
     "master (origin/master)\n"
     "other_branch (origin/other_branch)\n"
@@ -31,7 +31,7 @@ nodes = dict(
     "master (origin/master)\n"
     "fix_branch (origin/fix_branch)\n"
     " ",
-    user_clone="/home/akclee/expyfun\n" "master (origin/master)\n" " \n" " ",
+    user_clone="/home/akclee/expyfun\nmaster (origin/master)\n \n ",
     legend=legend,
 )
 

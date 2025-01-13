@@ -355,7 +355,7 @@ def crm_sentence(
     path = join(path, str(int(fs)))
     if not os.path.isdir(path):
         raise RuntimeError(
-            "prepare_corpus has not yet been run " "for sampling rate of %i" % fs
+            "prepare_corpus has not yet been run for sampling rate of %i" % fs
         )
     fn = join(
         path,
@@ -372,7 +372,7 @@ def crm_sentence(
         x = read_wav(fn, verbose=False)[0][0] * ref_rms / _rms_prepped
     else:
         raise RuntimeError(
-            "prepare_corpus has not yet been run for the " "requested talker"
+            "prepare_corpus has not yet been run for the requested talker"
         )
     if ramp_dur:
         x = window_edges(x, _fs_binary, dur=ramp_dur)
@@ -454,7 +454,7 @@ def crm_response_menu(
     numbers = [str(_check("number", number) + 1) for number in numbers]
 
     if len(colors) != len(np.unique(colors)) or len(numbers) != len(np.unique(numbers)):
-        raise ValueError("There can be no repeated colors or numbers in the " "menu.")
+        raise ValueError("There can be no repeated colors or numbers in the menu.")
 
     # Draw the buttons
     rects = []
@@ -518,7 +518,7 @@ class CRMPreload:
             path = join(_get_user_home_path(), ".expyfun", "data", "crm")
         if not os.path.isdir(join(path, str(fs))):
             raise RuntimeError(
-                "prepare_corpus has not yet been run " "for sampling rate of %i" % fs
+                "prepare_corpus has not yet been run for sampling rate of %i" % fs
             )
         self._excluded = []
         self._all_stim = {}
@@ -592,6 +592,6 @@ class CRMPreload:
         )
         if stim_id in self._excluded:
             raise RuntimeError(
-                "prepare_corpus has not yet been run for the " "requested talker"
+                "prepare_corpus has not yet been run for the requested talker"
             )
         return self._all_stim[stim_id].copy()
