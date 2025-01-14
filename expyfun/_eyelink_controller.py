@@ -199,7 +199,7 @@ class EyelinkController:
             )
             if cmd.returncode:
                 raise RuntimeError(
-                    "could not connect to Eyelink @ %s, " "is it turned on?" % link
+                    "could not connect to Eyelink @ %s, is it turned on?" % link
                 )
         self._eyelink = DummyEl() if link is None else pylink.EyeLink(link)
         self._file_list = []
@@ -246,14 +246,14 @@ class EyelinkController:
 
         # retrieve tracker version and tracker software version
         v = str(self._eyelink.getTrackerVersion()).strip()
-        logger.info("Eyelink: Running experiment on a version " f"{v}" " " "tracker.")
+        logger.info(f"Eyelink: Running experiment on a version {v} tracker.")
         v = v.split(".")
 
         # set EDF file contents
         logger.debug("EyeLink: Setting file and event filters")
         fef = "LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT"
         self._eyelink.setFileEventFilter(fef)
-        lef = "LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE," "BUTTON,FIXUPDATE,INPUT"
+        lef = "LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,FIXUPDATE,INPUT"
         self._eyelink.setLinkEventFilter(lef)
         fsf = "LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT"
         lsf = "LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT"
@@ -300,7 +300,7 @@ class EyelinkController:
         # make absolutely sure we don't break this, but it shouldn't ever
         # be wrong
         assert len(file_name) <= 8
-        logger.info(f"Eyelink: Opening remote file with filename {file_name}" "")
+        logger.info(f"Eyelink: Opening remote file with filename {file_name}")
         _check(
             self._eyelink.openDataFile(file_name),
             'Remote file "' + file_name + '" could not be opened: {0}',
@@ -477,7 +477,7 @@ class EyelinkController:
         EyelinkController.stop
         """
         fname = op.join(self._output_dir, f"{remote_name}.edf")
-        logger.info(f"Eyelink: saving Eyelink file: {remote_name} ..." "")
+        logger.info(f"Eyelink: saving Eyelink file: {remote_name} ...")
         status = self._eyelink.receiveDataFile(remote_name, fname)
         logger.info(f"Eyelink: transferred {status} bytes")
         return fname
@@ -667,7 +667,7 @@ class EyelinkController:
         allowed_types = ["H3", "HV5", "HV9", "HV13", "custom"]
         if ctype not in allowed_types:
             raise ValueError(
-                f'ctype cannot be "{ctype}", but must be one of {allowed_types}' ""
+                f'ctype cannot be "{ctype}", but must be one of {allowed_types}'
             )
         if ctype != "custom":
             if coordinates is not None:
@@ -682,7 +682,7 @@ class EyelinkController:
         h_max, v_max = self._size[0] / 2.0, self._size[1] / 2.0
         for p, m, s in zip((h_pix, v_pix), (h_max, v_max), ("horiz", "vert")):
             if p > m:
-                raise ValueError(f"{s} too large ({p} > {m})" "")
+                raise ValueError(f"{s} too large ({p} > {m})")
         # make the locations
         if ctype == "HV5":
             mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
@@ -723,7 +723,7 @@ class EyelinkController:
         elif ctype == "custom":
             mat = np.array(coordinates, float)
             if mat.ndim != 2 or mat.shape[-1] != 2:
-                raise ValueError("Each coordinate must be a list with length 2" ".")
+                raise ValueError("Each coordinate must be a list with length 2.")
         offsets = mat * np.array([h_pix, v_pix])
         coords = self._size / 2.0 + offsets
         n_samples = coords.shape[0]
@@ -755,7 +755,7 @@ class EyelinkController:
             sample = self._eyelink.getNewestSample()
             if sample is None:
                 raise RuntimeError(
-                    "No sample data, consider starting a " "recording using el.start()"
+                    "No sample data, consider starting a recording using el.start()"
                 )
             if sample.isBinocular():
                 eye_pos = (

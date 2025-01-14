@@ -101,16 +101,16 @@ def read_tab(
     header = list(set([line[1] for line in lines]))
     header.sort()
     if group_start not in header:
-        raise ValueError(f'group_start "{group_start}" not in header: {header}' "")
+        raise ValueError(f'group_start "{group_start}" not in header: {header}')
     if group_end == group_start:
-        raise ValueError("group_start cannot equal group_end, use " "group_end=None")
+        raise ValueError("group_start cannot equal group_end, use group_end=None")
     header = [header.pop(header.index(group_start))] + header
     b1s = np.where([line[1] == group_start for line in lines])[0]
     if group_end is None:
         b2s = np.concatenate((b1s[1:], [len(lines)]))
     else:  # group_end is not None
         if group_end not in header:
-            raise ValueError(f'group_end "{group_end}" not in header ({header})' "")
+            raise ValueError(f'group_end "{group_end}" not in header ({header})')
         header.append(header.pop(header.index(group_end)))
         b2s = np.where([line[1] == group_end for line in lines])[0]
     if len(b1s) == len(b2s) + 1 and allow_last_missing:
@@ -182,8 +182,7 @@ def reconstruct_tracker(fname):
         tracker_stop_idx = np.setdiff1d(tracker_stop_idx, used_stop_idx)
         if len(tracker_stop_idx) == 0:
             raise ValueError(
-                f"Tracker {tracker_id} has not stopped. All Trackers "
-                "must be stopped."
+                f"Tracker {tracker_id} has not stopped. All Trackers must be stopped."
             )
         tracker_stop_idx = tracker_stop_idx[0]
         used_stop_idx.append(tracker_stop_idx)

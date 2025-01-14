@@ -221,7 +221,7 @@ class SoundPlayer:
                 logger.exp(f"Could not fetch mixer stats ({exc})")
             else:
                 logger.exp(
-                    f"{stats.output_underflows} underflows " f"{stats.blocks} blocks"
+                    f"{stats.output_underflows} underflows {stats.blocks} blocks"
                 )
 
     def __del__(self):  # noqa

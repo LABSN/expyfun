@@ -223,7 +223,7 @@ def fit_sigmoid(x, y, p0=None, fixed=()):
     p_types = ("lower", "upper", "midpt", "slope")
     for f in fixed:
         if f not in p_types:
-            raise ValueError(f"fixed {f} not in parameter list {p_types}" "")
+            raise ValueError(f"fixed {f} not in parameter list {p_types}")
     fixed = np.array([(True if f in fixed else False) for f in p_types], bool)
 
     kwargs = dict()
@@ -304,7 +304,7 @@ def rt_chisq(x, axis=None, warn=True):
     whiskers = quartiles + np.array((-1.5, 1.5)) * np.diff(quartiles)
     n_bad = np.sum(np.logical_or(np.less(x, whiskers[0]), np.greater(x, whiskers[1])))
     if n_bad > 0 and warn:
-        warnings.warn(f"{n_bad} likely bad values in x (of {x.size})" "")
+        warnings.warn(f"{n_bad} likely bad values in x (of {x.size})")
     peak = np.maximum(0, (df - 2)) * scale
     return peak
 

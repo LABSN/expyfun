@@ -76,7 +76,7 @@ def test_audio_dims():
     with pytest.raises(ValueError, match="channel count 1 did not .* 3"):
         _fix_audio_dims(x, 3)
     for dim in (1, 3):
-        want = "signal channel count 2 did not match required channel " "count %s" % dim
+        want = "signal channel count 2 did not match required channel count %s" % dim
         with pytest.raises(ValueError, match=want):
             _fix_audio_dims(y, dim)
     for n_channels in (1, 2, 3):

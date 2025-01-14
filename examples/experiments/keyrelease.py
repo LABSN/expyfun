@@ -69,7 +69,7 @@ with ExperimentController(
     if not len(events):
         message = "no keys pressed"
     else:
-        message = [f"{k} {r} after {round(t, 4)} secs\n" "" for k, t, r in events]
+        message = [f"{k} {r} after {round(t, 4)} secs\n" for k, t, r in events]
         message = "".join(message)
     ec.screen_prompt(message, msg_dur)
     ec.wait_secs(isi)

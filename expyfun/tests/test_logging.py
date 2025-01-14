@@ -65,4 +65,4 @@ def assert_have_all(data, should_have):
     __tracebackhide__ = operator.methodcaller("errisinstance", AssertionError)
     for s in should_have:
         if s not in data:
-            raise AssertionError(f'Missing data: "{s}" in:\n{data}' "")
+            raise AssertionError(f'Missing data: "{s}" in:\n{data}')

@@ -30,7 +30,7 @@ with ExperimentController(
     pb = ProgressBar(ec, [0, -0.1, 1.5, 0.1], units="norm")
 
     ec.screen_prompt(
-        "Press the number shown on the screen. Start by pressing" " 1.",
+        "Press the number shown on the screen. Start by pressing 1.",
         font_size=16,
         live_keys=[1],
         max_wait=max_wait,
@@ -51,7 +51,7 @@ with ExperimentController(
             pb.update_bar(percent)
             # display the progress bar with some text
             ec.screen_text(
-                f"You've completed {percent} %. Press any key to proceed." "",
+                f"You've completed {percent} %. Press any key to proceed.",
                 [0, 0.1],
                 wrap=False,
                 font_size=16,

@@ -97,7 +97,7 @@ class ParallelTrigger:
                 self._portname = str(base)
             else:
                 raise NotImplementedError(
-                    "Parallel port triggering only " "supported on Linux and Windows"
+                    "Parallel port triggering only supported on Linux and Windows"
                 )
         else:  # mode == 'dummy':
             self._port = self._portname = None
@@ -181,7 +181,7 @@ def decimals_to_binary(decimals, n_bits):
     binary = list()
     for d, b in zip(decimals, n_bits):
         if d > 2**b - 1:
-            raise ValueError(f"cannot convert number {d} using {b} bits" "")
+            raise ValueError(f"cannot convert number {d} using {b} bits")
         binary.extend([int(bb) for bb in np.binary_repr(d, b)])
     assert len(binary) == n_bits.sum()  # make sure we didn't do something dumb
     return binary
@@ -212,7 +212,7 @@ def binary_to_decimals(binary, n_bits):
         raise ValueError("n_bits must all be > 0")
     if n_bits.sum() != len(binary):
         raise ValueError(
-            "the sum of n_bits must be equal to the number of " "elements in binary"
+            "the sum of n_bits must be equal to the number of elements in binary"
         )
     offset = 0
     outs = []

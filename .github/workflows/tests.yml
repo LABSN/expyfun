@@ -46,6 +46,7 @@ jobs:
         with:
           qt: true
           pyvista: false
+          wm: false
       # Use -dev here just to get whichever version is right (e.g., 22.04 has a different version from 24.04)
       - run: sudo apt install -q libavutil-dev libavcodec-dev libavformat-dev libswscale-dev libglu1-mesa gstreamer1.0-alsa gstreamer1.0-libav
         if: ${{ startsWith(matrix.os, 'ubuntu') }}

@@ -268,7 +268,7 @@ class SoundCardController:
                     if (trig2_start >= 0 and trig2_start <= stim_len) or (
                         trig2_start < 0 and abs(trig2_start) >= extra
                     ):
-                        warnings.warn("Drift triggers overlap" " with onset triggers.")
+                        warnings.warn("Drift triggers overlap with onset triggers.")
                     if (trig2_start > 0 and trig2_start > sample_len - trig2_len) or (
                         trig2_start < 0 and abs(trig2_start) >= sample_len
                     ):
