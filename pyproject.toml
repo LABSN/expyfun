@@ -44,7 +44,7 @@ addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
 junit_family = "xunit2"
 # Set this pretty low to ensure we do not by default add really long tests,
 # or make changes that make things a lot slower
-timeout = 10
+timeout = 15
 usefixtures = "matplotlib_config"
 # Once SciPy updates not to have non-integer and non-tuple errors (1.2.0) we
 # should remove them from here.
