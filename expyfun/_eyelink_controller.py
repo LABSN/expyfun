@@ -5,17 +5,17 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
 import datetime
-from distutils.version import LooseVersion
 import os
-from os import path as op
-import sys
 import subprocess
+import sys
 import time
+from os import path as op
 
-from .visual import FixationDot, Circle, RawImage, Line, Text
-from ._utils import get_config, verbose_dec, logger, string_types
+import numpy as np
+
+from ._utils import get_config, logger, verbose_dec
+from .visual import Circle, FixationDot, Line, RawImage, Text
 
 # Constants
 TRIAL_OK = 0
@@ -36,6 +36,7 @@ def dummy_fun(*args, **kwargs):
 # don't prevent basic functionality for folks who don't use EL
 try:
     import pylink
+
     cal_super_class = pylink.EyeLinkCustomDisplay
     openGraphicsEx = pylink.openGraphicsEx
 except ImportError:
@@ -44,87 +45,105 @@ except ImportError:
     openGraphicsEx = dummy_fun
 
 
-eye_list = ['LEFT_EYE', 'RIGHT_EYE', 'BINOCULAR']  # Used by eyeAvailable
+eye_list = ["LEFT_EYE", "RIGHT_EYE", "BINOCULAR"]  # Used by eyeAvailable
 
 
 def _get_key_trans_dict():
     """Helper to translate pyglet keys to pylink codes"""
     from pyglet.window import key
-    key_trans_dict = {str(key.F1): pylink.F1_KEY,
-                      str(key.F2): pylink.F2_KEY,
-                      str(key.F3): pylink.F3_KEY,
-                      str(key.F4): pylink.F4_KEY,
-                      str(key.F5): pylink.F5_KEY,
-                      str(key.F6): pylink.F6_KEY,
-                      str(key.F7): pylink.F7_KEY,
-                      str(key.F8): pylink.F8_KEY,
-                      str(key.F9): pylink.F9_KEY,
-                      str(key.F10): pylink.F10_KEY,
-                      str(key.PAGEUP): pylink.PAGE_UP,
-                      str(key.PAGEDOWN): pylink.PAGE_DOWN,
-                      str(key.UP): pylink.CURS_UP,
-                      str(key.DOWN): pylink.CURS_DOWN,
-                      str(key.LEFT): pylink.CURS_LEFT,
-                      str(key.RIGHT): pylink.CURS_RIGHT,
-                      str(key.BACKSPACE): '\b',
-                      str(key.RETURN): pylink.ENTER_KEY,
-                      str(key.ESCAPE): pylink.ESC_KEY,
-                      str(key.NUM_ADD): key.PLUS,
-                      str(key.NUM_SUBTRACT): key.MINUS,
-                      }
+
+    key_trans_dict = {
+        str(key.F1): pylink.F1_KEY,
+        str(key.F2): pylink.F2_KEY,
+        str(key.F3): pylink.F3_KEY,
+        str(key.F4): pylink.F4_KEY,
+        str(key.F5): pylink.F5_KEY,
+        str(key.F6): pylink.F6_KEY,
+        str(key.F7): pylink.F7_KEY,
+        str(key.F8): pylink.F8_KEY,
+        str(key.F9): pylink.F9_KEY,
+        str(key.F10): pylink.F10_KEY,
+        str(key.PAGEUP): pylink.PAGE_UP,
+        str(key.PAGEDOWN): pylink.PAGE_DOWN,
+        str(key.UP): pylink.CURS_UP,
+        str(key.DOWN): pylink.CURS_DOWN,
+        str(key.LEFT): pylink.CURS_LEFT,
+        str(key.RIGHT): pylink.CURS_RIGHT,
+        str(key.BACKSPACE): "\b",
+        str(key.RETURN): pylink.ENTER_KEY,
+        str(key.ESCAPE): pylink.ESC_KEY,
+        str(key.NUM_ADD): key.PLUS,
+        str(key.NUM_SUBTRACT): key.MINUS,
+    }
     return key_trans_dict
 
 
 def _get_color_dict():
     """Helper to translate pylink colors to pyglet"""
-    color_dict = {str(CR_HAIR_COLOR): (1.0, 1.0, 1.0),
-                  str(PUPIL_HAIR_COLOR): (1.0, 1.0, 1.0),
-                  str(PUPIL_BOX_COLOR): (0.0, 1.0, 0.0),
-                  str(SEARCH_LIMIT_BOX_COLOR): (1.0, 0.0, 0.0),
-                  str(MOUSE_CURSOR_COLOR): (1.0, 0.0, 0.0)}
+    color_dict = {
+        str(CR_HAIR_COLOR): (1.0, 1.0, 1.0),
+        str(PUPIL_HAIR_COLOR): (1.0, 1.0, 1.0),
+        str(PUPIL_BOX_COLOR): (0.0, 1.0, 0.0),
+        str(SEARCH_LIMIT_BOX_COLOR): (1.0, 0.0, 0.0),
+        str(MOUSE_CURSOR_COLOR): (1.0, 0.0, 0.0),
+    }
     return color_dict
 
 
-def _check(val, msg, out='error'):
+def _check(val, msg, out="error"):
     """Helper to check output"""
     if val != TRIAL_OK:
         msg = msg.format(val)
-        if out == 'warn':
+        if out == "warn":
             logger.warning(msg)
         else:
             raise RuntimeError(msg)
 
 
 _dummy_names = [
-    'setSaccadeVelocityThreshold', 'setAccelerationThreshold',
-    'setUpdateInterval', 'setFixationUpdateAccumulate', 'setFileEventFilter',
-    'setLinkEventFilter', 'setFileSampleFilter', 'setLinkSampleFilter',
-    'setPupilSizeDiameter', 'setAcceptTargetFixationButton',
-    'openDataFile', 'startRecording', 'waitForModeReady',
-    'isRecording', 'stopRecording', 'closeDataFile', 'doTrackerSetup',
-    'receiveDataFile', 'close', 'eyeAvailable', 'sendCommand',
+    "setSaccadeVelocityThreshold",
+    "setAccelerationThreshold",
+    "setUpdateInterval",
+    "setFixationUpdateAccumulate",
+    "setFileEventFilter",
+    "setLinkEventFilter",
+    "setFileSampleFilter",
+    "setLinkSampleFilter",
+    "setPupilSizeDiameter",
+    "setAcceptTargetFixationButton",
+    "openDataFile",
+    "startRecording",
+    "waitForModeReady",
+    "isRecording",
+    "stopRecording",
+    "closeDataFile",
+    "doTrackerSetup",
+    "receiveDataFile",
+    "close",
+    "eyeAvailable",
+    "sendCommand",
 ]
 
 
-class DummyEl(object):
+class DummyEl:
     """Dummy EyeLink controller."""
 
     def __init__(self):
         for name in _dummy_names:
             setattr(self, name, dummy_fun)
-        self.getTrackerVersion = lambda: 'Dummy'
+        self.getTrackerVersion = lambda: "Dummy"
         self.getDummyMode = lambda: True
         self.getCurrentMode = lambda: IN_RECORD_MODE
         self.waitForBlockStart = lambda a, b, c: 1
 
     def sendMessage(self, msg):
         """Send a message."""
-        if not isinstance(msg, string_types):
-            raise TypeError('msg must be str')
+        if not isinstance(msg, str):
+            raise TypeError("msg must be str")
         return TRIAL_OK
 
 
-class EyelinkController(object):
+class EyelinkController:
     """Eyelink communication and control methods.
 
     Parameters
@@ -148,50 +167,53 @@ class EyelinkController(object):
     """
 
     @verbose_dec
-    def __init__(self, ec, link='default', fs=1000, verbose=None):
-        if link == 'default':
-            link = get_config('EXPYFUN_EYELINK', None)
+    def __init__(self, ec, link="default", fs=1000, verbose=None):
+        if link == "default":
+            link = get_config("EXPYFUN_EYELINK", None)
         if link is not None and pylink is None:
-            raise ImportError('Could not import pylink, please ensure it '
-                              'is installed correctly to use the EyeLink')
+            raise ImportError(
+                "Could not import pylink, please ensure it "
+                "is installed correctly to use the EyeLink"
+            )
         valid_fs = (250, 500, 1000, 2000)
         if fs not in valid_fs:
-            raise ValueError('fs must be one of {0}'.format(list(valid_fs)))
+            raise ValueError(f"fs must be one of {list(valid_fs)}")
         output_dir = ec._output_dir
         if output_dir is None:
             output_dir = os.getcwd()
-        if not isinstance(output_dir, string_types):
-            raise TypeError('output_dir must be a string')
+        if not isinstance(output_dir, str):
+            raise TypeError("output_dir must be a string")
         if not op.isdir(output_dir):
             os.mkdir(output_dir)
         self._output_dir = output_dir
         self._ec = ec
-        if 'el_id' in self._ec._id_call_dict:
-            raise RuntimeError('Cannot use initialize EL twice')
-        logger.info('EyeLink: Initializing on {}'.format(link))
+        if "el_id" in self._ec._id_call_dict:
+            raise RuntimeError("Cannot use initialize EL twice")
+        logger.info(f"EyeLink: Initializing on {link}")
         ec.flush()
         if link is not None:
-            iswin = (sys.platform == 'win32')
-            cmd = 'ping -n 1 -w 100' if iswin else 'fping -c 1 -t100'
-            cmd = subprocess.Popen('%s %s' % (cmd, link),
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
+            iswin = sys.platform == "win32"
+            cmd = "ping -n 1 -w 100" if iswin else "fping -c 1 -t100"
+            cmd = subprocess.Popen(
+                "%s %s" % (cmd, link), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
             if cmd.returncode:
-                raise RuntimeError('could not connect to Eyelink @ %s, '
-                                   'is it turned on?' % link)
+                raise RuntimeError(
+                    "could not connect to Eyelink @ %s, is it turned on?" % link
+                )
         self._eyelink = DummyEl() if link is None else pylink.EyeLink(link)
         self._file_list = []
         self._size = np.array(self._ec.window_size_pix)
         self._ec._extra_cleanup_fun += [self._close]
         self._ec.flush()
         self._setup(fs)
-        self._ec._id_call_dict['el_id'] = self._stamp_trial_id
+        self._ec._id_call_dict["el_id"] = self._stamp_trial_id
         self._ec._ofp_critical_funs.append(self._stamp_trial_start)
         self._ec._on_trial_ok.append(self._stamp_trial_ok)
         self._fake_calibration = False  # Only used for testing
         self._closed = False  # to prevent double-closing
         self._current_open_file = None
-        logger.debug('EyeLink: Setup complete')
+        logger.debug("EyeLink: Setup complete")
         self._ec.flush()
 
     def _setup(self, fs=1000):
@@ -207,10 +229,10 @@ class EyelinkController(object):
         """
         # map the gaze positions from the tracker to screen pixel positions
         res = self._size
-        res_str = '0 0 {0} {1}'.format(res[0] - 1, res[1] - 1)
-        logger.debug('EyeLink: Setting display coordinates and saccade levels')
-        self._command('screen_pixel_coords = ' + res_str)
-        self._message('DISPLAY_COORDS ' + res_str)
+        res_str = f"0 0 {res[0] - 1} {res[1] - 1}"
+        logger.debug("EyeLink: Setting display coordinates and saccade levels")
+        self._command("screen_pixel_coords = " + res_str)
+        self._message("DISPLAY_COORDS " + res_str)
 
         # set calibration parameters
         self.custom_calibration()
@@ -220,33 +242,31 @@ class EyelinkController(object):
         self._eyelink.setAccelerationThreshold(9500)
         self._eyelink.setUpdateInterval(50)
         self._eyelink.setFixationUpdateAccumulate(50)
-        self._command('sample_rate = {0}'.format(fs))
+        self._command(f"sample_rate = {fs}")
 
         # retrieve tracker version and tracker software version
-        v = str(self._eyelink.getTrackerVersion())
-        logger.info('Eyelink: Running experiment on a version ''{0}'' '
-                    'tracker.'.format(v))
-        v = LooseVersion(v).version
+        v = str(self._eyelink.getTrackerVersion()).strip()
+        logger.info(f"Eyelink: Running experiment on a version {v} tracker.")
+        v = v.split(".")
 
         # set EDF file contents
-        logger.debug('EyeLink: Setting file and event filters')
-        fef = 'LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT'
+        logger.debug("EyeLink: Setting file and event filters")
+        fef = "LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT"
         self._eyelink.setFileEventFilter(fef)
-        lef = ('LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,'
-               'BUTTON,FIXUPDATE,INPUT')
+        lef = "LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,FIXUPDATE,INPUT"
         self._eyelink.setLinkEventFilter(lef)
-        fsf = 'LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT'
-        lsf = 'LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT'
-        if len(v) > 1 and v[0] == 3 and v[1] == 4:
+        fsf = "LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT"
+        lsf = "LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT"
+        if len(v) > 1 and v[0] == "3" and v[1] == "4":
             # remote mode possible add HTARGET ( head target)
-            fsf += ',HTARGET'
+            fsf += ",HTARGET"
             # set link data (used for gaze cursor)
-            lsf += ',HTARGET'
+            lsf += ",HTARGET"
         self._eyelink.setFileSampleFilter(fsf)
         self._eyelink.setLinkSampleFilter(lsf)
 
         # Ensure that we get areas
-        self._eyelink.setPupilSizeDiameter('NO')
+        self._eyelink.setPupilSizeDiameter("NO")
 
         # calibration/drift cordisp.rection target
         self._eyelink.setAcceptTargetFixationButton(5)
@@ -267,23 +287,24 @@ class EyelinkController(object):
 
     @property
     def _is_file_open(self):
-        return (self._current_open_file is not None)
+        return self._current_open_file is not None
 
     def _open_file(self):
         """Opens a new file on the Eyelink"""
         if self._is_file_open:
-            raise RuntimeError('Cannot start new file, old must be closed')
-        file_name = datetime.datetime.now().strftime('%H%M%S')
+            raise RuntimeError("Cannot start new file, old must be closed")
+        file_name = datetime.datetime.now().strftime("%H%M%S")
         while file_name in self._file_list:
             # This should succeed in under 1 second
-            file_name = datetime.datetime.now().strftime('%H%M%S')
+            file_name = datetime.datetime.now().strftime("%H%M%S")
         # make absolutely sure we don't break this, but it shouldn't ever
         # be wrong
         assert len(file_name) <= 8
-        logger.info('Eyelink: Opening remote file with filename {}'
-                    ''.format(file_name))
-        _check(self._eyelink.openDataFile(file_name),
-               'Remote file "' + file_name + '" could not be opened: {0}')
+        logger.info(f"Eyelink: Opening remote file with filename {file_name}")
+        _check(
+            self._eyelink.openDataFile(file_name),
+            'Remote file "' + file_name + '" could not be opened: {0}',
+        )
         self._current_open_file = file_name
         self._file_list.append(file_name)
         return self._current_open_file
@@ -291,28 +312,33 @@ class EyelinkController(object):
     def _start_recording(self):
         """Start Eyelink recording"""
         if not self._is_file_open:
-            raise RuntimeError('cannot start recording without file open')
+            raise RuntimeError("cannot start recording without file open")
         for ii in range(5):
             self._ec.wait_secs(0.1)
-            out = 'check' if ii < 4 else 'error'
-            _check(self._eyelink.startRecording(1, 1, 1, 1),
-                   'Recording could not be started: {0}', out)
+            out = "check" if ii < 4 else "error"
+            _check(
+                self._eyelink.startRecording(1, 1, 1, 1),
+                "Recording could not be started: {0}",
+                out,
+            )
         # self._eyelink.waitForModeReady(100)  # doesn't work
-        _check(not self._eyelink.waitForBlockStart(100, 1, 0),
-               'No link samples received: {0}')
+        _check(
+            not self._eyelink.waitForBlockStart(100, 1, 0),
+            "No link samples received: {0}",
+        )
         if not self.recording:
-            raise RuntimeError('Eyelink is not recording')
+            raise RuntimeError("Eyelink is not recording")
         # double-check
         mode = self._eyelink.getCurrentMode()
         if mode != IN_RECORD_MODE:
-            raise RuntimeError('Eyelink is not recording: {0}'.format(mode))
+            raise RuntimeError(f"Eyelink is not recording: {mode}")
         self._ec.flush()
         self._toggle_dummy_cursor(True)
 
     @property
     def recording(self):
         """Returns boolean for whether or not the Eyelink is recording"""
-        return (self._eyelink.isRecording() == TRIAL_OK)
+        return self._eyelink.isRecording() == TRIAL_OK
 
     def stop(self):
         """Stop Eyelink recording and close current file
@@ -323,12 +349,11 @@ class EyelinkController(object):
         EyelinkController.transfer_remote_file
         """
         if not self.recording:
-            raise RuntimeError('Cannot stop, not currently recording')
-        logger.info('Eyelink: Stopping recording')
+            raise RuntimeError("Cannot stop, not currently recording")
+        logger.info("Eyelink: Stopping recording")
         self._eyelink.stopRecording()
-        logger.info('Eyelink: Closing file')
-        _check(self._eyelink.closeDataFile(),
-               'File could not be closed: {0}', 'warn')
+        logger.info("Eyelink: Closing file")
+        _check(self._eyelink.closeDataFile(), "File could not be closed: {0}", "warn")
         self._current_open_file = None
         self._toggle_dummy_cursor(False)
 
@@ -364,9 +389,11 @@ class EyelinkController(object):
         # open file to record *before* running calibration so it gets saved!
         fname = self._open_file()
         if prompt:
-            self._ec.screen_prompt('We will now perform a screen calibration.'
-                                   '\n\nPress a button to continue.')
-        logger.info('EyeLink: Entering calibration')
+            self._ec.screen_prompt(
+                "We will now perform a screen calibration."
+                "\n\nPress a button to continue."
+            )
+        logger.info("EyeLink: Entering calibration")
         self._ec.flush()
         # enter Eyetracker camera setup mode, calibration and validation
         self._ec.flip()
@@ -378,7 +405,7 @@ class EyelinkController(object):
             self._eyelink.doTrackerSetup()
         cal.release_event_handlers()
         self._ec.flip()
-        logger.info('EyeLink: Completed calibration')
+        logger.info("EyeLink: Completed calibration")
         self._ec.flush()
         self._start_recording()
         return fname
@@ -402,13 +429,13 @@ class EyelinkController(object):
         #    such as one number for each trial independent variable.
         # Here we just force up to 12 integers for simplicity.
         if not isinstance(ids, (list, tuple)):
-            raise TypeError('ids must be a list (or tuple)')
+            raise TypeError("ids must be a list (or tuple)")
         if not all([np.isscalar(x) for x in ids]):
-            raise ValueError('All ids must be numeric')
+            raise ValueError("All ids must be numeric")
         if len(ids) > 12:
-            raise ValueError('ids must not have more than 12 entries')
-        ids = ' '.join([str(int(ii)) for ii in ids])
-        msg = 'TRIALID {}'.format(ids)
+            raise ValueError("ids must not have more than 12 entries")
+        ids = " ".join([str(int(ii)) for ii in ids])
+        msg = f"TRIALID {ids}"
         self._message(msg)
 
     def _stamp_trial_start(self):
@@ -417,17 +444,16 @@ class EyelinkController(object):
         This is a timing-critical operation used to synchronize the
         recording to stimulus presentation.
         """
-        self._eyelink.sendMessage('SYNCTIME')
+        self._eyelink.sendMessage("SYNCTIME")
 
     def _stamp_trial_ok(self):
-        """Signal the end of a trial
-        """
-        self._eyelink.sendMessage('TRIAL OK')
+        """Signal the end of a trial"""
+        self._eyelink.sendMessage("TRIAL OK")
 
     def _message(self, msg):
         """Send message to eyelink, must be a string"""
         self._eyelink.sendMessage(msg)
-        self._command('record_status_message "{0}"'.format(msg))
+        self._command(f'record_status_message "{msg}"')
 
     def _command(self, cmd):
         """Send Eyelink a command, must be a string"""
@@ -450,11 +476,10 @@ class EyelinkController(object):
         --------
         EyelinkController.stop
         """
-        fname = op.join(self._output_dir, '{0}.edf'.format(remote_name))
-        logger.info('Eyelink: saving Eyelink file: {0} ...'
-                    ''.format(remote_name))
+        fname = op.join(self._output_dir, f"{remote_name}.edf")
+        logger.info(f"Eyelink: saving Eyelink file: {remote_name} ...")
         status = self._eyelink.receiveDataFile(remote_name, fname)
-        logger.info('Eyelink: transferred {0} bytes'.format(status))
+        logger.info(f"Eyelink: transferred {status} bytes")
         return fname
 
     def _close(self):
@@ -464,21 +489,30 @@ class EyelinkController(object):
             if self.recording:
                 self.stop()
             # make sure files get transferred
-            fnames = [self.transfer_remote_file(remote_name)
-                      for remote_name in self._file_list]
+            fnames = [
+                self.transfer_remote_file(remote_name)
+                for remote_name in self._file_list
+            ]
             self._file_list = list()
             self._eyelink.close()
             self._closed = True
-            assert 'el_id' in self._ec._id_call_dict
-            del self._ec._id_call_dict['el_id']
+            assert "el_id" in self._ec._id_call_dict
+            del self._ec._id_call_dict["el_id"]
             idx = self._ec._ofp_critical_funs.index(self._stamp_trial_start)
             self._ec._ofp_critical_funs.pop(idx)
             idx = self._ec._on_trial_ok.index(self._stamp_trial_ok)
             self._ec._on_trial_ok.pop(idx)
         return fnames
 
-    def wait_for_fix(self, fix_pos, fix_time=0., tol=100., max_wait=np.inf,
-                     check_interval=0.001, units='norm'):
+    def wait_for_fix(
+        self,
+        fix_pos,
+        fix_time=0.0,
+        tol=100.0,
+        max_wait=np.inf,
+        check_interval=0.001,
+        units="norm",
+    ):
         """Wait for gaze to settle within a defined region
 
         Parameters
@@ -513,11 +547,12 @@ class EyelinkController(object):
         time_out = time_in + max_wait
         fix_pos = np.array(fix_pos)
         if not (fix_pos.ndim == 1 and fix_pos.size == 2):
-            raise ValueError('fix_pos must be a 2-element array-like vector')
-        fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
+            raise ValueError("fix_pos must be a 2-element array-like vector")
+        fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, "pix")
         fix_pos = fix_pos[:, 0]
-        while (time.time() < time_out and not
-               (fix_success and time.time() - time_in >= fix_time)):
+        while time.time() < time_out and not (
+            fix_success and time.time() - time_in >= fix_time
+        ):
             # sample eye position
             eye_pos = self.get_eye_position()  # in pixels
             if _within_distance(eye_pos, fix_pos, tol):
@@ -530,8 +565,16 @@ class EyelinkController(object):
 
         return fix_success
 
-    def maintain_fix(self, fix_pos, check_duration, tol=100., period=.250,
-                     check_interval=0.001, units='norm', stop_early=False):
+    def maintain_fix(
+        self,
+        fix_pos,
+        check_duration,
+        tol=100.0,
+        period=0.250,
+        check_interval=0.001,
+        units="norm",
+        stop_early=False,
+    ):
         """Check to see if subject is fixating in a region.
 
         This checks to make sure that the subjects gaze falls within a region
@@ -570,12 +613,15 @@ class EyelinkController(object):
 
         fix_pos = np.array(fix_pos)
         if not (fix_pos.ndim == 1 and fix_pos.size == 2):
-            raise ValueError('fix_pos must be a 2-element array-like vector')
-        fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, 'pix')
+            raise ValueError("fix_pos must be a 2-element array-like vector")
+        fix_pos = self._ec._convert_units(fix_pos[:, np.newaxis], units, "pix")
         fix_pos = fix_pos[:, 0]
         check = []
-        while ((fix_success and time.time() < time_end) if stop_early else
-               time.time() < time_end):
+        while (
+            (fix_success and time.time() < time_end)
+            if stop_early
+            else time.time() < time_end
+        ):
             if fix_success:
                 # sample eye position
                 eye_pos = self.get_eye_position()  # in pixels
@@ -589,8 +635,14 @@ class EyelinkController(object):
             self._ec.wait_secs(check_interval)
         return fix_success
 
-    def custom_calibration(self, ctype='HV5', horiz=2./3., vert=2./3.,
-                           coordinates=None, units='norm'):
+    def custom_calibration(
+        self,
+        ctype="HV5",
+        horiz=2.0 / 3.0,
+        vert=2.0 / 3.0,
+        coordinates=None,
+        units="norm",
+    ):
         """Set Eyetracker to use a custom calibration sequence
 
         Parameters
@@ -612,54 +664,79 @@ class EyelinkController(object):
         --------
         EyelinkController.calibrate
         """
-        allowed_types = ['H3', 'HV5', 'HV9', 'HV13', 'custom']
+        allowed_types = ["H3", "HV5", "HV9", "HV13", "custom"]
         if ctype not in allowed_types:
-            raise ValueError('ctype cannot be "{0}", but must be one of {1}'
-                             ''.format(ctype, allowed_types))
-        if ctype != 'custom':
+            raise ValueError(
+                f'ctype cannot be "{ctype}", but must be one of {allowed_types}'
+            )
+        if ctype != "custom":
             if coordinates is not None:
-                raise ValueError('If ctype is not \'custom\' coordinates canno'
-                                 't be used to generate calibration pattern.')
+                raise ValueError(
+                    "If ctype is not 'custom' coordinates canno"
+                    "t be used to generate calibration pattern."
+                )
 
         horiz, vert = float(horiz), float(vert)
-        xx = np.array(([0., horiz], [0., vert]))
-        h_pix, v_pix = np.diff(self._ec._convert_units(xx, units, 'pix'),
-                               axis=1)[:, 0]
-        h_max, v_max = self._size[0] / 2., self._size[1] / 2.
-        for p, m, s in zip((h_pix, v_pix), (h_max, v_max), ('horiz', 'vert')):
+        xx = np.array(([0.0, horiz], [0.0, vert]))
+        h_pix, v_pix = np.diff(self._ec._convert_units(xx, units, "pix"), axis=1)[:, 0]
+        h_max, v_max = self._size[0] / 2.0, self._size[1] / 2.0
+        for p, m, s in zip((h_pix, v_pix), (h_max, v_max), ("horiz", "vert")):
             if p > m:
-                raise ValueError('{0} too large ({1} > {2})'
-                                 ''.format(s, p, m))
+                raise ValueError(f"{s} too large ({p} > {m})")
         # make the locations
-        if ctype == 'HV5':
+        if ctype == "HV5":
             mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
-        elif ctype == 'HV9':
-            mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1],
-                            [-1, -1], [1, -1], [-1, 1]])
-        elif ctype == 'H3':
+        elif ctype == "HV9":
+            mat = np.array(
+                [
+                    [0, 0],
+                    [1, 0],
+                    [-1, 0],
+                    [0, 1],
+                    [0, -1],
+                    [1, 1],
+                    [-1, -1],
+                    [1, -1],
+                    [-1, 1],
+                ]
+            )
+        elif ctype == "H3":
             mat = np.array([[0, 0], [1, 0], [-1, 0]])
-        elif ctype == 'HV13':
-            mat = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1],
-                            [-1, -1], [1, -1], [-1, 1], [.5, .5], [-.5, -.5],
-                            [.5, -.5], [-.5, .5]])
-        elif ctype == 'custom':
+        elif ctype == "HV13":
+            mat = np.array(
+                [
+                    [0, 0],
+                    [1, 0],
+                    [-1, 0],
+                    [0, 1],
+                    [0, -1],
+                    [1, 1],
+                    [-1, -1],
+                    [1, -1],
+                    [-1, 1],
+                    [0.5, 0.5],
+                    [-0.5, -0.5],
+                    [0.5, -0.5],
+                    [-0.5, 0.5],
+                ]
+            )
+        elif ctype == "custom":
             mat = np.array(coordinates, float)
             if mat.ndim != 2 or mat.shape[-1] != 2:
-                raise ValueError('Each coordinate must be a list with length 2'
-                                 '.')
+                raise ValueError("Each coordinate must be a list with length 2.")
         offsets = mat * np.array([h_pix, v_pix])
-        coords = (self._size / 2. + offsets)
+        coords = self._size / 2.0 + offsets
         n_samples = coords.shape[0]
-        targs = ' '.join(['{0},{1}'.format(*c) for c in coords])
-        seq = ','.join([str(x) for x in range(n_samples + 1)])
-        self._command('calibration_type = {0}'.format(ctype))
-        self._command('generate_default_targets = NO')
-        self._command('calibration_samples = {0}'.format(n_samples))
-        self._command('calibration_sequence = ' + seq)
-        self._command('calibration_targets = ' + targs)
-        self._command('validation_samples = {0}'.format(n_samples))
-        self._command('validation_sequence = ' + seq)
-        self._command('validation_targets = ' + targs)
+        targs = " ".join(["{0},{1}".format(*c) for c in coords])
+        seq = ",".join([str(x) for x in range(n_samples + 1)])
+        self._command(f"calibration_type = {ctype}")
+        self._command("generate_default_targets = NO")
+        self._command(f"calibration_samples = {n_samples}")
+        self._command("calibration_sequence = " + seq)
+        self._command("calibration_targets = " + targs)
+        self._command(f"validation_samples = {n_samples}")
+        self._command("validation_sequence = " + seq)
+        self._command("validation_targets = " + targs)
 
     def get_eye_position(self):
         """The current eye position in pixels
@@ -677,11 +754,14 @@ class EyelinkController(object):
         if not self.dummy_mode:
             sample = self._eyelink.getNewestSample()
             if sample is None:
-                raise RuntimeError('No sample data, consider starting a '
-                                   'recording using el.start()')
+                raise RuntimeError(
+                    "No sample data, consider starting a recording using el.start()"
+                )
             if sample.isBinocular():
-                eye_pos = (np.array(sample.getLeftEye().getGaze()) +
-                           np.array(sample.getRightEye().getGaze())) / 2.
+                eye_pos = (
+                    np.array(sample.getLeftEye().getGaze())
+                    + np.array(sample.getRightEye().getGaze())
+                ) / 2.0
             elif sample.isLeftSample():
                 eye_pos = np.array(sample.getLeftEye().getGaze())
             elif sample.isRightSample():
@@ -700,8 +780,7 @@ class EyelinkController(object):
 
     @property
     def file_list(self):
-        """The list of files started on the EyeLink
-        """
+        """The list of files started on the EyeLink"""
         return self._file_list
 
     @property
@@ -731,7 +810,7 @@ class _Calibrate(cal_super_class):
         self.ec = ec
         self.keys = []
         ws = np.array(ec.window_size_pix)
-        self.img_span = 1.5 * np.array((float(ws[0]) / ws[1], 1.))
+        self.img_span = 1.5 * np.array((float(ws[0]) / ws[1], 1.0))
 
         # set up reusable objects
         self.targ_circ = FixationDot(self.ec)
@@ -750,11 +829,15 @@ class _Calibrate(cal_super_class):
         self.img_size = (0, 0)
 
     def setup_event_handlers(self):
-        self.label = Text(self.ec, 'Eye Label', units='norm',
-                          pos=(0, -self.img_span[1] / 2.),
-                          anchor_y='top', color='white')
-        self.img = RawImage(self.ec, np.zeros((1, 2, 3)),
-                            pos=(0, 0), units='norm')
+        self.label = Text(
+            self.ec,
+            "Eye Label",
+            units="norm",
+            pos=(0, -self.img_span[1] / 2.0),
+            anchor_y="top",
+            color="white",
+        )
+        self.img = RawImage(self.ec, np.zeros((1, 2, 3)), pos=(0, 0), units="norm")
 
         def on_mouse_press(x, y, button, modifiers):
             self.state = 1
@@ -774,9 +857,13 @@ class _Calibrate(cal_super_class):
             self.keys += [pylink.KeyInput(key, modifiers)]
 
         # create new handler at top of handling stack
-        self.ec.window.push_handlers(on_key_press, on_mouse_press,
-                                     on_mouse_motion, on_mouse_release,
-                                     on_mouse_drag)
+        self.ec.window.push_handlers(
+            on_key_press,
+            on_mouse_press,
+            on_mouse_motion,
+            on_mouse_release,
+            on_mouse_drag,
+        )
 
     def release_event_handlers(self):
         try:
@@ -795,7 +882,7 @@ class _Calibrate(cal_super_class):
         pass
 
     def draw_cal_target(self, x, y):
-        self.targ_circ.set_pos((x, y), units='pix')
+        self.targ_circ.set_pos((x, y), units="pix")
         self.targ_circ.draw()
         self.ec.flip()
 
@@ -830,19 +917,25 @@ class _Calibrate(cal_super_class):
         return x, y
 
     def alert_printf(self, msg):
-        logger.warning('EyeLink: alert_printf {}'.format(msg))
+        logger.warning(f"EyeLink: alert_printf {msg}")
 
     def setup_image_display(self, w, h):
         # convert w, h from pixels to relative units
         x = np.array([[0, 0], [0, self.img_span[1]]], float)
-        x = np.diff(self.ec._convert_units(x, 'norm', 'pix')[1]) / h
+        x = np.diff(self.ec._convert_units(x, "norm", "pix")[1]) / h
         self.img.set_scale(x)
         self.clear_display()
 
     def image_title(self, text):
-        text = "<center>{0}</center>".format(text)
-        self.label = Text(self.ec, text, units='norm', anchor_y='top',
-                          color='white', pos=(0, -self.img_span[1] / 2.))
+        text = f"<center>{text}</center>"
+        self.label = Text(
+            self.ec,
+            text,
+            units="norm",
+            anchor_y="top",
+            color="white",
+            pos=(0, -self.img_span[1] / 2.0),
+        )
 
     def set_image_palette(self, r, g, b):
         self.palette = np.array([r, g, b], np.uint8).T
@@ -851,7 +944,7 @@ class _Calibrate(cal_super_class):
         if self.image_buffer is None:
             self.img_size = (width, totlines)
             self.image_buffer = np.empty((totlines, width, 3), float)
-        self.image_buffer[line - 1, :, :] = self.palette[buff, :] / 255.
+        self.image_buffer[line - 1, :, :] = self.palette[buff, :] / 255.0
         if line == totlines:
             self.img.set_image(self.image_buffer)
             self.img.draw()
@@ -863,18 +956,18 @@ class _Calibrate(cal_super_class):
         color = _get_color_dict()[str(colorindex)]
         x1, y1 = self._img2win(x1, y1)
         x2, y2 = self._img2win(x2, y2)
-        Line(self.ec, ((x1, x2), (y1, y2)), 'pix', color).draw()
+        Line(self.ec, ((x1, x2), (y1, y2)), "pix", color).draw()
 
     def draw_lozenge(self, x, y, width, height, colorindex):
-        coords = self._img2win(x + width / 2., y + width / 2.)
-        width = width * self.img.scale / 2.
-        height = height * self.img.scale / 2.
+        coords = self._img2win(x + width / 2.0, y + width / 2.0)
+        width = width * self.img.scale / 2.0
+        height = height * self.img.scale / 2.0
         self.loz_circ.set_line_color(_get_color_dict()[str(colorindex)])
-        self.loz_circ.set_pos(coords, units='pix')
-        self.loz_circ.set_radius((width, height), units='pix')
+        self.loz_circ.set_pos(coords, units="pix")
+        self.loz_circ.set_radius((width, height), units="pix")
         self.loz_circ.draw()
 
 
 def _within_distance(pos_1, pos_2, radius):
     """Helper for checking eye position"""
-    return np.sum((pos_1 - pos_2) ** 2) <= radius ** 2
+    return np.sum((pos_1 - pos_2) ** 2) <= radius**2

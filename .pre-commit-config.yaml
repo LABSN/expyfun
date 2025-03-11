@@ -1,0 +1,43 @@
+repos:
+  # Ruff mne
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        name: ruff lint expyfun
+        args: ["--fix"]
+        files: ^expyfun/
+      - id: ruff
+        name: ruff lint doc and examples
+        # D103: missing docstring in public function
+        # D400: docstring first line must end with period
+        args: ["--ignore=D103,D400", "--fix"]
+        files: ^doc/|^examples/
+      - id: ruff-format
+        files: ^expyfun/|^doc/|^examples/
+
+  # Codespell
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
+        files: ^expyfun/|^doc/|^examples/
+        types_or: [python, bib, rst, inc]
+
+  # yamllint
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [--strict, -c, .yamllint.yml]
+
+  # rstcheck
+  - repo: https://github.com/rstcheck/rstcheck.git
+    rev: v6.2.4
+    hooks:
+      - id: rstcheck
+        additional_dependencies:
+          - tomli
+        files: ^doc/.*\.(rst|inc)$

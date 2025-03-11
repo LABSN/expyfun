@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 =================================================
 Do an adaptive track staircase with MHW procedure
@@ -12,13 +11,13 @@ Hughson-Westlake (MHW) procedure using
 
 import numpy as np
 
-from expyfun.stimuli import TrackerMHW
 from expyfun.analyze import sigmoid
+from expyfun.stimuli import TrackerMHW
 
 
 # Make a callback function that prints to the console, rather than log file
 def callback(event_type, value=None, timestamp=None):
-    print((str(event_type) + ':').ljust(40) + str(value))
+    print((str(event_type) + ":").ljust(40) + str(value))
 
 
 # Define parameters for modeled human subject (sigmoid probability)
@@ -34,12 +33,12 @@ rng = np.random.RandomState(1)
 
 # Do the task until the tracker stops
 while not tr.stopped:
-    tr.respond(rng.rand() < sigmoid(tr.x_current - true_thresh,
-                                    lower=chance, slope=slope))
+    tr.respond(
+        rng.rand() < sigmoid(tr.x_current - true_thresh, lower=chance, slope=slope)
+    )
 
 # Plot the results
 fig, ax, lines = tr.plot()
 lines += tr.plot_thresh()
 
-ax.set_title('Adaptive track of model human (true threshold is {})'
-             .format(true_thresh))
+ax.set_title(f"Adaptive track of model human (true threshold is {true_thresh})")

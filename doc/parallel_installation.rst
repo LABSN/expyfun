@@ -14,7 +14,7 @@ USB protocol itself, which is not designed for low-latency control.
 
 Instructions differ between Linux and Windows:
 
-- |linux| Linux
+Linux
     On Linux, you need ``pyparallel``::
 
         $ pip install pyparallel
@@ -28,7 +28,7 @@ Instructions differ between Linux and Windows:
     5. ``$ ls /dev/parport*`` to get the parallel port address, e.g.
        ``'/dev/parport0'``, and set this as ``TRIGGER_ADDRESS`` in the config.
 
-- |windows| Windows
+Windows
     If you are on a modern Windows system (i.e., 64-bit), you'll need to:
 
     - Download the latest "binaries" archive from the `InpOut32 site`_

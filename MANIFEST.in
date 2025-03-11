@@ -10,7 +10,7 @@ recursive-include expyfun/data *
 
 ### Exclude
 
-exclude make
+exclude tools
 exclude doc
 exclude .circleci
 exclude Makefile
@@ -21,6 +21,6 @@ exclude .mailmap
 recursive-exclude expyfun *.pyc
 
 recursive-exclude doc *
-recursive-exclude make *
+recursive-exclude tools *
 recursive-exclude examples *.tab
 recursive-exclude .circleci *

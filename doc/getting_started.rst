@@ -1,5 +1,3 @@
-:orphan:
-
 Getting started
 ===============
 
@@ -14,7 +12,7 @@ Installing expyfun
 
 Python
 ^^^^^^
-The first step is to install a Python 3.7+ distribution. See tutorials on other
+The first step is to install a Python 3.8+ distribution. See tutorials on other
 sites for how to do this.
 
 Dependencies
@@ -53,19 +51,47 @@ To get started quickly, this should suffice for conda users on most systems:
 
 .. code-block:: console
 
-    $ conda create -n expy python=3 numpy scipy matplotlib pandas pyglet h5py joblib pillow -c conda-forge
+    $ conda create -n expy mne "pyglet<1.6" -c conda-forge
     $ conda activate expy
-    $ pip install mne pyparallel rtmixer expyfun
+    $ pip install pyparallel rtmixer
+    $ pip install git+https://github.com/labsn/expyfun
 
 where ``expy`` can be replaced with whatever name you find convenient. If you
-cannot (or don't want to) use conda-forge as a package source, remove
-``-c conda-forge`` from the first command above, and move ``pyglet`` from the
-conda line to the pip line.
+cannot (or don't want to) use conda-forge as a package source, you'll have to
+do this instead:
+
+.. code-block:: console
+
+    $ conda create -n expy python=3 numpy scipy matplotlib pandas h5py joblib pillow
+    $ conda activate expy
+    $ pip install mne "pyglet<1.6" pyparallel rtmixer
+    $ pip install git+https://github.com/labsn/expyfun
+
+If you prefer using pip for everything, here are the minimum requirements:
+
+.. code-block:: console
+
+    $ pip install mne matplotlib "pyglet<1.6" pillow
+    $ pip install git+https://github.com/labsn/expyfun
+
+and this does a full pip install of all required and optional dependencies:
+
+.. code-block:: console
+
+    $ pip install mne matplotlib "pyglet<1.6" pillow
+    $ pip install rtmixer pyparallel pandas joblib h5py TDTPy
+    $ pip install git+https://github.com/labsn/expyfun
+
+Note that the pyglet package for the recommended installs is constrained to version 1.5, as this
+will be the last version compatible with legacy OpenGL (see pypi.org/project/pyglet/). If
+you prefer to download pyglet via its github repository, please use the pyglet-1.5-maintenance
+branch.
+
 
 Expyfun
 ^^^^^^^
 The recommended way to install expyfun on
-development machines is to ``git clone`` the reposity then do:
+development machines is to ``git clone`` the repository then do:
 
 .. code-block:: console
 
@@ -116,7 +142,7 @@ based on the screen size in pixels and physical screen width.
 
 Other settings depend on whether you use TDT / sound card / parallel port for
 auditory stimuli and triggering. Possibilities can be seen by looking at
-:py:obj:`expyfun.known_config_types`. Your current system configuration can be
+:obj:`expyfun.known_config_types`. Your current system configuration can be
 viewed by doing::
 
     >>> expyfun.get_config()
@@ -137,8 +163,7 @@ The fixed, hardware-dependent settings for a given system get written to
 an ``expyfun.json`` file. You can use :func:`expyfun.get_config_path` to
 get the path to your config file. Some sample configurations:
 
-- A TDT-based M/EEG+pupillometry machine:
-
+A TDT-based M/EEG+pupillometry machine
   .. code-block:: JSON
 
     {
@@ -154,8 +179,7 @@ get the path to your config file. Some sample configurations:
     "TRIGGER_CONTROLLER": "tdt"
     }
 
-- A sound-card-based EEG system:
-
+A sound-card-based EEG system
   .. code-block:: JSON
 
     {

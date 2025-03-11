@@ -9,31 +9,42 @@ import importlib
 import operator
 import os
 import os.path as op
+import warnings
 
 import numpy as np
 
-from .._fixes import rfft, irfft, rfftfreq
-from .._utils import logger, flush_logger, _check_params
-import warnings
+from .._fixes import irfft, rfft, rfftfreq
+from .._utils import _check_params, flush_logger, logger
 
-
-_BACKENDS = tuple(sorted(
-    op.splitext(x.lstrip('._'))[0] for x in os.listdir(op.dirname(__file__))
-    if x.startswith('_') and x.endswith(('.py', '.pyc')) and
-    not x.startswith(('_sound_controller.py', '__init__.py'))))
+_BACKENDS = tuple(
+    sorted(
+        op.splitext(x.lstrip("._"))[0]
+        for x in os.listdir(op.dirname(__file__))
+        if x.startswith("_")
+        and x.endswith((".py", ".pyc"))
+        and not x.startswith(("_sound_controller.py", "__init__.py"))
+    )
+)
 # libsoundio stub (kind of iffy)
 # https://gist.github.com/larsoner/fd9228f321d369c8a00c66a246fcc83f
 
 _SOUND_CARD_KEYS = (
-    'TYPE', 'SOUND_CARD_BACKEND', 'SOUND_CARD_API',
-    'SOUND_CARD_NAME', 'SOUND_CARD_FS', 'SOUND_CARD_FIXED_DELAY',
-    'SOUND_CARD_TRIGGER_CHANNELS', 'SOUND_CARD_API_OPTIONS',
-    'SOUND_CARD_TRIGGER_SCALE', 'SOUND_CARD_TRIGGER_INSERTION',
-    'SOUND_CARD_TRIGGER_ID_AFTER_ONSET', 'SOUND_CARD_DRIFT_TRIGGER',
+    "TYPE",
+    "SOUND_CARD_BACKEND",
+    "SOUND_CARD_API",
+    "SOUND_CARD_NAME",
+    "SOUND_CARD_FS",
+    "SOUND_CARD_FIXED_DELAY",
+    "SOUND_CARD_TRIGGER_CHANNELS",
+    "SOUND_CARD_API_OPTIONS",
+    "SOUND_CARD_TRIGGER_SCALE",
+    "SOUND_CARD_TRIGGER_INSERTION",
+    "SOUND_CARD_TRIGGER_ID_AFTER_ONSET",
+    "SOUND_CARD_DRIFT_TRIGGER",
 )
 
 
-class SoundCardController(object):
+class SoundCardController:
     """Use a sound card.
 
     Parameters
@@ -90,31 +101,32 @@ class SoundCardController(object):
     the configuration file.
     """
 
-    def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01,
-                 ec=None):
+    def __init__(self, params, stim_fs, n_channels=2, trigger_duration=0.01, ec=None):
         self.ec = ec
         defaults = dict(
-            SOUND_CARD_BACKEND='auto',
+            SOUND_CARD_BACKEND="auto",
             SOUND_CARD_TRIGGER_CHANNELS=0,
-            SOUND_CARD_TRIGGER_SCALE=1. / float(2 ** 31 - 1),
-            SOUND_CARD_TRIGGER_INSERTION='prepend',
+            SOUND_CARD_TRIGGER_SCALE=1.0 / float(2**31 - 1),
+            SOUND_CARD_TRIGGER_INSERTION="prepend",
             SOUND_CARD_TRIGGER_ID_AFTER_ONSET=False,
-            SOUND_CARD_DRIFT_TRIGGER='end',
+            SOUND_CARD_DRIFT_TRIGGER="end",
         )  # any omitted become None
-        params = _check_params(params, _SOUND_CARD_KEYS, defaults, 'params')
+        params = _check_params(params, _SOUND_CARD_KEYS, defaults, "params")
+        if params["SOUND_CARD_FS"] is not None:
+            params["SOUND_CARD_FS"] = float(params["SOUND_CARD_FS"])
 
-        self.backend, self.backend_name = _import_backend(
-            params['SOUND_CARD_BACKEND'])
-        self._n_channels_stim = int(params['SOUND_CARD_TRIGGER_CHANNELS'])
-        trig_scale = float(params['SOUND_CARD_TRIGGER_SCALE'])
+        self.backend, self.backend_name = _import_backend(params["SOUND_CARD_BACKEND"])
+        self._n_channels_stim = int(params["SOUND_CARD_TRIGGER_CHANNELS"])
+        trig_scale = float(params["SOUND_CARD_TRIGGER_SCALE"])
         self._id_after_onset = (
-            str(params['SOUND_CARD_TRIGGER_ID_AFTER_ONSET']).lower() == 'true')
+            str(params["SOUND_CARD_TRIGGER_ID_AFTER_ONSET"]).lower() == "true"
+        )
         self._extra_onset_triggers = list()
-        drift_trigger = params['SOUND_CARD_DRIFT_TRIGGER']
+        drift_trigger = params["SOUND_CARD_DRIFT_TRIGGER"]
         if np.isscalar(drift_trigger):
             drift_trigger = [drift_trigger]
         # convert possible command-line option
-        if isinstance(drift_trigger, str) and drift_trigger != 'end':
+        if isinstance(drift_trigger, str) and drift_trigger != "end":
             drift_trigger = eval(drift_trigger)
         if isinstance(drift_trigger, str):
             drift_trigger = [drift_trigger]
@@ -122,55 +134,59 @@ class SoundCardController(object):
         drift_trigger = list(drift_trigger)  # make mutable
         for trig in drift_trigger:
             if isinstance(trig, str):
-                assert trig == 'end', trig
+                assert trig == "end", trig
             else:
                 assert isinstance(trig, (int, float)), type(trig)
         self._drift_trigger_time = drift_trigger
         assert self._n_channels_stim >= 0
         self._n_channels = int(operator.index(n_channels))
         del n_channels
-        insertion = str(params['SOUND_CARD_TRIGGER_INSERTION'])
-        if insertion not in ('prepend', 'append'):
-            raise ValueError('SOUND_CARD_TRIGGER_INSERTION must be "prepend" '
-                             'or "append", got %r' % (insertion,))
-        self._stim_sl = slice(None, None, 1 if insertion == 'prepend' else -1)
-        extra = ''
+        insertion = str(params["SOUND_CARD_TRIGGER_INSERTION"])
+        if insertion not in ("prepend", "append"):
+            raise ValueError(
+                'SOUND_CARD_TRIGGER_INSERTION must be "prepend" '
+                'or "append", got %r' % (insertion,)
+            )
+        self._stim_sl = slice(None, None, 1 if insertion == "prepend" else -1)
+        extra = ""
         if self._n_channels_stim:
-            extra = ('%d %sed stim and '
-                     % (self._n_channels_stim, insertion))
+            extra = "%d %sed stim and " % (self._n_channels_stim, insertion)
         else:
-            extra = ''
+            extra = ""
         del insertion
-        logger.info('Expyfun: Setting up sound card using %s backend with %s'
-                    '%d playback channels'
-                    % (self.backend_name, extra, self._n_channels))
-        self._kwargs = {key: params['SOUND_CARD_' + key.upper()] for key in (
-            'fs', 'api', 'name', 'fixed_delay', 'api_options')}
+        logger.info(
+            "Expyfun: Setting up sound card using %s backend with %s"
+            "%d playback channels" % (self.backend_name, extra, self._n_channels)
+        )
+        self._kwargs = {
+            key: params["SOUND_CARD_" + key.upper()]
+            for key in ("fs", "api", "name", "fixed_delay", "api_options")
+        }
         temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
-        self.fs = temp_sound.fs
-        temp_sound.stop(wait=False)
+        self.fs = float(temp_sound.fs)
+        self._mixer = getattr(temp_sound, "_mixer", None)
         del temp_sound
 
         # Need to generate at RMS=1 to match TDT circuit, and use a power of
         # 2 length for the RingBuffer (here make it >= 15 sec)
-        n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.)))
+        n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.0)))
         noise = np.random.normal(0, 1.0, (self._n_channels, n_samples))
 
         # Low-pass if necessary
         if stim_fs < self.fs:
             # note we can use cheap DFT method here b/c
             # circular convolution won't matter for AWGN (yay!)
-            freqs = rfftfreq(noise.shape[-1], 1. / self.fs)
+            freqs = rfftfreq(noise.shape[-1], 1.0 / self.fs)
             noise = rfft(noise, axis=-1)
-            noise[:, np.abs(freqs) > stim_fs / 2.] = 0.0
+            noise[:, np.abs(freqs) > stim_fs / 2.0] = 0.0
             noise = irfft(noise, axis=-1)
 
         # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
         noise /= np.sqrt(np.mean(noise * noise))
         noise = np.concatenate(
-            (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype),
-             noise))
+            (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
+        )
         self.noise_array = noise
         self.noise_level = 0.01
         self.noise = None
@@ -181,8 +197,10 @@ class SoundCardController(object):
         flush_logger()
 
     def __repr__(self):
-        return ('<SoundController : %s playback %s trigger ch >'
-                % (self._n_channels, self._n_channels_stim))
+        return "<SoundController : %s playback %s trigger ch >" % (
+            self._n_channels,
+            self._n_channels_stim,
+        )
 
     @property
     def _n_channels_tot(self):
@@ -192,7 +210,8 @@ class SoundCardController(object):
         """Start noise."""
         if not self._noise_playing:
             self.noise = self.backend.SoundPlayer(
-                self.noise_array * self.noise_level, loop=True, **self._kwargs)
+                self.noise_array * self.noise_level, loop=True, **self._kwargs
+            )
             self.noise.play()
 
     def stop_noise(self, wait=False):
@@ -233,46 +252,49 @@ class SoundCardController(object):
             sample_len = len(samples)
             extra = sample_len - stim_len
             if extra > 0:  # stim shorter than samples (typical)
-                stim = np.pad(stim, ((0, extra), (0, 0)), 'constant')
+                stim = np.pad(stim, ((0, extra), (0, 0)), "constant")
             elif extra < 0:  # samples shorter than stim (very brief stim)
-                samples = np.pad(samples, ((0, -extra), (0, 0)), 'constant')
+                samples = np.pad(samples, ((0, -extra), (0, 0)), "constant")
             # place the drift triggers
             trig2 = self._make_digital_trigger([2])
             trig2_len = trig2.shape[0]
             trig2_starts = []
             for trig2_time in self._drift_trigger_time:
-                if trig2_time == 'end':
+                if trig2_time == "end":
                     stim[-trig2_len:] = np.bitwise_or(stim[-trig2_len:], trig2)
-                    trig2_starts += [sample_len-trig2_len]
+                    trig2_starts += [sample_len - trig2_len]
                 else:
                     trig2_start = int(np.round(trig2_time * self.fs))
-                    if ((trig2_start >= 0 and trig2_start <= stim_len) or
-                            (trig2_start < 0 and abs(trig2_start) >= extra)):
-                        warnings.warn('Drift triggers overlap'
-                                      ' with onset triggers.')
-                    if ((trig2_start > 0 and
-                         trig2_start > sample_len-trig2_len) or
-                            (trig2_start < 0 and
-                             abs(trig2_start) >= sample_len)):
-                        warnings.warn('Drift trigger at {} seconds occurs'
-                                      ' outside stimulus window, '
-                                      'not stamping '
-                                      'trigger.'.format(trig2_time))
+                    if (trig2_start >= 0 and trig2_start <= stim_len) or (
+                        trig2_start < 0 and abs(trig2_start) >= extra
+                    ):
+                        warnings.warn("Drift triggers overlap with onset triggers.")
+                    if (trig2_start > 0 and trig2_start > sample_len - trig2_len) or (
+                        trig2_start < 0 and abs(trig2_start) >= sample_len
+                    ):
+                        warnings.warn(
+                            f"Drift trigger at {trig2_time} seconds occurs"
+                            " outside stimulus window, "
+                            "not stamping "
+                            "trigger."
+                        )
                         continue
-                    stim[trig2_start:trig2_start+trig2_len] = \
-                        np.bitwise_or(stim[trig2_start:trig2_start+trig2_len],
-                                      trig2)
+                    stim[trig2_start : trig2_start + trig2_len] = np.bitwise_or(
+                        stim[trig2_start : trig2_start + trig2_len], trig2
+                    )
                     if trig2_start > 0:
                         trig2_starts += [trig2_start]
                     else:
                         trig2_starts += [sample_len + trig2_start]
             if np.any(np.diff(trig2_starts) < trig2_len):
-                warnings.warn('Some 2-triggers overlap, times should be at '
-                              'least {} seconds apart.'.format(trig2_len /
-                                                               self.fs))
-            self.ec.write_data_line('Drift triggers were stamped at the '
-                                    'folowing times: ',
-                                    str([t2s/self.fs for t2s in trig2_starts]))
+                warnings.warn(
+                    "Some 2-triggers overlap, times should be at "
+                    f"least {trig2_len / self.fs} seconds apart."
+                )
+            self.ec.write_data_line(
+                "Drift triggers were stamped at the following times: ",
+                str([t2s / self.fs for t2s in trig2_starts]),
+            )
             stim = self._scale_digital_trigger(stim)
             samples = np.concatenate((stim, samples)[self._stim_sl], axis=1)
         self.audio = self.backend.SoundPlayer(samples.T, **self._kwargs)
@@ -315,16 +337,16 @@ class SoundCardController(object):
         stim = np.zeros((n_samples, self._n_channels_stim), np.int32)
         offset = 0
         for trig in trigs:
-            stim[offset:offset + n_on] = trig
+            stim[offset : offset + n_on] = trig
             offset += n_each
         return stim
 
     def _scale_digital_trigger(self, triggers):
-        return ((triggers << 8) *
-                self._trig_scale).astype(np.float32)
+        return ((triggers << 8) * self._trig_scale).astype(np.float32)
 
-    def stamp_triggers(self, triggers, delay=None, wait_for_last=True,
-                       is_trial_id=False):
+    def stamp_triggers(
+        self, triggers, delay=None, wait_for_last=True, is_trial_id=False
+    ):
         """Stamp a list of triggers with a given inter-trigger delay.
 
         Parameters
@@ -348,8 +370,7 @@ class SoundCardController(object):
             delay = 2 * self._trigger_duration
         stim = self._make_digital_trigger(triggers, delay)
         stim = self._scale_digital_trigger(stim)
-        stim = np.pad(
-            stim, ((0, 0), (0, self._n_channels)[self._stim_sl]), 'constant')
+        stim = np.pad(stim, ((0, 0), (0, self._n_channels)[self._stim_sl]), "constant")
         stim = self.backend.SoundPlayer(stim.T, **self._kwargs)
         stim.play()
         t_each = self._trigger_duration + delay
@@ -402,11 +423,13 @@ class SoundCardController(object):
         """Halt."""
         self.stop(wait=True)
         self.stop_noise(wait=True)
+        abort_all = getattr(self.backend, "_abort_all_queues", lambda: None)
+        abort_all()
 
 
 def _import_backend(backend):
     # Auto mode is special, will loop through all possible backends
-    if backend == 'auto':
+    if backend == "auto":
         backends = list()
         for backend in _BACKENDS:
             try:
@@ -415,21 +438,21 @@ def _import_backend(backend):
                 pass
         backends = sorted([backend._PRIORITY, backend] for backend in backends)
         if len(backends) == 0:
-            raise RuntimeError('Could not load any sound backend: %s'
-                               % (_BACKENDS,))
+            raise RuntimeError("Could not load any sound backend: %s" % (_BACKENDS,))
         backend = op.splitext(op.basename(backends[0][1].__file__))[0][1:]
     if backend not in _BACKENDS:
-        raise ValueError('Unknown sound card backend %r, must be one of %s'
-                         % (backend, ('auto',) + _BACKENDS))
-    lib = importlib.import_module('._' + backend,
-                                  package='expyfun._sound_controllers')
+        raise ValueError(
+            "Unknown sound card backend %r, must be one of %s"
+            % (backend, ("auto",) + _BACKENDS)
+        )
+    lib = importlib.import_module("._" + backend, package="expyfun._sound_controllers")
     return lib, backend
 
 
-class SoundPlayer(object):
+class SoundPlayer:
     """Play sounds via the sound card."""
 
     def __new__(self, data, **kwargs):
         """Create a new instance."""
-        backend = kwargs.pop('backend', 'auto')
+        backend = kwargs.pop("backend", "auto")
         return _import_backend(backend)[0].SoundPlayer(data, **kwargs)

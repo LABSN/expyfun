@@ -4,64 +4,48 @@
 #
 # License: BSD (3-clause)
 
-import warnings
-import operator
-from copy import deepcopy
-import subprocess
+import atexit
+import datetime
 import importlib
+import inspect
+import json
+import logging
+import operator
 import os
 import os.path as op
-import inspect
-import sys
-import time
-import tempfile
-import traceback
 import ssl
-from shutil import rmtree
-import atexit
-import json
+import subprocess
+import sys
+import tempfile
+import time
+import traceback
+import warnings
+from copy import deepcopy
 from functools import partial
-from distutils.version import LooseVersion
-import logging
-import datetime
-from timeit import default_timer as clock
+from shutil import rmtree
 from threading import Timer
+from timeit import default_timer as clock
+from urllib.request import urlopen
 
 import numpy as np
 import scipy as sp
-
-from ._externals import decorator
+from decorator import decorator
 
 # set this first thing to make sure it "takes"
 try:
     import pyglet
-    pyglet.options['debug_gl'] = False
+
+    pyglet.options["debug_gl"] = False
     del pyglet
 except Exception:
     pass
 
 
-# for py3k (eventually)
-if sys.version.startswith('2'):
-    string_types = basestring  # noqa
-    input = raw_input  # noqa, input is raw_input in py3k
-    text_type = unicode  # noqa
-    from __builtin__ import reload
-    from urllib2 import urlopen  # noqa
-    from cStringIO import StringIO  # noqa
-else:
-    string_types = str
-    text_type = str
-    from urllib.request import urlopen
-    input = input
-    from io import StringIO  # noqa, analysis:ignore
-    from importlib import reload  # noqa, analysis:ignore
-
 ###############################################################################
 # LOGGING
 
 EXP = 25
-logging.addLevelName(EXP, 'EXP')
+logging.addLevelName(EXP, "EXP")
 
 
 def exp(self, message, *args, **kwargs):
@@ -70,7 +54,7 @@ def exp(self, message, *args, **kwargs):
 
 
 logging.Logger.exp = exp
-logger = logging.getLogger('expyfun')
+logger = logging.getLogger("expyfun")
 
 
 def flush_logger():
@@ -95,26 +79,32 @@ def set_log_level(verbose=None, return_old_level=False):
         If True, return the old verbosity level.
     """
     if verbose is None:
-        verbose = get_config('EXPYFUN_LOGGING_LEVEL', 'INFO')
+        verbose = get_config("EXPYFUN_LOGGING_LEVEL", "INFO")
     elif isinstance(verbose, bool):
-        verbose = 'INFO' if verbose is True else 'WARNING'
-    if isinstance(verbose, string_types):
+        verbose = "INFO" if verbose is True else "WARNING"
+    if isinstance(verbose, str):
         verbose = verbose.upper()
-        logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
-                             WARNING=logging.WARNING, ERROR=logging.ERROR,
-                             CRITICAL=logging.CRITICAL)
+        logging_types = dict(
+            DEBUG=logging.DEBUG,
+            INFO=logging.INFO,
+            WARNING=logging.WARNING,
+            ERROR=logging.ERROR,
+            CRITICAL=logging.CRITICAL,
+        )
         if verbose not in logging_types:
-            raise ValueError('verbose must be of a valid type')
+            raise ValueError("verbose must be of a valid type")
         verbose = logging_types[verbose]
 
     old_verbose = logger.level
     logger.setLevel(verbose)
-    return (old_verbose if return_old_level else None)
+    return old_verbose if return_old_level else None
 
 
-def set_log_file(fname=None,
-                 output_format='%(asctime)s - %(levelname)-7s - %(message)s',
-                 overwrite=None):
+def set_log_file(
+    fname=None,
+    output_format="%(asctime)s - %(levelname)-7s - %(message)s",
+    overwrite=None,
+):
     """Convenience function for setting the log to print to a file
 
     Parameters
@@ -139,10 +129,12 @@ def set_log_file(fname=None,
         logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
-            warnings.warn('Log entries will be appended to the file. Use '
-                          'overwrite=False to avoid this message in the '
-                          'future.')
-        mode = 'w' if overwrite is True else 'a'
+            warnings.warn(
+                "Log entries will be appended to the file. Use "
+                "overwrite=False to avoid this message in the "
+                "future."
+            )
+        mode = "w" if overwrite is True else "a"
         lh = logging.FileHandler(fname, mode=mode)
     else:
         """ we should just be able to do:
@@ -159,9 +151,10 @@ def set_log_file(fname=None,
 ###############################################################################
 # RANDOM UTILITIES
 
-building_doc = any('sphinx-build' in ((''.join(i[4]).lower() + i[1])
-                                      if i[4] is not None else '')
-                   for i in inspect.stack())
+building_doc = any(
+    "sphinx-build" in (("".join(i[4]).lower() + i[1]) if i[4] is not None else "")
+    for i in inspect.stack()
+)
 
 
 def run_subprocess(command, **kwargs):
@@ -177,7 +170,7 @@ def run_subprocess(command, **kwargs):
     command : list of str
         Command to run as subprocess (see subprocess.Popen documentation).
     **kwargs : objects
-        Keywoard arguments to pass to ``subprocess.Popen``.
+        Keyword arguments to pass to ``subprocess.Popen``.
 
     Returns
     -------
@@ -193,10 +186,13 @@ def run_subprocess(command, **kwargs):
     p = subprocess.Popen(command, **kw)
     stdout_, stderr = p.communicate()
 
-    output = (stdout_.decode(), stderr.decode())
+    output = (
+        stdout_.decode() if stdout_ else "",
+        stderr.decode() if stderr else "",
+    )
     if p.returncode:
         err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in _get_args(err_fun):
+        if "output" in _get_args(err_fun):
             raise subprocess.CalledProcessError(p.returncode, command, output)
         else:
             raise subprocess.CalledProcessError(p.returncode, command)
@@ -204,7 +200,7 @@ def run_subprocess(command, **kwargs):
     return output
 
 
-class ZeroClock(object):
+class ZeroClock:
     """Clock that uses "clock" function but starts at zero on init."""
 
     def __init__(self):
@@ -223,10 +219,10 @@ def date_str():
     datestr : str
         The date string.
     """
-    return str(datetime.datetime.today()).replace(':', '_')
+    return str(datetime.datetime.today()).replace(":", "_")
 
 
-class WrapStdOut(object):
+class WrapStdOut:
     """Ridiculous class to work around how doctest captures stdout."""
 
     def __getattr__(self, name):
@@ -259,7 +255,7 @@ class _TempDir(str):
     def cleanup(self):
         if self._del_after is True:
             if self._print_del is True:
-                print('Deleting {} ...'.format(self._path))
+                print(f"Deleting {self._path} ...")
             rmtree(self._path, ignore_errors=True)
 
 
@@ -271,10 +267,9 @@ def check_units(units):
     units : str
         Must be ``'norm'``, ``'deg'``, ``'pix'``, or ``'cm'``.
     """
-    good_units = ['norm', 'pix', 'deg', 'cm']
+    good_units = ["norm", "pix", "deg", "cm"]
     if units not in good_units:
-        raise ValueError('"units" must be one of {}, not {}'
-                         ''.format(good_units, units))
+        raise ValueError(f'"units" must be one of {good_units}, not {units}')
 
 
 ###############################################################################
@@ -282,7 +277,8 @@ def check_units(units):
 
 # Following deprecated class copied from scikit-learn
 
-class deprecated(object):
+
+class deprecated:
     """Decorator to mark a function or class as deprecated.
 
     Issue a warning when the function is called/the class is instantiated and
@@ -306,14 +302,8 @@ class deprecated(object):
     # scikit-learn will not import on all platforms b/c it can be
     # sklearn or scikits.learn, so a self-contained example is used above
 
-    def __init__(self, extra=''):
-        """
-        Parameters
-        ----------
-        extra: string
-          to be added to the deprecation messages
-
-        """
+    def __init__(self, extra=""):
+        # extra: string to be added to the deprecation messages
         self.extra = extra
 
     def __call__(self, obj):
@@ -334,9 +324,10 @@ class deprecated(object):
         def wrapped(*args, **kwargs):
             warnings.warn(msg, category=DeprecationWarning)
             return init(*args, **kwargs)
+
         cls.__init__ = wrapped
 
-        wrapped.__name__ = '__init__'
+        wrapped.__name__ = "__init__"
         wrapped.__doc__ = self._update_doc(init.__doc__)
         wrapped.deprecated_original = init
 
@@ -367,20 +358,28 @@ class deprecated(object):
         return newdoc
 
 
-if hasattr(inspect, 'signature'):  # py35
+if hasattr(inspect, "signature"):  # py35
+
     def _get_args(function, varargs=False):
         params = inspect.signature(function).parameters
-        args = [key for key, param in params.items()
-                if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)]
+        args = [
+            key
+            for key, param in params.items()
+            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
+        ]
         if varargs:
-            varargs = [param.name for param in params.values()
-                       if param.kind == param.VAR_POSITIONAL]
+            varargs = [
+                param.name
+                for param in params.values()
+                if param.kind == param.VAR_POSITIONAL
+            ]
             if len(varargs) == 0:
                 varargs = None
             return args, varargs
         else:
             return args
 else:
+
     def _get_args(function, varargs=False):
         out = inspect.getargspec(function)  # args, varargs, keywords, defaults
         if varargs:
@@ -408,13 +407,13 @@ def verbose_dec(function, *args, **kwargs):
     """
     arg_names = _get_args(function)
 
-    if len(arg_names) > 0 and arg_names[0] == 'self':
-        default_level = getattr(args[0], 'verbose', None)
+    if len(arg_names) > 0 and arg_names[0] == "self":
+        default_level = getattr(args[0], "verbose", None)
     else:
         default_level = None
 
-    if('verbose' in arg_names):
-        verbose_level = args[arg_names.index('verbose')]
+    if "verbose" in arg_names:
+        verbose_level = args[arg_names.index("verbose")]
     else:
         verbose_level = default_level
 
@@ -435,7 +434,8 @@ def verbose_dec(function, *args, **kwargs):
 
 def _new_pyglet():
     import pyglet
-    return LooseVersion(pyglet.version) >= LooseVersion('1.4')
+
+    return _compare_version(pyglet.version, ">=", "1.4")
 
 
 def _has_video(raise_error=False):
@@ -449,7 +449,7 @@ def _has_video(raise_error=False):
             good = False
         else:
             if raise_error:
-                print('Found FFmpegSource for new Pyglet')
+                print("Found FFmpegSource for new Pyglet")
     else:
         try:
             from pyglet.media.avbin import AVbinSource  # noqa
@@ -462,60 +462,72 @@ def _has_video(raise_error=False):
                 good = False
             else:
                 if raise_error:
-                    print('Found AVbinSource for old Pyglet 1')
+                    print("Found AVbinSource for old Pyglet 1")
         else:
             if raise_error:
-                print('Found AVbinSource for old Pyglet 2')
+                print("Found AVbinSource for old Pyglet 2")
     if raise_error and not good:
-        raise RuntimeError('Video support not enabled, got exception(s):\n'
-                           '\n***********************\n'.join(exceptions))
+        raise RuntimeError(
+            "Video support not enabled, got exception(s):\n"
+            "\n***********************\n".join(exceptions)
+        )
     return good
 
 
 def requires_video():
     """Require FFmpeg/AVbin."""
     import pytest
-    return pytest.mark.skipif(not _has_video(), reason='Requires FFmpeg/AVbin')
+
+    return pytest.mark.skipif(not _has_video(), reason="Requires FFmpeg/AVbin")
 
 
 def requires_opengl21(func):
     """Require OpenGL."""
-    import pytest
     import pyglet.gl
+    import pytest
+
     vendor = pyglet.gl.gl_info.get_vendor()
     version = pyglet.gl.gl_info.get_version()
     sufficient = pyglet.gl.gl_info.have_version(2, 0)
-    return pytest.mark.skipif(not sufficient,
-                              reason='OpenGL too old: %s %s'
-                              % (vendor, version,))(func)
+    return pytest.mark.skipif(
+        not sufficient,
+        reason="OpenGL too old: %s %s"
+        % (
+            vendor,
+            version,
+        ),
+    )(func)
 
 
 def requires_lib(lib):
     """Requires lib decorator."""
     import pytest
+
     try:
         importlib.import_module(lib)
     except Exception as exp:
         val = True
-        reason = 'Needs %s (%s)' % (lib, exp)
+        reason = "Needs %s (%s)" % (lib, exp)
     else:
         val = False
-        reason = ''
+        reason = ""
     return pytest.mark.skipif(val, reason=reason)
 
 
 def _has_scipy_version(version):
-    return (LooseVersion(sp.__version__) >= LooseVersion(version))
+    return _compare_version(sp.__version__, ">=", version)
 
 
 def _get_user_home_path():
     """Return standard preferences path"""
     # this has been checked on OSX64, Linux64, and Win32
-    val = os.getenv('APPDATA' if 'nt' == os.name.lower() else 'HOME', None)
+    val = os.getenv("APPDATA" if "nt" == os.name.lower() else "HOME", None)
     if val is None:
-        raise ValueError('expyfun config file path could '
-                         'not be determined, please report this '
-                         'error to expyfun developers')
+        raise ValueError(
+            "expyfun config file path could "
+            "not be determined, please report this "
+            "error to expyfun developers"
+        )
     return val
 
 
@@ -533,13 +545,13 @@ def fetch_data_file(fname):
     fname : str
         The filename on the local system where the file was downloaded.
     """
-    path = get_config('EXPYFUN_DATA_PATH', op.join(_get_user_home_path(),
-                                                   '.expyfun', 'data'))
+    path = get_config(
+        "EXPYFUN_DATA_PATH", op.join(_get_user_home_path(), ".expyfun", "data")
+    )
     fname_out = op.join(path, fname)
     if not op.isdir(op.dirname(fname_out)):
         os.makedirs(op.dirname(fname_out))
-    fname_url = ('https://github.com/LABSN/expyfun-data/raw/master/{0}'
-                 ''.format(fname))
+    fname_url = f"https://github.com/LABSN/expyfun-data/raw/master/{fname}"
     try:
         # until we get proper certificates
         context = ssl._create_unverified_context()
@@ -549,7 +561,7 @@ def fetch_data_file(fname):
         this_urlopen = urlopen
     if not op.isfile(fname_out):
         try:
-            with open(fname_out, 'wb') as fid:
+            with open(fname_out, "wb") as fid:
                 www = this_urlopen(fname_url, timeout=30.0)
                 try:
                     fid.write(www.read())
@@ -571,40 +583,41 @@ def get_config_path():
         will be '%APPDATA%\.expyfun\expyfun.json'. On every other
         system, this will be $HOME/.expyfun/expyfun.json.
     """
-    val = op.join(_get_user_home_path(), '.expyfun', 'expyfun.json')
+    val = op.join(_get_user_home_path(), ".expyfun", "expyfun.json")
     return val
 
 
 # List the known configuration values
-known_config_types = ('RESPONSE_DEVICE',
-                      'AUDIO_CONTROLLER',
-                      'DB_OF_SINE_AT_1KHZ_1RMS',
-                      'EXPYFUN_EYELINK',
-                      'SOUND_CARD_API',
-                      'SOUND_CARD_API_OPTIONS',
-                      'SOUND_CARD_BACKEND',
-                      'SOUND_CARD_FS',
-                      'SOUND_CARD_NAME',
-                      'SOUND_CARD_FIXED_DELAY',
-                      'SOUND_CARD_TRIGGER_CHANNELS',
-                      'SOUND_CARD_TRIGGER_INSERTION',
-                      'SOUND_CARD_TRIGGER_SCALE',
-                      'SOUND_CARD_TRIGGER_ID_AFTER_ONSET',
-                      'SOUND_CARD_DRIFT_TRIGGER',
-                      'TDT_CIRCUIT_PATH',
-                      'TDT_DELAY',
-                      'TDT_INTERFACE',
-                      'TDT_MODEL',
-                      'TDT_TRIG_DELAY',
-                      'TRIGGER_CONTROLLER',
-                      'TRIGGER_ADDRESS',
-                      'WINDOW_SIZE',
-                      'SCREEN_NUM',
-                      'SCREEN_WIDTH',
-                      'SCREEN_DISTANCE',
-                      'SCREEN_SIZE_PIX',
-                      'EXPYFUN_LOGGING_LEVEL',
-                      )
+known_config_types = (
+    "RESPONSE_DEVICE",
+    "AUDIO_CONTROLLER",
+    "DB_OF_SINE_AT_1KHZ_1RMS",
+    "EXPYFUN_EYELINK",
+    "SOUND_CARD_API",
+    "SOUND_CARD_API_OPTIONS",
+    "SOUND_CARD_BACKEND",
+    "SOUND_CARD_FS",
+    "SOUND_CARD_NAME",
+    "SOUND_CARD_FIXED_DELAY",
+    "SOUND_CARD_TRIGGER_CHANNELS",
+    "SOUND_CARD_TRIGGER_INSERTION",
+    "SOUND_CARD_TRIGGER_SCALE",
+    "SOUND_CARD_TRIGGER_ID_AFTER_ONSET",
+    "SOUND_CARD_DRIFT_TRIGGER",
+    "TDT_CIRCUIT_PATH",
+    "TDT_DELAY",
+    "TDT_INTERFACE",
+    "TDT_MODEL",
+    "TDT_TRIG_DELAY",
+    "TRIGGER_CONTROLLER",
+    "TRIGGER_ADDRESS",
+    "WINDOW_SIZE",
+    "SCREEN_NUM",
+    "SCREEN_WIDTH",
+    "SCREEN_DISTANCE",
+    "SCREEN_SIZE_PIX",
+    "EXPYFUN_LOGGING_LEVEL",
+)
 
 # These allow for partial matches: 'NAME_1' is okay key if 'NAME' is listed
 known_config_wildcards = ()
@@ -629,8 +642,8 @@ def get_config(key=None, default=None, raise_error=False):
     value : str | None
         The preference key value.
     """
-    if key is not None and not isinstance(key, string_types):
-        raise ValueError('key must be a string')
+    if key is not None and not isinstance(key, str):
+        raise ValueError("key must be a string")
 
     # first, check to see if key is in env
     if key is not None and key in os.environ:
@@ -642,7 +655,7 @@ def get_config(key=None, default=None, raise_error=False):
         key_found = False
         val = default
     else:
-        with open(config_path, 'r') as fid:
+        with open(config_path) as fid:
             config = json.load(fid)
         if key is None:
             return config
@@ -652,13 +665,14 @@ def get_config(key=None, default=None, raise_error=False):
     if not key_found and raise_error is True:
         meth_1 = 'os.environ["%s"] = VALUE' % key
         meth_2 = 'expyfun.utils.set_config("%s", VALUE)' % key
-        raise KeyError('Key "%s" not found in environment or in the '
-                       'expyfun config file:\n%s\nTry either:\n'
-                       '    %s\nfor a temporary solution, or:\n'
-                       '    %s\nfor a permanent one. You can also '
-                       'set the environment variable before '
-                       'running python.'
-                       % (key, config_path, meth_1, meth_2))
+        raise KeyError(
+            'Key "%s" not found in environment or in the '
+            "expyfun config file:\n%s\nTry either:\n"
+            "    %s\nfor a temporary solution, or:\n"
+            "    %s\nfor a permanent one. You can also "
+            "set the environment variable before "
+            "running python." % (key, config_path, meth_1, meth_2)
+        )
     return val
 
 
@@ -676,25 +690,27 @@ def set_config(key, value):
     """
     if key is None:
         return sorted(known_config_types)
-    if not isinstance(key, string_types):
-        raise ValueError('key must be a string')
+    if not isinstance(key, str):
+        raise ValueError("key must be a string")
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
-    if not isinstance(value, string_types) and value is not None:
-        raise ValueError('value must be a string or None')
-    if key not in known_config_types and not \
-            any(k in key for k in known_config_wildcards):
+    if not isinstance(value, str) and value is not None:
+        raise ValueError("value must be a string or None")
+    if key not in known_config_types and not any(
+        k in key for k in known_config_wildcards
+    ):
         warnings.warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
     config_path = get_config_path()
     if op.isfile(config_path):
-        with open(config_path, 'r') as fid:
+        with open(config_path) as fid:
             config = json.load(fid)
     else:
         config = dict()
-        logger.info('Attempting to create new expyfun configuration '
-                    'file:\n%s' % config_path)
+        logger.info(
+            "Attempting to create new expyfun configuration file:\n%s" % config_path
+        )
     if value is None:
         config.pop(key, None)
     else:
@@ -704,7 +720,7 @@ def set_config(key, value):
     directory = op.split(config_path)[0]
     if not op.isdir(directory):
         os.mkdir(directory)
-    with open(config_path, 'w') as fid:
+    with open(config_path, "w") as fid:
         json.dump(config, fid, sort_keys=True, indent=0)
 
 
@@ -712,7 +728,7 @@ def set_config(key, value):
 # MISC
 
 
-def fake_button_press(ec, button='1', delay=0.):
+def fake_button_press(ec, button="1", delay=0.0):
     """Fake a button press after a delay
 
     Notes
@@ -721,29 +737,34 @@ def fake_button_press(ec, button='1', delay=0.):
     It uses threads to ensure that control is passed back, so other commands
     can be called (like wait_for_presses).
     """
+
     def send():
         ec._response_handler._on_pyglet_keypress(button, [], True)
-    Timer(delay, send).start() if delay > 0. else send()
+
+    Timer(delay, send).start() if delay > 0.0 else send()
 
 
-def fake_mouse_click(ec, pos, button='left', delay=0.):
+def fake_mouse_click(ec, pos, button="left", delay=0.0):
     """Fake a mouse click after a delay"""
     button = dict(left=1, middle=2, right=4)[button]  # trans to pyglet
 
     def send():
         ec._mouse_handler._on_pyglet_mouse_click(pos[0], pos[1], button, [])
-    Timer(delay, send).start() if delay > 0. else send()
+
+    Timer(delay, send).start() if delay > 0.0 else send()
 
 
 def _check_pyglet_version(raise_error=False):
-    """Check pyglet version, return True if usable.
-    """
+    """Check pyglet version, return True if usable."""
     import pyglet
-    is_usable = LooseVersion(pyglet.version) >= LooseVersion('1.2')
+
+    is_usable = _compare_version(pyglet.version, ">=", "1.2")
     if raise_error is True and is_usable is False:
-        raise ImportError('On Linux, you must run at least Pyglet '
-                          'version 1.2, and you are running '
-                          '{0}'.format(pyglet.version))
+        raise ImportError(
+            "On Linux, you must run at least Pyglet "
+            "version 1.2, and you are running "
+            f"{pyglet.version}"
+        )
     return is_usable
 
 
@@ -798,7 +819,7 @@ def running_rms(signal, win_length):
     #
     sig2 = signal * signal
     c1 = np.cumsum(sig2)
-    out = c1[win_length - 1:].copy()
+    out = c1[win_length - 1 :].copy()
     if len(out) == 0:  # len(signal) < len(win_length)
         out = np.array([np.sqrt(c1[-1] / signal.size)])
     else:
@@ -831,21 +852,23 @@ def _fix_audio_dims(signal, n_channels):
     signal = np.asarray(np.atleast_2d(signal), dtype=np.float32)
     # Check dimensionality
     if signal.ndim != 2:
-        raise ValueError('Sound data must have one or two dimensions, got %s.'
-                         % (signal.ndim,))
+        raise ValueError(
+            "Sound data must have one or two dimensions, got %s." % (signal.ndim,)
+        )
     # Return data with correct dimensions
     if n_channels == 2 and signal.shape[0] == 1:
         signal = np.tile(signal, (n_channels, 1))
     if signal.shape[0] != n_channels:
-        raise ValueError('signal channel count %d did not match required '
-                         'channel count %d' % (signal.shape[0], n_channels))
+        raise ValueError(
+            "signal channel count %d did not match required "
+            "channel count %d" % (signal.shape[0], n_channels)
+        )
     return signal
 
 
 def _sanitize(text_like):
-    """Cast as string, encode as UTF-8 and sanitize any escape characters.
-    """
-    return text_type(text_like).encode('unicode_escape').decode('utf-8')
+    """Cast as string, encode as UTF-8 and sanitize any escape characters."""
+    return str(text_like).encode("unicode_escape").decode("utf-8")
 
 
 def _sort_keys(x):
@@ -856,7 +879,7 @@ def _sort_keys(x):
     return keys
 
 
-def object_diff(a, b, pre=''):
+def object_diff(a, b, pre=""):
     """Compute all differences between two python variables
 
     Parameters
@@ -878,74 +901,85 @@ def object_diff(a, b, pre=''):
     -----
     Taken from mne-python with permission.
     """
-    out = ''
-    if type(a) != type(b):
-        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    out = ""
+    if type(a) is not type(b):
+        out += pre + " type mismatch (%s, %s)\n" % (type(a), type(b))
     elif isinstance(a, dict):
         k1s = _sort_keys(a)
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
         if len(m1):
-            out += pre + ' x1 missing keys %s\n' % (m1)
+            out += pre + " x1 missing keys %s\n" % (m1)
         for key in k1s:
             if key not in k2s:
-                out += pre + ' x2 missing key %s\n' % key
+                out += pre + " x2 missing key %s\n" % key
             else:
-                out += object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+                out += object_diff(a[key], b[key], pre + "d1[%s]" % repr(key))
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
-            out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
+            out += pre + " length mismatch (%s, %s)\n" % (len(a), len(b))
         else:
             for xx1, xx2 in zip(a, b):
-                out += object_diff(xx1, xx2, pre='')
-    elif isinstance(a, (string_types, int, float, bytes)):
+                out += object_diff(xx1, xx2, pre="")
+    elif isinstance(a, (str, int, float, bytes)):
         if a != b:
-            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+            out += pre + " value mismatch (%s, %s)\n" % (a, b)
     elif a is None:
         if b is not None:
-            out += pre + ' a is None, b is not (%s)\n' % (b)
+            out += pre + " a is None, b is not (%s)\n" % (b)
     elif isinstance(a, np.ndarray):
         if not np.array_equal(a, b):
-            out += pre + ' array mismatch\n'
+            out += pre + " array mismatch\n"
     else:
-        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
+        raise RuntimeError(pre + ": unsupported type %s (%s)" % (type(a), a))
     return out
 
 
 def _check_skip_backend(backend):
-    from expyfun._sound_controllers import _import_backend
     import pytest
+
+    from expyfun._sound_controllers import _import_backend
+
     if isinstance(backend, dict):  # actually an AC
-        backend = backend['SOUND_CARD_BACKEND']
+        backend = backend["SOUND_CARD_BACKEND"]
     try:
         _import_backend(backend)
     except Exception as exc:
-        pytest.skip('Skipping test for backend %s: %s' % (backend, exc))
+        pytest.skip("Skipping test for backend %s: %s" % (backend, exc))
 
 
 def _check_params(params, keys, defaults, name):
     if not isinstance(params, dict):
-        raise TypeError('{0} must be a dict, got type {1}'
-                        .format(name, type(params)))
+        raise TypeError(f"{name} must be a dict, got type {type(params)}")
     params = deepcopy(params)
     if not isinstance(params, dict):
-        raise TypeError('{0} must be a dict, got {1}'
-                        .format(name, type(params)))
+        raise TypeError(f"{name} must be a dict, got {type(params)}")
     # Set sensible defaults for values that are not passed
     for k in keys:
         params[k] = params.get(k, get_config(k, defaults.get(k, None)))
     # Check keys
     for k in params.keys():
         if k not in keys:
-            raise KeyError('Unrecognized key in {0}["{1}"], must be '
-                           'one of {2}'.format(name, k, ', '.join(keys)))
+            raise KeyError(
+                'Unrecognized key in {0}["{1}"], must be one of {2}'.format(
+                    name, k, ", ".join(keys)
+                )
+            )
     return params
 
 
 def _get_display():
     import pyglet
+
     try:
         display = pyglet.canvas.get_display()
     except AttributeError:  # < 1.4
         display = pyglet.window.get_platform().get_default_display()
     return display
+
+
+# Adapted from MNE-Python
+def _compare_version(version_a, operator, version_b):
+    from packaging.version import parse  # noqa
+
+    return eval(f'parse("{version_a}") {operator} parse("{version_b}")')

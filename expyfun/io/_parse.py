@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-"""File parsing functions
-"""
+"""File parsing functions"""
 
 import ast
-from collections import OrderedDict
 import csv
 import json
+from collections import OrderedDict
 
 import numpy as np
 
@@ -33,23 +31,21 @@ def read_tab_raw(fname, return_params=False):
     --------
     read_tab
     """
-    with open(fname, 'r') as f:
-        csvr = csv.reader(f, delimiter='\t')
+    with open(fname) as f:
+        csvr = csv.reader(f, delimiter="\t")
         lines = [c for c in csvr]
 
     # first two lines are headers
-    assert len(lines[0]) == 1 and lines[0][0].startswith('# ')
+    assert len(lines[0]) == 1 and lines[0][0].startswith("# ")
     if return_params:
         line = lines[0][0][2:]
         try:
-            params = json.loads(
-                line, object_pairs_hook=OrderedDict)
+            params = json.loads(line, object_pairs_hook=OrderedDict)
         except json.decoder.JSONDecodeError:  # old format
-            params = json.loads(
-                line.replace("'", '"'), object_pairs_hook=OrderedDict)
+            params = json.loads(line.replace("'", '"'), object_pairs_hook=OrderedDict)
     else:
         params = None
-    assert lines[1] == ['timestamp', 'event', 'value']
+    assert lines[1] == ["timestamp", "event", "value"]
     lines = lines[2:]
 
     times = [float(line[0]) for line in lines]
@@ -59,8 +55,13 @@ def read_tab_raw(fname, return_params=False):
     return (data, params) if return_params else data
 
 
-def read_tab(fname, group_start='trial_id', group_end='trial_ok',
-             return_params=False, allow_last_missing=False):
+def read_tab(
+    fname,
+    group_start="trial_id",
+    group_end="trial_ok",
+    return_params=False,
+    allow_last_missing=False,
+):
     """Read .tab file from expyfun output and segment into trials.
 
     Parameters
@@ -100,28 +101,24 @@ def read_tab(fname, group_start='trial_id', group_end='trial_ok',
     header = list(set([line[1] for line in lines]))
     header.sort()
     if group_start not in header:
-        raise ValueError('group_start "{0}" not in header: {1}'
-                         ''.format(group_start, header))
+        raise ValueError(f'group_start "{group_start}" not in header: {header}')
     if group_end == group_start:
-        raise ValueError('group_start cannot equal group_end, use '
-                         'group_end=None')
+        raise ValueError("group_start cannot equal group_end, use group_end=None")
     header = [header.pop(header.index(group_start))] + header
     b1s = np.where([line[1] == group_start for line in lines])[0]
     if group_end is None:
         b2s = np.concatenate((b1s[1:], [len(lines)]))
     else:  # group_end is not None
         if group_end not in header:
-            raise ValueError('group_end "{0}" not in header ({1})'
-                             ''.format(group_end, header))
+            raise ValueError(f'group_end "{group_end}" not in header ({header})')
         header.append(header.pop(header.index(group_end)))
         b2s = np.where([line[1] == group_end for line in lines])[0]
     if len(b1s) == len(b2s) + 1 and allow_last_missing:
         # old expyfun would sometimes not write the last trial_ok :(
         b2s = np.concatenate([b2s, [len(lines)]])
-        lines.append((lines[-1][0] + 0.1, group_end, 'None'))
+        lines.append((lines[-1][0] + 0.1, group_end, "None"))
     if len(b1s) != len(b2s) or not np.all(b1s < b2s):
-        raise RuntimeError('bad bounds in {0}:\n{1}\n{2}'
-                           .format(fname, b1s, b2s))
+        raise RuntimeError(f"bad bounds in {fname}:\n{b1s}\n{b2s}")
     data = []
     for b1, b2 in zip(b1s, b2s):
         assert lines[b1][1] == group_start  # prevent stupidity
@@ -155,40 +152,41 @@ def reconstruct_tracker(fname):
         the generation of the file.) If only one tracker is found in the file,
         it will still be stored in a list and will be accessible as ``tr[0]``.
     """
-    from ..stimuli import TrackerUD, TrackerBinom, TrackerMHW
+    from ..stimuli import TrackerBinom, TrackerMHW, TrackerUD
+
     # read in raw data
     raw = read_tab_raw(fname)
 
     # find tracker_identify and make list of IDs
-    tracker_idx = np.where([r[1] == 'tracker_identify' for r in raw])[0]
+    tracker_idx = np.where([r[1] == "tracker_identify" for r in raw])[0]
     if len(tracker_idx) == 0:
-        raise ValueError('There are no Trackers in this file.')
+        raise ValueError("There are no Trackers in this file.")
     tr = []
     used_dict_idx = []  # they can have repeat names!
     used_stop_idx = []
     for ii in tracker_idx:
-        tracker_id = ast.literal_eval(raw[ii][2])['tracker_id']
-        tracker_type = ast.literal_eval(raw[ii][2])['tracker_type']
+        tracker_id = ast.literal_eval(raw[ii][2])["tracker_id"]
+        tracker_type = ast.literal_eval(raw[ii][2])["tracker_type"]
         # find tracker_ID_init lines and get dict
-        init_str = 'tracker_' + str(tracker_id) + '_init'
+        init_str = "tracker_" + str(tracker_id) + "_init"
         tracker_dict_idx = np.where([r[1] == init_str for r in raw])[0]
         tracker_dict_idx = np.setdiff1d(tracker_dict_idx, used_dict_idx)
         tracker_dict_idx = tracker_dict_idx[0]
         used_dict_idx.append(tracker_dict_idx)
         tracker_dict = json.loads(raw[tracker_dict_idx][2])
-        td = dict(TrackerUD=TrackerUD, TrackerBinom=TrackerBinom,
-                  TrackerMHW=TrackerMHW)
+        td = dict(TrackerUD=TrackerUD, TrackerBinom=TrackerBinom, TrackerMHW=TrackerMHW)
         tr.append(td[tracker_type](**tracker_dict))
         tr[-1]._tracker_id = tracker_id  # make sure tracker has original ID
-        stop_str = 'tracker_' + str(tracker_id) + '_stop'
+        stop_str = "tracker_" + str(tracker_id) + "_stop"
         tracker_stop_idx = np.where([r[1] == stop_str for r in raw])[0]
         tracker_stop_idx = np.setdiff1d(tracker_stop_idx, used_stop_idx)
         if len(tracker_stop_idx) == 0:
-            raise ValueError('Tracker {} has not stopped. All Trackers '
-                             'must be stopped.'.format(tracker_id))
+            raise ValueError(
+                f"Tracker {tracker_id} has not stopped. All Trackers must be stopped."
+            )
         tracker_stop_idx = tracker_stop_idx[0]
         used_stop_idx.append(tracker_stop_idx)
-        responses = json.loads(raw[tracker_stop_idx][2])['responses']
+        responses = json.loads(raw[tracker_stop_idx][2])["responses"]
         # feed in responses from tracker_ID_stop
         for r in responses:
             tr[-1].respond(r)
@@ -214,20 +212,20 @@ def reconstruct_dealer(fname):
         still be stored in a list and will be assessible as ``td[0]``.
     """
     from ..stimuli import TrackerDealer
+
     raw = read_tab_raw(fname)
 
     # find info on dealer
-    dealer_idx = np.where([r[1] == 'dealer_identify' for r in raw])[0]
+    dealer_idx = np.where([r[1] == "dealer_identify" for r in raw])[0]
     if len(dealer_idx) == 0:
-        raise ValueError('There are no TrackerDealers in this file.')
+        raise ValueError("There are no TrackerDealers in this file.")
     dealer = []
     for ii in dealer_idx:
-        dealer_id = ast.literal_eval(raw[ii][2])['dealer_id']
-        dealer_init_str = 'dealer_' + str(dealer_id) + '_init'
-        dealer_dict_idx = np.where([r[1] == dealer_init_str
-                                    for r in raw])[0][0]
+        dealer_id = ast.literal_eval(raw[ii][2])["dealer_id"]
+        dealer_init_str = "dealer_" + str(dealer_id) + "_init"
+        dealer_dict_idx = np.where([r[1] == dealer_init_str for r in raw])[0][0]
         dealer_dict = ast.literal_eval(raw[dealer_dict_idx][2])
-        dealer_trackers = dealer_dict['trackers']
+        dealer_trackers = dealer_dict["trackers"]
 
         # match up tracker objects to id
         trackers = reconstruct_tracker(fname)
@@ -237,22 +235,24 @@ def reconstruct_dealer(fname):
             tr_objects.append(trackers[idx])
 
         # make the dealer object
-        max_lag = dealer_dict['max_lag']
-        pace_rule = dealer_dict['pace_rule']
+        max_lag = dealer_dict["max_lag"]
+        pace_rule = dealer_dict["pace_rule"]
         dealer.append(TrackerDealer(None, tr_objects, max_lag, pace_rule))
 
         # force input responses/log data
-        dealer_stop_str = 'dealer_' + str(dealer_id) + '_stop'
+        dealer_stop_str = "dealer_" + str(dealer_id) + "_stop"
         dealer_stop_idx = np.where([r[1] == dealer_stop_str for r in raw])[0]
         if len(dealer_stop_idx) == 0:
-            raise ValueError('TrackerDealer {} has not stopped. All dealers '
-                             'must be stopped.'.format(dealer_id))
+            raise ValueError(
+                f"TrackerDealer {dealer_id} has not stopped. All dealers "
+                "must be stopped."
+            )
         dealer_stop_log = json.loads(raw[dealer_stop_idx[0]][2])
 
-        shape = tuple(dealer_dict['shape'])
-        log_response_history = dealer_stop_log['response_history']
-        log_x_history = dealer_stop_log['x_history']
-        log_tracker_history = dealer_stop_log['tracker_history']
+        shape = tuple(dealer_dict["shape"])
+        log_response_history = dealer_stop_log["response_history"]
+        log_x_history = dealer_stop_log["x_history"]
+        log_tracker_history = dealer_stop_log["tracker_history"]
 
         dealer[-1]._shape = shape
         dealer[-1]._trackers.shape = shape
