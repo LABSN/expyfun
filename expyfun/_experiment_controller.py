@@ -1075,8 +1075,8 @@ class ExperimentController:
             else:
                 break
         if not full_screen:
-            x = int(win.screen.width / 2.0 - win.width / 2.0)
-            y = int(win.screen.height / 2.0 - win.height / 2.0)
+            x = int(win.screen.width / 2.0 - win.width / 2.0) + screen.x
+            y = int(win.screen.height / 2.0 - win.height / 2.0) + screen.y
             win.set_location(x, y)
         self._win = win
         # with the context set up, do basic GL initialization
