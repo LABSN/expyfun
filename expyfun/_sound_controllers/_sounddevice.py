@@ -8,11 +8,11 @@ import sys
 
 import numpy as np
 import sounddevice as sd
-import warnings
+
 
 from .._utils import get_config, logger
 
-_PRIORITY = 99
+_PRIORITY = 300
 _DEFAULT_NAME = None
 
 
@@ -117,7 +117,10 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
         param_str += " @ %d Hz" % (stream.samplerate,)
     else:
         assert stream.samplerate == fs
-
+    logger.info(
+        "Expyfun: using %s, %0.1f ms nominal latency"
+        % (param_str, 1000 * device["default_low_output_latency"])
+    )
     return stream
 
 
@@ -137,8 +140,20 @@ class SoundPlayer:
         data = np.atleast_2d(data).T
         data = np.asarray(data, np.float32, "C")
         self._data = data
-        if loop is not False or fixed_delay is not None:
+        if loop is not False:
             raise NotImplementedError("Not implemented for sounddevice backend.")
+        if fixed_delay is not None:
+            if isinstance(fixed_delay, str):
+                try:
+                    fixed_delay = float(fixed_delay)
+                except ValueError:
+                    raise ValueError(
+                        'fixed_delay must be None or 0, got %s' % fixed_delay
+                        )
+            if fixed_delay != 0:
+                raise RuntimeError(
+                    'fixed_delay must be 0 for gapless playback.'
+                    )
         self._n_samples, n_channels = self._data.shape
         assert n_channels >= 1
         self._n_channels = n_channels
@@ -172,13 +187,16 @@ class SoundPlayer:
 
     def stop(self, wait=False):
         """Stop. - Currently does nothing."""
-        if self.playing:
-            self._stream.abort()
+        pass
 
     def delete(self):
+        """Doesn't really do anything."""
         if getattr(self, "_stream", None) is not None:
             self.stop()
             stream, self._stream = self._stream, None
+
+    def __del__(self):  # noqa
+        self.delete()
 
 
 def _abort_all_queues():
@@ -188,3 +206,4 @@ def _abort_all_queues():
             stream.start()
         if do_start_stop:
             stream.abort(ignore_errors=False)
+            stream.close()
