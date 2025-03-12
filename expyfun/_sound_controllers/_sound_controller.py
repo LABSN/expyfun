@@ -65,7 +65,7 @@ class SoundCardController:
     Params should contain string values:
 
     - 'SOUND_CARD_BACKEND' : str
-        The backend to use. Can be 'auto' (default), 'rtmixer', 'pyglet'.
+        The backend to use. Can be 'auto' (default), 'rtmixer', 'pyglet', 'sounddevice'.
     - 'SOUND_CARD_API' : str
         The API to use for the sound card.
         See :func:`sounddevice.query_hostapis`.

@@ -139,6 +139,8 @@ class ExperimentController:
         The trigger duration to use (sec). Must be 0.01 for TDT.
     joystick : bool
         Whether or not to enable joystick control.
+    gapless : bool
+        Whether or not to use sounddevice for gapless playback.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -179,6 +181,7 @@ class ExperimentController:
         n_channels=2,
         trigger_duration=0.01,
         joystick=False,
+        gapless=False,
         verbose=None,
     ):
         # initialize some values
@@ -201,6 +204,7 @@ class ExperimentController:
         self._data_file = None
         self._clock = ZeroClock()
         self._master_clock = self._clock.get_time
+        self._gapless = gapless
 
         # put anything that could fail in this block to ensure proper cleanup!
         try:
@@ -356,6 +360,15 @@ class ExperimentController:
                     "type %s" % (type(audio_controller),)
                 )
             audio_type = audio_controller["TYPE"].lower()
+            if self._gapless:
+                if audio_type != "sound_card":
+                    raise RuntimeError(
+                        "audio_controller must be \"sound_card\" for gapless "
+                        "playback, got \"%s\"" % audio_type
+                        )
+                audio_controller["SOUND_CARD_BACKEND"] = 'sounddevice'
+                logger.info("Expyfun: Setting \"SOUND_CARD_BACKEND\" to "
+                            "\"sounddevice\" for gapless playback.")
 
             #
             # parse response device
