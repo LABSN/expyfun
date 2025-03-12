@@ -141,7 +141,7 @@ class SoundPlayer:
         data = np.atleast_2d(data).T
         data = np.asarray(data, np.float32, "C")
         self._data = data
-        if loop is not False:
+        if loop:
             raise NotImplementedError("Not implemented for sounddevice backend.")
         if fixed_delay is not None:
             if isinstance(fixed_delay, str):
