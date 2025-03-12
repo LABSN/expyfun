@@ -10,7 +10,6 @@ import sys
 import numpy as np
 import sounddevice as sd
 
-
 from .._utils import get_config, logger
 
 _PRIORITY = 300
@@ -107,10 +106,16 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
     if fs is not None:
         param_str += " @ %d Hz" % (fs,)
     try:
-        stream = sd.OutputStream(samplerate=fs, blocksize=fs//5, device=di,
-                                 channels=n_channels, dtype="float32",
-                                 latency='low', dither_off=True,
-                                 extra_settings=extra_settings)
+        stream = sd.OutputStream(
+            samplerate=fs,
+            blocksize=fs // 5,
+            device=di,
+            channels=n_channels,
+            dtype="float32",
+            latency="low",
+            dither_off=True,
+            extra_settings=extra_settings,
+        )
     except Exception as exp:
         raise RuntimeError(f"Could not set up {param_str}:\n{exp}") from None
     assert stream.channels == n_channels
@@ -149,12 +154,10 @@ class SoundPlayer:
                     fixed_delay = float(fixed_delay)
                 except ValueError:
                     raise ValueError(
-                        'fixed_delay must be None or 0, got %s' % fixed_delay
-                        )
-            if fixed_delay != 0:
-                raise RuntimeError(
-                    'fixed_delay must be 0 for gapless playback.'
+                        "fixed_delay must be None or 0, got %s" % fixed_delay
                     )
+            if fixed_delay != 0:
+                raise RuntimeError("fixed_delay must be 0 for gapless playback.")
         self._n_samples, n_channels = self._data.shape
         assert n_channels >= 1
         self._n_channels = n_channels

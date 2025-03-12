@@ -363,12 +363,14 @@ class ExperimentController:
             if self._gapless:
                 if audio_type != "sound_card":
                     raise RuntimeError(
-                        "audio_controller must be \"sound_card\" for gapless "
-                        "playback, got \"%s\"" % audio_type
-                        )
-                audio_controller["SOUND_CARD_BACKEND"] = 'sounddevice'
-                logger.info("Expyfun: Setting \"SOUND_CARD_BACKEND\" to "
-                            "\"sounddevice\" for gapless playback.")
+                        'audio_controller must be "sound_card" for gapless '
+                        'playback, got "%s"' % audio_type
+                    )
+                audio_controller["SOUND_CARD_BACKEND"] = "sounddevice"
+                logger.info(
+                    'Expyfun: Setting "SOUND_CARD_BACKEND" to '
+                    '"sounddevice" for gapless playback.'
+                )
 
             #
             # parse response device
