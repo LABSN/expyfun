@@ -1,6 +1,7 @@
-"""python-rtmixer interface for sound output."""
+"""python-sounddevice interface for sound output."""
 
 # Authors: Eric Larson <larsoner@uw.edu>
+#          Thomas Stoll <tomstoll@med.umich.edu>
 #
 # License: BSD (3-clause)
 
