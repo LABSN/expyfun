@@ -49,11 +49,6 @@ _stream_registry = _StreamRegistry()
 
 def _init_stream(fs, n_channels, api, name, api_options=None):
     devices = sd.query_devices()
-    if not isinstance(fs, int):
-        try:
-            fs = int(fs)
-        except ValueError:
-            raise RuntimeError("Sample rate must be an int.")
     if len(devices) == 0:
         raise OSError("No sound devices found!")
     apis = sd.query_hostapis()
