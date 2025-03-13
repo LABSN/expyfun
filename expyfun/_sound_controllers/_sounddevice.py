@@ -187,17 +187,20 @@ class SoundPlayer:
         if not self.playing:
             self._stream.start()
         if self._stream is not None:
-            self._action = self._stream.write(self._data)
+            self._stream.write(self._data)
 
     def stop(self, wait=False):
-        """Stop."""
-        if self.playing:
-            self._stream.abort(ignore_errors=True)
+        """Stop. - Currently does nothing."""
+        pass
 
     def delete(self):
+        """Doesn't really do anything."""
         if getattr(self, "_stream", None) is not None:
             self.stop()
             stream, self._stream = self._stream, None
+
+    def __del__(self):  # noqa
+        self.delete()
 
 
 def _abort_all_queues():
