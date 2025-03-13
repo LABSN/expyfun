@@ -121,6 +121,11 @@ class SoundCardController:
         self._id_after_onset = (
             str(params["SOUND_CARD_TRIGGER_ID_AFTER_ONSET"]).lower() == "true"
         )
+        # ensure id triggers are after onset for gapless playback
+        # if self.backend_name == 'sounddevice':  # use this or next line
+        if self.ec._gapless:
+            msg = "SOUND_CARD_TRIGGER_ID_AFTER_ONSET must be True for gapless playback."
+            assert self._id_after_onset, msg
         self._extra_onset_triggers = list()
         drift_trigger = params["SOUND_CARD_DRIFT_TRIGGER"]
         if np.isscalar(drift_trigger):
@@ -242,10 +247,11 @@ class SoundCardController:
             The sound samples.
         """
         assert samples.ndim == 2
-        self.stop(wait=False)
-        if self.audio is not None:
-            self.audio.delete()
-            self.audio = None
+        if not self.ec._gapless:
+            self.stop(wait=False)
+            if self.audio is not None:
+                self.audio.delete()
+                self.audio = None
         if self._n_channels_stim > 0:
             stim = self._make_digital_trigger([1] + self._extra_onset_triggers)
             stim_len = len(stim)
@@ -384,7 +390,7 @@ class SoundCardController:
 
     def play(self):
         """Play."""
-        assert not self.playing
+        assert not self.playing or self.ec._gapless
         if self.audio is not None:
             self.audio.play()
         self.playing = True

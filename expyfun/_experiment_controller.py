@@ -140,7 +140,7 @@ class ExperimentController:
     joystick : bool
         Whether or not to enable joystick control.
     gapless : bool
-        Whether or not to use sounddevice for gapless playback.
+        Whether or not to use sounddevice, allowing gapless playback.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -1870,7 +1870,7 @@ class ExperimentController:
         ExperimentController.start_stimulus
         ExperimentController.stop
         """
-        if self._playing:
+        if self._playing and not self._gapless:
             raise RuntimeError(
                 "Previous audio must be stopped before loading the buffer"
             )
@@ -1902,7 +1902,7 @@ class ExperimentController:
 
     def _play(self):
         """Play the audio buffer."""
-        if self._playing:
+        if self._playing and not self._gapless:
             raise RuntimeError("Previous audio must be stopped before playing")
         self._ac.play()
         logger.debug("Expyfun: started audio")
