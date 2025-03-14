@@ -103,7 +103,7 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
     try:
         stream = sd.OutputStream(
             samplerate=fs,
-            blocksize=int(fs/5),
+            blocksize=int(fs / 5),
             device=di,
             channels=n_channels,
             dtype="float32",
