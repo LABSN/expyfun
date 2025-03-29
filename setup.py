@@ -95,7 +95,6 @@ def setup_package(script_args=None):
         zip_safe=False,  # the package can run out of an .egg file
         classifiers=['Intended Audience :: Science/Research',
                      'Intended Audience :: Developers',
-                     'License :: OSI Approved',
                      'Programming Language :: Python',
                      'Topic :: Software Development',
                      'Topic :: Scientific/Engineering',

@@ -4,6 +4,7 @@ import warnings
 from importlib import reload
 from io import StringIO
 from os import path as op
+from pathlib import Path
 
 from ._utils import _TempDir, run_subprocess
 from ._version import __version__
@@ -83,17 +84,32 @@ def download_version(version="current", dest_dir=None):
     # install
     orig_dir = os.getcwd()
     os.chdir(expyfun_dir)
+    # monkey-patch setup.cfg if present to avoid newer setuptools errors
+    setup_cfg = Path(expyfun_dir) / "setup.cfg"
+    if setup_cfg.is_file():
+        setup_cfg.write_text(
+            setup_cfg.read_text("utf-8").replace(
+                "\ndoc-files = doc",
+                "\ndoc_files = doc",
+            )
+        )
+    setup_py = Path(expyfun_dir) / "setup.py"
+    if setup_py.is_file():  # should always be true but okay
+        # Ensure setup.py is compatible with the current setuptools
+        # This is a workaround for some issues with setuptools in newer versions
+        text = setup_py.read_text("utf-8")
+        text = text.replace(
+            "from numpy.distutils.core import setup",
+            "from setuptools import setup",
+        )
+        text = "\n".join(
+            line for line in text.splitlines() if "License :: OSI Approved" not in line
+        )
+        setup_py.write_text(text)
+
     # ensure our version-specific "setup" is imported
     sys.path.insert(0, expyfun_dir)
     orig_stdout = sys.stdout
-    # numpy.distutils is gone, but all we use is setup from it. Let's use the one
-    # from setuptools instead.
-    orig_numpy_distutils_core = None
-    if "numpy.distutils.core" in sys.modules:
-        orig_numpy_distutils_core = sys.modules["numpy.distutils.core"]
-    import setuptools
-
-    sys.modules["numpy.distutils.core"] = setuptools
     try:
         # on pytest with Py3k this can be problematic
         if "setup" in sys.modules:
@@ -121,8 +137,6 @@ def download_version(version="current", dest_dir=None):
         sys.stdout = orig_stdout
         sys.path.pop(sys.path.index(expyfun_dir))
         os.chdir(orig_dir)
-        if orig_numpy_distutils_core is not None:
-            sys.modules["numpy.distutils.core"] = orig_numpy_distutils_core
     print(
         "\n".join(
             [
