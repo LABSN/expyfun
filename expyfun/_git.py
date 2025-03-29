@@ -3,8 +3,8 @@ import sys
 import warnings
 from importlib import reload
 from io import StringIO
-from pathlib import Path
 from os import path as op
+from pathlib import Path
 
 from ._utils import _TempDir, run_subprocess
 from ._version import __version__
