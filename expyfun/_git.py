@@ -102,7 +102,9 @@ def download_version(version="current", dest_dir=None):
             "from numpy.distutils.core import setup",
             "from setuptools import setup",
         )
-        text = text.replace("'License :: OSI Approved',", "")
+        text = "\n".join(
+            line for line in text.splitlines() if "License :: OSI Approved" not in line
+        )
         setup_py.write_text(text)
 
     # ensure our version-specific "setup" is imported
