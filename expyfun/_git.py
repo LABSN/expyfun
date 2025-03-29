@@ -3,6 +3,7 @@ import sys
 import warnings
 from importlib import reload
 from io import StringIO
+from pathlib import Path
 from os import path as op
 
 from ._utils import _TempDir, run_subprocess
@@ -83,6 +84,15 @@ def download_version(version="current", dest_dir=None):
     # install
     orig_dir = os.getcwd()
     os.chdir(expyfun_dir)
+    # monkey-patch setup.cfg if present to avoid newer setuptools errors
+    setup_file = Path(expyfun_dir) / "setup.cfg"
+    if setup_file.is_file():
+        setup_file.write_text(
+            setup_file.read_text("utf-8").replace(
+                "\ndoc-files = doc",
+                "\ndoc_files = doc",
+            )
+        )
     # ensure our version-specific "setup" is imported
     sys.path.insert(0, expyfun_dir)
     orig_stdout = sys.stdout
