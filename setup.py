@@ -90,7 +90,7 @@ def setup_package(script_args=None):
             "decorator",
         ],
         extras_require={
-            "test": ["pytest", "pytest-cov", "pytest-timeout"],
+            "test": ["pytest", "pytest-cov", "pytest-timeout", "flaky"],
         },
         zip_safe=False,  # the package can run out of an .egg file
         classifiers=['Intended Audience :: Science/Research',

@@ -6,6 +6,7 @@ from functools import partial
 
 import numpy as np
 import pytest
+from flaky import flaky
 from numpy.testing import assert_allclose, assert_equal
 
 from expyfun import ExperimentController, _experiment_controller, visual
@@ -236,7 +237,8 @@ def test_degenerate():
     )
 
 
-@pytest.mark.timeout(180)
+@flaky
+@pytest.mark.timeout(60)
 def test_ec(ac, hide_window, monkeypatch):
     """Test EC methods."""
     if ac == "tdt":
