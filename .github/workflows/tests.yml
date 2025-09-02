@@ -40,7 +40,7 @@ jobs:
             kind: 'old'
             python: '3.8'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: LABSN/sound-ci-helpers@v1
       - uses: pyvista/setup-headless-display-action@main
         with:
