@@ -80,6 +80,16 @@ class ExperimentController:
         The desired dB SPL at which to play the stimuli.
     noise_db : float
         The desired dB SPL at which to play the dichotic noise.
+    noise_array : ndarray | None
+        An array containing the noise to be presented. Must have a length that
+        is a power of 2, and generated with a reference RMS amplitude of 1 for
+        proper scaling. It is assumed that the sample rate matches stim_fs.
+        If None, additive white Gaussian noise will be generated.
+    check_noise_rms : bool | str
+        Wether or not to check the RMS of noise_array. Recommended to be True
+        (default) to ensure scaling works properly. Can also be 'max', in
+        which case it is only checked that the RMS is less than or equal to
+        the reference RMS of 1.
     output_dir : str | None
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be
@@ -163,6 +173,8 @@ class ExperimentController:
         stim_fs=24414,
         stim_db=65,
         noise_db=45,
+        noise_array=None,
+        check_noise_rms=True,
         output_dir="data",
         window_size=None,
         screen_num=None,
@@ -186,6 +198,8 @@ class ExperimentController:
         self._stim_rms = stim_rms
         self._stim_db = stim_db
         self._noise_db = noise_db
+        self._noise_array = noise_array
+        self._check_noise_rms = check_noise_rms
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
         self.video = None
@@ -432,6 +446,18 @@ class ExperimentController:
                         "timing and/or cause artifacts."
                     )
                 logger.warning(msg)
+
+            # check the check_noise_rms input and validate the noise_array
+            if self._check_noise_rms is None:  # default to True when None
+                self._check_noise_rms = True
+            if not isinstance(self._check_noise_rms, bool):
+                if self._check_noise_rms != 'max':
+                    raise TypeError(
+                        "check_noise_rms must be a bool or 'max', "
+                        f"got {self._check_noise_rms}"
+                        )
+            if self._noise_array is not None:
+                self._noise_array = self._validate_noise(self._noise_array)
 
             #
             # set up visual window (must be done before keyboard and mouse)
@@ -2042,6 +2068,95 @@ class ExperimentController:
                     ""
                 )
                 logger.warning(warn_string)
+
+        # let's make sure we don't change our version of this array later
+        samples = samples.view()
+        samples.flags["WRITEABLE"] = False
+        return samples
+
+    def _validate_noise(self, samples):
+        """Converts noise audio sample data to the required format.
+
+        Parameters
+        ----------
+        samples : list | array
+            The audio samples of the noise.
+            Mono sounds will be converted to stereo.
+
+        Returns
+        -------
+        samples : numpy.array(dtype='float32')
+            The correctly formatted noise audio samples. Will be a copy of
+            the original samples.
+        """
+        # check data type
+        samples = np.asarray(samples, dtype=np.float32)
+
+        # # check values
+        # if samples.size and np.max(np.abs(samples)) > 1:
+        #     raise ValueError("Noise array data exceeds +/- 1.")
+        #     # samples /= np.max(np.abs(samples),axis=0)
+
+        # check shape and dimensions, make stereo
+        samples = _fix_audio_dims(samples, self._ac._n_channels).T
+
+        # check the length is a power of 2 (required for ringbuffer)
+        len_samples = samples.shape[0]
+        if not (len_samples > 0 and (len_samples & (len_samples - 1)) == 0):
+            raise ValueError(
+                "noise_array must have a length that is a power of 2, "
+                f"got length {len_samples}."
+                )
+
+        # This limit is currently set by the TDT SerialBuf objects
+        # (per channel), it sets the limit on our stimulus durations...
+        if np.isclose(self.stim_fs, 24414, atol=1):
+            max_samples = 4000000 - 1
+            if samples.shape[0] > max_samples:
+                raise RuntimeError(
+                    f"Sample too long {samples.shape[0]} > {max_samples}"
+                )
+
+        # resample if needed
+        if self._fs_mismatch and not self._suppress_resamp:
+            logger.warning(
+                f"Expyfun: Resampling {round(len(samples) / self.stim_fs, 2)} "
+                "seconds of audio for the noise array"
+            )
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("ignore")
+                from mne.filter import resample
+            if samples.size:
+                samples = resample(
+                    samples.astype(np.float64), self.fs, self.stim_fs, axis=0
+                ).astype(np.float32)
+
+        if (self._check_noise_rms in (True, 'max')
+                and samples.size):
+            chans = [samples[:, x]
+                     for x in range(samples.shape[1])]
+            chan_rms = [np.sqrt(np.mean(x**2)) for x in chans]
+            max_rms = max(chan_rms)
+            if max_rms > 2:  # noise ref rms is 1
+                raise ValueError(
+                    f"Noise array max RMS ({max_rms}) exceeds "
+                    f"reference RMS (1.0) by more than 6 dB."
+                    ""
+                    )
+            elif max_rms < 0.5:
+                if self._check_noise_rms == 'max':
+                    warn_string = (
+                        f"Expyfun: Noise array max RMS ({max_rms}) is less "
+                        f"than reference RMS (1.0) by more than 6 dB."
+                        ""
+                    )
+                    logger.warning(warn_string)
+                else:
+                    raise ValueError(
+                        f"Noise array max RMS ({max_rms}) is less "
+                        f"than reference RMS (1.0) by more than 6 dB."
+                        ""
+                        )
 
         # let's make sure we don't change our version of this array later
         samples = samples.view()

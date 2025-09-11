@@ -803,3 +803,46 @@ def test_sound_card_params():
     for key in _SOUND_CARD_KEYS:
         if key != "TYPE":
             assert key in known_config_types, key
+
+
+def test_noise_array(hide_window):
+    noise_array = np.random.normal(0, 1, (2**10))
+    """Test that the noise_array can be set."""
+    # check for ValueError if noise_array length is not a power of 2
+    pytest.raises(
+        ValueError,
+        ExperimentController,
+        *std_args,
+        noise_array=noise_array[:1000],
+        **std_kwargs,
+        )
+    # check that the RMS of noise_array must be close to 1
+    pytest.raises(
+        ValueError,
+        ExperimentController,
+        *std_args,
+        noise_array=noise_array*0.01,
+        **std_kwargs,
+        )
+    pytest.raises(
+        ValueError,
+        ExperimentController,
+        *std_args,
+        noise_array=noise_array*3,
+        **std_kwargs,
+        )
+    # no errors if len(noise_array) is a power of 2 and RMS==1
+    with ExperimentController(
+        *std_args, noise_array=noise_array, **std_kwargs
+    ) as ec:
+        pass
+    # check that noise_array can have different RMS if check_noise_rms==False
+    with ExperimentController(
+        *std_args, noise_array=noise_array*5, check_noise_rms=False,
+        **std_kwargs
+    ) as ec:
+        pass
+    with ExperimentController(
+            *std_args, noise_array=None, **std_kwargs
+            ) as ec:
+        pass

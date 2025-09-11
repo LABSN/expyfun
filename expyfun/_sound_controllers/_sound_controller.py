@@ -168,26 +168,29 @@ class SoundCardController:
         self._mixer = getattr(temp_sound, "_mixer", None)
         del temp_sound
 
-        # Need to generate at RMS=1 to match TDT circuit, and use a power of
-        # 2 length for the RingBuffer (here make it >= 15 sec)
-        n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.0)))
-        noise = np.random.normal(0, 1.0, (self._n_channels, n_samples))
+        if ec._noise_array is None:
+            # Need to generate at RMS=1 to match TDT circuit, and use a power
+            # of 2 length for the RingBuffer (here make it >= 15 sec)
+            n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.0)))
+            noise = np.random.normal(0, 1.0, (self._n_channels, n_samples))
 
-        # Low-pass if necessary
-        if stim_fs < self.fs:
-            # note we can use cheap DFT method here b/c
-            # circular convolution won't matter for AWGN (yay!)
-            freqs = rfftfreq(noise.shape[-1], 1.0 / self.fs)
-            noise = rfft(noise, axis=-1)
-            noise[:, np.abs(freqs) > stim_fs / 2.0] = 0.0
-            noise = irfft(noise, axis=-1)
+            # Low-pass if necessary
+            if stim_fs < self.fs:
+                # note we can use cheap DFT method here b/c
+                # circular convolution won't matter for AWGN (yay!)
+                freqs = rfftfreq(noise.shape[-1], 1.0 / self.fs)
+                noise = rfft(noise, axis=-1)
+                noise[:, np.abs(freqs) > stim_fs / 2.0] = 0.0
+                noise = irfft(noise, axis=-1)
 
-        # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
-        noise /= np.sqrt(np.mean(noise * noise))
-        noise = np.concatenate(
-            (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
-        )
-        self.noise_array = noise
+            # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
+            noise /= np.sqrt(np.mean(noise * noise))
+            noise = np.concatenate(
+                (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
+            )
+            self.noise_array = noise
+        else:
+            self.noise_array = ec._noise_array
         self.noise_level = 0.01
         self.noise = None
         self.audio = None
