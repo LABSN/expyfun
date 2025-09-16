@@ -813,7 +813,6 @@ def test_noise(hide_window):
         *std_args,
         suppress_resamp=True,
         noise_dur='foo',
-        noise_dur="foo",
         **std_kwargs,
     )
     pytest.raises(  # error if a negative number is input
