@@ -397,25 +397,23 @@ class ExperimentController:
             # make sure noise_dur is a number
             if not isinstance(self._noise_dur, (float, int)):
                 raise TypeError(
-                    f"noise_dur must be a positive number, got "
-                    f"{self._noise_dur}"
-                    )
+                    f"noise_dur must be a positive number, got {self._noise_dur}"
+                )
             # make sure noise_dur is positive
             if self._noise_dur <= 0:
                 raise ValueError(
-                    f"noise_dur must be a positive number, got "
-                    f"{self._noise_dur}"
-                    )
+                    f"noise_dur must be a positive number, got {self._noise_dur}"
+                )
             self._noise_validated = False
             # check the check_noise_rms input
             if self._check_noise_rms is None:  # default to True when None
                 self._check_noise_rms = True
             if not isinstance(self._check_noise_rms, bool):
-                if self._check_noise_rms != 'max':
+                if self._check_noise_rms != "max":
                     raise TypeError(
                         "check_noise_rms must be a bool or 'max', "
                         f"got {self._check_noise_rms}"
-                        )
+                    )
 
             #
             # Initialize devices
@@ -2132,7 +2130,7 @@ class ExperimentController:
             raise ValueError(
                 "noise_array must have a length that is a power of 2, "
                 f"got length {len_samples}."
-                )
+            )
 
         # This limit is currently set by the TDT SerialBuf objects
         # (per channel), it sets the limit on our stimulus durations...
@@ -2157,10 +2155,8 @@ class ExperimentController:
                     samples.astype(np.float64), self.fs, self.stim_fs, axis=0
                 ).astype(np.float32)
 
-        if (self._check_noise_rms in (True, 'max')
-                and samples.size):
-            chans = [samples[:, x]
-                     for x in range(samples.shape[1])]
+        if self._check_noise_rms in (True, "max") and samples.size:
+            chans = [samples[:, x] for x in range(samples.shape[1])]
             chan_rms = [np.sqrt(np.mean(x**2)) for x in chans]
             max_rms = max(chan_rms)
             if max_rms > 2:  # noise ref rms is 1
@@ -2168,9 +2164,9 @@ class ExperimentController:
                     f"Noise array max RMS ({max_rms}) exceeds "
                     f"reference RMS (1.0) by more than 6 dB."
                     ""
-                    )
+                )
             elif max_rms < 0.5:
-                if self._check_noise_rms == 'max':
+                if self._check_noise_rms == "max":
                     warn_string = (
                         f"Expyfun: Noise array max RMS ({max_rms}) is less "
                         f"than reference RMS (1.0) by more than 6 dB."
@@ -2182,7 +2178,7 @@ class ExperimentController:
                         f"Noise array max RMS ({max_rms}) is less "
                         f"than reference RMS (1.0) by more than 6 dB."
                         ""
-                        )
+                    )
 
         # let's make sure we don't change our version of this array later
         samples = samples.view()
