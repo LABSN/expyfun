@@ -90,7 +90,7 @@ class ExperimentController:
         proper scaling. It is assumed that the sample rate matches stim_fs.
         If None, additive white Gaussian noise will be generated.
     check_noise_rms : bool | str
-        Wether or not to check the RMS of noise_array. Recommended to be True
+        Whether or not to check the RMS of noise_array. Recommended to be True
         (default) to ensure scaling works properly. Can also be 'max', in
         which case it is only checked that the RMS is less than or equal to
         the reference RMS of 1.
