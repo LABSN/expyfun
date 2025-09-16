@@ -813,8 +813,9 @@ def test_noise(hide_window):
         *std_args,
         suppress_resamp=True,
         noise_dur='foo',
+        noise_dur="foo",
         **std_kwargs,
-        )
+    )
     pytest.raises(  # error if a negative number is input
         ValueError,
         ExperimentController,
@@ -822,7 +823,7 @@ def test_noise(hide_window):
         suppress_resamp=True,
         noise_dur=-5,
         **std_kwargs,
-        )
+    )
     with ExperimentController(  # no error when noise_dur is a positive number
             *std_args, suppress_resamp=True, noise_dur=10.2, **std_kwargs
             ) as ec:
