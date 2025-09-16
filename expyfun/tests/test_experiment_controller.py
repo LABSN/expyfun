@@ -805,7 +805,27 @@ def test_sound_card_params():
             assert key in known_config_types, key
 
 
-def test_noise_array(hide_window):
+def test_noise(hide_window):
+    """Test that the noise duration can be specified."""
+    pytest.raises(  # Error if a string is input
+        TypeError,
+        ExperimentController,
+        *std_args,
+        noise_dur='foo',
+        **std_kwargs,
+        )
+    pytest.raises(  # error if a negative number is input
+        ValueError,
+        ExperimentController,
+        *std_args,
+        noise_dur=-5,
+        **std_kwargs,
+        )
+    with ExperimentController(  # no error when noise_dur is a positive number
+            *std_args, noise_dur=10.2, **std_kwargs
+            ) as ec:
+        ec.start_noise()
+        ec.stop_noise()
     noise_array = np.random.normal(0, 1, (2**10))
     """Test that the noise_array can be set."""
     # check for ValueError if noise_array length is not a power of 2
@@ -835,14 +855,17 @@ def test_noise_array(hide_window):
     with ExperimentController(
         *std_args, noise_array=noise_array, **std_kwargs
     ) as ec:
-        pass
+        ec.start_noise()
+        ec.stop_noise()
     # check that noise_array can have different RMS if check_noise_rms==False
     with ExperimentController(
         *std_args, noise_array=noise_array*5, check_noise_rms=False,
         **std_kwargs
     ) as ec:
-        pass
+        ec.start_noise()
+        ec.stop_noise()
     with ExperimentController(
             *std_args, noise_array=None, **std_kwargs
             ) as ec:
-        pass
+        ec.start_noise()
+        ec.stop_noise()

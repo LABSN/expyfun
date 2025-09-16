@@ -80,6 +80,10 @@ class ExperimentController:
         The desired dB SPL at which to play the stimuli.
     noise_db : float
         The desired dB SPL at which to play the dichotic noise.
+    noise_dur : float
+        The minimum duration of the noise in seconds. It will be rounded up so
+        that the length of the noise at stim_fs is a power of 2 (required
+        for the ringbuffer). Default is 15 seconds.
     noise_array : ndarray | None
         An array containing the noise to be presented. Must have a length that
         is a power of 2, and generated with a reference RMS amplitude of 1 for
@@ -173,6 +177,7 @@ class ExperimentController:
         stim_fs=24414,
         stim_db=65,
         noise_db=45,
+        noise_dur=15,
         noise_array=None,
         check_noise_rms=True,
         output_dir="data",
@@ -198,6 +203,7 @@ class ExperimentController:
         self._stim_rms = stim_rms
         self._stim_db = stim_db
         self._noise_db = noise_db
+        self._noise_dur = noise_dur
         self._noise_array = noise_array
         self._check_noise_rms = check_noise_rms
         self._stim_scaler = None
@@ -447,6 +453,21 @@ class ExperimentController:
                     )
                 logger.warning(msg)
 
+            # set noise_dur to 15 seconds (default) if it's set to None
+            if self._noise_dur is None:
+                self._noise_dur = 15
+            # make sure noise_dur is a number
+            if not isinstance(self._noise_dur, (float, int)):
+                raise TypeError(
+                    f"noise_dur must be a positive number, got "
+                    f"{self._noise_dur}"
+                    )
+            # make sure noise_dur is positive
+            if self._noise_dur <= 0:
+                raise ValueError(
+                    f"noise_dur must be a positive number, got "
+                    f"{self._noise_dur}"
+                    )
             # check the check_noise_rms input and validate the noise_array
             if self._check_noise_rms is None:  # default to True when None
                 self._check_noise_rms = True

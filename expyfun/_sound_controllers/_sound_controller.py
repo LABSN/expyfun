@@ -170,8 +170,8 @@ class SoundCardController:
 
         if ec._noise_array is None:
             # Need to generate at RMS=1 to match TDT circuit, and use a power
-            # of 2 length for the RingBuffer (here make it >= 15 sec)
-            n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15.0)))
+            # of 2 length for the RingBuffer (duration is passed from ec)
+            n_samples = 2 ** int(np.ceil(np.log2(self.fs * ec._noise_dur)))
             noise = np.random.normal(0, 1.0, (self._n_channels, n_samples))
 
             # Low-pass if necessary
