@@ -812,7 +812,7 @@ def test_noise(hide_window):
         ExperimentController,
         *std_args,
         suppress_resamp=True,
-        noise_dur='foo',
+        noise_dur="foo",
         **std_kwargs,
     )
     pytest.raises(  # error if a negative number is input
@@ -824,54 +824,51 @@ def test_noise(hide_window):
         **std_kwargs,
     )
     with ExperimentController(  # no error when noise_dur is a positive number
-            *std_args, suppress_resamp=True, noise_dur=10.2, **std_kwargs
-            ) as ec:
+        *std_args, suppress_resamp=True, noise_dur=10.2, **std_kwargs
+    ) as ec:
         ec.start_noise()
         ec.stop_noise()
     noise_array = np.random.normal(0, 1, (2**10))
     """Test that the noise_array can be set."""
     # check for ValueError if noise_array length is not a power of 2
     with ExperimentController(
-            *std_args, suppress_resamp=True,
-            noise_array=noise_array[:1000], **std_kwargs
-            ) as ec:
+        *std_args, suppress_resamp=True, noise_array=noise_array[:1000], **std_kwargs
+    ) as ec:
         with pytest.raises(ValueError):
             ec.start_noise()
         ec.stop_noise()
     # check that the RMS of noise_array must be close to 1
     with ExperimentController(
-            *std_args, suppress_resamp=True,
-            noise_array=noise_array*0.01, **std_kwargs
-            ) as ec:
+        *std_args, suppress_resamp=True, noise_array=noise_array * 0.01, **std_kwargs
+    ) as ec:
         with pytest.raises(ValueError):
             ec.start_noise()
         ec.stop_noise()
     with ExperimentController(
-            *std_args, suppress_resamp=True,
-            noise_array=noise_array*3, **std_kwargs
-            ) as ec:
+        *std_args, suppress_resamp=True, noise_array=noise_array * 3, **std_kwargs
+    ) as ec:
         with pytest.raises(ValueError):
             ec.start_noise()
         ec.stop_noise()
 
     # no errors if len(noise_array) is a power of 2 and RMS==1
     with ExperimentController(
-        *std_args, suppress_resamp=True,
-        noise_array=noise_array, **std_kwargs
+        *std_args, suppress_resamp=True, noise_array=noise_array, **std_kwargs
     ) as ec:
         ec.start_noise()
         ec.stop_noise()
     # check that noise_array can have different RMS if check_noise_rms==False
     with ExperimentController(
-        *std_args, suppress_resamp=True,
-        noise_array=noise_array*5, check_noise_rms=False,
-        **std_kwargs
+        *std_args,
+        suppress_resamp=True,
+        noise_array=noise_array * 5,
+        check_noise_rms=False,
+        **std_kwargs,
     ) as ec:
         ec.start_noise()
         ec.stop_noise()
     with ExperimentController(
-            *std_args, suppress_resamp=True,
-            noise_array=None, **std_kwargs
-            ) as ec:
+        *std_args, suppress_resamp=True, noise_array=None, **std_kwargs
+    ) as ec:
         ec.start_noise()
         ec.stop_noise()
