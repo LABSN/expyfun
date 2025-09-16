@@ -1039,7 +1039,11 @@ class ExperimentController:
     # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen):
         import pyglet
-        from pyglet import gl
+
+        try:
+            from pyglet.gl import gl_compat as gl
+        except ImportError:
+            from pyglet import gl
 
         # Use 16x sampling here
         config_kwargs = dict(
@@ -1087,7 +1091,10 @@ class ExperimentController:
         # set the projection matrix
         gl.glMatrixMode(gl.GL_PROJECTION)
         gl.glLoadIdentity()
-        gl.gluOrtho2D(-1, 1, -1, 1)
+        if hasattr(gl, "gluOrtho2D"):
+            gl.gluOrtho2D(-1, 1, -1, 1)
+        else:
+            gl.glOrtho(-1, 1, -1, 1, 0, 1)
         # set the model matrix
         gl.glMatrixMode(gl.GL_MODELVIEW)
         gl.glLoadIdentity()
@@ -1145,7 +1152,10 @@ class ExperimentController:
         `call_on_next_flip`, followed by functions added with
         `call_on_every_flip`.
         """
-        from pyglet import gl
+        try:
+            from pyglet.gl import gl_compat as gl
+        except ImportError:
+            from pyglet import gl
 
         if when is not None:
             self.wait_until(when)

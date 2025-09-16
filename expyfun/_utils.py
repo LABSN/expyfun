@@ -972,6 +972,8 @@ def _get_display():
     import pyglet
 
     try:
+        display = pyglet.display.get_display()  # pyglet >= 2.1
+    except ModuleNotFoundError:
         display = pyglet.canvas.get_display()
     except AttributeError:  # < 1.4
         display = pyglet.window.get_platform().get_default_display()

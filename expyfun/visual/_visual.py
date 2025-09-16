@@ -1118,6 +1118,10 @@ class RawImage:
             self._sprite.position = (pos[0], pos[1])
         except AttributeError:
             self._sprite.set_position(pos[0], pos[1])
+        except ValueError:
+            # pyglet 2.0 introduced z value for sprites
+            self._sprite.position = (*pos, self._sprite.z)
+
         self._sprite.draw()
 
     def get_rect(self, units="norm"):
