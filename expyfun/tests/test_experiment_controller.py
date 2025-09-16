@@ -829,28 +829,26 @@ def test_noise(hide_window):
     noise_array = np.random.normal(0, 1, (2**10))
     """Test that the noise_array can be set."""
     # check for ValueError if noise_array length is not a power of 2
-    pytest.raises(
-        ValueError,
-        ExperimentController,
-        *std_args,
-        noise_array=noise_array[:1000],
-        **std_kwargs,
-        )
+    with ExperimentController(
+            *std_args, noise_array=noise_array[:1000], **std_kwargs
+            ) as ec:
+        with pytest.raises(ValueError):
+            ec.start_noise()
+        ec.stop_noise()
     # check that the RMS of noise_array must be close to 1
-    pytest.raises(
-        ValueError,
-        ExperimentController,
-        *std_args,
-        noise_array=noise_array*0.01,
-        **std_kwargs,
-        )
-    pytest.raises(
-        ValueError,
-        ExperimentController,
-        *std_args,
-        noise_array=noise_array*3,
-        **std_kwargs,
-        )
+    with ExperimentController(
+            *std_args, noise_array=noise_array*0.01, **std_kwargs
+            ) as ec:
+        with pytest.raises(ValueError):
+            ec.start_noise()
+        ec.stop_noise()
+    with ExperimentController(
+            *std_args, noise_array=noise_array*3, **std_kwargs
+            ) as ec:
+        with pytest.raises(ValueError):
+            ec.start_noise()
+        ec.stop_noise()
+
     # no errors if len(noise_array) is a power of 2 and RMS==1
     with ExperimentController(
         *std_args, noise_array=noise_array, **std_kwargs

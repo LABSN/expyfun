@@ -389,9 +389,37 @@ class ExperimentController:
             self._response_device = response_device
 
             #
+            # Check noise parameters
+            #
+            # set noise_dur to 15 seconds (default) if it's set to None
+            if self._noise_dur is None:
+                self._noise_dur = 15
+            # make sure noise_dur is a number
+            if not isinstance(self._noise_dur, (float, int)):
+                raise TypeError(
+                    f"noise_dur must be a positive number, got "
+                    f"{self._noise_dur}"
+                    )
+            # make sure noise_dur is positive
+            if self._noise_dur <= 0:
+                raise ValueError(
+                    f"noise_dur must be a positive number, got "
+                    f"{self._noise_dur}"
+                    )
+            self._noise_validated = False
+            # check the check_noise_rms input
+            if self._check_noise_rms is None:  # default to True when None
+                self._check_noise_rms = True
+            if not isinstance(self._check_noise_rms, bool):
+                if self._check_noise_rms != 'max':
+                    raise TypeError(
+                        "check_noise_rms must be a bool or 'max', "
+                        f"got {self._check_noise_rms}"
+                        )
+
+            #
             # Initialize devices
             #
-
             trigger_duration = float(trigger_duration)
             if not 0.001 < trigger_duration <= 0.02:  # probably an error
                 raise ValueError(
@@ -452,33 +480,6 @@ class ExperimentController:
                         "timing and/or cause artifacts."
                     )
                 logger.warning(msg)
-
-            # set noise_dur to 15 seconds (default) if it's set to None
-            if self._noise_dur is None:
-                self._noise_dur = 15
-            # make sure noise_dur is a number
-            if not isinstance(self._noise_dur, (float, int)):
-                raise TypeError(
-                    f"noise_dur must be a positive number, got "
-                    f"{self._noise_dur}"
-                    )
-            # make sure noise_dur is positive
-            if self._noise_dur <= 0:
-                raise ValueError(
-                    f"noise_dur must be a positive number, got "
-                    f"{self._noise_dur}"
-                    )
-            # check the check_noise_rms input and validate the noise_array
-            if self._check_noise_rms is None:  # default to True when None
-                self._check_noise_rms = True
-            if not isinstance(self._check_noise_rms, bool):
-                if self._check_noise_rms != 'max':
-                    raise TypeError(
-                        "check_noise_rms must be a bool or 'max', "
-                        f"got {self._check_noise_rms}"
-                        )
-            if self._noise_array is not None:
-                self._noise_array = self._validate_noise(self._noise_array)
 
             #
             # set up visual window (must be done before keyboard and mouse)
@@ -1875,6 +1876,10 @@ class ExperimentController:
         ExperimentController.set_noise_db
         ExperimentController.stop_noise
         """
+        # check the noise array shape and rms if not already done
+        if (self._noise_array is not None) and not self._noise_validated:
+            self._noise_array = self._validate_noise(self._noise_array)
+            self._noise_validated = True
         self._ac.start_noise()
 
     def stop_noise(self):
