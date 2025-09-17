@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import os
-import platform
 
 import pytest
 
@@ -53,8 +52,6 @@ for val in _SOUND_CARD_ACS:
             SOUND_CARD_API=None, SOUND_CARD_NAME=None, SOUND_CARD_FIXED_DELAY=None
         )
     marks = list()
-    if platform.system() == "Windows" and os.getenv("GITHUB_ACTIONS", "") == "true":
-        marks.append(pytest.mark.skip(reason="Flaky on Windows GHA"))
     _SOUND_CARD_PARAMS.append(
         pytest.param(val, id=f"{val['SOUND_CARD_BACKEND']}", marks=marks)
     )
