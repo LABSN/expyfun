@@ -168,7 +168,7 @@ class Text:
 # Triangulations
 
 tri_vert = """
-#version 120
+#version 100
 
 attribute vec2 a_position;
 uniform mat4 u_view;
@@ -180,7 +180,7 @@ void main()
 """
 
 tri_frag = """
-#version 120
+#version 100
 
 uniform vec4 u_color;
 
