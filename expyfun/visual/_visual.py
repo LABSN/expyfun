@@ -1277,7 +1277,7 @@ class Video:
             If True, add ``self.draw`` to ``ec.on_every_flip``.
         audio : bool
             Whether to play the audio stream. Only works if the
-            :class:`ExperimentController` was instantiated with
+            :class:`~expyfun.ExperimentController` was instantiated with
             ``audio_controller=dict(TYPE="sound_card", SOUND_CARD_BACKEND="pyglet")``,
             and will raise an error if that is not the case.
 
