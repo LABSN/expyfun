@@ -1145,8 +1145,6 @@ class RawImage:
 
 
 tex_vert = """
-#version 120
-
 attribute vec2 a_position;
 attribute vec2 a_texcoord;
 uniform mat4 u_view;
@@ -1160,7 +1158,6 @@ void main()
 """
 
 tex_frag = """
-#version 120
 #extension GL_ARB_texture_rectangle : enable
 
 uniform sampler2DRect u_texture;
