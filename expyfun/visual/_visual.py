@@ -1201,7 +1201,8 @@ class Video:
     Notes
     -----
     This is a somewhat pared-down implementation of video playback. Looping is
-    not available, and the audio stream from the video file is discarded.
+    not available, and the audio stream from the video file is only available when
+    using the sound card as audio controller and ``"pyglet"`` as the sound card backend.
     Timing of individual frames is relegated to the pyglet media player's
     internal clock. Recommended for use only in paradigms where the relative
     timing of audio and video are unimportant (e.g., if the video is merely
@@ -1212,6 +1213,7 @@ class Video:
         self,
         ec,
         file_name,
+        *,
         pos=(0, 0),
         units="norm",
         scale=1.0,
@@ -1237,7 +1239,6 @@ class Video:
         self._player = Player()
         with warnings.catch_warnings(record=True):  # deprecated eos_action
             self._player.queue(self._source)
-        self._player._audio_player = None
         frame_rate = self.frame_rate
         if frame_rate is None:
             logger.warning("Frame rate could not be determined")
@@ -1267,13 +1268,18 @@ class Video:
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glUseProgram(0)
 
-    def play(self, auto_draw=True):
+    def play(self, auto_draw=True, audio=False):
         """Play video from current position.
 
         Parameters
         ----------
         auto_draw : bool
             If True, add ``self.draw`` to ``ec.on_every_flip``.
+        audio : bool
+            Whether to play the audio stream. Only works if the
+            :class:`ExperimentController` was instantiated with
+            ``audio_controller=dict(TYPE="sound_card", SOUND_CARD_BACKEND="pyglet")``,
+            and will raise an error if that is not the case.
 
         Returns
         -------
@@ -1281,6 +1287,15 @@ class Video:
             The timestamp (on the parent ``ExperimentController`` timeline) at
             which ``play()`` was called.
         """
+        if audio:
+            if self._ec.audio_type != "pyglet":
+                raise ValueError(
+                    "Cannot play a video's audio stream unless the audio type is "
+                    "'sound_card' and the backend is 'pyglet'."
+                )
+            self._player.volume = 1.0
+        else:
+            self._player.volume = 0.0
         if not self._playing:
             if auto_draw:
                 self._ec.call_on_every_flip(self.draw)

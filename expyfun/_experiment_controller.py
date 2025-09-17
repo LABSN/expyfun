@@ -971,7 +971,7 @@ class ExperimentController:
         return np.array(self._monitor["SCREEN_SIZE_PIX"])
 
     # ############################### VIDEO METHODS ###############################
-    def load_video(self, file_name, pos=(0, 0), units="norm", center=True):
+    def load_video(self, file_name, *, pos=(0, 0), units="norm", center=True):
         """Load a video.
 
         Parameters
@@ -990,7 +990,7 @@ class ExperimentController:
         except ImportError:  # < 1.4
             from pyglet.media import MediaFormatException
         try:
-            self.video = Video(self, file_name, pos, units)
+            self.video = Video(self, file_name, pos=pos, units=units)
         except MediaFormatException as exp:
             raise RuntimeError(
                 "Something is wrong; probably you tried to load a "
