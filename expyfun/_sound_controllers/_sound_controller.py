@@ -168,10 +168,10 @@ class SoundCardController:
         self._mixer = getattr(temp_sound, "_mixer", None)
         del temp_sound
 
-        if ec._noise_array is None:
+        if ec._noise_array is None:  # generate AWGN
             # Need to generate at RMS=1 to match TDT circuit, and use a power
-            # of 2 length for the RingBuffer (duration is passed from ec)
-            n_samples = 2 ** int(np.ceil(np.log2(self.fs * ec._noise_dur)))
+            # of 2 length for the RingBuffer (generate >15 seconds)
+            n_samples = 2 ** int(np.ceil(np.log2(self.fs * 15)))
             noise = np.random.normal(0, 1.0, (self._n_channels, n_samples))
 
             # Low-pass if necessary
@@ -186,7 +186,8 @@ class SoundCardController:
             # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
             noise /= np.sqrt(np.mean(noise * noise))
             noise = np.concatenate(
-                (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
+                (np.zeros((self._n_channels_stim, noise.shape[1]),
+                          noise.dtype), noise)
             )
             self.noise_array = noise
         else:

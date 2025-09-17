@@ -80,20 +80,14 @@ class ExperimentController:
         The desired dB SPL at which to play the stimuli.
     noise_db : float
         The desired dB SPL at which to play the dichotic noise.
-    noise_dur : float
-        The minimum duration of the noise in seconds. It will be rounded up so
-        that the length of the noise at stim_fs is a power of 2 (required
-        for the ringbuffer). Default is 15 seconds.
     noise_array : ndarray | None
         An array containing the noise to be presented. Must have a length that
-        is a power of 2, and generated with a reference RMS amplitude of 1 for
-        proper scaling. It is assumed that the sample rate matches stim_fs.
-        If None, additive white Gaussian noise will be generated.
-    check_noise_rms : bool | str
-        Whether or not to check the RMS of noise_array. Recommended to be True
-        (default) to ensure scaling works properly. Can also be 'max', in
-        which case it is only checked that the RMS is less than or equal to
-        the reference RMS of 1.
+        is a power of 2, and be generated with a reference RMS amplitude of 1
+        for proper scaling. It is assumed that the sample rate matches stim_fs.
+        If not None, RMS is assumed to be 1, and this will not be checked.
+        The amplitude will be scaled to achieve the desired ``noise_db`` under
+        the assumption (which will not be checked) that the RMS of the input
+        array is 1. If None, additive white Gaussian noise will be generated.
     output_dir : str | None
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be
@@ -177,9 +171,7 @@ class ExperimentController:
         stim_fs=24414,
         stim_db=65,
         noise_db=45,
-        noise_dur=15,
         noise_array=None,
-        check_noise_rms=True,
         output_dir="data",
         window_size=None,
         screen_num=None,
@@ -203,9 +195,8 @@ class ExperimentController:
         self._stim_rms = stim_rms
         self._stim_db = stim_db
         self._noise_db = noise_db
-        self._noise_dur = noise_dur
         self._noise_array = noise_array
-        self._check_noise_rms = check_noise_rms
+        self._noise_validated = False  # only check noise shape once
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
         self.video = None
@@ -387,33 +378,6 @@ class ExperimentController:
                     'response_device must be "keyboard", "tdt", "cedrus", or None'
                 )
             self._response_device = response_device
-
-            #
-            # Check noise parameters
-            #
-            # set noise_dur to 15 seconds (default) if it's set to None
-            if self._noise_dur is None:
-                self._noise_dur = 15
-            # make sure noise_dur is a number
-            if not isinstance(self._noise_dur, (float, int)):
-                raise TypeError(
-                    f"noise_dur must be a positive number, got {self._noise_dur}"
-                )
-            # make sure noise_dur is positive
-            if self._noise_dur <= 0:
-                raise ValueError(
-                    f"noise_dur must be a positive number, got {self._noise_dur}"
-                )
-            self._noise_validated = False
-            # check the check_noise_rms input
-            if self._check_noise_rms is None:  # default to True when None
-                self._check_noise_rms = True
-            if not isinstance(self._check_noise_rms, bool):
-                if self._check_noise_rms != "max":
-                    raise TypeError(
-                        "check_noise_rms must be a bool or 'max', "
-                        f"got {self._check_noise_rms}"
-                    )
 
             #
             # Initialize devices
@@ -2116,11 +2080,6 @@ class ExperimentController:
         # check data type
         samples = np.asarray(samples, dtype=np.float32)
 
-        # # check values
-        # if samples.size and np.max(np.abs(samples)) > 1:
-        #     raise ValueError("Noise array data exceeds +/- 1.")
-        #     # samples /= np.max(np.abs(samples),axis=0)
-
         # check shape and dimensions, make stereo
         samples = _fix_audio_dims(samples, self._ac._n_channels).T
 
@@ -2154,31 +2113,6 @@ class ExperimentController:
                 samples = resample(
                     samples.astype(np.float64), self.fs, self.stim_fs, axis=0
                 ).astype(np.float32)
-
-        if self._check_noise_rms in (True, "max") and samples.size:
-            chans = [samples[:, x] for x in range(samples.shape[1])]
-            chan_rms = [np.sqrt(np.mean(x**2)) for x in chans]
-            max_rms = max(chan_rms)
-            if max_rms > 2:  # noise ref rms is 1
-                raise ValueError(
-                    f"Noise array max RMS ({max_rms}) exceeds "
-                    f"reference RMS (1.0) by more than 6 dB."
-                    ""
-                )
-            elif max_rms < 0.5:
-                if self._check_noise_rms == "max":
-                    warn_string = (
-                        f"Expyfun: Noise array max RMS ({max_rms}) is less "
-                        f"than reference RMS (1.0) by more than 6 dB."
-                        ""
-                    )
-                    logger.warning(warn_string)
-                else:
-                    raise ValueError(
-                        f"Noise array max RMS ({max_rms}) is less "
-                        f"than reference RMS (1.0) by more than 6 dB."
-                        ""
-                    )
 
         # let's make sure we don't change our version of this array later
         samples = samples.view()
