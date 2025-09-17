@@ -169,6 +169,7 @@ class Text:
 
 tri_vert = """
 #version 100
+precision mediump float;
 
 attribute vec2 a_position;
 uniform mat4 u_view;
@@ -181,6 +182,7 @@ void main()
 
 tri_frag = """
 #version 100
+precision mediump float;
 
 uniform vec4 u_color;
 
@@ -1146,6 +1148,7 @@ class RawImage:
 
 tex_vert = """
 #version 100
+precision mediump float;
 
 attribute vec2 a_position;
 attribute vec2 a_texcoord;
@@ -1162,6 +1165,7 @@ void main()
 tex_frag = """
 #version 100
 #extension GL_ARB_texture_rectangle : enable
+precision mediump float;
 
 uniform sampler2DRect u_texture;
 varying vec2 v_texcoord;
