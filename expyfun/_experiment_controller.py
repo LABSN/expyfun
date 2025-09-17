@@ -1127,10 +1127,7 @@ class ExperimentController:
         `call_on_next_flip`, followed by functions added with
         `call_on_every_flip`.
         """
-        try:
-            from pyglet.gl import gl_compat as gl
-        except ImportError:
-            from pyglet import gl
+        from pyglet.gl import gl_compat as gl
 
         if when is not None:
             self.wait_until(when)
