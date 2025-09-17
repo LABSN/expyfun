@@ -79,7 +79,7 @@ def setup_package(script_args=None):
         version=FULL_VERSION,
         download_url=DOWNLOAD_URL,
         long_description=long_description,
-        python_requires=">=3.8",
+        python_requires=">=3.10",
         install_requires=[
             "packaging",
             "numpy",
@@ -88,6 +88,7 @@ def setup_package(script_args=None):
             "pillow",
             "h5io",
             "decorator",
+            "pyglet>=2"
         ],
         extras_require={
             "test": ["pytest", "pytest-cov", "pytest-timeout", "flaky"],
