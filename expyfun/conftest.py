@@ -45,14 +45,16 @@ def hide_window():
 _SOUND_CARD_ACS = tuple(
     {"TYPE": "sound_card", "SOUND_CARD_BACKEND": backend} for backend in _AUTO_BACKENDS
 )
+_SOUND_CARD_PARAMS = [pytest.param("tdt", id="tdt")]
 for val in _SOUND_CARD_ACS:
     if val["SOUND_CARD_BACKEND"] == "pyglet":
         val.update(
             SOUND_CARD_API=None, SOUND_CARD_NAME=None, SOUND_CARD_FIXED_DELAY=None
         )
+    _SOUND_CARD_PARAMS.append(pytest.param(val, id=f"{val['SOUND_CARD_BACKEND']}"))
 
 
-@pytest.fixture(scope="module", params=("tdt",) + _SOUND_CARD_ACS)
+@pytest.fixture(scope="module", params=tuple(_SOUND_CARD_PARAMS))
 def ac(request):
     """Get the backend name."""
     yield request.param
