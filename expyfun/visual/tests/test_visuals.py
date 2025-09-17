@@ -126,3 +126,14 @@ def test_video(hide_window):
         ec.video.pause()
         ec.video.draw()
         ec.delete_video()
+    # test ec.video.play(audio=True)
+    with ExperimentController(
+        "test",
+        audio_controller=dict(TYPE="sound_card", SOUND_CARD_BACKEND="pyglet"),
+        **std_kwargs,
+    ) as ec:
+        ec.load_video(video_path)
+        ec.video.play(audio=True)
+        ec.wait_secs(0.1)
+        ec.video.pause()
+        ec.delete_video()
