@@ -810,16 +810,14 @@ def test_noise(hide_window):
     noise_array = np.random.normal(0, 1, (2**10))
     # check for ValueError if noise_array length is not a power of 2
     with ExperimentController(
-            *std_args, suppress_resamp=True,
-            noise_array=noise_array[:1000], **std_kwargs
-            ) as ec:
+        *std_args, suppress_resamp=True, noise_array=noise_array[:1000], **std_kwargs
+    ) as ec:
         with pytest.raises(ValueError):
             ec.start_noise()
         ec.stop_noise()
     # no errors if len(noise_array) is a power of 2
     with ExperimentController(
-        *std_args, suppress_resamp=True,
-        noise_array=noise_array, **std_kwargs
+        *std_args, suppress_resamp=True, noise_array=noise_array, **std_kwargs
     ) as ec:
         ec.start_noise()
         ec.stop_noise()
