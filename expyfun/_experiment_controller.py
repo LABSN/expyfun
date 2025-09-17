@@ -1040,11 +1040,6 @@ class ExperimentController:
     def _setup_window(self, window_size, exp_name, full_screen, screen):
         import pyglet
 
-        try:
-            from pyglet.gl import gl_compat as gl
-        except ImportError:
-            from pyglet import gl
-
         # Use 16x sampling here
         config_kwargs = dict(
             depth_size=8,
@@ -1084,27 +1079,7 @@ class ExperimentController:
             win.set_location(x, y)
         self._win = win
         # with the context set up, do basic GL initialization
-        gl.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
-        gl.glClearDepth(1.0)  # clear value for the depth buffer
-        # set the viewport size
-        gl.glViewport(0, 0, int(self.window_size_pix[0]), int(self.window_size_pix[1]))
-        # set the projection matrix
-        gl.glMatrixMode(gl.GL_PROJECTION)
-        gl.glLoadIdentity()
-        if hasattr(gl, "gluOrtho2D"):
-            gl.gluOrtho2D(-1, 1, -1, 1)
-        else:
-            gl.glOrtho(-1, 1, -1, 1, 0, 1)
-        # set the model matrix
-        gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glLoadIdentity()
-        # disable depth testing
-        gl.glDisable(gl.GL_DEPTH_TEST)
-        # enable blending
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        gl.glShadeModel(gl.GL_SMOOTH)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+        self.set_background_color("black")
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
@@ -1168,10 +1143,7 @@ class ExperimentController:
         self._win.flip()
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        gl.glBegin(gl.GL_POINTS)
-        gl.glColor4f(0, 0, 0, 0)
-        gl.glVertex2i(10, 10)
-        gl.glEnd()
+        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=(0.0, 0.0, 0.0, 0.0)).draw()
         if self.safe_flipping:
             gl.glFinish()
         flip_time = self.get_time()
