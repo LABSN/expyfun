@@ -70,8 +70,8 @@ class SoundPlayer(Player):
         assert AudioFormat is not None
         if any(x is not None for x in (api, name, fixed_delay, api_options)):
             raise ValueError(
-                "The Pyglet backend does not support specifying "
-                "api, name, fixed_delay, or api_options"
+                "The Pyglet backend does not support specifying non-None values for "
+                f"{api=}, {name=}, {fixed_delay=}, or {api_options=}"
             )
         # We could maybe let Pyglet make this decision, but hopefully
         # people won't need to tweak the Pyglet backend anyway
