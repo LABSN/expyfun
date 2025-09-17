@@ -25,14 +25,9 @@ jobs:
           - os: ubuntu-latest
             kind: pip
             python: '3.13'
-          # ARM64 will probably need to wait until we transition to Pyglet 2
-          # - os: 'macos-latest'  # arm64
-          #   kind: 'conda'
-          #   python: '3.12'
-          - os: 'macos-latest'  # intel
+          - os: 'macos-latest'
             kind: 'conda'
             python: '3.13'
-          # TODO: There is a bug on Python 3.12 on Windows :(
           - os: 'windows-latest'
             kind: 'pip'
             python: '3.13'
