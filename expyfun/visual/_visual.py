@@ -1162,9 +1162,11 @@ void main()
 }
 """
 
+# TODO: This had to be removed to change from version 120 to 100, probably breaks
+# video. But video get_texture is already broken... so this needs to be refactored :(
+# extension GL_ARB_texture_rectangle : enable
 tex_frag = """
 #version 100
-#extension GL_ARB_texture_rectangle : enable
 precision mediump float;
 
 uniform sampler2DRect u_texture;
