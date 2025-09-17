@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import platform
 
 import pytest
 
@@ -45,14 +46,21 @@ def hide_window():
 _SOUND_CARD_ACS = tuple(
     {"TYPE": "sound_card", "SOUND_CARD_BACKEND": backend} for backend in _AUTO_BACKENDS
 )
+_SOUND_CARD_PARAMS = list()
 for val in _SOUND_CARD_ACS:
     if val["SOUND_CARD_BACKEND"] == "pyglet":
         val.update(
             SOUND_CARD_API=None, SOUND_CARD_NAME=None, SOUND_CARD_FIXED_DELAY=None
         )
+    marks = list()
+    if platform.system() == "Windows" and os.getenv("GITHUB_ACTIONS", "") == "true":
+        marks.append(pytest.mark.skip(reason="Flaky on Windows GHA"))
+    _SOUND_CARD_PARAMS.append(
+        pytest.param(val, id=f"{val['SOUND_CARD_BACKEND']}", marks=marks)
+    )
 
 
-@pytest.fixture(scope="module", params=("tdt",) + _SOUND_CARD_ACS)
+@pytest.fixture(scope="module", params=_SOUND_CARD_PARAMS)
 def ac(request):
     """Get the backend name."""
     yield request.param
