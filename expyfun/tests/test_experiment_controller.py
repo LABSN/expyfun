@@ -1,3 +1,5 @@
+import os
+import platform
 import sys
 import warnings
 from contextlib import contextmanager
@@ -389,6 +391,14 @@ def test_ec(ac, hide_window, monkeypatch):
         #
         # First: identify_trial
         #
+        if (
+            platform.system() == "Windows"
+            and os.getenv("GITHUB_ACTIONS", "") == "true"
+            and isinstance(ac, dict)
+            and ac["SOUND_CARD_BACKEND"] == "pyglet"
+        ):
+            pytest.xfail("Windows GitHub Actions Pyglet is flaky")
+
         noise = np.random.normal(scale=0.01, size=(int(ec.fs),))
         ec.load_buffer(noise)
         pytest.raises(RuntimeError, ec.start_stimulus)  # order violation
