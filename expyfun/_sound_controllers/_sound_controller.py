@@ -186,8 +186,7 @@ class SoundCardController:
             # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
             noise /= np.sqrt(np.mean(noise * noise))
             noise = np.concatenate(
-                (np.zeros((self._n_channels_stim, noise.shape[1]),
-                          noise.dtype), noise)
+                (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
             )
             self.noise_array = noise
         else:
