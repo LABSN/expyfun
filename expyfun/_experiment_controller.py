@@ -1091,8 +1091,8 @@ class ExperimentController:
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
-        got_size = win.get_size()
-        if not np.array_equal(got_size, window_size):
+        got_size = self.window_size_pix
+        if not np.array_equal(got_size, window_size) and sys.platform != "darwin":
             raise RuntimeError(
                 "Window size requested by config (%s) does not "
                 "match obtained window size (%s), is the "

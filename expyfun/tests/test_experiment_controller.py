@@ -60,15 +60,15 @@ def test_unit_conversions(hide_window, ws):
                 v2 = ec._convert_units(v2, to, fro)
                 assert_allclose(verts, v2)
 
-    # test that degrees yield equiv. pixels in both directions
-    verts = np.ones((2, 1))
-    v0 = ec._convert_units(verts, "deg", "pix")
-    verts = np.zeros((2, 1))
-    v1 = ec._convert_units(verts, "deg", "pix")
-    v2 = v0 - v1  # must check deviation from zero position
-    assert_allclose(v2[0], v2[1])
-    pytest.raises(ValueError, ec._convert_units, verts, "deg", "nothing")
-    pytest.raises(RuntimeError, ec._convert_units, verts[0], "deg", "pix")
+        # test that degrees yield equiv. pixels in both directions
+        verts = np.ones((2, 1))
+        v0 = ec._convert_units(verts, "deg", "pix")
+        verts = np.zeros((2, 1))
+        v1 = ec._convert_units(verts, "deg", "pix")
+        v2 = v0 - v1  # must check deviation from zero position
+        assert_allclose(v2[0], v2[1])
+        pytest.raises(ValueError, ec._convert_units, verts, "deg", "nothing")
+        pytest.raises(RuntimeError, ec._convert_units, verts[0], "deg", "pix")
 
 
 def test_validate_audio(hide_window):
