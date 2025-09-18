@@ -1123,7 +1123,10 @@ class RawImage:
         """Draw the image to the buffer"""
         self._sprite.scale = self._scale
         pos = self._pos - [self._sprite.width / 2.0, self._sprite.height / 2.0]
-        self._sprite.position = (*pos, self._sprite.z)
+        if hasattr(self._sprite, "z"):  # Pyglet 2+
+            self._sprite.position = (*pos, self._sprite.z)
+        else:
+            self._sprite.position = pos
         self._sprite.draw()
 
     def get_rect(self, units="norm"):

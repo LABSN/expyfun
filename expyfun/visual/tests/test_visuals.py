@@ -104,6 +104,7 @@ def test_visuals_basic(hide_window):
         pytest.raises(ValueError, bar.update_bar, 500)
 
 
+@pytest.mark.filterwarnings("ignore:.*already paused*:UserWarning")
 @requires_video()
 def test_video(hide_window):
     """Test EC video methods."""

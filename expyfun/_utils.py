@@ -18,7 +18,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import traceback
 import warnings
 from copy import deepcopy
 from functools import partial
@@ -423,21 +422,16 @@ def verbose_dec(function, *args, **kwargs):
 
 
 def _has_video(raise_error=False):
-    exceptions = list()
     good = True
     try:
         from pyglet.media.codecs.ffmpeg import FFmpegSource  # noqa
-    except ImportError:
-        exceptions.append(traceback.format_exc())
+    except Exception:
+        if raise_error:
+            raise RuntimeError("Video support not enabled")
         good = False
     else:
         if raise_error:
             print("Found FFmpegSource for new Pyglet")
-    if raise_error and not good:
-        raise RuntimeError(
-            "Video support not enabled, got exception(s):\n"
-            "\n***********************\n".join(exceptions)
-        )
     return good
 
 
@@ -920,7 +914,10 @@ def _check_params(params, keys, defaults, name):
 def _get_display():
     import pyglet
 
-    return pyglet.display.get_display()
+    try:  # pyglet 2+
+        return pyglet.display.get_display()
+    except AttributeError:  # pyglet 1.4+
+        return pyglet.canvas.get_display()
 
 
 # Adapted from MNE-Python
