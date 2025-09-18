@@ -82,6 +82,8 @@ jobs:
         if: matrix.kind == 'conda' && matrix.os != 'macos-latest'
       - run: python -m pip install --only-binary="rtmixer,numpy,scipy,matplotlib" rtmixer "pyglet<1.5" numpy scipy matplotlib "pillow<8"
         if: matrix.kind == 'old'
+      - run: python -m pip install "pyglet<2"
+        if: startsWith(matrix.os, 'macos')
       - run: python -m pip install tdtpy
         if: startsWith(matrix.os, 'windows')
       - run: python -m sounddevice
