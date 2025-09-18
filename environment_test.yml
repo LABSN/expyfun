@@ -16,4 +16,5 @@ dependencies:
   - flaky
   - pillow
   - joblib
+  - ffmpeg<8
 # Do pip separately

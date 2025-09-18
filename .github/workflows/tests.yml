@@ -74,8 +74,6 @@ jobs:
           create-args: python=${{ matrix.python }}
           init-shell: bash
         if: matrix.kind == 'conda'
-      - run: conda install "ffmpeg<8"
-        if: matrix.kind == 'conda' && startsWith(matrix.os, 'macos')
       - run: python -m pip install --upgrade pip setuptools wheel sounddevice pyglet
       - run: python -m pip install --upgrade --only-binary="rtmixer,scipy,matplotlib,pandas,numpy" rtmixer pyglet-ffmpeg scipy matplotlib pandas h5py mne numpydoc pillow joblib
         if: matrix.kind == 'pip'
