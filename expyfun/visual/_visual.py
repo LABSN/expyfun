@@ -1301,13 +1301,18 @@ class Video:
             )
         gl.glUseProgram(0)
 
-    def play(self, auto_draw=True):
+    def play(self, auto_draw=True, audio=False):
         """Play video from current position.
 
         Parameters
         ----------
         auto_draw : bool
             If True, add ``self.draw`` to ``ec.on_every_flip``.
+        audio : bool
+            Whether to play the audio stream. Only works if the
+            :class:`~expyfun.ExperimentController` was instantiated with
+            ``audio_controller=dict(TYPE="sound_card", SOUND_CARD_BACKEND="pyglet")``,
+            and will raise an error if that is not the case.
 
         Returns
         -------
@@ -1315,6 +1320,15 @@ class Video:
             The timestamp (on the parent ``ExperimentController`` timeline) at
             which ``play()`` was called.
         """
+        if audio:
+            if self._ec.audio_type != "pyglet":
+                raise ValueError(
+                    "Cannot play a video's audio stream unless the audio type is "
+                    "'sound_card' and the backend is 'pyglet'."
+                )
+            self._player.volume = 1.0
+        else:
+            self._player.volume = 0.0
         if not self._playing:
             if auto_draw:
                 self._ec.call_on_every_flip(self.draw)
