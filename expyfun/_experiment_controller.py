@@ -734,8 +734,6 @@ class ExperimentController:
         ----------
         color : matplotlib color
             The background color.
-        draw : bool
-            If True, draw the background color immediately.
 
         Notes
         -----
