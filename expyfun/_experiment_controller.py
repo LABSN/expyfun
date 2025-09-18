@@ -552,7 +552,9 @@ class ExperimentController:
             self.close()
             raise
         # hack to prevent extra flips on first screen_prompt / screen_text
-        self.flip()
+        if sys.platform != "darwin":  # TODO: fix macOS error:
+            # E   pyglet.gl.lib.GLException: (0x1282): Invalid operation. The specified operation is not allowed in the current state.  # noqa: E501
+            self.flip()
 
     def __repr__(self):
         """Return a useful string representation of the experiment"""
