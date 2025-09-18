@@ -748,7 +748,8 @@ class ExperimentController:
         from pyglet import gl
 
         # we go a little over here to be safe from round-off errors
-        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
+        if draw:
+            Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
         self._bgcolor = _convert_color(color)
         gl.glClearColor(*[c / 255.0 for c in self._bgcolor])
 
