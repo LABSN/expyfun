@@ -1082,9 +1082,7 @@ class ExperimentController:
             y = int(win.screen.height / 2.0 - win.height / 2.0) + screen.y
             win.set_location(x, y)
         self._win = win
-        got_size = self.window_size_pix
         # with the context set up, do basic GL initialization
-        gl.glViewport(0, 0, got_size[0], got_size[1])
         gl.glClearDepth(1.0)  # clear value for the depth buffer
         # disable depth testing
         gl.glDisable(gl.GL_DEPTH_TEST)
@@ -1096,6 +1094,7 @@ class ExperimentController:
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
+        got_size = win.get_size()
         if sys.platform != "darwin" and not np.array_equal(got_size, window_size):
             raise RuntimeError(
                 "Window size requested by config (%s) does not "

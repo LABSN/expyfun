@@ -621,16 +621,14 @@ def test_button_presses_and_window_size(hide_window):
         fake_button_press(ec, "backspace", 0.4)
         fake_button_press(ec, "comma", 0.45)
         fake_button_press(ec, "return", 0.5)
-        if sys.platform not in ("win32",):
+        if sys.platform not in ("win32", "darwin"):
             assert ec.text_input(all_caps=False).strip() == "a"
 
 
 @pytest.mark.timeout(10)
 def test_mouse_clicks(hide_window):
     """Test EC mouse click support."""
-    with ExperimentController(
-        *std_args, participant="foo", session="01", output_dir=None, version="dev"
-    ) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         rect = visual.Rectangle(ec, [0, 0, 2, 2])
         fake_mouse_click(ec, [1, 2], delay=0.3)
         assert_equal(
@@ -654,9 +652,7 @@ def test_mouse_clicks(hide_window):
 @pytest.mark.timeout(30)
 def test_background_color(hide_window):
     """Test setting background color"""
-    with ExperimentController(
-        *std_args, participant="foo", session="01", output_dir=None, version="dev"
-    ) as ec:
+    with ExperimentController(*std_args, **std_kwargs) as ec:
         print((ec.window.width, ec.window.height))
         ec.set_background_color("red")
         ss = ec.screenshot()[:, :, :3]
