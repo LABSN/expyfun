@@ -31,16 +31,6 @@ import numpy as np
 import scipy as sp
 from decorator import decorator
 
-# set this first thing to make sure it "takes"
-try:
-    import pyglet
-
-    pyglet.options["debug_gl"] = False
-    del pyglet
-except Exception:
-    pass
-
-
 ###############################################################################
 # LOGGING
 

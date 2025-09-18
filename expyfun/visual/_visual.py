@@ -23,6 +23,10 @@ except ImportError:
 
 from .._utils import _new_pyglet, check_units, logger
 
+# TODO: Should eventually follow
+# https://pyglet.readthedocs.io/en/latest/programming_guide/rendering.html
+# Should have cleaner programs, less manual GL usage, etc.
+
 
 def _convert_color(color, byte=True):
     """Convert 3- or 4-element color into OpenGL usable color."""
@@ -161,17 +165,17 @@ class Text:
 
     def draw(self):
         """Draw the object to the display buffer"""
-        self._text.draw()
+        # TODO: Need to uncomment, kills advanced_video.py
+        # self._text.draw()
 
 
 ##############################################################################
 # Triangulations
 
-tri_vert = """
-#version 100
-precision mediump float;
+tri_vert = """\
+#version 330 core
 
-attribute vec2 a_position;
+in vec2 a_position;
 uniform mat4 u_view;
 
 void main()
@@ -181,14 +185,14 @@ void main()
 """
 
 tri_frag = """
-#version 100
-precision mediump float;
+#version 330 core
 
 uniform vec4 u_color;
+out vec4 FragColor;
 
 void main()
 {
-    gl_FragColor = u_color;
+    FragColor = u_color;
 }
 """
 
@@ -1116,14 +1120,7 @@ class RawImage:
         """Draw the image to the buffer"""
         self._sprite.scale = self._scale
         pos = self._pos - [self._sprite.width / 2.0, self._sprite.height / 2.0]
-        try:
-            self._sprite.position = (pos[0], pos[1])
-        except AttributeError:
-            self._sprite.set_position(pos[0], pos[1])
-        except ValueError:
-            # pyglet 2.0 introduced z value for sprites
-            self._sprite.position = (*pos, self._sprite.z)
-
+        self._sprite.position = (*pos, self._sprite.z)
         self._sprite.draw()
 
     def get_rect(self, units="norm"):
@@ -1146,14 +1143,13 @@ class RawImage:
         return np.squeeze(np.concatenate([center, width_height]))
 
 
-tex_vert = """
-#version 100
-precision mediump float;
+tex_vert = """\
+#version 330 core
 
-attribute vec2 a_position;
-attribute vec2 a_texcoord;
+in vec2 a_position;
+in vec2 a_texcoord;
 uniform mat4 u_view;
-varying vec2 v_texcoord;
+out vec2 v_texcoord;
 
 void main()
 {
@@ -1162,20 +1158,17 @@ void main()
 }
 """
 
-# TODO: This had to be removed to change from version 120 to 100, probably breaks
-# video. But video get_texture is already broken... so this needs to be refactored :(
-# extension GL_ARB_texture_rectangle : enable
-tex_frag = """
-#version 100
-precision mediump float;
+tex_frag = """\
+#version 330 core
 
 uniform sampler2D u_texture;
-varying vec2 v_texcoord;
+in vec2 v_texcoord;
+out vec4 FragColor;
 
 void main()
 {
-    gl_FragColor = texture2D(u_texture, v_texcoord);
-    gl_FragColor.a = 1.0;
+    FragColor = texture(u_texture, v_texcoord);
+    FragColor.a = 1.0;
 }
 """
 
@@ -1268,8 +1261,7 @@ class Video:
         for key in ("position", "texcoord"):
             self._buffers[key] = gl.GLuint(0)
             gl.glGenBuffers(1, pointer(self._buffers[key]))
-        w, h = self.source_width, self.source_height
-        tex = np.array([(0, h), (w, h), (w, 0), (0, 0)], np.float32)
+        tex = np.array([(0, 1), (1, 1), (1, 0), (0, 0)], np.float32)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["texcoord"])
         gl.glBufferData(
             gl.GL_ARRAY_BUFFER, tex.nbytes, tex.tobytes(), gl.GL_DYNAMIC_DRAW
@@ -1385,7 +1377,7 @@ class Video:
         self._pos_centered = center
 
     def _draw(self):
-        tex = self._player.get_texture()
+        tex = self._player.texture
         gl.glUseProgram(self._program)
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(tex.target, tex.id)

@@ -119,8 +119,7 @@ def test_video(hide_window):
         ec.wait_secs(0.1)
         ec.video.set_visible(False)
         ec.wait_secs(0.1)
-        # TODO: Need to fix get_texture error
-        # ec.video.set_visible(True)
+        ec.video.set_visible(True)
         ec.video.set_scale("fill")
         ec.video.set_scale("fit")
         ec.video.set_scale("0.5")
