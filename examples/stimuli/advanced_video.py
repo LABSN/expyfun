@@ -40,7 +40,7 @@ with ExperimentController(**ec_args) as ec:
     screen_period = 1.0 / ec.estimate_screen_fs()
     all_presses = list()
     fix = visual.FixationDot(ec)
-    text = text = visual.Text(ec, "Running ...", (0, -0.1), "k")
+    text = visual.Text(ec, "Running ...", (0, -0.1), "k")
     screenshot = None  # don't have one yet
     ec.load_video(movie_path)
     ec.video.set_scale("fill")
