@@ -1448,6 +1448,7 @@ class Video:
             self._ec.flip()
 
     # PROPERTIES
+    @property
     def _eos(self):
         done = self._player.source is None
         ts = self._source.get_next_video_timestamp()
