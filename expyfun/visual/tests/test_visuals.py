@@ -105,7 +105,7 @@ def test_visuals_basic(hide_window):
 
 
 @requires_video()
-def test_video(hide_window):
+def test_video(hide_window, monkeypatch):
     """Test EC video methods."""
     std_kwargs.update(dict(window_size=(640, 480)))
     video_path = fetch_data_file("video/example-video.mp4")
@@ -126,3 +126,17 @@ def test_video(hide_window):
         ec.video.pause()
         ec.video.draw()
         ec.delete_video()
+    # test ec.video.play(audio=True)
+    with monkeypatch.context() as m:
+        m.delenv("SOUND_CARD_NAME", raising=False)
+        m.delenv("SOUND_CARD_API", raising=False)
+        with ExperimentController(
+            "test",
+            audio_controller=dict(TYPE="sound_card", SOUND_CARD_BACKEND="pyglet"),
+            **std_kwargs,
+        ) as ec:
+            ec.load_video(video_path)
+            ec.video.play(audio=True)
+            ec.wait_secs(0.1)
+            ec.video.pause()
+            ec.delete_video()
