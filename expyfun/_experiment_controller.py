@@ -727,13 +727,15 @@ class ExperimentController:
             self.flip()
         return out
 
-    def set_background_color(self, color="black"):
+    def set_background_color(self, color="black", *, draw=True):
         """Set and draw a solid background color
 
         Parameters
         ----------
         color : matplotlib color
             The background color.
+        draw : bool
+            If True, draw the background color immediately.
 
         Notes
         -----
@@ -746,7 +748,8 @@ class ExperimentController:
         from pyglet import gl
 
         # we go a little over here to be safe from round-off errors
-        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
+        if draw:
+            Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=color).draw()
         self._bgcolor = _convert_color(color)
         gl.glClearColor(*[c / 255.0 for c in self._bgcolor])
 
@@ -1084,7 +1087,7 @@ class ExperimentController:
         gl.glDisable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        self.set_background_color("black")
+        self.set_background_color("black", draw=False)
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size

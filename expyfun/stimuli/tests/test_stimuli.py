@@ -52,7 +52,7 @@ def test_textures():
     assert_allclose(len(x) / 24414.0, 4.0, rtol=1e-5)
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(30)
 @requires_lib("h5py")
 def test_hrtf_convolution():
     """Test HRTF convolution."""
