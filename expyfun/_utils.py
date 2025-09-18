@@ -422,40 +422,17 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
-def _new_pyglet():
-    import pyglet
-
-    return _compare_version(pyglet.version, ">=", "1.4")
-
-
 def _has_video(raise_error=False):
     exceptions = list()
     good = True
-    if _new_pyglet():
-        try:
-            from pyglet.media.codecs.ffmpeg import FFmpegSource  # noqa
-        except ImportError:
-            exceptions.append(traceback.format_exc())
-            good = False
-        else:
-            if raise_error:
-                print("Found FFmpegSource for new Pyglet")
+    try:
+        from pyglet.media.codecs.ffmpeg import FFmpegSource  # noqa
+    except ImportError:
+        exceptions.append(traceback.format_exc())
+        good = False
     else:
-        try:
-            from pyglet.media.avbin import AVbinSource  # noqa
-        except ImportError:
-            exceptions.append(traceback.format_exc())
-            try:
-                from pyglet.media.sources.avbin import AVbinSource  # noqa
-            except ImportError:
-                exceptions.append(traceback.format_exc())
-                good = False
-            else:
-                if raise_error:
-                    print("Found AVbinSource for old Pyglet 1")
-        else:
-            if raise_error:
-                print("Found AVbinSource for old Pyglet 2")
+        if raise_error:
+            print("Found FFmpegSource for new Pyglet")
     if raise_error and not good:
         raise RuntimeError(
             "Video support not enabled, got exception(s):\n"

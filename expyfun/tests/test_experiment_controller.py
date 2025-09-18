@@ -16,7 +16,6 @@ from expyfun._experiment_controller import _get_dev_db
 from expyfun._sound_controllers._sound_controller import _SOUND_CARD_KEYS
 from expyfun._utils import (
     _check_skip_backend,
-    _new_pyglet,
     _TempDir,
     fake_button_press,
     fake_mouse_click,
@@ -621,12 +620,7 @@ def test_button_presses_and_window_size(hide_window):
         fake_button_press(ec, "backspace", 0.4)
         fake_button_press(ec, "comma", 0.45)
         fake_button_press(ec, "return", 0.5)
-        # XXX this fails on OSX travis for some reason
-        new_pyglet = _new_pyglet()
-        bad = sys.platform == "darwin"
-        bad |= sys.platform == "win32" and new_pyglet
-        if not bad:
-            assert ec.text_input(all_caps=False).strip() == "a"
+        assert ec.text_input(all_caps=False).strip() == "a"
 
 
 @pytest.mark.timeout(10)

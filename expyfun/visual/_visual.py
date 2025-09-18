@@ -16,12 +16,7 @@ from functools import partial
 
 import numpy as np
 
-try:
-    from PyOpenGL import gl
-except ImportError:
-    from pyglet import gl
-
-from .._utils import _new_pyglet, check_units, logger
+from .._utils import check_units, logger
 
 # TODO: Should eventually follow
 # https://pyglet.readthedocs.io/en/latest/programming_guide/rendering.html
@@ -214,6 +209,8 @@ def _check_log(obj, func):
 
 
 def _create_program(ec, vert, frag):
+    from pyglet import gl
+
     program = gl.glCreateProgram()
 
     vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
@@ -254,6 +251,8 @@ class _Triangular:
     """Super class for objects that use triangulations and/or lines"""
 
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
+        from pyglet import gl
+
         self._ec = ec
         self._line_width = line_width
         self._line_loop = line_loop  # whether or not lines drawn are looped
@@ -281,6 +280,8 @@ class _Triangular:
 
     def _set_points(self, points, kind, tris):
         """Set fill and line points."""
+        from pyglet import gl
+
         if points is None:
             self._counts[kind] = 0
         points = np.asarray(points, dtype=np.float32, order="C")
@@ -362,6 +363,8 @@ class _Triangular:
 
     def draw(self):
         """Draw the object to the display buffer."""
+        from pyglet import gl
+
         gl.glUseProgram(self._program)
         for kind in ("fill", "line"):
             if self._counts[kind] > 0:
@@ -1221,21 +1224,21 @@ class Video:
         center=True,
         visible=True,
     ):
+        from pyglet import gl
         from pyglet.media import Player, load
 
         self._ec = ec
         # On Windows, the default is unaccelerated WMF, which is terribly slow.
         decoder = None
-        if _new_pyglet():
-            try:
-                from pyglet.media.codecs.ffmpeg import FFmpegDecoder
+        try:
+            from pyglet.media.codecs.ffmpeg import FFmpegDecoder
 
-                decoder = FFmpegDecoder()
-            except Exception as exc:
-                warnings.warn(
-                    "FFmpeg decoder could not be instantiated, decoding "
-                    f"performance could be compromised:\n{exc}"
-                )
+            decoder = FFmpegDecoder()
+        except Exception as exc:
+            warnings.warn(
+                "FFmpeg decoder could not be instantiated, decoding "
+                f"performance could be compromised:\n{exc}"
+            )
         self._source = load(file_name, decoder=decoder)
         self._player = Player()
         with warnings.catch_warnings(record=True):  # deprecated eos_action
@@ -1253,7 +1256,6 @@ class Video:
         self._center = center
         self.set_scale(scale)  # also calls set_pos
         self._visible = visible
-        self._eos_fun = self._eos_new if _new_pyglet() else self._eos_old
 
         self._program = _create_program(ec, tex_vert, tex_frag)
         gl.glUseProgram(self._program)
@@ -1377,6 +1379,8 @@ class Video:
         self._pos_centered = center
 
     def _draw(self):
+        from pyglet import gl
+
         tex = self._player.texture
         gl.glUseProgram(self._program)
         gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -1441,18 +1445,7 @@ class Video:
             self._ec.flip()
 
     # PROPERTIES
-    @property
     def _eos(self):
-        return self._eos_fun()
-
-    def _eos_old(self):
-        return (
-            self._player._last_video_timestamp is not None
-            and self._player._last_video_timestamp
-            == self._source.get_next_video_timestamp()
-        )
-
-    def _eos_new(self):
         done = self._player.source is None
         ts = self._source.get_next_video_timestamp()
         dur = self._source._duration
