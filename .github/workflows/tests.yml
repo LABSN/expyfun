@@ -25,7 +25,7 @@ jobs:
           - os: ubuntu-latest
             kind: pip
             python: '3.13'
-          - os: 'macos-13'
+          - os: 'macos-latest'
             kind: 'conda'
             python: '3.13'
           - os: 'windows-latest'
@@ -82,7 +82,8 @@ jobs:
         if: matrix.kind == 'conda' && matrix.os != 'macos-latest'
       - run: python -m pip install --only-binary="rtmixer,numpy,scipy,matplotlib" rtmixer "pyglet<1.5" numpy scipy matplotlib "pillow<8"
         if: matrix.kind == 'old'
-      - run: python -m pip install "pyglet<2"
+      # TODO: Fix visuals for macOS ASAP!
+      - run: echo "PYGLET_DEBUG_GL=false" | tee $GITHUB_ENV
         if: startsWith(matrix.os, 'macos')
       - run: python -m pip install tdtpy
         if: startsWith(matrix.os, 'windows')

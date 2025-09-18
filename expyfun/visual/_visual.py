@@ -23,6 +23,8 @@ from .._utils import check_units, logger
 # Should have cleaner programs, less manual GL usage, etc.
 # This will maybe also fix some bugs with GL state accounting that seem to be breaking
 # the advanced_video.py example (text flashes, i.e., draw only works once!)
+# Or even better, let's refactor to use native Pyglet shapes:
+# https://github.com/pyglet/pyglet/blob/master/examples/shapes.py
 
 
 def _convert_color(color, byte=True):
@@ -37,11 +39,6 @@ def _convert_color(color, byte=True):
     else:
         color = tuple(int(c) for c in color)
     return color
-
-
-def _replicate_color(color, pts):
-    """Convert single color to color array for OpenGL triangulations."""
-    return np.tile(color, len(pts) // 2)
 
 
 @contextmanager
@@ -465,8 +462,7 @@ class Line(_Triangular):
         line_width=1.0,
         line_loop=False,
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=None,
             line_color=line_color,
@@ -533,8 +529,7 @@ class Triangle(_Triangular):
         line_color=None,
         line_width=1.0,
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=fill_color,
             line_color=line_color,
@@ -595,8 +590,7 @@ class Rectangle(_Triangular):
     def __init__(
         self, ec, pos, units="norm", fill_color="white", line_color=None, line_width=1.0
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=fill_color,
             line_color=line_color,
@@ -667,8 +661,7 @@ class Diamond(_Triangular):
     def __init__(
         self, ec, pos, units="norm", fill_color="white", line_color=None, line_width=1.0
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=fill_color,
             line_color=line_color,
@@ -746,8 +739,7 @@ class Circle(_Triangular):
         line_color=None,
         line_width=1.0,
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=fill_color,
             line_color=line_color,
