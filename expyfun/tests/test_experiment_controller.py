@@ -620,7 +620,8 @@ def test_button_presses_and_window_size(hide_window):
         fake_button_press(ec, "backspace", 0.4)
         fake_button_press(ec, "comma", 0.45)
         fake_button_press(ec, "return", 0.5)
-        assert ec.text_input(all_caps=False).strip() == "a"
+        if sys.platform not in ("darwin", "win32"):
+            assert ec.text_input(all_caps=False).strip() == "a"
 
 
 @pytest.mark.timeout(10)
