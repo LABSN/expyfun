@@ -12,7 +12,7 @@ from scipy.signal import butter, lfilter
 
 from expyfun import ExperimentController
 from expyfun._sound_controllers import _BACKENDS
-from expyfun._utils import _check_skip_backend, requires_lib, requires_opengl21
+from expyfun._utils import _check_skip_backend, requires_lib
 from expyfun.stimuli import (
     CRMPreload,
     add_pad,
@@ -231,7 +231,6 @@ def test_crm(tmpdir):
 
 
 @pytest.mark.timeout(15)
-@requires_opengl21
 def test_crm_response_menu(hide_window):
     """Test the CRM Response menu function."""
     with ExperimentController("crm_menu", **std_kwargs) as ec:

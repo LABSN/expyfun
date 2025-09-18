@@ -21,7 +21,6 @@ from expyfun._utils import (
     fake_button_press,
     fake_mouse_click,
     known_config_types,
-    requires_opengl21,
 )
 from expyfun._utils import (
     _wait_secs as wait_secs,
@@ -631,7 +630,6 @@ def test_button_presses_and_window_size(hide_window):
 
 
 @pytest.mark.timeout(10)
-@requires_opengl21
 def test_mouse_clicks(hide_window):
     """Test EC mouse click support."""
     with ExperimentController(
@@ -657,7 +655,6 @@ def test_mouse_clicks(hide_window):
         assert_equal(len(out), 0)
 
 
-@requires_opengl21
 @pytest.mark.timeout(30)
 def test_background_color(hide_window):
     """Test setting background color"""

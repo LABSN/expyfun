@@ -471,24 +471,6 @@ def requires_video():
     return pytest.mark.skipif(not _has_video(), reason="Requires FFmpeg/AVbin")
 
 
-def requires_opengl21(func):
-    """Require OpenGL."""
-    import pyglet.gl
-    import pytest
-
-    vendor = pyglet.gl.gl_info.get_vendor()
-    version = pyglet.gl.gl_info.get_version()
-    sufficient = pyglet.gl.gl_info.have_version(2, 0)
-    return pytest.mark.skipif(
-        not sufficient,
-        reason="OpenGL too old: %s %s"
-        % (
-            vendor,
-            version,
-        ),
-    )(func)
-
-
 def requires_lib(lib):
     """Requires lib decorator."""
     import pytest
@@ -961,14 +943,7 @@ def _check_params(params, keys, defaults, name):
 def _get_display():
     import pyglet
 
-    try:
-        display = pyglet.display.get_display()  # pyglet >= 2.1
-    except AttributeError:
-        try:
-            display = pyglet.canvas.get_display()
-        except AttributeError:  # < 1.4
-            display = pyglet.window.get_platform().get_default_display()
-    return display
+    return pyglet.display.get_display()
 
 
 # Adapted from MNE-Python

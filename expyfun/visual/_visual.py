@@ -1062,12 +1062,12 @@ class RawImage:
             if image_buffer.max() > 1 or image_buffer.min() < 0:
                 raise ValueError("all float values must be between 0 and 1")
             image_buffer = (image_buffer * 255).astype("uint8")
+        assert image_buffer.dtype == np.uint8
         if image_buffer.ndim == 2:  # grayscale
             image_buffer = np.tile(image_buffer[..., np.newaxis], (1, 1, 3))
-        if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
-            raise RuntimeError(f"image_buffer incorrect size: {image_buffer.shape}")
-        # add alpha channel if necessary
         dims = image_buffer.shape
+        if len(dims) != 3 or dims[2] not in [3, 4]:
+            raise ValueError(f"image_buffer incorrect shape: {image_buffer.shape}")
         fmt = "RGB" if dims[2] == 3 else "RGBA"
         self._sprite = sprite.Sprite(
             image.ImageData(
