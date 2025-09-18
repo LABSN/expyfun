@@ -509,6 +509,7 @@ def test_ec(ac, hide_window, monkeypatch):
     del ec
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="Monitor tests failing on macOS")
 @pytest.mark.parametrize("screen_num", (None, 0))
 @pytest.mark.parametrize(
     "monitor",

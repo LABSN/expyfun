@@ -1082,16 +1082,20 @@ class ExperimentController:
             y = int(win.screen.height / 2.0 - win.height / 2.0) + screen.y
             win.set_location(x, y)
         self._win = win
+        got_size = self.window_size_pix
         # with the context set up, do basic GL initialization
+        gl.glViewport(0, 0, got_size[0], got_size[1])
         gl.glClearDepth(1.0)  # clear value for the depth buffer
+        # disable depth testing
         gl.glDisable(gl.GL_DEPTH_TEST)
+        # enable blending
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         self.set_background_color("black", draw=False)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
-        got_size = self.window_size_pix
         if not np.array_equal(got_size, window_size) and sys.platform != "darwin":
             raise RuntimeError(
                 "Window size requested by config (%s) does not "
@@ -1148,7 +1152,9 @@ class ExperimentController:
         self._win.flip()
         # this waits until everything is called, including last draw
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=(0.0, 0.0, 0.0, 0.0)).draw()
+        # TODO: Reenable this once macOS doesn't get the errors:
+        # "The specified operation is not allowed in the current state"
+        # Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=(0.0, 0.0, 0.0, 0.0)).draw()
         if self.safe_flipping:
             gl.glFinish()
         flip_time = self.get_time()
