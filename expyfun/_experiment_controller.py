@@ -1042,6 +1042,7 @@ class ExperimentController:
     # ############################### OPENGL METHODS ##############################
     def _setup_window(self, window_size, exp_name, full_screen, screen):
         import pyglet
+        from pyglet import gl
 
         # Use 16x sampling here
         config_kwargs = dict(
@@ -1082,6 +1083,10 @@ class ExperimentController:
             win.set_location(x, y)
         self._win = win
         # with the context set up, do basic GL initialization
+        gl.glClearDepth(1.0)  # clear value for the depth buffer
+        gl.glDisable(gl.GL_DEPTH_TEST)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         self.set_background_color("black", draw=False)
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
