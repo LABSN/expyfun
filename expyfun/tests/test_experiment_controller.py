@@ -820,5 +820,12 @@ def test_noise(hide_window):
     with ExperimentController(
         *std_args, suppress_resamp=True, noise_array=noise_array, **std_kwargs
     ) as ec:
+        assert ec._noise_array is noise_array
+        assert ec._ac.noise_array is noise_array
         ec.start_noise()
+        # TODO:
+        # This one probably *shouldn't* be modified...
+        assert ec._noise_array is not noise_array
+        # and this one *should* be... so these asserts are backward
+        assert ec._ac.noise_array is noise_array
         ec.stop_noise()
