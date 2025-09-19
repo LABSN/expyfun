@@ -1147,8 +1147,8 @@ class ExperimentController:
             gl.glFinish()
         self._win.flip()
         # this waits until everything is called, including last draw
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=(0.0, 0.0, 0.0, 0.0)).draw()
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         if self.safe_flipping:
             gl.glFinish()
         flip_time = self.get_time()

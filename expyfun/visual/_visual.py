@@ -205,7 +205,7 @@ class Text:
 # Triangulations
 
 tri_vert = """\
-#version 330 core
+#version 150 core
 
 in vec2 a_position;
 uniform mat4 u_view;
@@ -217,7 +217,7 @@ void main()
 """
 
 tri_frag = """
-#version 330 core
+#version 150 core
 
 uniform vec4 u_color;
 out vec4 FragColor;
@@ -313,6 +313,8 @@ class _Triangular:
 
         self.set_fill_color(fill_color)
         self.set_line_color(line_color)
+        self._vao = gl.GLuint()
+        gl.glGenVertexArrays(1, pointer(self._vao))
 
     def _set_points(self, points, kind, tris):
         """Set fill and line points."""
@@ -396,6 +398,7 @@ class _Triangular:
         """Draw the object to the display buffer."""
         from pyglet import gl
 
+        gl.glBindVertexArray(self._vao)
         for kind in ("fill", "line"):
             if self._counts[kind] == 0:
                 continue
@@ -411,7 +414,10 @@ class _Triangular:
                 if kind == "line":
                     if self._line_width <= 0.0:
                         continue
-                    gl.glLineWidth(self._line_width)
+                    try:
+                        gl.glLineWidth(self._line_width)
+                    except gl.lib.GLException:  # on macOS for example only 1 works
+                        gl.glLineWidth(1.0)
                     if self._line_loop:
                         mode = gl.GL_LINE_LOOP
                     else:
@@ -426,6 +432,7 @@ class _Triangular:
                             0,
                         )
                 gl.glDisableVertexAttribArray(loc_pos)
+        gl.glBindVertexArray(0)
 
 
 class Line(_Triangular):
@@ -1170,7 +1177,7 @@ class RawImage:
 
 
 tex_vert = """\
-#version 330 core
+#version 150 core
 
 in vec2 a_position;
 in vec2 a_texcoord;
@@ -1185,7 +1192,7 @@ void main()
 """
 
 tex_frag = """\
-#version 330 core
+#version 150 core
 
 uniform sampler2D u_texture;
 in vec2 v_texcoord;
@@ -1286,12 +1293,15 @@ class Video:
         for key in ("position", "texcoord"):
             self._buffers[key] = gl.GLuint(0)
             gl.glGenBuffers(1, pointer(self._buffers[key]))
-        tex = np.array([(0, 1), (1, 1), (1, 0), (0, 0)], np.float32)
+        a, b, c, d = [(0, 1), (1, 1), (1, 0), (0, 0)]
+        tex = np.array([a, b, c, a, c, d], np.float32)
         with _array_buffer(self._buffers["texcoord"]):
             gl.glBufferData(
                 gl.GL_ARRAY_BUFFER, tex.nbytes, tex.tobytes(), gl.GL_DYNAMIC_DRAW
             )
         gl.glUseProgram(0)
+        self._vao = gl.GLuint()
+        gl.glGenVertexArrays(1, pointer(self._vao))
 
     def play(self, auto_draw=True, audio=False):
         """Play video from current position.
@@ -1421,11 +1431,12 @@ class Video:
         gl.glUseProgram(self._program)
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(tex.target, tex.id)
-        gl.glBindVertexArray(0)
+        gl.glBindVertexArray(self._vao)
         x, y = self._actual_pos
         w = self.source_width * self._scale
         h = self.source_height * self._scale
-        pos = np.array([(x, y), (x + w, y), (x + w, y + h), (x, y + h)], np.float32)
+        a, b, c, d = [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+        pos = np.array([a, b, c, a, c, d], np.float32)
         with _array_buffer(self._buffers["position"]):
             gl.glBufferData(
                 gl.GL_ARRAY_BUFFER, pos.nbytes, pos.tobytes(), gl.GL_DYNAMIC_DRAW
@@ -1437,10 +1448,11 @@ class Video:
             loc_tex = gl.glGetAttribLocation(self._program, b"a_texcoord")
             gl.glEnableVertexAttribArray(loc_tex)
             gl.glVertexAttribPointer(loc_tex, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-            gl.glDrawArrays(gl.GL_QUADS, 0, 4)
+            gl.glDrawArrays(gl.GL_TRIANGLES, 0, 6)
             gl.glDisableVertexAttribArray(loc_pos)
             gl.glDisableVertexAttribArray(loc_tex)
         gl.glBindTexture(tex.target, 0)
+        gl.glBindVertexArray(0)
         gl.glUseProgram(0)
 
     def draw(self):
