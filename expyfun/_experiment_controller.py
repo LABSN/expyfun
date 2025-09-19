@@ -1092,6 +1092,7 @@ class ExperimentController:
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
         got_size = win.get_size()
+        # HiDPI on macOS makes it annoying to check this
         if sys.platform != "darwin" and not np.array_equal(got_size, window_size):
             raise RuntimeError(
                 "Window size requested by config (%s) does not "

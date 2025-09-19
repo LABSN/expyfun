@@ -1243,7 +1243,8 @@ class Video:
     Notes
     -----
     This is a somewhat pared-down implementation of video playback. Looping is
-    not available, and the audio stream from the video file is discarded.
+    not available, and the audio stream from the video file is only available when
+    using the sound card as audio controller and ``"pyglet"`` as the sound card backend.
     Timing of individual frames is relegated to the pyglet media player's
     internal clock. Recommended for use only in paradigms where the relative
     timing of audio and video are unimportant (e.g., if the video is merely
@@ -1279,7 +1280,6 @@ class Video:
         self._player = Player()
         with warnings.catch_warnings(record=True):  # deprecated eos_action
             self._player.queue(self._source)
-        self._player._audio_player = None
         frame_rate = self.frame_rate
         if frame_rate is None:
             logger.warning("Frame rate could not be determined")

@@ -431,7 +431,7 @@ def _has_video(raise_error=False):
         good = False
     else:
         if raise_error:
-            print("Found FFmpegSource for new Pyglet")
+            print("Found FFmpegSource for Pyglet")
     return good
 
 

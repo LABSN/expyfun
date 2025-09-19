@@ -655,20 +655,16 @@ def test_background_color(hide_window):
     with ExperimentController(*std_args, **std_kwargs) as ec:
         print((ec.window.width, ec.window.height))
         ec.set_background_color("red")
-        if sys.platform == "darwin":  # TODO: Once OpenGL works, can remove this + below
-            ec.flip()
+        ec.flip()
         ss = ec.screenshot()[:, :, :3]
         red_mask = (ss == [255, 0, 0]).all(axis=-1)
         assert red_mask.all()
         ec.set_background_color("white")
-        if sys.platform == "darwin":
-            ec.flip()
+        ec.flip()
         ss = ec.screenshot()[:, :, :3]
         white_mask = (ss == [255] * 3).all(axis=-1)
         assert white_mask.all()
         ec.flip()
-        if sys.platform == "darwin":
-            pytest.xfail("Drawing primitives broken on macOS")
         ec.set_background_color("0.5")
         visual.Rectangle(ec, [0, 0, 1, 1], fill_color="black").draw()
         ss = ec.screenshot()[:, :, :3]
