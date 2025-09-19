@@ -150,6 +150,7 @@ class Text:
     ):
         import pyglet
 
+        pyglet_2 = hasattr(pyglet, "__version__")
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, units, "pix")[:, 0]
         if width == "auto":
@@ -157,7 +158,12 @@ class Text:
         elif isinstance(width, str):
             raise ValueError('"width", if str, must be "auto"')
         self._attr = attr
-        if wrap:
+        kwargs = dict(width=width, height=height, multiline=wrap, dpi=int(ec.dpi))
+        if pyglet_2:
+            # Really needed to work around
+            # https://github.com/pyglet/pyglet/issues/1359
+            kwargs.update(anchor_x=anchor_x, anchor_y=anchor_y, x=pos[0], y=pos[1])
+        elif wrap:
             text = text + "\n "  # weird Pyglet bug
         if self._attr:
             preamble = (
@@ -166,20 +172,17 @@ class Text:
                 f"{{color {_convert_color(color)}}}"
             )
             doc = pyglet.text.decode_attributed(preamble + text)
-            self._text = pyglet.text.layout.TextLayout(
-                doc, width=width, height=height, multiline=wrap, dpi=int(ec.dpi)
-            )
+            self._text = pyglet.text.layout.TextLayout(doc, **kwargs)
         else:
-            self._text = pyglet.text.Label(
-                text, width=width, height=height, multiline=wrap, dpi=int(ec.dpi)
-            )
+            self._text = pyglet.text.Label(text, **kwargs)
             self._text.color = _convert_color(color)
             self._text.font_name = font_name
             self._text.font_size = font_size
-        self._text.x = pos[0]
-        self._text.y = pos[1]
-        self._text.anchor_x = anchor_x
-        self._text.anchor_y = anchor_y
+        if not pyglet_2:
+            self._text.x = pos[0]
+            self._text.y = pos[1]
+            self._text.anchor_x = anchor_x
+            self._text.anchor_y = anchor_y
 
     def set_color(self, color):
         """Set the text color
