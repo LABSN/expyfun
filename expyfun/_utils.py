@@ -18,7 +18,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import traceback
 import warnings
 from copy import deepcopy
 from functools import partial
@@ -30,16 +29,6 @@ from urllib.request import urlopen
 import numpy as np
 import scipy as sp
 from decorator import decorator
-
-# set this first thing to make sure it "takes"
-try:
-    import pyglet
-
-    pyglet.options["debug_gl"] = False
-    del pyglet
-except Exception:
-    pass
-
 
 ###############################################################################
 # LOGGING
@@ -432,45 +421,17 @@ def verbose_dec(function, *args, **kwargs):
         return ret
 
 
-def _new_pyglet():
-    import pyglet
-
-    return _compare_version(pyglet.version, ">=", "1.4")
-
-
 def _has_video(raise_error=False):
-    exceptions = list()
     good = True
-    if _new_pyglet():
-        try:
-            from pyglet.media.codecs.ffmpeg import FFmpegSource  # noqa
-        except ImportError:
-            exceptions.append(traceback.format_exc())
-            good = False
-        else:
-            if raise_error:
-                print("Found FFmpegSource for new Pyglet")
+    try:
+        from pyglet.media.codecs.ffmpeg import FFmpegSource  # noqa
+    except Exception:
+        if raise_error:
+            raise RuntimeError("Video support not enabled")
+        good = False
     else:
-        try:
-            from pyglet.media.avbin import AVbinSource  # noqa
-        except ImportError:
-            exceptions.append(traceback.format_exc())
-            try:
-                from pyglet.media.sources.avbin import AVbinSource  # noqa
-            except ImportError:
-                exceptions.append(traceback.format_exc())
-                good = False
-            else:
-                if raise_error:
-                    print("Found AVbinSource for old Pyglet 1")
-        else:
-            if raise_error:
-                print("Found AVbinSource for old Pyglet 2")
-    if raise_error and not good:
-        raise RuntimeError(
-            "Video support not enabled, got exception(s):\n"
-            "\n***********************\n".join(exceptions)
-        )
+        if raise_error:
+            print("Found FFmpegSource for Pyglet")
     return good
 
 
@@ -479,24 +440,6 @@ def requires_video():
     import pytest
 
     return pytest.mark.skipif(not _has_video(), reason="Requires FFmpeg/AVbin")
-
-
-def requires_opengl21(func):
-    """Require OpenGL."""
-    import pyglet.gl
-    import pytest
-
-    vendor = pyglet.gl.gl_info.get_vendor()
-    version = pyglet.gl.gl_info.get_version()
-    sufficient = pyglet.gl.gl_info.have_version(2, 0)
-    return pytest.mark.skipif(
-        not sufficient,
-        reason="OpenGL too old: %s %s"
-        % (
-            vendor,
-            version,
-        ),
-    )(func)
 
 
 def requires_lib(lib):
@@ -971,11 +914,10 @@ def _check_params(params, keys, defaults, name):
 def _get_display():
     import pyglet
 
-    try:
-        display = pyglet.canvas.get_display()
-    except AttributeError:  # < 1.4
-        display = pyglet.window.get_platform().get_default_display()
-    return display
+    try:  # pyglet 2+
+        return pyglet.display.get_display()
+    except AttributeError:  # pyglet 1.4+
+        return pyglet.canvas.get_display()
 
 
 # Adapted from MNE-Python
