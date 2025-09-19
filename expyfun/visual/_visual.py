@@ -399,8 +399,11 @@ class _Triangular:
         from pyglet import gl
 
         gl.glBindVertexArray(self._vao)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         for kind in ("fill", "line"):
             if self._counts[kind] == 0:
+                print(f"Skipping {kind} for {self}")
                 continue
             with (
                 _use_program(self._program),
