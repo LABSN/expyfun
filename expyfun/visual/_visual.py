@@ -21,9 +21,9 @@ from .._utils import check_units, logger
 # TODO: Should eventually follow
 # https://pyglet.readthedocs.io/en/latest/programming_guide/rendering.html
 # Should have cleaner programs, less manual GL usage, etc.
-# This will maybe also fix some bugs with GL state accounting that seem to be breaking
-# the advanced_video.py example (text flashes, i.e., draw only works once!)
-# Or even better, let's refactor to use native Pyglet shapes:
+# For a start, see this (but requires Pyglet 2+):
+# https://gist.github.com/larsoner/1a9bbdc26bc3a3af1de8e5033fb99891
+# Even better, we could refactor to use native Pyglet shapes:
 # https://github.com/pyglet/pyglet/blob/master/examples/shapes.py
 
 
