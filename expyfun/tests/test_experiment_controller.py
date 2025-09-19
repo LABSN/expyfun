@@ -805,6 +805,7 @@ def test_sound_card_params():
             assert key in known_config_types, key
 
 
+@pytest.mark.timeout(30)  # inexplicably long on Windows
 def test_noise(hide_window):
     """Test that the noise_array can be set."""
     noise_array = np.random.normal(0, 1, (2**10))
