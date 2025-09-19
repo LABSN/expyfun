@@ -16,6 +16,7 @@ std_kwargs = dict(
 )
 
 
+@pytest.mark.timeout(30)  # inexplicably long on Windows
 @requires_opengl21
 def test_eyelink_methods(hide_window):
     """Test EL methods."""
