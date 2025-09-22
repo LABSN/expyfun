@@ -14,7 +14,7 @@ import warnings
 import numpy as np
 
 from .._fixes import irfft, rfft, rfftfreq
-from .._utils import _check_params, flush_logger, logger
+from .._utils import _check_params, flush_logger, logger, _fix_audio_dims
 
 _BACKENDS = tuple(
     sorted(
@@ -186,11 +186,63 @@ class SoundCardController:
             # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
             noise /= np.sqrt(np.mean(noise * noise))
             noise = np.concatenate(
-                (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
+                (np.zeros((self._n_channels_stim, noise.shape[1]),
+                          noise.dtype), noise)
             )
             self.noise_array = noise
         else:
             self.noise_array = ec._noise_array
+
+            # check data type
+            self.noise_array = np.asarray(self.noise_array, dtype=np.float32)
+
+            # check shape and dimensions, make stereo
+            self.noise_array = _fix_audio_dims(self.noise_array,
+                                               self._n_channels)
+
+            # check the length is a power of 2 (required for ringbuffer)
+            len_noise_array = self.noise_array.shape[-1]
+            if not (len_noise_array > 0 and
+                    (len_noise_array & (len_noise_array - 1)) == 0):
+                raise ValueError(
+                    "noise_array must have a length that is a power of 2, "
+                    f"got length {len_noise_array}."
+                )
+
+            # This limit is currently set by the TDT SerialBuf objects
+            # (per channel), it sets the limit on our stimulus durations...
+            if np.isclose(ec.stim_fs, 24414, atol=1):
+                max_samples = 4000000 - 1
+                if self.noise_array.shape[-1] > max_samples:
+                    raise RuntimeError(
+                        f"Sample too long {self.noise_array.shape[-1]} >"
+                        f" {max_samples}"
+                    )
+
+            # resample if needed
+            if ((not np.allclose(ec.stim_fs, self.fs, rtol=0, atol=0.5)) and
+                    not ec._suppress_resamp):
+                logger.warning(
+                    f"Expyfun: Resampling "
+                    f"{round(self.noise_array.shape[-1] / ec.stim_fs, 2)} "
+                    "seconds of audio for the noise array."
+                )
+                with warnings.catch_warnings(record=True):
+                    warnings.simplefilter("ignore")
+                    from mne.filter import resample
+                if self.noise_array.size:
+                    self.noise_array = resample(
+                        self.noise_array.astype(np.float64), self.fs,
+                        ec.stim_fs, axis=0
+                    ).astype(np.float32)
+                trunc_len = 2**np.floor(np.log2(self.noise_array.shape[-1]))
+                logger.warning(
+                    "Trucating noise_array from "
+                    f"{len_noise_array / ec.stim_fs} to "
+                    f"{trunc_len/self.fs}."
+                    )
+                self.noise_array = self.noise_array[..., :trunc_len]
+
         self.noise_level = 0.01
         self.noise = None
         self.audio = None

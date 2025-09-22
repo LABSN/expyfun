@@ -196,7 +196,6 @@ class ExperimentController:
         self._stim_db = stim_db
         self._noise_db = noise_db
         self._noise_array = noise_array
-        self._noise_validated = False  # only check noise shape once
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
         self.video = None
@@ -1838,10 +1837,6 @@ class ExperimentController:
         ExperimentController.set_noise_db
         ExperimentController.stop_noise
         """
-        # check the noise array shape and rms if not already done
-        if (self._noise_array is not None) and not self._noise_validated:
-            self._noise_array = self._validate_noise(self._noise_array)
-            self._noise_validated = True
         self._ac.start_noise()
 
     def stop_noise(self):
@@ -2056,63 +2051,6 @@ class ExperimentController:
                     ""
                 )
                 logger.warning(warn_string)
-
-        # let's make sure we don't change our version of this array later
-        samples = samples.view()
-        samples.flags["WRITEABLE"] = False
-        return samples
-
-    def _validate_noise(self, samples):
-        """Converts noise audio sample data to the required format.
-
-        Parameters
-        ----------
-        samples : list | array
-            The audio samples of the noise.
-            Mono sounds will be converted to stereo.
-
-        Returns
-        -------
-        samples : numpy.array(dtype='float32')
-            The correctly formatted noise audio samples. Will be a copy of
-            the original samples.
-        """
-        # check data type
-        samples = np.asarray(samples, dtype=np.float32)
-
-        # check shape and dimensions, make stereo
-        samples = _fix_audio_dims(samples, self._ac._n_channels).T
-
-        # check the length is a power of 2 (required for ringbuffer)
-        len_samples = samples.shape[0]
-        if not (len_samples > 0 and (len_samples & (len_samples - 1)) == 0):
-            raise ValueError(
-                "noise_array must have a length that is a power of 2, "
-                f"got length {len_samples}."
-            )
-
-        # This limit is currently set by the TDT SerialBuf objects
-        # (per channel), it sets the limit on our stimulus durations...
-        if np.isclose(self.stim_fs, 24414, atol=1):
-            max_samples = 4000000 - 1
-            if samples.shape[0] > max_samples:
-                raise RuntimeError(
-                    f"Sample too long {samples.shape[0]} > {max_samples}"
-                )
-
-        # resample if needed
-        if self._fs_mismatch and not self._suppress_resamp:
-            logger.warning(
-                f"Expyfun: Resampling {round(len(samples) / self.stim_fs, 2)} "
-                "seconds of audio for the noise array"
-            )
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("ignore")
-                from mne.filter import resample
-            if samples.size:
-                samples = resample(
-                    samples.astype(np.float64), self.fs, self.stim_fs, axis=0
-                ).astype(np.float32)
 
         # let's make sure we don't change our version of this array later
         samples = samples.view()

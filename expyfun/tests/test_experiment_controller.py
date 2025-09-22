@@ -805,27 +805,21 @@ def test_sound_card_params():
             assert key in known_config_types, key
 
 
-@pytest.mark.timeout(30)  # inexplicably long on Windows
 def test_noise(hide_window):
     """Test that the noise_array can be set."""
     noise_array = np.random.normal(0, 1, (2**10))
     # check for ValueError if noise_array length is not a power of 2
-    with ExperimentController(
-        *std_args, suppress_resamp=True, noise_array=noise_array[:1000], **std_kwargs
-    ) as ec:
-        with pytest.raises(ValueError):
-            ec.start_noise()
-        ec.stop_noise()
+    pytest.raises(
+        ValueError,
+        ExperimentController,
+        *std_args,
+        noise_array=noise_array[:1000],
+        **std_kwargs,
+    )
+
     # no errors if len(noise_array) is a power of 2
     with ExperimentController(
         *std_args, suppress_resamp=True, noise_array=noise_array, **std_kwargs
     ) as ec:
-        assert ec._noise_array is noise_array
-        assert ec._ac.noise_array is noise_array
         ec.start_noise()
-        # TODO:
-        # This one probably *shouldn't* be modified...
-        assert ec._noise_array is not noise_array
-        # and this one *should* be... so these asserts are backward
-        assert ec._ac.noise_array is noise_array
         ec.stop_noise()
