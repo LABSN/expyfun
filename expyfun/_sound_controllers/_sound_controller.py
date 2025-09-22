@@ -219,30 +219,6 @@ class SoundCardController:
                         f" {max_samples}"
                     )
 
-            # resample if needed
-            if ((not np.allclose(ec.stim_fs, self.fs, rtol=0, atol=0.5)) and
-                    not ec._suppress_resamp):
-                logger.warning(
-                    f"Expyfun: Resampling "
-                    f"{round(self.noise_array.shape[-1] / ec.stim_fs, 2)} "
-                    "seconds of audio for the noise array."
-                )
-                with warnings.catch_warnings(record=True):
-                    warnings.simplefilter("ignore")
-                    from mne.filter import resample
-                if self.noise_array.size:
-                    self.noise_array = resample(
-                        self.noise_array.astype(np.float64), self.fs,
-                        ec.stim_fs, axis=0
-                    ).astype(np.float32)
-                trunc_len = 2**np.floor(np.log2(self.noise_array.shape[-1]))
-                logger.warning(
-                    "Trucating noise_array from "
-                    f"{len_noise_array / ec.stim_fs} to "
-                    f"{trunc_len/self.fs}."
-                    )
-                self.noise_array = self.noise_array[..., :trunc_len]
-
         self.noise_level = 0.01
         self.noise = None
         self.audio = None

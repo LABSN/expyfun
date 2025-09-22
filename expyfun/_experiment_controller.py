@@ -82,12 +82,13 @@ class ExperimentController:
         The desired dB SPL at which to play the dichotic noise.
     noise_array : ndarray | None
         An array containing the noise to be presented. Must have a length that
-        is a power of 2, and be generated with a reference RMS amplitude of 1
-        for proper scaling. It is assumed that the sample rate matches stim_fs.
-        If not None, RMS is assumed to be 1, and this will not be checked.
-        The amplitude will be scaled to achieve the desired ``noise_db`` under
-        the assumption (which will not be checked) that the RMS of the input
-        array is 1. If None, additive white Gaussian noise will be generated.
+        is a power of 2. The amplitude will be scaled to achieve the desired
+        ``noise_db`` under the assumption (which will not be checked) that
+        the RMS of the input array is 1. It is assumed that the sampling
+        frequency of the noise matches the sampling frequency of the sound
+        output device. This will not be checked and no resampling will be done.
+        If None, additive white
+        Gaussian noise will be generated.
     output_dir : str | None
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be
