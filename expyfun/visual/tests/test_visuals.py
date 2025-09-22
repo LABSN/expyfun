@@ -3,7 +3,7 @@ import pytest
 from numpy.testing import assert_equal
 
 from expyfun import ExperimentController, fetch_data_file, visual
-from expyfun._utils import requires_opengl21, requires_video
+from expyfun._utils import requires_video
 
 std_kwargs = dict(
     output_dir=None,
@@ -18,8 +18,7 @@ std_kwargs = dict(
 )
 
 
-@requires_opengl21
-def test_visuals(hide_window):
+def test_visuals_basic(hide_window):
     """Test EC visual methods."""
     with ExperimentController("test", **std_kwargs) as ec:
         pytest.raises(TypeError, visual.Circle, ec, n_edges=3.5)
@@ -60,9 +59,10 @@ def test_visuals(hide_window):
         for shape in ((3, 3, 3), (3, 3, 4), (3, 3), (3,), (3,) * 4):
             data = np.ones(shape)
             if len(shape) not in (2, 3):
-                pytest.raises(RuntimeError, visual.RawImage, ec, data)
-            else:
-                img = visual.RawImage(ec, data)
+                with pytest.raises(ValueError, match="shape"):
+                    visual.RawImage(ec, data)
+                continue
+            img = visual.RawImage(ec, data)
             print(img.bounds)  # test bounds
             assert_equal(img.scale, 1)
             # test get_rect

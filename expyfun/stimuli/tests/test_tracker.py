@@ -3,7 +3,6 @@ import pytest
 from numpy.testing import assert_equal
 
 from expyfun import ExperimentController
-from expyfun._utils import requires_opengl21
 from expyfun.stimuli import TrackerBinom, TrackerDealer, TrackerMHW, TrackerUD
 
 
@@ -29,7 +28,6 @@ std_kwargs = dict(
 
 
 @pytest.mark.timeout(15)
-@requires_opengl21
 def test_tracker_ud(hide_window):
     """Test TrackerUD"""
     import matplotlib.pyplot as plt
@@ -169,7 +167,6 @@ def test_tracker_ud(hide_window):
     )
 
 
-@requires_opengl21
 def test_tracker_binom(hide_window):
     """Test TrackerBinom"""
     tr = TrackerBinom(callback, 0.05, 0.1, 5)
