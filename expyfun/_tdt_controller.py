@@ -170,10 +170,8 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
                 self.rpcox = connect_rpcox(
                     name=use_model, interface=self.interface, device_id=1, address=None
                 )
-            except Exception as exp:
-                raise OSError(
-                    f"Could not connect to {self._model}, is it turned on?"
-                )
+            except Exception:
+                raise OSError(f"Could not connect to {self._model}, is it turned on?")
         else:
             msg = (
                 "TDT is in dummy mode. No sound or triggers will "
