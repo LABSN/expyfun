@@ -172,8 +172,7 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
                 )
             except Exception as exp:
                 raise OSError(
-                    f"Could not connect to {self._model}, is it turned on? "
-                    f'(TDT message: "{exp}")'
+                    f"Could not connect to {self._model}, is it turned on?"
                 )
         else:
             msg = (
