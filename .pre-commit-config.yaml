@@ -14,7 +14,7 @@ repos:
         args: ["--ignore=D103,D400", "--fix"]
         files: ^doc/|^examples/
       - id: ruff-format
-        files: ^expyfun/|^doc/|^examples/
+        files: ^expyfun/|^doc/|^examples/|^[^/]*\.py$
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell

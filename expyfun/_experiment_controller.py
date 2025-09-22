@@ -981,7 +981,7 @@ class ExperimentController:
         return np.array(self._monitor["SCREEN_SIZE_PIX"])
 
     # ############################### VIDEO METHODS ###############################
-    def load_video(self, file_name, pos=(0, 0), units="norm", center=True):
+    def load_video(self, file_name, *, pos=(0, 0), units="norm", center=True):
         """Load a video.
 
         Parameters
@@ -1000,7 +1000,7 @@ class ExperimentController:
         except ImportError:  # < 1.4
             from pyglet.media import MediaFormatException
         try:
-            self.video = Video(self, file_name, pos, units)
+            self.video = Video(self, file_name, pos=pos, units=units)
         except MediaFormatException as exp:
             raise RuntimeError(
                 "Something is wrong; probably you tried to load a "
@@ -1090,29 +1090,20 @@ class ExperimentController:
             win.set_location(x, y)
         self._win = win
         # with the context set up, do basic GL initialization
-        gl.glClearColor(0.0, 0.0, 0.0, 1.0)  # set the color to clear to
         gl.glClearDepth(1.0)  # clear value for the depth buffer
-        # set the viewport size
-        gl.glViewport(0, 0, int(self.window_size_pix[0]), int(self.window_size_pix[1]))
-        # set the projection matrix
-        gl.glMatrixMode(gl.GL_PROJECTION)
-        gl.glLoadIdentity()
-        gl.gluOrtho2D(-1, 1, -1, 1)
-        # set the model matrix
-        gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glLoadIdentity()
         # disable depth testing
         gl.glDisable(gl.GL_DEPTH_TEST)
         # enable blending
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        gl.glShadeModel(gl.GL_SMOOTH)
+        self.set_background_color("black")
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
         got_size = win.get_size()
-        if not np.array_equal(got_size, window_size):
+        # HiDPI on macOS makes it annoying to check this
+        if sys.platform != "darwin" and not np.array_equal(got_size, window_size):
             raise RuntimeError(
                 "Window size requested by config (%s) does not "
                 "match obtained window size (%s), is the "
@@ -1167,11 +1158,8 @@ class ExperimentController:
             gl.glFinish()
         self._win.flip()
         # this waits until everything is called, including last draw
+        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=(0.0, 0.0, 0.0, 0.0)).draw()
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        gl.glBegin(gl.GL_POINTS)
-        gl.glColor4f(0, 0, 0, 0)
-        gl.glVertex2i(10, 10)
-        gl.glEnd()
         if self.safe_flipping:
             gl.glFinish()
         flip_time = self.get_time()
