@@ -87,8 +87,7 @@ class ExperimentController:
         the RMS of the input array is 1. It is assumed that the sampling
         frequency of the noise matches the sampling frequency of the sound
         output device. This will not be checked and no resampling will be done.
-        If None, additive white
-        Gaussian noise will be generated.
+        If None, additive white Gaussian noise will be generated.
     output_dir : str | None
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be

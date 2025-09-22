@@ -820,7 +820,7 @@ def test_noise(hide_window):
 
     # no errors if len(noise_array) is a power of 2
     with ExperimentController(
-        *std_args, suppress_resamp=True, noise_array=noise_array, **std_kwargs
+        *std_args, noise_array=noise_array, **std_kwargs
     ) as ec:
         ec.start_noise()
         ec.stop_noise()
