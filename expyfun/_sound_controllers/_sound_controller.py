@@ -14,7 +14,7 @@ import warnings
 import numpy as np
 
 from .._fixes import irfft, rfft, rfftfreq
-from .._utils import _check_params, flush_logger, logger, _fix_audio_dims
+from .._utils import _check_params, _fix_audio_dims, flush_logger, logger
 
 _BACKENDS = tuple(
     sorted(
@@ -186,8 +186,7 @@ class SoundCardController:
             # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
             noise /= np.sqrt(np.mean(noise * noise))
             noise = np.concatenate(
-                (np.zeros((self._n_channels_stim, noise.shape[1]),
-                          noise.dtype), noise)
+                (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
             )
             self.noise_array = noise
         else:
@@ -197,13 +196,13 @@ class SoundCardController:
             self.noise_array = np.asarray(self.noise_array, dtype=np.float32)
 
             # check shape and dimensions, make stereo
-            self.noise_array = _fix_audio_dims(self.noise_array,
-                                               self._n_channels)
+            self.noise_array = _fix_audio_dims(self.noise_array, self._n_channels)
 
             # check the length is a power of 2 (required for ringbuffer)
             len_noise_array = self.noise_array.shape[-1]
-            if not (len_noise_array > 0 and
-                    (len_noise_array & (len_noise_array - 1)) == 0):
+            if not (
+                len_noise_array > 0 and (len_noise_array & (len_noise_array - 1)) == 0
+            ):
                 raise ValueError(
                     "noise_array must have a length that is a power of 2, "
                     f"got length {len_noise_array}."
@@ -215,13 +214,13 @@ class SoundCardController:
                 max_samples = 4000000 - 1
                 if self.noise_array.shape[-1] > max_samples:
                     raise RuntimeError(
-                        f"Sample too long {self.noise_array.shape[-1]} >"
-                        f" {max_samples}"
+                        f"Sample too long {self.noise_array.shape[-1]} > {max_samples}"
                     )
 
             # resample if needed
-            if ((not np.allclose(ec.stim_fs, self.fs, rtol=0, atol=0.5)) and
-                    not ec._suppress_resamp):
+            if (
+                not np.allclose(ec.stim_fs, self.fs, rtol=0, atol=0.5)
+            ) and not ec._suppress_resamp:
                 logger.warning(
                     f"Expyfun: Resampling "
                     f"{round(self.noise_array.shape[-1] / ec.stim_fs, 2)} "
@@ -232,15 +231,14 @@ class SoundCardController:
                     from mne.filter import resample
                 if self.noise_array.size:
                     self.noise_array = resample(
-                        self.noise_array.astype(np.float64), self.fs,
-                        ec.stim_fs, axis=0
+                        self.noise_array.astype(np.float64), self.fs, ec.stim_fs, axis=0
                     ).astype(np.float32)
-                trunc_len = 2**np.floor(np.log2(self.noise_array.shape[-1]))
+                trunc_len = 2 ** np.floor(np.log2(self.noise_array.shape[-1]))
                 logger.warning(
                     "Trucating noise_array from "
                     f"{len_noise_array / ec.stim_fs} to "
-                    f"{trunc_len/self.fs}."
-                    )
+                    f"{trunc_len / self.fs}."
+                )
                 self.noise_array = self.noise_array[..., :trunc_len]
 
         self.noise_level = 0.01
