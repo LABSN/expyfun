@@ -80,6 +80,14 @@ class ExperimentController:
         The desired dB SPL at which to play the stimuli.
     noise_db : float
         The desired dB SPL at which to play the dichotic noise.
+    noise_array : ndarray | None
+        An array containing the noise to be presented. Must have a length that
+        is a power of 2. The amplitude will be scaled to achieve the desired
+        ``noise_db`` under the assumption (which will not be checked) that
+        the RMS of the input array is 1. It is assumed that the sampling
+        frequency of the noise matches the sampling frequency of the sound
+        output device. This will not be checked and no resampling will be done.
+        If None, additive white Gaussian noise will be generated.
     output_dir : str | None
         An absolute or relative path to a directory in which raw experiment
         data will be stored. If output_folder does not exist, it will be
@@ -163,6 +171,7 @@ class ExperimentController:
         stim_fs=24414,
         stim_db=65,
         noise_db=45,
+        noise_array=None,
         output_dir="data",
         window_size=None,
         screen_num=None,
@@ -186,6 +195,7 @@ class ExperimentController:
         self._stim_rms = stim_rms
         self._stim_db = stim_db
         self._noise_db = noise_db
+        self._noise_array = noise_array
         self._stim_scaler = None
         self._suppress_resamp = suppress_resamp
         self.video = None
@@ -371,7 +381,6 @@ class ExperimentController:
             #
             # Initialize devices
             #
-
             trigger_duration = float(trigger_duration)
             if not 0.001 < trigger_duration <= 0.02:  # probably an error
                 raise ValueError(

@@ -804,3 +804,15 @@ def test_sound_card_params():
     for key in _SOUND_CARD_KEYS:
         if key != "TYPE":
             assert key in known_config_types, key
+
+
+def test_noise(hide_window):
+    """Test that the noise_array can be set."""
+    noise_array = np.random.normal(0, 1, (2**10))
+    with pytest.raises(ValueError, match=".*power of 2.*"):
+        ExperimentController(*std_args, noise_array=noise_array[:1000], **std_kwargs)
+
+    # no errors if len(noise_array) is a power of 2
+    with ExperimentController(*std_args, noise_array=noise_array, **std_kwargs) as ec:
+        ec.start_noise()
+        ec.stop_noise()
