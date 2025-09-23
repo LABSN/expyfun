@@ -809,8 +809,7 @@ def test_sound_card_params():
 def test_noise(hide_window):
     """Test that the noise_array can be set."""
     noise_array = np.random.normal(0, 1, (2**10))
-    # check for ValueError if noise_array length is not a power of 2
-    with pytest.raises(ValueError, match=".*power of 2.*):
+    with pytest.raises(ValueError, match=".*power of 2.*"):
         ExperimentController(*std_args, noise_array=noise_array[:1000], **std_kwargs)
 
     # no errors if len(noise_array) is a power of 2
