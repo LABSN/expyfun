@@ -1097,6 +1097,7 @@ class ExperimentController:
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         self.set_background_color("black")
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+        self._clear_rect.draw()
         v_ = False if os.getenv("_EXPYFUN_WIN_INVISIBLE") == "true" else True
         self.set_visible(v_)  # this is when we set fullscreen
         # ensure we got the correct window size
@@ -1157,7 +1158,7 @@ class ExperimentController:
             gl.glFinish()
         self._win.flip()
         # this waits until everything is called, including last draw
-        Rectangle(self, pos=[0, 0, 2.1, 2.1], fill_color=(0.0, 0.0, 0.0, 0.0)).draw()
+        self._clear_rect.draw()
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         if self.safe_flipping:
             gl.glFinish()
@@ -1167,6 +1168,16 @@ class ExperimentController:
         self.write_data_line("flip", flip_time)
         self._on_next_flip = []
         return flip_time
+
+    @property
+    def _clear_rect(self):
+        if getattr(self, "_clear_rect_", None) is None:
+            self._clear_rect_ = Rectangle(
+                self,
+                pos=[0, 0, 2.1, 2.1],
+                fill_color=(0.0, 0.0, 0.0, 0.0),
+            )
+        return self._clear_rect_
 
     def estimate_screen_fs(self, n_rep=10):
         """Estimate screen refresh rate using repeated flip() calls
