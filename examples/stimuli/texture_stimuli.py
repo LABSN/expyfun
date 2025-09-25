@@ -9,9 +9,10 @@ This shows how to generate texture coherence stimuli.
 import matplotlib.pyplot as plt
 import numpy as np
 
+from expyfun import get_config
 from expyfun.stimuli import play_sound, texture_ERB
 
-fs = 24414
+fs = get_config("SOUND_CARD_FS", 24414)
 n_freqs = 20
 n_coh = 18  # very coherent example
 
