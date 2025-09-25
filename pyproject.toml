@@ -44,13 +44,13 @@ requires-python = ">=3.10"
 
 [project.optional-dependencies]
 all = [
-  "gitpython",
-  "joblib",
-  "mne",
-  "pandas",
-  "pyparallel",
-  "rtmixer",
-  "tdtpy ; platform_system=='Windows'",
+  "gitpython",                          # download_version
+  "joblib",                             # _crm_prepare_corpus_helper
+  "mne",                                # resampling, window_edges, texture stimuli
+  "pandas",                             # barplot
+  "pyparallel",                         # parallel port triggering
+  "rtmixer",                            # sound card backend
+  "tdtpy ; platform_system=='Windows'", # TDT
 ]
 
 [dependency-groups]
