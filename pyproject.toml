@@ -53,7 +53,17 @@ all = [
 ]
 
 [dependency-groups]
-dev = ["build", "flaky", "pytest-cov", "pytest-timeout", "pytest", "sphinx"]
+dev = [
+  "build",
+  "flaky",
+  "numpydoc",
+  "pydata-sphinx-theme",
+  "pytest-cov",
+  "pytest-timeout",
+  "pytest",
+  "sphinx-gallery",
+  "sphinx",
+]
 
 [tool.codespell]
 ignore-words = "ignore_words.txt"
