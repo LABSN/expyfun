@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.10
+    rev: v0.13.1
     hooks:
       - id: ruff
         name: ruff lint expyfun
@@ -14,7 +14,7 @@ repos:
         args: ["--ignore=D103,D400", "--fix"]
         files: ^doc/|^examples/
       - id: ruff-format
-        files: ^expyfun/|^doc/|^examples/
+        files: ^expyfun/|^doc/|^examples/|^[^/]*\.py$
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
@@ -28,14 +28,14 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.35.1
+    rev: v1.37.1
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.4
+    rev: v6.2.5
     hooks:
       - id: rstcheck
         additional_dependencies:

@@ -12,8 +12,6 @@ import warnings
 import numpy as np
 import pyglet
 
-from .._utils import _new_pyglet
-
 _PRIORITY = 200
 
 _use_silent = os.getenv("_EXPYFUN_SILENT", "") == "true"
@@ -46,9 +44,7 @@ except Exception as exp:
 
 
 def _check_pyglet_audio():
-    if pyglet.media.get_audio_driver() is None and not (
-        _new_pyglet() and _driver == ("silent",)
-    ):
+    if pyglet.media.get_audio_driver() is None and not _driver == ("silent",):
         raise SystemError(
             'pyglet audio ("%s") could not be initialized' % pyglet.options["audio"][0]
         )
@@ -70,8 +66,8 @@ class SoundPlayer(Player):
         assert AudioFormat is not None
         if any(x is not None for x in (api, name, fixed_delay, api_options)):
             raise ValueError(
-                "The Pyglet backend does not support specifying "
-                "api, name, fixed_delay, or api_options"
+                "The Pyglet backend does not support specifying non-None values for "
+                f"{api=}, {name=}, {fixed_delay=}, or {api_options=}"
             )
         # We could maybe let Pyglet make this decision, but hopefully
         # people won't need to tweak the Pyglet backend anyway
@@ -79,14 +75,8 @@ class SoundPlayer(Player):
         super().__init__()
         _check_pyglet_audio()
         sms = _as_static(data, self.fs)
-        if _new_pyglet():
-            self.queue(sms)
-            self.loop = bool(loop)
-        else:
-            group = SourceGroup(sms.audio_format, None)
-            group.loop = bool(loop)
-            group.queue(sms)
-            self.queue(group)
+        self.queue(sms)
+        self.loop = bool(loop)
         self._ec_duration = sms._duration
 
     def stop(self, wait=True, extra_delay=0.0):

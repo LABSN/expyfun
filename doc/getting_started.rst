@@ -163,7 +163,10 @@ The fixed, hardware-dependent settings for a given system get written to
 an ``expyfun.json`` file. You can use :func:`expyfun.get_config_path` to
 get the path to your config file. Some sample configurations:
 
-A TDT-based M/EEG+pupillometry machine
+A TDT-based M/EEG+pupillometry machine (requires the `TDT Drivers/RPvdsEx`
+and `ActiveX Controls` to be installed, which can be obtained from
+`TDT downloads <https://www.tdt.com/support/downloads/>`__):
+
   .. code-block:: JSON
 
     {

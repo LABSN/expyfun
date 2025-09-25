@@ -11,17 +11,20 @@ Tools for drawing shapes and text on the screen.
 
 import re
 import warnings
+from contextlib import contextmanager
 from ctypes import POINTER, c_char, c_float, c_int, cast, create_string_buffer, pointer
-from functools import partial
 
 import numpy as np
 
-try:
-    from PyOpenGL import gl
-except ImportError:
-    from pyglet import gl
+from .._utils import check_units, logger
 
-from .._utils import _new_pyglet, check_units, logger
+# TODO: Should eventually follow
+# https://pyglet.readthedocs.io/en/latest/programming_guide/rendering.html
+# Should have cleaner programs, less manual GL usage, etc.
+# For a start, see this (but requires Pyglet 2+):
+# https://gist.github.com/larsoner/1a9bbdc26bc3a3af1de8e5033fb99891
+# Even better, we could refactor to use native Pyglet shapes:
+# https://github.com/pyglet/pyglet/blob/master/examples/shapes.py
 
 
 def _convert_color(color, byte=True):
@@ -38,9 +41,43 @@ def _convert_color(color, byte=True):
     return color
 
 
-def _replicate_color(color, pts):
-    """Convert single color to color array for OpenGL triangulations."""
-    return np.tile(color, len(pts) // 2)
+@contextmanager
+def _element_array_buffer(buffer_id):
+    from pyglet import gl
+
+    old = (gl.GLint * 1)()
+    gl.glGetIntegerv(gl.GL_ELEMENT_ARRAY_BUFFER_BINDING, old)
+    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, buffer_id)
+    try:
+        yield
+    finally:
+        gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, list(old)[0])
+
+
+@contextmanager
+def _array_buffer(buffer_id):
+    from pyglet import gl
+
+    old = (gl.GLint * 1)()
+    gl.glGetIntegerv(gl.GL_ARRAY_BUFFER_BINDING, old)
+    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, buffer_id)
+    try:
+        yield
+    finally:
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, list(old)[0])
+
+
+@contextmanager
+def _use_program(program):
+    from pyglet import gl
+
+    old = (gl.GLint * 1)()
+    gl.glGetIntegerv(gl.GL_CURRENT_PROGRAM, old)
+    gl.glUseProgram(program)
+    try:
+        yield
+    finally:
+        gl.glUseProgram(list(old)[0])
 
 
 ##############################################################################
@@ -113,6 +150,7 @@ class Text:
     ):
         import pyglet
 
+        pyglet_2 = hasattr(pyglet, "__version__")
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, units, "pix")[:, 0]
         if width == "auto":
@@ -120,7 +158,12 @@ class Text:
         elif isinstance(width, str):
             raise ValueError('"width", if str, must be "auto"')
         self._attr = attr
-        if wrap:
+        kwargs = dict(width=width, height=height, multiline=wrap, dpi=int(ec.dpi))
+        if pyglet_2:
+            # Really needed to work around
+            # https://github.com/pyglet/pyglet/issues/1359
+            kwargs.update(anchor_x=anchor_x, anchor_y=anchor_y, x=pos[0], y=pos[1])
+        elif wrap:
             text = text + "\n "  # weird Pyglet bug
         if self._attr:
             preamble = (
@@ -129,20 +172,17 @@ class Text:
                 f"{{color {_convert_color(color)}}}"
             )
             doc = pyglet.text.decode_attributed(preamble + text)
-            self._text = pyglet.text.layout.TextLayout(
-                doc, width=width, height=height, multiline=wrap, dpi=int(ec.dpi)
-            )
+            self._text = pyglet.text.layout.TextLayout(doc, **kwargs)
         else:
-            self._text = pyglet.text.Label(
-                text, width=width, height=height, multiline=wrap, dpi=int(ec.dpi)
-            )
+            self._text = pyglet.text.Label(text, **kwargs)
             self._text.color = _convert_color(color)
             self._text.font_name = font_name
             self._text.font_size = font_size
-        self._text.x = pos[0]
-        self._text.y = pos[1]
-        self._text.anchor_x = anchor_x
-        self._text.anchor_y = anchor_y
+        if not pyglet_2:
+            self._text.x = pos[0]
+            self._text.y = pos[1]
+            self._text.anchor_x = anchor_x
+            self._text.anchor_y = anchor_y
 
     def set_color(self, color):
         """Set the text color
@@ -167,10 +207,10 @@ class Text:
 ##############################################################################
 # Triangulations
 
-tri_vert = """
-#version 120
+tri_vert = """\
+#version 150 core
 
-attribute vec2 a_position;
+in vec2 a_position;
 uniform mat4 u_view;
 
 void main()
@@ -180,13 +220,14 @@ void main()
 """
 
 tri_frag = """
-#version 120
+#version 150 core
 
 uniform vec4 u_color;
+out vec4 FragColor;
 
 void main()
 {
-    gl_FragColor = u_color;
+    FragColor = u_color;
 }
 """
 
@@ -208,6 +249,8 @@ def _check_log(obj, func):
 
 
 def _create_program(ec, vert, frag):
+    from pyglet import gl
+
     program = gl.glCreateProgram()
 
     vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
@@ -233,14 +276,13 @@ def _create_program(ec, vert, frag):
     gl.glDetachShader(program, fragment)
 
     # Set the view matrix
-    gl.glUseProgram(program)
-    loc = gl.glGetUniformLocation(program, b"u_view")
-    view = ec.window_size_pix
-    view = np.diag([2.0 / view[0], 2.0 / view[1], 1.0, 1.0])
-    view[-1, :2] = -1
-    view = view.astype(np.float32).ravel()
-    gl.glUniformMatrix4fv(loc, 1, False, (c_float * 16)(*view))
-    gl.glUseProgram(0)
+    with _use_program(program):
+        loc = gl.glGetUniformLocation(program, b"u_view")
+        view = ec.window_size_pix
+        view = np.diag([2.0 / view[0], 2.0 / view[1], 1.0, 1.0])
+        view[-1, :2] = -1
+        view = view.astype(np.float32).ravel()
+        gl.glUniformMatrix4fv(loc, 1, False, (c_float * 16)(*view))
     return program
 
 
@@ -248,33 +290,39 @@ class _Triangular:
     """Super class for objects that use triangulations and/or lines"""
 
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
+        from pyglet import gl
+
         self._ec = ec
         self._line_width = line_width
         self._line_loop = line_loop  # whether or not lines drawn are looped
 
         # initialize program and shaders
         self._program = _create_program(ec, tri_vert, tri_frag)
-        gl.glUseProgram(self._program)
 
         self._counts = dict()
         self._colors = dict()
         self._buffers = dict()
         self._points = dict()
         self._tris = dict()
-        for kind in ("line", "fill"):
-            self._counts[kind] = 0
-            self._colors[kind] = (0.0, 0.0, 0.0, 0.0)
-            self._buffers[kind] = dict(array=gl.GLuint())
-            gl.glGenBuffers(1, pointer(self._buffers[kind]["array"]))
-        self._buffers["fill"]["index"] = gl.GLuint()
-        gl.glGenBuffers(1, pointer(self._buffers["fill"]["index"]))
-        gl.glUseProgram(0)
+        with _use_program(self._program):
+            for kind in ("line", "fill"):
+                self._counts[kind] = 0
+                self._colors[kind] = (0.0, 0.0, 0.0, 0.0)
+                self._buffers[kind] = dict(array=gl.GLuint())
+                gl.glGenBuffers(1, pointer(self._buffers[kind]["array"]))
+                if kind == "fill":
+                    self._buffers[kind]["index"] = gl.GLuint()
+                    gl.glGenBuffers(1, pointer(self._buffers[kind]["index"]))
 
         self.set_fill_color(fill_color)
         self.set_line_color(line_color)
+        self._vao = gl.GLuint()
+        gl.glGenVertexArrays(1, pointer(self._vao))
 
     def _set_points(self, points, kind, tris):
         """Set fill and line points."""
+        from pyglet import gl
+
         if points is None:
             self._counts[kind] = 0
         points = np.asarray(points, dtype=np.float32, order="C")
@@ -290,29 +338,24 @@ class _Triangular:
             del tris
         self._points[kind] = points
         del points
-
-        gl.glUseProgram(self._program)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers[kind]["array"])
-        gl.glBufferData(
-            gl.GL_ARRAY_BUFFER,
-            self._points[kind].size * 4,
-            self._points[kind].tobytes(),
-            gl.GL_STATIC_DRAW,
-        )
-        if kind == "line":
-            self._counts[kind] = array_count
-        if kind == "fill":
-            self._counts[kind] = self._tris[kind].size
-            gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self._buffers[kind]["index"])
+        with _use_program(self._program), _array_buffer(self._buffers[kind]["array"]):
             gl.glBufferData(
-                gl.GL_ELEMENT_ARRAY_BUFFER,
-                self._tris[kind].size * 4,
-                self._tris[kind].tobytes(),
-                gl.GL_STATIC_DRAW,
+                gl.GL_ARRAY_BUFFER,
+                self._points[kind].size * 4,
+                self._points[kind].tobytes(),
+                gl.GL_DYNAMIC_DRAW,
             )
-            gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, 0)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-        gl.glUseProgram(0)
+            if kind == "line":
+                self._counts[kind] = array_count
+            if kind == "fill":
+                self._counts[kind] = self._tris[kind].size
+                with _element_array_buffer(self._buffers[kind]["index"]):
+                    gl.glBufferData(
+                        gl.GL_ELEMENT_ARRAY_BUFFER,
+                        self._tris[kind].size * 4,
+                        self._tris[kind].tobytes(),
+                        gl.GL_STATIC_DRAW,
+                    )
 
     def _set_fill_points(self, points, tris):
         self._set_points(points, "fill", tris)
@@ -356,42 +399,46 @@ class _Triangular:
 
     def draw(self):
         """Draw the object to the display buffer."""
-        gl.glUseProgram(self._program)
+        from pyglet import gl
+
+        gl.glBindVertexArray(self._vao)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         for kind in ("fill", "line"):
-            if self._counts[kind] > 0:
-                if kind == "line":
-                    if self._line_width <= 0.0:
-                        continue
-                    gl.glLineWidth(self._line_width)
-                    if self._line_loop:
-                        mode = gl.GL_LINE_LOOP
-                    else:
-                        mode = gl.GL_LINE_STRIP
-                    cmd = partial(gl.glDrawArrays, mode, 0, self._counts[kind])
-                else:
-                    gl.glBindBuffer(
-                        gl.GL_ELEMENT_ARRAY_BUFFER, self._buffers[kind]["index"]
-                    )
-                    cmd = partial(
-                        gl.glDrawElements,
-                        gl.GL_TRIANGLES,
-                        self._counts[kind],
-                        gl.GL_UNSIGNED_INT,
-                        0,
-                    )
-                gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers[kind]["array"])
+            if self._counts[kind] == 0:
+                print(f"Skipping {kind} for {self}")
+                continue
+            with (
+                _use_program(self._program),
+                _array_buffer(self._buffers[kind]["array"]),
+            ):
                 loc_pos = gl.glGetAttribLocation(self._program, b"a_position")
                 gl.glEnableVertexAttribArray(loc_pos)
                 gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
                 loc_col = gl.glGetUniformLocation(self._program, b"u_color")
                 gl.glUniform4f(loc_col, *self._colors[kind])
-                cmd()
-                # cleanup
+                if kind == "line":
+                    if self._line_width <= 0.0:
+                        continue
+                    try:
+                        gl.glLineWidth(self._line_width)
+                    except gl.lib.GLException:  # on macOS for example only 1 works
+                        gl.glLineWidth(1.0)
+                    if self._line_loop:
+                        mode = gl.GL_LINE_LOOP
+                    else:
+                        mode = gl.GL_LINE_STRIP
+                    gl.glDrawArrays(mode, 0, self._counts[kind])
+                else:
+                    with _element_array_buffer(self._buffers[kind]["index"]):
+                        gl.glDrawElements(
+                            gl.GL_TRIANGLES,
+                            self._counts[kind],
+                            gl.GL_UNSIGNED_INT,
+                            0,
+                        )
                 gl.glDisableVertexAttribArray(loc_pos)
-                if kind != "line":
-                    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, 0)
-                gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-        gl.glUseProgram(0)
+        gl.glBindVertexArray(0)
 
 
 class Line(_Triangular):
@@ -428,8 +475,7 @@ class Line(_Triangular):
         line_width=1.0,
         line_loop=False,
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=None,
             line_color=line_color,
@@ -496,8 +542,7 @@ class Triangle(_Triangular):
         line_color=None,
         line_width=1.0,
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=fill_color,
             line_color=line_color,
@@ -558,8 +603,7 @@ class Rectangle(_Triangular):
     def __init__(
         self, ec, pos, units="norm", fill_color="white", line_color=None, line_width=1.0
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=fill_color,
             line_color=line_color,
@@ -630,8 +674,7 @@ class Diamond(_Triangular):
     def __init__(
         self, ec, pos, units="norm", fill_color="white", line_color=None, line_width=1.0
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=fill_color,
             line_color=line_color,
@@ -709,8 +752,7 @@ class Circle(_Triangular):
         line_color=None,
         line_width=1.0,
     ):
-        _Triangular.__init__(
-            self,
+        super().__init__(
             ec,
             fill_color=fill_color,
             line_color=line_color,
@@ -1056,12 +1098,12 @@ class RawImage:
             if image_buffer.max() > 1 or image_buffer.min() < 0:
                 raise ValueError("all float values must be between 0 and 1")
             image_buffer = (image_buffer * 255).astype("uint8")
+        assert image_buffer.dtype == np.uint8
         if image_buffer.ndim == 2:  # grayscale
             image_buffer = np.tile(image_buffer[..., np.newaxis], (1, 1, 3))
-        if not image_buffer.ndim == 3 or image_buffer.shape[2] not in [3, 4]:
-            raise RuntimeError(f"image_buffer incorrect size: {image_buffer.shape}")
-        # add alpha channel if necessary
         dims = image_buffer.shape
+        if len(dims) != 3 or dims[2] not in [3, 4]:
+            raise ValueError(f"image_buffer incorrect shape: {image_buffer.shape}")
         fmt = "RGB" if dims[2] == 3 else "RGBA"
         self._sprite = sprite.Sprite(
             image.ImageData(
@@ -1114,10 +1156,10 @@ class RawImage:
         """Draw the image to the buffer"""
         self._sprite.scale = self._scale
         pos = self._pos - [self._sprite.width / 2.0, self._sprite.height / 2.0]
-        try:
-            self._sprite.position = (pos[0], pos[1])
-        except AttributeError:
-            self._sprite.set_position(pos[0], pos[1])
+        if hasattr(self._sprite, "z"):  # Pyglet 2+
+            self._sprite.position = (*pos, self._sprite.z)
+        else:
+            self._sprite.position = pos
         self._sprite.draw()
 
     def get_rect(self, units="norm"):
@@ -1140,13 +1182,13 @@ class RawImage:
         return np.squeeze(np.concatenate([center, width_height]))
 
 
-tex_vert = """
-#version 120
+tex_vert = """\
+#version 150 core
 
-attribute vec2 a_position;
-attribute vec2 a_texcoord;
+in vec2 a_position;
+in vec2 a_texcoord;
 uniform mat4 u_view;
-varying vec2 v_texcoord;
+out vec2 v_texcoord;
 
 void main()
 {
@@ -1155,17 +1197,17 @@ void main()
 }
 """
 
-tex_frag = """
-#version 120
-#extension GL_ARB_texture_rectangle : enable
+tex_frag = """\
+#version 150 core
 
-uniform sampler2DRect u_texture;
-varying vec2 v_texcoord;
+uniform sampler2D u_texture;
+in vec2 v_texcoord;
+out vec4 FragColor;
 
 void main()
 {
-    gl_FragColor = texture2DRect(u_texture, v_texcoord);
-    gl_FragColor.a = 1.0;
+    FragColor = texture(u_texture, v_texcoord);
+    FragColor.a = 1.0;
 }
 """
 
@@ -1201,7 +1243,8 @@ class Video:
     Notes
     -----
     This is a somewhat pared-down implementation of video playback. Looping is
-    not available, and the audio stream from the video file is discarded.
+    not available, and the audio stream from the video file is only available when
+    using the sound card as audio controller and ``"pyglet"`` as the sound card backend.
     Timing of individual frames is relegated to the pyglet media player's
     internal clock. Recommended for use only in paradigms where the relative
     timing of audio and video are unimportant (e.g., if the video is merely
@@ -1218,26 +1261,25 @@ class Video:
         center=True,
         visible=True,
     ):
+        from pyglet import gl
         from pyglet.media import Player, load
 
         self._ec = ec
         # On Windows, the default is unaccelerated WMF, which is terribly slow.
         decoder = None
-        if _new_pyglet():
-            try:
-                from pyglet.media.codecs.ffmpeg import FFmpegDecoder
+        try:
+            from pyglet.media.codecs.ffmpeg import FFmpegDecoder
 
-                decoder = FFmpegDecoder()
-            except Exception as exc:
-                warnings.warn(
-                    "FFmpeg decoder could not be instantiated, decoding "
-                    f"performance could be compromised:\n{exc}"
-                )
+            decoder = FFmpegDecoder()
+        except Exception as exc:
+            warnings.warn(
+                "FFmpeg decoder could not be instantiated, decoding "
+                f"performance could be compromised:\n{exc}"
+            )
         self._source = load(file_name, decoder=decoder)
         self._player = Player()
         with warnings.catch_warnings(record=True):  # deprecated eos_action
             self._player.queue(self._source)
-        self._player._audio_player = None
         frame_rate = self.frame_rate
         if frame_rate is None:
             logger.warning("Frame rate could not be determined")
@@ -1250,7 +1292,6 @@ class Video:
         self._center = center
         self.set_scale(scale)  # also calls set_pos
         self._visible = visible
-        self._eos_fun = self._eos_new if _new_pyglet() else self._eos_old
 
         self._program = _create_program(ec, tex_vert, tex_frag)
         gl.glUseProgram(self._program)
@@ -1258,22 +1299,28 @@ class Video:
         for key in ("position", "texcoord"):
             self._buffers[key] = gl.GLuint(0)
             gl.glGenBuffers(1, pointer(self._buffers[key]))
-        w, h = self.source_width, self.source_height
-        tex = np.array([(0, h), (w, h), (w, 0), (0, 0)], np.float32)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["texcoord"])
-        gl.glBufferData(
-            gl.GL_ARRAY_BUFFER, tex.nbytes, tex.tobytes(), gl.GL_DYNAMIC_DRAW
-        )
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+        a, b, c, d = [(0, 1), (1, 1), (1, 0), (0, 0)]
+        tex = np.array([a, b, c, a, c, d], np.float32)
+        with _array_buffer(self._buffers["texcoord"]):
+            gl.glBufferData(
+                gl.GL_ARRAY_BUFFER, tex.nbytes, tex.tobytes(), gl.GL_DYNAMIC_DRAW
+            )
         gl.glUseProgram(0)
+        self._vao = gl.GLuint()
+        gl.glGenVertexArrays(1, pointer(self._vao))
 
-    def play(self, auto_draw=True):
+    def play(self, auto_draw=True, audio=False):
         """Play video from current position.
 
         Parameters
         ----------
         auto_draw : bool
             If True, add ``self.draw`` to ``ec.on_every_flip``.
+        audio : bool
+            Whether to play the audio stream. Only works if the
+            :class:`~expyfun.ExperimentController` was instantiated with
+            ``audio_controller=dict(TYPE="sound_card", SOUND_CARD_BACKEND="pyglet")``,
+            and will raise an error if that is not the case.
 
         Returns
         -------
@@ -1281,6 +1328,15 @@ class Video:
             The timestamp (on the parent ``ExperimentController`` timeline) at
             which ``play()`` was called.
         """
+        if audio:
+            if self._ec.audio_type != "pyglet":
+                raise ValueError(
+                    "Cannot play a video's audio stream unless the audio type is "
+                    "'sound_card' and the backend is 'pyglet'."
+                )
+            self._player.volume = 1.0
+        else:
+            self._player.volume = 0.0
         if not self._playing:
             if auto_draw:
                 self._ec.call_on_every_flip(self.draw)
@@ -1375,32 +1431,35 @@ class Video:
         self._pos_centered = center
 
     def _draw(self):
-        tex = self._player.get_texture()
+        from pyglet import gl
+
+        tex = self._player.texture
         gl.glUseProgram(self._program)
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(tex.target, tex.id)
-        gl.glBindVertexArray(0)
+        gl.glBindVertexArray(self._vao)
         x, y = self._actual_pos
         w = self.source_width * self._scale
         h = self.source_height * self._scale
-        pos = np.array([(x, y), (x + w, y), (x + w, y + h), (x, y + h)], np.float32)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["position"])
-        gl.glBufferData(
-            gl.GL_ARRAY_BUFFER, pos.nbytes, pos.tobytes(), gl.GL_DYNAMIC_DRAW
-        )
-        loc_pos = gl.glGetAttribLocation(self._program, b"a_position")
-        gl.glEnableVertexAttribArray(loc_pos)
-        gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["texcoord"])
-        loc_tex = gl.glGetAttribLocation(self._program, b"a_texcoord")
-        gl.glEnableVertexAttribArray(loc_tex)
-        gl.glVertexAttribPointer(loc_tex, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-        gl.glDrawArrays(gl.GL_QUADS, 0, 4)
-        gl.glDisableVertexAttribArray(loc_pos)
-        gl.glDisableVertexAttribArray(loc_tex)
-        gl.glUseProgram(0)
+        a, b, c, d = [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+        pos = np.array([a, b, c, a, c, d], np.float32)
+        with _array_buffer(self._buffers["position"]):
+            gl.glBufferData(
+                gl.GL_ARRAY_BUFFER, pos.nbytes, pos.tobytes(), gl.GL_DYNAMIC_DRAW
+            )
+            loc_pos = gl.glGetAttribLocation(self._program, b"a_position")
+            gl.glEnableVertexAttribArray(loc_pos)
+            gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["texcoord"])
+            loc_tex = gl.glGetAttribLocation(self._program, b"a_texcoord")
+            gl.glEnableVertexAttribArray(loc_tex)
+            gl.glVertexAttribPointer(loc_tex, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glDrawArrays(gl.GL_TRIANGLES, 0, 6)
+            gl.glDisableVertexAttribArray(loc_pos)
+            gl.glDisableVertexAttribArray(loc_tex)
         gl.glBindTexture(tex.target, 0)
+        gl.glBindVertexArray(0)
+        gl.glUseProgram(0)
 
     def draw(self):
         """Draw the video texture to the screen buffer."""
@@ -1441,16 +1500,6 @@ class Video:
     # PROPERTIES
     @property
     def _eos(self):
-        return self._eos_fun()
-
-    def _eos_old(self):
-        return (
-            self._player._last_video_timestamp is not None
-            and self._player._last_video_timestamp
-            == self._source.get_next_video_timestamp()
-        )
-
-    def _eos_new(self):
         done = self._player.source is None
         ts = self._source.get_next_video_timestamp()
         dur = self._source._duration
