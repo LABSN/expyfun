@@ -91,7 +91,7 @@ jobs:
         name: Check that there is some output device
       - run: python -c "import pyglet; print(pyglet.version)"
       - run: python -c "import matplotlib.pyplot as plt"
-      - run: pip install --group dev -ve .
+      - run: pip install --group test -ve .
       # Video hangs on macOS arm64, not sure why
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         if: matrix.kind != 'old' && matrix.os != 'macos-latest'
