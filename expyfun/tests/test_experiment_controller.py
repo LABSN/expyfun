@@ -254,8 +254,11 @@ def test_ec(ac, hide_window, monkeypatch):
     else:
         _check_skip_backend(ac)
         rd, tc, fs = "keyboard", "dummy", 44100
-        if ac["SOUND_CARD_BACKEND"] == "sounddevice" and sys.platform.startswith("win"):
-            ac["SOUND_CARD_API"] = "Windows WASAPI"
+        skip_noise = False
+        if ac["SOUND_CARD_BACKEND"] == "sounddevice":
+            if sys.platform.startswith("win"):
+                ac["SOUND_CARD_API"] = "MME"
+            skip_noise = True
     for suppress in (True, False):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -463,7 +466,7 @@ def test_ec(ac, hide_window, monkeypatch):
         assert ec._playing is True
         ec.call_on_every_flip(None)
         # something funny with the ring buffer in testing on OSX
-        if sys.platform != "darwin":
+        if sys.platform != "darwin" and not skip_noise:  # doesn't work w/ sounddevice backend
             ec.call_on_next_flip(ec.start_noise())
         ec.flip()
         ec.wait_secs(SAFE_DELAY)
