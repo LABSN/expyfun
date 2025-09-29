@@ -202,5 +202,5 @@ A sound-card-based EEG system
 
 Deploying experiments
 ---------------------
-The function :func:`expyfun.download_version` should be used to deploy a
-static version of expyfun once an experiment is in its finalized state.
+The ``version`` argument of :class:`expyfun.ExperimentController` should be fixed when
+deploying a static version of expyfun once an experiment is in its finalized state.

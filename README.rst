@@ -12,8 +12,8 @@
   :alt: Join the chat at https://gitter.im/LABSN/expyfun
   :target: https://gitter.im/LABSN/expyfun?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
-`expyfun`_
-=========
+expyfun
+========
 
 This package is designed for audio-visual experiments with precise timing,
 and includes functionality for Eyelink control. This package is designed
