@@ -466,7 +466,9 @@ def test_ec(ac, hide_window, monkeypatch):
         assert ec._playing is True
         ec.call_on_every_flip(None)
         # something funny with the ring buffer in testing on OSX
-        if sys.platform != "darwin" and not skip_noise:  # doesn't work w/ sounddevice backend
+        if (
+            sys.platform != "darwin" and not skip_noise
+        ):  # doesn't work w/ sounddevice backend
             ec.call_on_next_flip(ec.start_noise())
         ec.flip()
         ec.wait_secs(SAFE_DELAY)
