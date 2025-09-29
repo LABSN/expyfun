@@ -140,7 +140,10 @@ class ExperimentController:
     joystick : bool
         Whether or not to enable joystick control.
     gapless : bool
-        Whether or not to use sounddevice, allowing gapless playback.
+        Whether or not to use sounddevice, allowing gapless playback. Setting
+        this to True will switch the sound card backend to sounddevice,
+        regardless of the setting in audio_controller or the config file.
+        Requires the API to be MME or WASAPI. The default is False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
