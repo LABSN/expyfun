@@ -3,7 +3,7 @@ import pytest
 from numpy.testing import assert_equal
 
 from expyfun import ExperimentController, fetch_data_file, visual
-from expyfun._utils import requires_opengl21, requires_video
+from expyfun._utils import requires_video
 
 std_kwargs = dict(
     output_dir=None,
@@ -18,8 +18,7 @@ std_kwargs = dict(
 )
 
 
-@requires_opengl21
-def test_visuals(hide_window):
+def test_visuals_basic(hide_window):
     """Test EC visual methods."""
     with ExperimentController("test", **std_kwargs) as ec:
         pytest.raises(TypeError, visual.Circle, ec, n_edges=3.5)
@@ -60,9 +59,10 @@ def test_visuals(hide_window):
         for shape in ((3, 3, 3), (3, 3, 4), (3, 3), (3,), (3,) * 4):
             data = np.ones(shape)
             if len(shape) not in (2, 3):
-                pytest.raises(RuntimeError, visual.RawImage, ec, data)
-            else:
-                img = visual.RawImage(ec, data)
+                with pytest.raises(ValueError, match="shape"):
+                    visual.RawImage(ec, data)
+                continue
+            img = visual.RawImage(ec, data)
             print(img.bounds)  # test bounds
             assert_equal(img.scale, 1)
             # test get_rect
@@ -105,7 +105,7 @@ def test_visuals(hide_window):
 
 
 @requires_video()
-def test_video(hide_window):
+def test_video(hide_window, monkeypatch):
     """Test EC video methods."""
     std_kwargs.update(dict(window_size=(640, 480)))
     video_path = fetch_data_file("video/example-video.mp4")
@@ -126,3 +126,17 @@ def test_video(hide_window):
         ec.video.pause()
         ec.video.draw()
         ec.delete_video()
+    # test ec.video.play(audio=True)
+    with monkeypatch.context() as m:
+        m.delenv("SOUND_CARD_NAME", raising=False)
+        m.delenv("SOUND_CARD_API", raising=False)
+        with ExperimentController(
+            "test",
+            audio_controller=dict(TYPE="sound_card", SOUND_CARD_BACKEND="pyglet"),
+            **std_kwargs,
+        ) as ec:
+            ec.load_video(video_path)
+            ec.video.play(audio=True)
+            ec.wait_secs(0.1)
+            ec.video.pause()
+            ec.delete_video()
