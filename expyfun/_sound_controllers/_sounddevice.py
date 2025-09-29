@@ -18,22 +18,18 @@ _DEFAULT_NAME = None
 
 class _StreamRegistry(dict):
     def __del__(self):
-        for stream in self.values():
+        for key, stream in list(self.items()):
             print(f"Closing {stream}")
-            if getattr(stream, 'closed', False):
-                continue
-            stream.abort()
-            stream.close()
+            stream.abort(ignore_errors=True)
+            stream.close(ignore_errors=True)
+            del self[key]
         self.clear()
 
     def _get_stream(self, fs, n_channels, api, name, api_options):
         """Select the API and device."""
-        # API
         if api is None:
             api = get_config("SOUND_CARD_API", None)
         if api is None:
-            # Eventually we should maybe allow 'Windows WDM-KS',
-            # 'Windows DirectSound', or 'MME'
             api = dict(
                 darwin="Core Audio",
                 win32="Windows WASAPI",
@@ -41,7 +37,12 @@ class _StreamRegistry(dict):
                 linux2="ALSA",
             )[sys.platform]
         key = (fs, n_channels, api, name)
-        if key not in self:
+        stream = self.get(key)
+        if stream is not None and getattr(stream, "closed", False):
+            # Remove closed streams from the registry
+            del self[key]
+            stream = None
+        if stream is None:
             self[key] = _init_stream(fs, n_channels, api, name, api_options)
         return self[key]
 
@@ -200,8 +201,9 @@ class SoundPlayer:
 
 
 def _abort_all_queues():
-    for stream in _stream_registry.values():
+    for key, stream in list(_stream_registry.items()):
         if getattr(stream, "closed", False):
             continue
         stream.abort(ignore_errors=True)
         stream.close(ignore_errors=True)
+        del _stream_registry[key]
