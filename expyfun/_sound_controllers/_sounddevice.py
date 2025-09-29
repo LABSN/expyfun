@@ -20,6 +20,8 @@ class _StreamRegistry(dict):
     def __del__(self):
         for stream in self.values():
             print(f"Closing {stream}")
+            if getattr(stream, 'closed', False):
+                continue
             stream.abort()
             stream.close()
         self.clear()
@@ -199,5 +201,7 @@ class SoundPlayer:
 
 def _abort_all_queues():
     for stream in _stream_registry.values():
-        stream.abort(ignore_errors=False)
-        stream.close()
+        if getattr(stream, "closed", False):
+            continue
+        stream.abort(ignore_errors=True)
+        stream.close(ignore_errors=True)
