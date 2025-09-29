@@ -254,7 +254,7 @@ def test_ec(ac, hide_window, monkeypatch):
         _check_skip_backend(ac)
         rd, tc, fs = "keyboard", "dummy", 44100
         if ac["SOUND_CARD_BACKEND"] == "sounddevice" and sys.platform.startswith("win"):
-            ac["SOUND_CARD_API"] = "MME"
+            ac["SOUND_CARD_API"] = "Windows WASAPI"
     for suppress in (True, False):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
