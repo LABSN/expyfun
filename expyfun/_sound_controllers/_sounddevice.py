@@ -185,9 +185,9 @@ class SoundPlayer:
 
     def play(self):
         """Play."""
-        if not self.playing:
-            self._stream.start()
         if self._stream is not None:
+            if not self._stream.active:
+                self._stream.start()
             self._action = self._stream.write(self._data)
 
     def stop(self, wait=False):
