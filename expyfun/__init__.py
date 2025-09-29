@@ -21,7 +21,6 @@ from ._utils import (
     building_doc,
     known_config_types,
 )
-from ._git import assert_version, download_version
 from ._experiment_controller import ExperimentController, get_keyboard_input
 from ._eyelink_controller import EyelinkController
 from ._sound_controllers import SoundCardController
