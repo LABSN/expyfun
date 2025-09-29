@@ -196,7 +196,7 @@ class SoundPlayer:
     def delete(self):
         if getattr(self, "_stream", None) is not None:
             self.stop()
-            stream, self._stream = self._stream, None
+            self._stream = None
 
 
 def _abort_all_queues():
