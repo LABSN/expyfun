@@ -199,9 +199,5 @@ class SoundPlayer:
 
 def _abort_all_queues():
     for stream in _stream_registry.values():
-        do_start_stop = stream.stopped
-        if do_start_stop:
-            stream.start()
-        if do_start_stop:
-            stream.abort(ignore_errors=False)
-            stream.close()
+        stream.abort(ignore_errors=False)
+        stream.close()
