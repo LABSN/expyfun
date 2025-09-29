@@ -151,7 +151,9 @@ class ExperimentController:
         Whether or not to use sounddevice, allowing gapless playback. Setting
         this to True will switch the sound card backend to sounddevice,
         regardless of the setting in audio_controller or the config file.
-        Requires the API to be MME or WASAPI. The default is False.
+        Requires the API to be MME or WASAPI. The default is False. Note that
+        for gapless playback, you should not use ``ec.wait_secs()`` or
+        ``ec.stop()`` in the experiment loop.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
