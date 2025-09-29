@@ -1,3 +1,63 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatch-vcs", "hatchling"]
+
+[project]
+authors = [
+  { email = "dan@mccloy.info", name = "Daniel McCloy" },
+  { email = "larsoner@uw.edu", name = "Eric Larson" },
+  { email = "rkmaddox@uw.edu", name = "Ross Maddox" },
+]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python",
+  "Topic :: Software Development",
+  "Topic :: Scientific/Engineering",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX",
+  "Operating System :: Unix",
+  "Operating System :: MacOS",
+]
+dependencies = [
+  "decorator",
+  "h5io",
+  "matplotlib",
+  "numpy",
+  "packaging",
+  "pillow",
+  "pyglet>=2",
+  "scipy",
+]
+description = "A high-precision auditory and visual stimulus delivery library for psychoacoustics in Python."
+dynamic = ["version"]
+keywords = ["experiment", "stimuli", "psychoacoustics", "psychophysics"]
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+maintainers = [
+  { email = "dan@mccloy.info", name = "Daniel McCloy" },
+  { email = "larsoner@uw.edu", name = "Eric Larson" },
+]
+name = "expyfun"
+readme = { content-type = "text/x-rst", file = "README.rst" }
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+all = [
+  "gitpython",                          # download_version
+  "joblib",                             # _crm_prepare_corpus_helper
+  "mne",                                # resampling, window_edges, texture stimuli
+  "pandas",                             # barplot
+  "pyparallel",                         # parallel port triggering
+  "rtmixer",                            # sound card backend
+  "tdtpy ; platform_system=='Windows'", # TDT
+]
+
+[dependency-groups]
+docs = ["numpydoc", "pydata-sphinx-theme", "sphinx-gallery", "sphinx"]
+test = ["flaky", "pytest-cov", "pytest-timeout", "pytest"]
+dev = ["build", { include-group = "docs" }, { include-group = "test" }]
+
 [tool.codespell]
 ignore-words = "ignore_words.txt"
 builtin = "clear,rare,informal,names,usage"
@@ -7,30 +67,30 @@ skip = "doc/references.bib"
 exclude = ["__init__.py"]
 
 [tool.ruff.lint]
-select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]  # , "UP031"]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP"] # , "UP031"]
 ignore = [
-    "D100", # Missing docstring in public module
-    "D104", # Missing docstring in public package
-    "D400", # First line should end with a period
-    "D401", # First line should be in imperative mood
-    "D413", # Missing blank line after last section
-    "UP031", # Use format specifiers instead of percent format
-    "UP030", # Use implicit references for positional format fields
+  "D100",  # Missing docstring in public module
+  "D104",  # Missing docstring in public package
+  "D400",  # First line should end with a period
+  "D401",  # First line should be in imperative mood
+  "D413",  # Missing blank line after last section
+  "UP031", # Use format specifiers instead of percent format
+  "UP030", # Use implicit references for positional format fields
 ]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ignore-decorators = [
-    "property",
-    "setter",
-    "mne.utils.copy_function_doc_to_method_doc",
-    "mne.utils.copy_doc",
-    "mne.utils.deprecated",
+  "property",
+  "setter",
+  "mne.utils.copy_function_doc_to_method_doc",
+  "mne.utils.copy_doc",
+  "mne.utils.deprecated",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "examples/**.py" = [
-    "D205", # 1 blank line required between summary line and description
+  "D205", # 1 blank line required between summary line and description
 ]
 
 [tool.pytest.ini_options]
@@ -81,46 +141,50 @@ filterwarnings = '''
 [tool.rstcheck]
 report_level = "WARNING"
 ignore_roles = [
-    "attr",
-    "class",
-    "doc",
-    "eq",
-    "exc",
-    "file",
-    "footcite",
-    "footcite:t",
-    "func",
-    "gh",
-    "kbd",
-    "meth",
-    "mod",
-    "newcontrib",
-    "py:mod",
-    "py:obj",
-    "obj",
-    "ref",
-    "samp",
-    "term",
+  "attr",
+  "class",
+  "doc",
+  "eq",
+  "exc",
+  "file",
+  "footcite",
+  "footcite:t",
+  "func",
+  "gh",
+  "kbd",
+  "meth",
+  "mod",
+  "newcontrib",
+  "py:mod",
+  "py:obj",
+  "obj",
+  "ref",
+  "samp",
+  "term",
 ]
 ignore_directives = [
-    "autoclass",
-    "autofunction",
-    "automodule",
-    "autosummary",
-    "bibliography",
-    "cssclass",
-    "currentmodule",
-    "dropdown",
-    "footbibliography",
-    "glossary",
-    "graphviz",
-    "grid",
-    "highlight",
-    "minigallery",
-    "tabularcolumns",
-    "toctree",
-    "rst-class",
-    "tab-set",
-    "towncrier-draft-entries",
+  "autoclass",
+  "autofunction",
+  "automodule",
+  "autosummary",
+  "bibliography",
+  "cssclass",
+  "currentmodule",
+  "dropdown",
+  "footbibliography",
+  "glossary",
+  "graphviz",
+  "grid",
+  "highlight",
+  "minigallery",
+  "tabularcolumns",
+  "toctree",
+  "rst-class",
+  "tab-set",
+  "towncrier-draft-entries",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
+
+[tool.hatch.version]
+raw-options = { version_scheme = "release-branch-semver" }
+source = "vcs"
