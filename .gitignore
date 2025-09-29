@@ -68,8 +68,7 @@ env/
 
 # pytest
 .cache
+.pytest_cache/
 
 # pycharm
 .idea/
-
-.pytest_cache/

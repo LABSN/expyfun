@@ -162,22 +162,23 @@ class SoundCardController:
             key: params["SOUND_CARD_" + key.upper()]
             for key in ("fs", "api", "name", "fixed_delay", "api_options")
         }
-        if self.backend_name == 'sounddevice':  # use this or next line
+        if self.backend_name == "sounddevice":  # use this or next line
             # ensure id triggers are after onset for gapless playback
             if self.ec._gapless:
                 if not self._id_after_onset:
                     raise ValueError(
                         "SOUND_CARD_TRIGGER_ID_AFTER_ONSET must be True for"
                         " gapless playback."
-                        )
-            # make sure the API is one that works with sounddevice
-            if os.name == 'nt' and (params['SOUND_CARD_API'] not in
-                                    ["MME", "Windows WASAPI"]):
-                raise ValueError(
-                    "SOUND_CARD_API must be either \"MME\" or \"Windows "
-                    "WASAPI\" for gapless playback, got "
-                    f"{params["SOUND_CARD_API"]}."
                     )
+            # make sure the API is one that works with sounddevice
+            if os.name == "nt" and (
+                params["SOUND_CARD_API"] not in ["MME", "Windows WASAPI"]
+            ):
+                raise ValueError(
+                    'SOUND_CARD_API must be either "MME" or "Windows '
+                    'WASAPI" for gapless playback, got '
+                    f"{params['SOUND_CARD_API']}."
+                )
         temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = float(temp_sound.fs)
