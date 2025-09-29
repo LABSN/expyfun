@@ -25,11 +25,9 @@ grouped by hardware control type.
    ParallelTrigger
    SoundCardController
    TDTController
-   assert_version
    binary_to_decimals
    check_units
    decimals_to_binary
-   download_version
    get_config
    get_config_path
    get_keyboard_input

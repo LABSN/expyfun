@@ -20,9 +20,10 @@ class _StreamRegistry(dict):
     def __del__(self):
         for key, stream in list(self.items()):
             print(f"Closing {stream}")
-            stream.abort(ignore_errors=True)
-            stream.close(ignore_errors=True)
-            del self[key]
+            if getattr(stream, "closed", False):
+                continue
+            stream.abort()
+            stream.close()
         self.clear()
 
     def _get_stream(self, fs, n_channels, api, name, api_options):

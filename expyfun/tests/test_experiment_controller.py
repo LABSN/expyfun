@@ -11,6 +11,7 @@ import pytest
 from flaky import flaky
 from numpy.testing import assert_allclose, assert_equal
 
+import expyfun
 from expyfun import ExperimentController, _experiment_controller, visual
 from expyfun._experiment_controller import _get_dev_db
 from expyfun._sound_controllers._sound_controller import _SOUND_CARD_KEYS
@@ -818,3 +819,18 @@ def test_noise(hide_window):
     with ExperimentController(*std_args, noise_array=noise_array, **std_kwargs) as ec:
         ec.start_noise()
         ec.stop_noise()
+
+
+def test_version_assertions(monkeypatch):
+    """Test version assertions."""
+    kwargs = std_kwargs.copy()
+    del kwargs["version"]
+    with ExperimentController(*std_args, version="dev", **kwargs):
+        pass
+    with pytest.raises(RuntimeError, match="^You must specify.*"):
+        ExperimentController(*std_args, **kwargs)
+    with pytest.raises(RuntimeError, match="^Requested version.*"):
+        ExperimentController(*std_args, version="0.0.0", **kwargs)
+    monkeypatch.setattr(expyfun, "__version__", "1.2.3")
+    with ExperimentController(*std_args, version="1.2.3", **kwargs):
+        pass

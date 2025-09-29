@@ -19,7 +19,6 @@ from os import path as op
 
 import numpy as np
 
-from ._git import __version__, assert_version
 from ._input_controllers import CedrusBox, Joystick, Keyboard, Mouse
 from ._sound_controllers import _AUTO_BACKENDS, SoundCardController, SoundPlayer
 from ._tdt_controller import TDTController
@@ -130,10 +129,7 @@ class ExperimentController:
         If ``True``, will suppress resampling of stimuli to the sampling
         frequency of the sound output device.
     version : str | None
-        A length-7 string passed to ``expyfun.assert_version()`` to ensure that
-        the expected version of the expyfun codebase is being used when running
-        experiments. To override version checking (e.g., during development)
-        use ``version='dev'``.
+        A string version to check. ``version='dev'`` will skip the check.
     safe_flipping : bool | None
         If False, do not use ``glFinish`` when flipping. This can restore
         60 Hz on Linux systems where 30 Hz framerates occur, but the timing
@@ -198,6 +194,8 @@ class ExperimentController:
         gapless=False,
         verbose=None,
     ):
+        from . import __version__
+
         # initialize some values
         self._stim_fs = stim_fs
         self._stim_rms = stim_rms
@@ -239,14 +237,18 @@ class ExperimentController:
                     "status in pyglet."
                 )
             # check expyfun version
-            if version is None:
+            if not isinstance(version, str):
                 raise RuntimeError(
                     "You must specify an expyfun version string"
                     " to use ExperimentController, or specify "
-                    "version='dev' to override."
+                    f"version='dev' to override, got {version=!r}."
                 )
             elif version.lower() != "dev":
-                assert_version(version)
+                if version != __version__:
+                    raise RuntimeError(
+                        f"Requested version {version=!r} does not match "
+                        f"installed version {__version__=!r}."
+                    )
             # set up timing
             # Use ZeroClock, which uses the "clock" fn but starts at zero
             self._time_corrections = dict()
