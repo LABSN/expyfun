@@ -171,10 +171,12 @@ class SoundCardController:
                         " gapless playback."
                         )
             # make sure the API is one that works with sounddevice
-            if params['SOUND_CARD_API'] not in ["MME", "WASAPI"]:
+            if os.name == 'nt' and (params['SOUND_CARD_API'] not in
+                                    ["MME", "Windows WASAPI"]):
                 raise ValueError(
-                    "SOUND_CARD_API must be either \"MME\" or \"WASAPI\" for "
-                    "gapless playback."
+                    "SOUND_CARD_API must be either \"MME\" or \"Windows "
+                    "WASAPI\" for gapless playback, got "
+                    f"{params["SOUND_CARD_API"]}."
                     )
         temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
