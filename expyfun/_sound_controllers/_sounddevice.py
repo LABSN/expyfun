@@ -98,12 +98,14 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
             )
         param_str += " with options %s" % (api_options,)
     param_str += ", %d channels" % (n_channels,)
+    blocksize = None
     if fs is not None:
         param_str += " @ %d Hz" % (fs,)
+        blocksize = int(fs/5)
     try:
         stream = sd.OutputStream(
             samplerate=fs,
-            blocksize=int(fs / 5),
+            blocksize=blocksize,
             device=di,
             channels=n_channels,
             dtype="float32",
@@ -142,7 +144,9 @@ class SoundPlayer:
         data = np.asarray(data, np.float32, "C")
         self._data = data
         if loop:
-            raise NotImplementedError("Not implemented for sounddevice backend.")
+            raise NotImplementedError(
+                "Not implemented for sounddevice backend."
+                )
         if fixed_delay is not None:
             if isinstance(fixed_delay, str):
                 try:
