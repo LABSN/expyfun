@@ -111,8 +111,8 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
             dither_off=True,
             extra_settings=extra_settings,
         )
-    except Exception as exp:
-        raise RuntimeError(f"Could not set up {param_str}:\n{exp}") from None
+    except Exception:
+        raise RuntimeError(f"Could not set up {param_str}")
     assert stream.channels == n_channels
     if fs is None:
         param_str += " @ %d Hz" % (stream.samplerate,)
