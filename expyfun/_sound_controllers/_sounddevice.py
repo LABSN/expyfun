@@ -20,7 +20,7 @@ class _StreamRegistry(dict):
     def __del__(self):
         for stream in self.values():
             print(f"Closing {stream}")
-            if getattr(stream, 'closed', False):
+            if getattr(stream, "closed", False):
                 continue
             stream.abort()
             stream.close()
