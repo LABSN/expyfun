@@ -253,8 +253,7 @@ def test_ec(ac, hide_window, monkeypatch):
     else:
         _check_skip_backend(ac)
         rd, tc, fs = "keyboard", "dummy", 44100
-        if (ac["SOUND_CARD_BACKEND"] == 'sounddevice'
-             and sys.platform.startswith('win')):
+        if ac["SOUND_CARD_BACKEND"] == "sounddevice" and sys.platform.startswith("win"):
             ac["SOUND_CARD_API"] = "MME"
     for suppress in (True, False):
         with warnings.catch_warnings(record=True) as w:
