@@ -242,6 +242,7 @@ def test_degenerate():
 @pytest.mark.timeout(120)
 def test_ec(ac, hide_window, monkeypatch):
     """Test EC methods."""
+    skip_noise = False
     if ac == "tdt":
         rd, tc, fs = "tdt", "tdt", get_tdt_rates()["25k"]
         pytest.raises(
@@ -254,7 +255,6 @@ def test_ec(ac, hide_window, monkeypatch):
     else:
         _check_skip_backend(ac)
         rd, tc, fs = "keyboard", "dummy", 44100
-        skip_noise = False
         if ac["SOUND_CARD_BACKEND"] == "sounddevice":
             if sys.platform.startswith("win"):
                 ac["SOUND_CARD_API"] = "MME"
