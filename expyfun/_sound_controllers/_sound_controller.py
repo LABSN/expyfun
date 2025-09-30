@@ -176,7 +176,7 @@ class SoundCardController:
                     )
             # make sure the API is one that works with sounddevice
             if os.name == "nt" and (
-                params["SOUND_CARD_API"] not in ["MME", "Windows WASAPI"]
+                params["SOUND_CARD_API"] not in ["MME", "Windows WASAPI", "ASIO"]
             ):
                 raise ValueError(
                     'SOUND_CARD_API must be either "MME" or "Windows '

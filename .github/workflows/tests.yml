@@ -51,15 +51,15 @@ jobs:
           set -xeo pipefail
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             echo "Setting env vars for Windows"
-            echo "AZURE_CI_WINDOWS=true" >> $GITHUB_ENV
-            echo "SOUND_CARD_BACKEND=rtmixer" >> $GITHUB_ENV
-            echo "SOUND_CARD_NAME=Speakers" >> $GITHUB_ENV
-            echo "SOUND_CARD_FS=48000" >> $GITHUB_ENV
-            echo "SOUND_CARD_API=Windows WDM-KS" >> $GITHUB_ENV
+            echo "AZURE_CI_WINDOWS=true" | tee -a $GITHUB_ENV
+            echo "SOUND_CARD_BACKEND=rtmixer" | tee -a $GITHUB_ENV
+            echo "SOUND_CARD_NAME=Sound Mapper" | tee -a $GITHUB_ENV
+            echo "SOUND_CARD_FS=48000" | tee -a $GITHUB_ENV
+            echo "SOUND_CARD_API=MME" | tee -a $GITHUB_ENV
           elif [[ "${{ runner.os }}" == "Linux" ]]; then
             echo "Setting env vars for Linux"
-            echo "_EXPYFUN_SILENT=true" >> $GITHUB_ENV
-            echo "SOUND_CARD_BACKEND=pyglet" >> $GITHUB_ENV
+            echo "_EXPYFUN_SILENT=true" | tee -a $GITHUB_ENV
+            echo "SOUND_CARD_BACKEND=pyglet" | tee -a $GITHUB_ENV
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             echo "Setting env vars for macOS"
           fi
