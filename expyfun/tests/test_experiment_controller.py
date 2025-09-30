@@ -38,7 +38,7 @@ std_kwargs = dict(
     verbose=True,
     version="dev",
 )
-SAFE_DELAY = 0.5 if platform.platform() == "Windows" else 0.2
+SAFE_DELAY = 0.5 if platform.system() == "Windows" else 0.2
 
 
 def dummy_print(string):
@@ -466,7 +466,7 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.call_on_every_flip(None)
         # something funny with the ring buffer in testing on OSX
         if (
-            platform.platform() != "macOS" and not skip_noise
+            platform.system() != "macOS" and not skip_noise
         ):  # doesn't work w/ sounddevice backend
             ec.call_on_next_flip(ec.start_noise())
         ec.flip()
@@ -517,7 +517,7 @@ def test_ec(ac, hide_window, monkeypatch):
 
 
 @pytest.mark.skipif(
-    platform.platform() == "macOS",
+    platform.system() == "macOS",
     reason="Monitor tests failing on macOS",
 )
 @pytest.mark.parametrize("screen_num", (None, 0))
@@ -631,7 +631,7 @@ def test_button_presses_and_window_size(hide_window):
         fake_button_press(ec, "backspace", 0.4)
         fake_button_press(ec, "comma", 0.45)
         fake_button_press(ec, "return", 0.5)
-        if platform.platform() == "Linux":
+        if platform.system() == "Linux":
             assert ec.text_input(all_caps=False).strip() == "a"
 
 
