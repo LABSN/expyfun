@@ -466,7 +466,7 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.call_on_every_flip(None)
         # something funny with the ring buffer in testing on OSX
         if (
-            platform.system() != "macOS" and not skip_noise
+            platform.system() != "Darwin" and not skip_noise
         ):  # doesn't work w/ sounddevice backend
             ec.call_on_next_flip(ec.start_noise())
         ec.flip()
@@ -517,7 +517,7 @@ def test_ec(ac, hide_window, monkeypatch):
 
 
 @pytest.mark.skipif(
-    platform.system() == "macOS",
+    platform.system() == "Darwin",
     reason="Monitor tests failing on macOS",
 )
 @pytest.mark.parametrize("screen_num", (None, 0))

@@ -89,7 +89,11 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
             "Could not find device on API %r with name "
             "containing %r, found:\n%s" % (api["name"], name, "\n".join(possible))
         )
-    param_str = "sound card %r (devices[%d]) via %r" % (device["name"], di, api["name"])
+    param_str = (
+        f"sound card {device['name']!r} (devices[{di}]) via {api['name']}: "
+        f"{devices[di]}"
+    )
+    all_devices = "\n".join(f"{ii}: {d}" for ii, d in enumerate(devices))
     extra_settings = None
     if api_options is not None:
         if api["name"] == "Windows WASAPI":
@@ -118,7 +122,9 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
             extra_settings=extra_settings,
         )
     except Exception:
-        raise RuntimeError(f"Could not set up {param_str}")
+        raise RuntimeError(
+            f"Could not set up {param_str}\n\nAll devices:\n{all_devices}"
+        )
     assert stream.channels == n_channels
     if fs is None:
         param_str += " @ %d Hz" % (stream.samplerate,)
