@@ -7,13 +7,12 @@
 import sys
 
 import numpy as np
-import sounddevice
 from rtmixer import Mixer, RingBuffer
 
-from .._utils import _all_sds, get_config, logger
+from .._utils import get_config, logger
+from ._sounddevice import _find_device
 
 _PRIORITY = 100
-_DEFAULT_NAME = None
 
 
 # only initialize each mixer once and reuse it until this gets garbage
@@ -52,56 +51,12 @@ _mixer_registry = _MixerRegistry()
 
 
 def _init_mixer(fs, n_channels, api, name, api_options=None):
-    devices = sounddevice.query_devices(kind="output")
-    if len(devices) == 0:
-        raise OSError("No sound devices found!")
-    apis = sounddevice.query_hostapis()
-    valid_apis = []
-    for ai, this_api in enumerate(apis):
-        if this_api["name"] == api:
-            api = this_api
-            break
-        else:
-            valid_apis.append(this_api["name"])
-    else:
-        m = 'Could not find host API %s. Valid choices are "%s"'
-        raise RuntimeError(m % (api, ", ".join(valid_apis)))
-    del this_api
-
-    # Name
-    if name is None:
-        name = get_config("SOUND_CARD_NAME", None)
-    if name is None:
-        global _DEFAULT_NAME
-        if _DEFAULT_NAME is None:
-            di = api["default_output_device"]
-            _DEFAULT_NAME = devices[di]["name"]
-            logger.exp("Selected default sound device: %r" % (_DEFAULT_NAME,))
-        name = _DEFAULT_NAME
-    possible = list()
-    for di, device in enumerate(devices):
-        if device["hostapi"] == ai:
-            possible.append(device["name"])
-            if name in device["name"]:
-                break
-    else:
-        raise RuntimeError(
-            "Could not find device on API %r with name "
-            "containing %r, found:\n%s" % (api["name"], name, "\n".join(possible))
-        )
-    param_str = "sound card %r (devices[%d]) via %r" % (device["name"], di, api["name"])
-    extra_settings = None
-    if api_options is not None:
-        if api["name"] == "Windows WASAPI":
-            # exclusive mode is needed for zero jitter on Windows in testing
-            extra_settings = sounddevice.WasapiSettings(**api_options)
-        else:
-            raise ValueError(
-                'api_options only supported for "Windows WASAPI" backend, '
-                "using %s backend got api_options=%s" % (api["name"], api_options)
-            )
-        param_str += " with options %s" % (api_options,)
-    param_str += ", %d channels" % (n_channels,)
+    device, param_str, extra_settings, all_devices = _find_device(
+        n_channels,
+        api,
+        name,
+        api_options=api_options,
+    )
     if fs is not None:
         param_str += " @ %d Hz" % (fs,)
     try:
@@ -110,11 +65,11 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
             latency="low",
             channels=n_channels,
             dither_off=True,
-            device=di,
+            device=device["index"],
             extra_settings=extra_settings,
         )
     except Exception:
-        raise RuntimeError(f"Could not set up {param_str}:\n\n{_all_sds(devices)}")
+        raise RuntimeError(f"Could not set up {param_str}:\n\n{all_devices}")
     assert mixer.channels == n_channels
     if fs is None:
         param_str += " @ %d Hz" % (mixer.samplerate,)

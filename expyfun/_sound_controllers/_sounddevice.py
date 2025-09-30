@@ -10,10 +10,9 @@ import sys
 import numpy as np
 import sounddevice as sd
 
-from .._utils import _all_sds, get_config, logger
+from .._utils import get_config, logger
 
 _PRIORITY = 300
-_DEFAULT_NAME = None
 
 
 class _StreamRegistry(dict):
@@ -52,59 +51,10 @@ _stream_registry = _StreamRegistry()
 
 
 def _init_stream(fs, n_channels, api, name, api_options=None):
-    devices = sd.query_devices(kind="output")
-    if len(devices) == 0:
-        raise OSError("No sound devices found!")
-    apis = sd.query_hostapis()
-    valid_apis = []
-    for ai, this_api in enumerate(apis):
-        if this_api["name"] == api:
-            api = this_api
-            break
-        else:
-            valid_apis.append(this_api["name"])
-    else:
-        m = 'Could not find host API %s. Valid choices are "%s"'
-        raise RuntimeError(m % (api, ", ".join(valid_apis)))
-    del this_api
-
-    # Name
-    if name is None:
-        name = get_config("SOUND_CARD_NAME", None)
-    if name is None:
-        global _DEFAULT_NAME
-        if _DEFAULT_NAME is None:
-            di = api["default_output_device"]
-            _DEFAULT_NAME = devices[di]["name"]
-            logger.exp("Selected default sound device: %r" % (_DEFAULT_NAME,))
-        name = _DEFAULT_NAME
-    possible = list()
-    for di, device in enumerate(devices):
-        if device["hostapi"] == ai:
-            possible.append(device["name"])
-            if name in device["name"]:
-                break
-    else:
-        raise RuntimeError(
-            "Could not find device on API %r with name "
-            "containing %r, found:\n%s" % (api["name"], name, "\n".join(possible))
-        )
-    param_str = (
-        f"sound card {device['name']!r} (devices[{di}]) via {api['name']}: "
-        f"{devices[di]}"
+    device, param_str, extra_settings, all_devices = _find_device(
+        n_channels, api, name, api_options
     )
-    extra_settings = None
-    if api_options is not None:
-        if api["name"] == "Windows WASAPI":
-            # exclusive mode is needed for zero jitter on Windows in testing
-            extra_settings = sd.WasapiSettings(**api_options)
-        else:
-            raise ValueError(
-                'api_options only supported for "Windows WASAPI" backend, '
-                "using %s backend got api_options=%s" % (api["name"], api_options)
-            )
-        param_str += " with options %s" % (api_options,)
-    param_str += ", %d channels" % (n_channels,)
+    del api, name, api_options
     blocksize = None
     if fs is not None:
         param_str += " @ %d Hz" % (fs,)
@@ -113,7 +63,7 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
         stream = sd.OutputStream(
             samplerate=fs,
             blocksize=blocksize,
-            device=di,
+            device=device["index"],
             channels=n_channels,
             dtype="float32",
             latency="low",
@@ -121,7 +71,9 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
             extra_settings=extra_settings,
         )
     except Exception:
-        raise RuntimeError(f"Could not set up {param_str}:\n\n{_all_sds(devices)}")
+        raise RuntimeError(
+            f"Could not set up {param_str}, all options:\n\n{all_devices}"
+        )
     assert stream.channels == n_channels
     if fs is None:
         param_str += " @ %d Hz" % (stream.samplerate,)
@@ -211,3 +163,68 @@ def _abort_all_queues():
         stream.abort(ignore_errors=True)
         stream.close(ignore_errors=True)
         del _stream_registry[key]
+
+
+def _find_device(n_channels, api, name, api_options=None):
+    devices = sd.query_devices()
+    if len(devices) == 0:
+        raise OSError("No sound devices found!")
+    apis = sd.query_hostapis()
+    valid_apis = []
+    for ai, this_api in enumerate(apis):
+        if this_api["name"] == api:
+            api = this_api
+            break
+        else:
+            valid_apis.append(this_api["name"])
+    else:
+        m = 'Could not find host API %s. Valid choices are "%s"'
+        raise RuntimeError(m % (api, ", ".join(valid_apis)))
+    del this_api
+
+    # Name
+    if name is None:
+        name = get_config("SOUND_CARD_NAME", None)
+    if name is None:
+        index = api["default_output_device"]
+        indices = [device["index"] for device in devices]
+        name = devices[indices.index(index)]["name"]
+        logger.exp(f"Selected default sound device: {name!r}")
+    all_devices = []
+    for d in devices:
+        all_pairs = " | ".join(
+            f"{k}={v}"
+            for k, v in d.items()
+            if not (k.startswith("default_") or k == "index")
+        )
+        all_devices.append(f"{d['index']}: <{all_pairs}>")
+    all_devices = "\n".join(all_devices)
+    for device in devices:
+        if (
+            device["hostapi"] == ai
+            and device["max_output_channels"] >= n_channels
+            and name in device["name"]
+        ):
+            break
+    else:
+        raise RuntimeError(
+            f"Could not find device on API {api['name']} with name "
+            f"containing {name!r} with at least {n_channels=}. "
+            f"Found:\n{all_devices}"
+        )
+    param_str = (
+        f"sound card {device['name']!r} (index={device['index']}) via {api['name']}"
+    )
+    extra_settings = None
+    if api_options is not None:
+        if api["name"] == "Windows WASAPI":
+            # exclusive mode is needed for zero jitter on Windows in testing
+            extra_settings = sd.WasapiSettings(**api_options)
+        else:
+            raise ValueError(
+                'api_options only supported for "Windows WASAPI" backend, '
+                "using %s backend got api_options=%s" % (api["name"], api_options)
+            )
+        param_str += " with options %s" % (api_options,)
+    param_str += ", %d channels" % (n_channels,)
+    return device, param_str, extra_settings, all_devices

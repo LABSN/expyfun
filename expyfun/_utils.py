@@ -904,13 +904,3 @@ def _compare_version(version_a, operator, version_b):
     from packaging.version import parse  # noqa
 
     return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
-
-
-def _all_sds(devices):
-    all_devices = ["All devices:"]
-    for di, device in enumerate(devices):
-        all_pairs = " | ".join(
-            f"{k}={v}" for k, v in device.items() if not k.startswith("default_")
-        )
-        all_devices.append(f"{di}: <{all_pairs}>")
-    return "\n".join(all_devices)
