@@ -10,7 +10,7 @@ import numpy as np
 import sounddevice
 from rtmixer import Mixer, RingBuffer
 
-from .._utils import get_config, logger
+from .._utils import _all_sds, get_config, logger
 
 _PRIORITY = 100
 _DEFAULT_NAME = None
@@ -52,7 +52,7 @@ _mixer_registry = _MixerRegistry()
 
 
 def _init_mixer(fs, n_channels, api, name, api_options=None):
-    devices = sounddevice.query_devices()
+    devices = sounddevice.query_devices(kind="output")
     if len(devices) == 0:
         raise OSError("No sound devices found!")
     apis = sounddevice.query_hostapis()
@@ -113,8 +113,8 @@ def _init_mixer(fs, n_channels, api, name, api_options=None):
             device=di,
             extra_settings=extra_settings,
         )
-    except Exception as exp:
-        raise RuntimeError(f"Could not set up {param_str}:\n{exp}") from None
+    except Exception:
+        raise RuntimeError(f"Could not set up {param_str}:\n\n{_all_sds(devices)}")
     assert mixer.channels == n_channels
     if fs is None:
         param_str += " @ %d Hz" % (mixer.samplerate,)

@@ -10,7 +10,7 @@ import sys
 import numpy as np
 import sounddevice as sd
 
-from .._utils import get_config, logger
+from .._utils import _all_sds, get_config, logger
 
 _PRIORITY = 300
 _DEFAULT_NAME = None
@@ -52,7 +52,7 @@ _stream_registry = _StreamRegistry()
 
 
 def _init_stream(fs, n_channels, api, name, api_options=None):
-    devices = sd.query_devices()
+    devices = sd.query_devices(kind="output")
     if len(devices) == 0:
         raise OSError("No sound devices found!")
     apis = sd.query_hostapis()
@@ -93,7 +93,6 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
         f"sound card {device['name']!r} (devices[{di}]) via {api['name']}: "
         f"{devices[di]}"
     )
-    all_devices = "\n".join(f"{ii}: {d}" for ii, d in enumerate(devices))
     extra_settings = None
     if api_options is not None:
         if api["name"] == "Windows WASAPI":
@@ -122,9 +121,7 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
             extra_settings=extra_settings,
         )
     except Exception:
-        raise RuntimeError(
-            f"Could not set up {param_str}\n\nAll devices:\n{all_devices}"
-        )
+        raise RuntimeError(f"Could not set up {param_str}:\n\n{_all_sds(devices)}")
     assert stream.channels == n_channels
     if fs is None:
         param_str += " @ %d Hz" % (stream.samplerate,)
