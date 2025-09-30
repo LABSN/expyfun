@@ -859,7 +859,11 @@ def _check_skip_backend(backend):
     from expyfun._sound_controllers import _import_backend
 
     if isinstance(backend, dict):  # actually an AC
-        backend = backend["SOUND_CARD_BACKEND"]
+        if backend.get("TYPE", "") == "tdt":
+            backend = "tdt"
+        else:
+            backend = backend["SOUND_CARD_BACKEND"]
+    assert isinstance(backend, str), type(backend)
     try:
         _import_backend(backend)
     except Exception as exc:

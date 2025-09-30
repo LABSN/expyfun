@@ -19,7 +19,7 @@ _DEFAULT_NAME = None
 class _StreamRegistry(dict):
     def __del__(self):
         for key, stream in list(self.items()):
-            print(f"Closing {stream}")
+            logger.debug(f"Closing {stream}")
             if getattr(stream, "closed", False):
                 continue
             stream.abort()

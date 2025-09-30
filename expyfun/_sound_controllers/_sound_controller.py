@@ -164,7 +164,11 @@ class SoundCardController:
         }
         if self.backend_name == "sounddevice":  # use this or next line
             # ensure id triggers are after onset for gapless playback
-            if self.ec._gapless:
+            if not self.ec._gapless:
+                raise NotImplementedError(
+                    "Currently, only gapless=True is allowed for sounddevice backend"
+                )
+            else:
                 if not self._id_after_onset:
                     raise ValueError(
                         "SOUND_CARD_TRIGGER_ID_AFTER_ONSET must be True for"
@@ -179,6 +183,11 @@ class SoundCardController:
                     'WASAPI" for gapless playback, got '
                     f"{params['SOUND_CARD_API']}."
                 )
+        elif self.ec._gapless:
+            raise RuntimeError(
+                'SOUND_CARD_BACKEND must be "sounddevice" for gapless '
+                f"playback, got {self.backend_name!r}"
+            )
         temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = float(temp_sound.fs)

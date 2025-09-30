@@ -146,9 +146,10 @@ class ExperimentController:
         Whether or not to use sounddevice, allowing gapless playback. Setting
         this to True (default False) requires:
 
-        1. The audio type to be the sound card
-        2. The sound card backend to be sounddevice
-        3. The API to be MME or WASAPI on Windows
+        1. AUDIO_CONTROLLER must be ``"sound_card"``
+        2. SOUND_CARD_BACKEND must be ``"sounddevice"``
+        3. SOUND_CARD_TRIGGER_ID_AFTER_ONSET must be set to ``True``.
+        4. On Windows, SOUND_CARD_API must be ``"MME"`` or ``"WASAPI"``
 
         Note that for gapless playback, you should not use ``ec.wait_secs()`` or
         ``ec.stop()`` in the experiment loop.
@@ -386,11 +387,6 @@ class ExperimentController:
                     raise RuntimeError(
                         'audio_controller must be "sound_card" for gapless '
                         'playback, got "%s"' % audio_type
-                    )
-                if audio_controller["SOUND_CARD_BACKEND"] != "sounddevice":
-                    raise RuntimeError(
-                        'SOUND_CARD_BACKEND must be "sounddevice" for gapless '
-                        'playback, got "%s"' % audio_controller["SOUND_CARD_BACKEND"]
                     )
 
             #

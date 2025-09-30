@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import platform
 
 import pytest
 
@@ -51,10 +52,17 @@ for val in _SOUND_CARD_ACS:
         val.update(
             SOUND_CARD_API=None, SOUND_CARD_NAME=None, SOUND_CARD_FIXED_DELAY=None
         )
+    elif val["SOUND_CARD_BACKEND"] == "sounddevice":
+        val.update(SOUND_CARD_TRIGGER_ID_AFTER_ONSET=True)
+        if platform.platform() == "Windows":
+            val.update(SOUND_CARD_API="Windows WASAPI", SOUND_CARD_NAME=None)
     _SOUND_CARD_PARAMS.append(pytest.param(val, id=f"{val['SOUND_CARD_BACKEND']}"))
 
 
 @pytest.fixture(scope="module", params=tuple(_SOUND_CARD_PARAMS))
 def ac(request):
     """Get the backend name."""
-    yield request.param
+    param = request.param
+    if isinstance(param, dict):
+        param = param.copy()  # make sure we don't errantly modify inplace
+    yield param

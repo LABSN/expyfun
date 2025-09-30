@@ -23,7 +23,7 @@ _DEFAULT_NAME = None
 class _MixerRegistry(dict):
     def __del__(self):
         for mixer in self.values():
-            print(f"Closing {mixer}")
+            logger.debug(f"Closing {mixer}")
             mixer.abort()
             mixer.close()
         self.clear()
