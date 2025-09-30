@@ -55,7 +55,7 @@ for val in _SOUND_CARD_ACS:
     elif val["SOUND_CARD_BACKEND"] == "sounddevice":
         val.update(SOUND_CARD_TRIGGER_ID_AFTER_ONSET=True)
         if platform.system() == "Windows":
-            val.update(SOUND_CARD_API="MME", SOUND_CARD_NAME=None)
+            val.update(SOUND_CARD_API="MME", SOUND_CARD_NAME="Sound Mapper")
     _SOUND_CARD_PARAMS.append(pytest.param(val, id=f"{val['SOUND_CARD_BACKEND']}"))
 
 
