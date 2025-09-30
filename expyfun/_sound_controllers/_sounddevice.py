@@ -192,6 +192,8 @@ def _find_device(n_channels, api, name, api_options=None):
         logger.exp(f"Selected default sound device: {name!r}")
     all_devices = []
     for d in devices:
+        if d["max_output_channels"] < 1:
+            continue
         all_pairs = " | ".join(
             f"{k}={v}"
             for k, v in d.items()
