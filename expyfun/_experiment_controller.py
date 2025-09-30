@@ -27,7 +27,6 @@ from ._utils import (
     ZeroClock,
     _check_pyglet_version,
     _fix_audio_dims,
-    _get_args,
     _get_display,
     _sanitize,
     _TempDir,
@@ -145,10 +144,13 @@ class ExperimentController:
         Whether or not to enable joystick control.
     gapless : bool
         Whether or not to use sounddevice, allowing gapless playback. Setting
-        this to True will switch the sound card backend to sounddevice,
-        regardless of the setting in audio_controller or the config file.
-        Requires the API to be MME or WASAPI. The default is False. Note that
-        for gapless playback, you should not use ``ec.wait_secs()`` or
+        this to True (default False) requires:
+
+        1. The audio type to be the sound card
+        2. The sound card backend to be sounddevice
+        3. The API to be MME or WASAPI on Windows
+
+        Note that for gapless playback, you should not use ``ec.wait_secs()`` or
         ``ec.stop()`` in the experiment loop.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
@@ -174,6 +176,7 @@ class ExperimentController:
         stim_fs=24414,
         stim_db=65,
         noise_db=45,
+        *,
         noise_array=None,
         output_dir="data",
         window_size=None,
@@ -258,7 +261,8 @@ class ExperimentController:
             # dictionary for experiment metadata
             self._exp_info = OrderedDict()
 
-            for name in _get_args(self.__init__):
+            spec = inspect.getfullargspec(self.__init__)
+            for name in spec.args[1:] + spec.kwonlyargs:
                 if name != "self":
                     self._exp_info[name] = locals()[name]
             self._exp_info["date"] = date_str()
@@ -383,11 +387,11 @@ class ExperimentController:
                         'audio_controller must be "sound_card" for gapless '
                         'playback, got "%s"' % audio_type
                     )
-                audio_controller["SOUND_CARD_BACKEND"] = "sounddevice"
-                logger.info(
-                    'Expyfun: Setting "SOUND_CARD_BACKEND" to '
-                    '"sounddevice" for gapless playback.'
-                )
+                if audio_controller["SOUND_CARD_BACKEND"] != "sounddevice":
+                    raise RuntimeError(
+                        'SOUND_CARD_BACKEND must be "sounddevice" for gapless '
+                        'playback, got "%s"' % audio_controller["SOUND_CARD_BACKEND"]
+                    )
 
             #
             # parse response device

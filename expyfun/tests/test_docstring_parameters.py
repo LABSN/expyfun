@@ -10,7 +10,6 @@ from unittest import SkipTest
 import pytest
 
 import expyfun
-from expyfun._utils import _get_args
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -64,7 +63,8 @@ def check_parameters_match(func, doc=None, cls=None):
         return incorrect
     if inspect.isdatadescriptor(func):
         return incorrect
-    args = _get_args(func)
+    spec = inspect.getfullargspec(func)
+    args = spec.args + spec.kwonlyargs
     # drop self
     if len(args) > 0 and args[0] == "self":
         args = args[1:]

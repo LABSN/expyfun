@@ -81,7 +81,9 @@ def set_log_level(verbose=None, return_old_level=False):
             CRITICAL=logging.CRITICAL,
         )
         if verbose not in logging_types:
-            raise ValueError("verbose must be of a valid type")
+            raise ValueError(
+                f"verbose must be of a valid type, got {verbose=!r} ({type(verbose)})"
+            )
         verbose = logging_types[verbose]
 
     old_verbose = logger.level
@@ -181,7 +183,8 @@ def run_subprocess(command, **kwargs):
     )
     if p.returncode:
         err_fun = subprocess.CalledProcessError.__init__
-        if "output" in _get_args(err_fun):
+        spec = inspect.getfullargspec(err_fun)
+        if "output" in spec.args + spec.kwonlyargs:
             raise subprocess.CalledProcessError(p.returncode, command, output)
         else:
             raise subprocess.CalledProcessError(p.returncode, command)
@@ -347,36 +350,6 @@ class deprecated:
         return newdoc
 
 
-if hasattr(inspect, "signature"):  # py35
-
-    def _get_args(function, varargs=False):
-        params = inspect.signature(function).parameters
-        args = [
-            key
-            for key, param in params.items()
-            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
-        ]
-        if varargs:
-            varargs = [
-                param.name
-                for param in params.values()
-                if param.kind == param.VAR_POSITIONAL
-            ]
-            if len(varargs) == 0:
-                varargs = None
-            return args, varargs
-        else:
-            return args
-else:
-
-    def _get_args(function, varargs=False):
-        out = inspect.getargspec(function)  # args, varargs, keywords, defaults
-        if varargs:
-            return out[:2]
-        else:
-            return out[0]
-
-
 @decorator
 def verbose_dec(function, *args, **kwargs):
     """Improved verbose decorator to allow functions to override log-level
@@ -394,15 +367,17 @@ def verbose_dec(function, *args, **kwargs):
     dec - function
         The decorated function
     """
-    arg_names = _get_args(function)
+    spec = inspect.getfullargspec(function)
 
-    if len(arg_names) > 0 and arg_names[0] == "self":
+    if len(spec.args) > 0 and spec.args[0] == "self":
         default_level = getattr(args[0], "verbose", None)
     else:
         default_level = None
 
-    if "verbose" in arg_names:
-        verbose_level = args[arg_names.index("verbose")]
+    if "verbose" in spec.args:
+        verbose_level = args[spec.args.index("verbose")]
+    elif "verbose" in spec.kwonlyargs:
+        verbose_level = kwargs["verbose"]
     else:
         verbose_level = default_level
 
