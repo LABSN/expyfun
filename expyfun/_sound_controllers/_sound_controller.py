@@ -175,13 +175,11 @@ class SoundCardController:
                         " gapless playback."
                     )
             # make sure the API is one that works with sounddevice
-            if os.name == "nt" and (
-                params["SOUND_CARD_API"] not in ["MME", "Windows WASAPI", "ASIO"]
-            ):
+            allowed_apis = ["MME", "Windows WASAPI", "ASIO", None]
+            if os.name == "nt" and (params["SOUND_CARD_API"] not in allowed_apis):
                 raise ValueError(
-                    'SOUND_CARD_API must be either "MME" or "Windows '
-                    'WASAPI" for gapless playback, got '
-                    f"{params['SOUND_CARD_API']}."
+                    f"SOUND_CARD_API must be one of {allowed_apis[:-1]} for gapless "
+                    f"playback, got {params['SOUND_CARD_API']}."
                 )
         elif self.ec._gapless:
             raise RuntimeError(

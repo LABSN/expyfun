@@ -149,7 +149,7 @@ class ExperimentController:
         1. AUDIO_CONTROLLER must be ``"sound_card"``
         2. SOUND_CARD_BACKEND must be ``"sounddevice"``
         3. SOUND_CARD_TRIGGER_ID_AFTER_ONSET must be set to ``True``.
-        4. On Windows, SOUND_CARD_API must be ``"MME"`` or ``"WASAPI"``
+        4. On Windows, SOUND_CARD_API must be ``"ASIO"``, ``"MME"``, or ``"WASAPI"``
 
         Note that for gapless playback, you should not use ``ec.wait_secs()`` or
         ``ec.stop()`` in the experiment loop.
