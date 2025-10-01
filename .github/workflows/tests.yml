@@ -64,7 +64,7 @@ jobs:
             echo "Setting env vars for macOS"
           fi
         name: Set env vars
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
         if: matrix.kind != 'conda'
