@@ -65,7 +65,7 @@ class SoundCardController:
     Params should contain string values:
 
     - 'SOUND_CARD_BACKEND' : str
-        The backend to use. Can be 'auto' (default), 'rtmixer', 'pyglet'.
+        The backend to use. Can be 'auto' (default), 'rtmixer', 'pyglet', 'sounddevice'.
     - 'SOUND_CARD_API' : str
         The API to use for the sound card.
         See :func:`sounddevice.query_hostapis`.
@@ -162,6 +162,30 @@ class SoundCardController:
             key: params["SOUND_CARD_" + key.upper()]
             for key in ("fs", "api", "name", "fixed_delay", "api_options")
         }
+        if self.backend_name == "sounddevice":  # use this or next line
+            # ensure id triggers are after onset for gapless playback
+            if not self.ec._gapless:
+                raise NotImplementedError(
+                    "Currently, only gapless=True is allowed for sounddevice backend"
+                )
+            else:
+                if not self._id_after_onset:
+                    raise ValueError(
+                        "SOUND_CARD_TRIGGER_ID_AFTER_ONSET must be True for"
+                        " gapless playback."
+                    )
+            # make sure the API is one that works with sounddevice
+            allowed_apis = ["MME", "Windows WASAPI", "ASIO", None]
+            if os.name == "nt" and (params["SOUND_CARD_API"] not in allowed_apis):
+                raise ValueError(
+                    f"SOUND_CARD_API must be one of {allowed_apis[:-1]} for gapless "
+                    f"playback, got {params['SOUND_CARD_API']}."
+                )
+        elif self.ec._gapless:
+            raise RuntimeError(
+                'SOUND_CARD_BACKEND must be "sounddevice" for gapless '
+                f"playback, got {self.backend_name!r}"
+            )
         temp_sound = np.zeros((self._n_channels_tot, 1000))
         temp_sound = self.backend.SoundPlayer(temp_sound, **self._kwargs)
         self.fs = float(temp_sound.fs)
@@ -271,10 +295,11 @@ class SoundCardController:
             The sound samples.
         """
         assert samples.ndim == 2
-        self.stop(wait=False)
-        if self.audio is not None:
-            self.audio.delete()
-            self.audio = None
+        if not self.ec._gapless:
+            self.stop(wait=False)
+            if self.audio is not None:
+                self.audio.delete()
+                self.audio = None
         if self._n_channels_stim > 0:
             stim = self._make_digital_trigger([1] + self._extra_onset_triggers)
             stim_len = len(stim)
@@ -413,7 +438,7 @@ class SoundCardController:
 
     def play(self):
         """Play."""
-        assert not self.playing
+        assert not self.playing or self.ec._gapless
         if self.audio is not None:
             self.audio.play()
         self.playing = True

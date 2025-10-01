@@ -1,6 +1,5 @@
 import os
 import platform
-import sys
 import warnings
 from contextlib import contextmanager
 from copy import deepcopy
@@ -39,7 +38,7 @@ std_kwargs = dict(
     verbose=True,
     version="dev",
 )
-SAFE_DELAY = 0.5 if sys.platform.startswith("win") else 0.2
+SAFE_DELAY = 0.5 if platform.system() == "Windows" else 0.2
 
 
 def dummy_print(string):
@@ -242,6 +241,8 @@ def test_degenerate():
 @pytest.mark.timeout(120)
 def test_ec(ac, hide_window, monkeypatch):
     """Test EC methods."""
+    skip_noise = False
+    kwargs = std_kwargs.copy()
     if ac == "tdt":
         rd, tc, fs = "tdt", "tdt", get_tdt_rates()["25k"]
         pytest.raises(
@@ -249,11 +250,14 @@ def test_ec(ac, hide_window, monkeypatch):
             ExperimentController,
             *std_args,
             audio_controller=dict(TYPE=ac, TDT_MODEL="foo"),
-            **std_kwargs,
+            **kwargs,
         )
     else:
         _check_skip_backend(ac)
         rd, tc, fs = "keyboard", "dummy", 44100
+        if ac["SOUND_CARD_BACKEND"] == "sounddevice":
+            skip_noise = True
+            kwargs["gapless"] = True
     for suppress in (True, False):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -264,7 +268,7 @@ def test_ec(ac, hide_window, monkeypatch):
                 trigger_controller=tc,
                 stim_fs=100.0,
                 suppress_resamp=suppress,
-                **std_kwargs,
+                **kwargs,
             ) as ec:
                 pass
         w = [ww for ww in w if "TDT is in dummy mode" in str(ww.message)]
@@ -275,7 +279,7 @@ def test_ec(ac, hide_window, monkeypatch):
         response_device=rd,
         trigger_controller=tc,
         stim_fs=fs,
-        **std_kwargs,
+        **kwargs,
     ) as ec:
         assert ec.participant == std_kwargs["participant"]
         assert ec.session == std_kwargs["session"]
@@ -431,7 +435,7 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.start_stimulus(flip=False, when=-1)
         if tc == "dummy":
             assert_equal(ec._tc._trigger_list, [4, 8, 1])
-        if ac != "tdt":
+        if ac != "tdt" and ac["SOUND_CARD_BACKEND"] != "sounddevice":
             # dummy TDT version won't do this check properly, as
             # ec._ac._playing -> GetTagVal('playing') always gives False
             pytest.raises(RuntimeError, ec.play)  # already played, must stop
@@ -461,7 +465,9 @@ def test_ec(ac, hide_window, monkeypatch):
         assert ec._playing is True
         ec.call_on_every_flip(None)
         # something funny with the ring buffer in testing on OSX
-        if sys.platform != "darwin":
+        if (
+            platform.system() != "Darwin" and not skip_noise
+        ):  # doesn't work w/ sounddevice backend
             ec.call_on_next_flip(ec.start_noise())
         ec.flip()
         ec.wait_secs(SAFE_DELAY)
@@ -510,7 +516,10 @@ def test_ec(ac, hide_window, monkeypatch):
     del ec
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="Monitor tests failing on macOS")
+@pytest.mark.skipif(
+    platform.system() == "Darwin",
+    reason="Monitor tests failing on macOS",
+)
 @pytest.mark.parametrize("screen_num", (None, 0))
 @pytest.mark.parametrize(
     "monitor",
@@ -622,7 +631,7 @@ def test_button_presses_and_window_size(hide_window):
         fake_button_press(ec, "backspace", 0.4)
         fake_button_press(ec, "comma", 0.45)
         fake_button_press(ec, "return", 0.5)
-        if sys.platform not in ("win32", "darwin"):
+        if platform.system() == "Linux":
             assert ec.text_input(all_caps=False).strip() == "a"
 
 
@@ -832,3 +841,31 @@ def test_version_assertions(monkeypatch):
     monkeypatch.setattr(expyfun, "__version__", "1.2.3")
     with ExperimentController(*std_args, version="1.2.3", **kwargs):
         pass
+
+
+def test_gapless(ac):
+    """Test gapless playback functionality."""
+    if not (isinstance(ac, dict) and ac["SOUND_CARD_BACKEND"] == "sounddevice"):
+        backend = ac if isinstance(ac, str) else ac["SOUND_CARD_BACKEND"]
+        pytest.skip(f"Gapless not supported for {backend=}")
+    stim_fs = 48000
+    dur = 0.25
+    stim = np.zeros((2, int(round(dur * stim_fs))))
+    kwargs = std_kwargs.copy()
+    kwargs.update(
+        gapless=True,
+        stim_fs=stim_fs,
+        suppress_resamp=True,
+        audio_controller=ac,
+    )
+    with ExperimentController(*std_args, **kwargs) as ec:
+        for ii in range(2):
+            ec.identify_trial(ttl_id=[ii], ec_id=f"{ii}")
+            ec.load_buffer(stim)
+            ec.start_stimulus()  # should be blocking?
+            assert ec._playing is True
+            # TODO: Maybe these should emit an error if they're not supposed to be used?
+            ec.wait_secs(0.01)
+            ec.stop()
+            assert ec._playing is False
+            ec.trial_ok()

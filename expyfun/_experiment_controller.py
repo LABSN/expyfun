@@ -27,7 +27,6 @@ from ._utils import (
     ZeroClock,
     _check_pyglet_version,
     _fix_audio_dims,
-    _get_args,
     _get_display,
     _sanitize,
     _TempDir,
@@ -143,6 +142,17 @@ class ExperimentController:
         The trigger duration to use (sec). Must be 0.01 for TDT.
     joystick : bool
         Whether or not to enable joystick control.
+    gapless : bool
+        Whether or not to use sounddevice, allowing gapless playback. Setting
+        this to True (default False) requires:
+
+        1. AUDIO_CONTROLLER must be ``"sound_card"``
+        2. SOUND_CARD_BACKEND must be ``"sounddevice"``
+        3. SOUND_CARD_TRIGGER_ID_AFTER_ONSET must be set to ``True``.
+        4. On Windows, SOUND_CARD_API must be ``"ASIO"``, ``"MME"``, or ``"WASAPI"``
+
+        Note that for gapless playback, you should not use ``ec.wait_secs()`` or
+        ``ec.stop()`` in the experiment loop.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see expyfun.verbose).
 
@@ -167,6 +177,7 @@ class ExperimentController:
         stim_fs=24414,
         stim_db=65,
         noise_db=45,
+        *,
         noise_array=None,
         output_dir="data",
         window_size=None,
@@ -184,6 +195,7 @@ class ExperimentController:
         n_channels=2,
         trigger_duration=0.01,
         joystick=False,
+        gapless=False,
         verbose=None,
     ):
         from . import __version__
@@ -209,6 +221,7 @@ class ExperimentController:
         self._data_file = None
         self._clock = ZeroClock()
         self._master_clock = self._clock.get_time
+        self._gapless = gapless
 
         # put anything that could fail in this block to ensure proper cleanup!
         try:
@@ -249,7 +262,8 @@ class ExperimentController:
             # dictionary for experiment metadata
             self._exp_info = OrderedDict()
 
-            for name in _get_args(self.__init__):
+            spec = inspect.getfullargspec(self.__init__)
+            for name in spec.args[1:] + spec.kwonlyargs:
                 if name != "self":
                     self._exp_info[name] = locals()[name]
             self._exp_info["date"] = date_str()
@@ -368,6 +382,12 @@ class ExperimentController:
                     "type %s" % (type(audio_controller),)
                 )
             audio_type = audio_controller["TYPE"].lower()
+            if self._gapless:
+                if audio_type != "sound_card":
+                    raise RuntimeError(
+                        'audio_controller must be "sound_card" for gapless '
+                        'playback, got "%s"' % audio_type
+                    )
 
             #
             # parse response device
@@ -1867,7 +1887,7 @@ class ExperimentController:
         ExperimentController.start_stimulus
         ExperimentController.stop
         """
-        if self._playing:
+        if self._playing and not self._gapless:
             raise RuntimeError(
                 "Previous audio must be stopped before loading the buffer"
             )
@@ -1899,7 +1919,7 @@ class ExperimentController:
 
     def _play(self):
         """Play the audio buffer."""
-        if self._playing:
+        if self._playing and not self._gapless:
             raise RuntimeError("Previous audio must be stopped before playing")
         self._ac.play()
         logger.debug("Expyfun: started audio")

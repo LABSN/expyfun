@@ -25,13 +25,16 @@ def test_logging(ac, tmpdir, hide_window):
         _check_skip_backend(ac)
     orig_dir = os.getcwd()
     os.chdir(str(tmpdir))
+    kwargs = std_kwargs.copy()
+    if isinstance(ac, dict) and ac.get("SOUND_CARD_BACKEND", "") == "sounddevice":
+        kwargs["gapless"] = True
     try:
         with ExperimentController(
             *std_args,
             audio_controller=ac,
             response_device="keyboard",
             trigger_controller="dummy",
-            **std_kwargs,
+            **kwargs,
         ) as ec:
             test_name = ec._log_file
             stamp = ec.current_time
