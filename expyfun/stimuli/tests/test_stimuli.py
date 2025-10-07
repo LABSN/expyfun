@@ -12,7 +12,7 @@ from scipy.signal import butter, lfilter
 
 from expyfun import ExperimentController
 from expyfun._sound_controllers import _BACKENDS
-from expyfun._utils import _check_skip_backend, requires_lib
+from expyfun._utils import _check_skip_backend, get_config, requires_lib
 from expyfun.stimuli import (
     CRMPreload,
     add_pad,
@@ -110,7 +110,7 @@ def test_hrtf_convolution():
 def test_play_sound(backend, hide_window):  # only works if windowing works
     """Test playing a sound."""
     _check_skip_backend(backend)
-    fs = 48000
+    fs = get_config("SOUND_CARD_FS", 48000)
     data = np.zeros((2, 100))
     play_sound(data, fs=fs).stop()
     play_sound(data[0], norm=False, wait=True, fs=fs)
