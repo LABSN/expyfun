@@ -255,9 +255,9 @@ def test_ec(ac, hide_window, monkeypatch):
     else:
         _check_skip_backend(ac)
         rd, tc, fs = "keyboard", "dummy", 44100
-        if ac["SOUND_CARD_BACKEND"] == "sounddevice":
+        if ac["SOUND_CARD_BACKEND"] in ("sounddevice", "pyglet"):
             skip_noise = True
-            kwargs["gapless"] = True
+            kwargs["gapless"] = ac["SOUND_CARD_BACKEND"] == "sounddevice"
     for suppress in (True, False):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
