@@ -393,7 +393,7 @@ class ExperimentController:
             if audio_type == "tdt":
                 self._stim_fs = stim_fs or 24414
             else:  # audio_type == "sound_card"
-                self._stim_fs = stim_fs or get_config("SOUND_CARD_FS", 48000)
+                self._stim_fs = stim_fs or float(get_config("SOUND_CARD_FS", 48000))
 
             #
             # parse response device
