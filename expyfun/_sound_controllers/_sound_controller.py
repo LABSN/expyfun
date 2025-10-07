@@ -158,10 +158,14 @@ class SoundCardController:
             "Expyfun: Setting up sound card using %s backend with %s"
             "%d playback channels" % (self.backend_name, extra, self._n_channels)
         )
-        self._kwargs = {
-            key: params["SOUND_CARD_" + key.upper()]
-            for key in ("fs", "api", "name", "fixed_delay", "api_options")
-        }
+        if self.backend_name == "pyglet":
+            # pyglet doesn't allow specifying api, name, fixed_delay, or api_options
+            self._kwargs = dict(fs=params["SOUND_CARD_FS"])
+        else:
+            self._kwargs = {
+                key: params["SOUND_CARD_" + key.upper()]
+                for key in ("fs", "api", "name", "fixed_delay", "api_options")
+            }
         if self.backend_name == "sounddevice":  # use this or next line
             # ensure id triggers are after onset for gapless playback
             if not self.ec._gapless:
