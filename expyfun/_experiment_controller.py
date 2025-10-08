@@ -71,9 +71,11 @@ class ExperimentController:
     stim_rms : float
         The RMS amplitude that the stimuli were generated at (strongly
         recommended to be 0.01).
-    stim_fs : int | float
+    stim_fs : int | float | None
         The sampling frequency that the stimuli were generated with (samples
-        per second).
+        per second). ``None`` (the default) uses config value ``SOUND_CARD_FS``
+        (if defined and if ``audio_controller="sound_card"``), otherwise falls back to
+        a rate of 48000 for ``sound_card`` or 24414 for ``tdt``.
     stim_db : float
         The desired dB SPL at which to play the stimuli.
     noise_db : float
