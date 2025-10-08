@@ -76,6 +76,11 @@ class ExperimentController:
         per second). ``None`` (the default) uses config value ``SOUND_CARD_FS``
         (if defined and if ``audio_controller="sound_card"``), otherwise falls back to
         a rate of 48000 for ``sound_card`` or 24414 for ``tdt``.
+
+        .. warning::
+            The fallbacks above assume that your stimuli were purpose-generated to match
+            the sampling frequency of your audio controller; users are urged to make
+            sure this is the case, or to pass the actual ``stim_fs`` if not.
     stim_db : float
         The desired dB SPL at which to play the stimuli.
     noise_db : float
