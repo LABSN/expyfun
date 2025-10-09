@@ -71,9 +71,16 @@ class ExperimentController:
     stim_rms : float
         The RMS amplitude that the stimuli were generated at (strongly
         recommended to be 0.01).
-    stim_fs : int | float
+    stim_fs : int | float | None
         The sampling frequency that the stimuli were generated with (samples
-        per second).
+        per second). ``None`` (the default) uses config value ``SOUND_CARD_FS``
+        (if defined and if ``audio_controller="sound_card"``), otherwise falls back to
+        a rate of 48000 for ``sound_card`` or 24414 for ``tdt``.
+
+        .. warning::
+            The fallbacks above assume that your stimuli were purpose-generated to match
+            the sampling frequency of your audio controller; users are urged to make
+            sure this is the case, or to pass the actual ``stim_fs`` if not.
     stim_db : float
         The desired dB SPL at which to play the stimuli.
     noise_db : float
@@ -174,7 +181,7 @@ class ExperimentController:
         audio_controller=None,
         response_device=None,
         stim_rms=0.01,
-        stim_fs=24414,
+        stim_fs=None,
         stim_db=65,
         noise_db=45,
         *,
@@ -201,7 +208,6 @@ class ExperimentController:
         from . import __version__
 
         # initialize some values
-        self._stim_fs = stim_fs
         self._stim_rms = stim_rms
         self._stim_db = stim_db
         self._noise_db = noise_db
@@ -388,6 +394,13 @@ class ExperimentController:
                         'audio_controller must be "sound_card" for gapless '
                         'playback, got "%s"' % audio_type
                     )
+            #
+            # handle stim_fs
+            #
+            if audio_type == "tdt":
+                self._stim_fs = stim_fs or 24414
+            else:  # audio_type == "sound_card"
+                self._stim_fs = stim_fs or float(get_config("SOUND_CARD_FS", 48000))
 
             #
             # parse response device
