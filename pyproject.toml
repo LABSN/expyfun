@@ -26,7 +26,7 @@ dependencies = [
   "numpy",
   "packaging",
   "pillow",
-  "pyglet>=2,!=2.1.9",
+  "pyglet >=2,!=2.1.10",
   "scipy",
 ]
 description = "A high-precision auditory and visual stimulus delivery library for psychoacoustics in Python."
