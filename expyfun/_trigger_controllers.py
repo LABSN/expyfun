@@ -102,9 +102,7 @@ class ParallelTrigger:
         else:  # mode == 'dummy':
             self._port = self._portname = None
             self._trigger_list = list()
-            self._set_data = lambda x: (
-                self._trigger_list.append(x) if x != 0 else None
-            )
+            self._set_data = lambda x: self._trigger_list.append(x) if x != 0 else None
         self.trigger_duration = trigger_duration
         self.mode = mode
 
