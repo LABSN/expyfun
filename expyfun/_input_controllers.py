@@ -503,9 +503,9 @@ class Mouse:
     # Define some functions for determining if a click point is in an object
     def _point_in_object(self, pos, obj):
         """Determine if a point is within a visual object"""
-        if isinstance(obj, (Rectangle, Circle, Diamond, Triangle)):
+        if isinstance(obj, (Rectangle | Circle | Diamond | Triangle)):
             return self._point_in_tris(pos, obj)
-        elif isinstance(obj, (ConcentricCircles, FixationDot)):
+        elif isinstance(obj, (ConcentricCircles | FixationDot)):
             return np.any([self._point_in_tris(pos, c) for c in obj._circles])
 
     def _point_in_tris(self, pos, obj):
@@ -596,7 +596,7 @@ class CedrusBox(Keyboard):
     """
 
     def __init__(self, ec, force_quit_keys):
-        import pyxid
+        import pyxid  # pyright: ignore[reportMissingImports]
 
         pyxid.use_response_pad_timer = True
         dev = pyxid.get_xid_devices()[0]

@@ -833,13 +833,13 @@ def object_diff(a, b, pre=""):
                 out += pre + " x2 missing key %s\n" % key
             else:
                 out += object_diff(a[key], b[key], pre + "d1[%s]" % repr(key))
-    elif isinstance(a, (list, tuple)):
+    elif isinstance(a, (list | tuple)):
         if len(a) != len(b):
             out += pre + " length mismatch (%s, %s)\n" % (len(a), len(b))
         else:
             for xx1, xx2 in zip(a, b):
                 out += object_diff(xx1, xx2, pre="")
-    elif isinstance(a, (str, int, float, bytes)):
+    elif isinstance(a, (str | int | float | bytes)):
         if a != b:
             out += pre + " value mismatch (%s, %s)\n" % (a, b)
     elif a is None:
