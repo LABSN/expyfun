@@ -193,3 +193,15 @@ ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`
 [tool.hatch.version]
 raw-options = { version_scheme = "release-branch-semver" }
 source = "vcs"
+
+[tool.hatch.build.targets.sdist]
+packages = ["expyfun"]
+
+[tool.hatch.build.targets.sdist.force-include]
+"expyfun/data" = "expyfun/data"
+
+[tool.hatch.build.targets.wheel]
+packages = ["expyfun"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"expyfun/data" = "expyfun/data"
