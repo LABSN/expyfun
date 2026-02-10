@@ -596,7 +596,7 @@ class CedrusBox(Keyboard):
     """
 
     def __init__(self, ec, force_quit_keys):
-        import pyxid
+        import pyxid  # pyright: ignore[reportMissingImports]
 
         pyxid.use_response_pad_timer = True
         dev = pyxid.get_xid_devices()[0]
