@@ -134,4 +134,3 @@ for i in [0, 1]:
         f"is {true_thresh[i]})"
     )
     fig.tight_layout()
-
