@@ -68,7 +68,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: matrix.kind != 'conda'
-      - uses: mamba-org/setup-micromamba@v2
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: 'environment_test.yml'
           create-args: python=${{ matrix.python }}
@@ -96,7 +96,7 @@ jobs:
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         if: matrix.kind != 'old' && matrix.os != 'macos-latest'
       - run: pytest expyfun --cov-report=xml --cov=expyfun
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()
