@@ -581,6 +581,7 @@ class ExperimentController:
             car = sum([np.sin(2 * np.pi * f * t) for f in [800, 1000, 1200]])
             self._beep = None
             self._beep_data = np.tile(car * np.exp(-t * 10) / 4, (2, 3))
+            self.vpixx_color = ()
 
             # finish initialization
             logger.info("Expyfun: Initialization complete")
@@ -794,7 +795,28 @@ class ExperimentController:
         self._bgcolor = _convert_color(color)
         gl.glClearColor(*[c / 255.0 for c in self._bgcolor])
 
-    def start_stimulus(self, start_of_trial=True, flip=True, when=None):
+    def set_vpixx_color(self, bits=()):
+        """Calculate color for vpixx "pixel mode" triggering, from the desired channels.
+
+        Parameters
+        ----------
+        bits: array-like of int
+            The bits to be set high (0-indexed). Values between 0 and 23 are valid.
+            Note that these are the RGB bits *not the DSUB channels*; pins 1-4 and 14-17
+            control the red value, pins 5-8 and 18-21 control the green value, and pins
+            9-12 and 22-25 control the blue value (13 is ground). See
+            https://docs.vpixx.com/vocal/sending-triggers-with-pixel-mode for details.
+        """
+        bits = np.array(bits, dtype=int)
+        assert bits.min() >= 0 and bits.max() < 24, (
+            "Vpixx color bits must be between 0 and 23"
+        )
+        trig_out = np.exp2(bits).sum(dtype=int).item()
+        col = (trig_out % 256, (trig_out >> 8) % 256, (trig_out >> 16) % 256)
+        # this gets (unavoidably) passed to _convert_color later; must be in range [0,1]
+        self.vpixx_color = np.array(col) / 255
+
+    def start_stimulus(self, start_of_trial=True, flip=True, when=None, vpixx=False):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
 
         Parameters
@@ -812,6 +834,9 @@ class ExperimentController:
             flip completes (if `flip` is ``True``). As a result, in some
             cases `when` should be set to a value smaller than your true
             intended flip time.
+        vpixx : bool
+            Whether to display the vpixx trigger pixel on flip. See
+            :meth:`ExperimentController.flip` for details. Ignored if ``flip`` is False.
 
         Returns
         -------
@@ -844,7 +869,7 @@ class ExperimentController:
             self._on_next_flip = (
                 [self._play] + self._ofp_critical_funs + self._on_next_flip
             )
-            stimulus_time = self.flip(when)
+            stimulus_time = self.flip(when, vpixx=vpixx)
         else:
             if when is not None:
                 self.wait_until(when)
@@ -1150,7 +1175,7 @@ class ExperimentController:
             % (window_size, screen, self.dpi)
         )
 
-    def flip(self, when=None):
+    def flip(self, when=None, vpixx=False):
         """Flip screen, then run any "on-flip" functions.
 
         Parameters
@@ -1161,6 +1186,11 @@ class ExperimentController:
             absolute) wait time before the flip completes. As a result, in
             some cases `when` should be set to a value smaller than your
             true intended flip time.
+        vpixx : bool
+            Whether to display the vpixx trigger pixel on this flip. Useful only with
+            Vpixx projectors set in "pixel mode". Will use the value of
+            ``ExperimentController.vpixx_color``, which can be computed from the desired
+            output trigger values with :meth:`~ExperimentController.set_vpixx_color`.
 
         Returns
         -------
@@ -1191,6 +1221,21 @@ class ExperimentController:
         if self.safe_flipping:
             # On NVIDIA Linux these calls cause a 2x delay (33ms instead of 16)
             gl.glFinish()
+        if vpixx:
+            if not len(self.vpixx_color):
+                raise RuntimeError(
+                    "Vpixx pixel color not set; did you forget to call "
+                    "ec.set_vpixx_color() ?"
+                )
+            rect = Rectangle(
+                ec=self,
+                pos=(0.5, self.window_size_pix[1] - 0.5, 1, 1),
+                units="pix",
+                fill_color=self.vpixx_color,
+                line_color=None,
+                line_width=0.0,
+            )
+            rect.draw()
         self._win.flip()
         # this waits until everything is called, including last draw
         self._clear_rect.draw()
