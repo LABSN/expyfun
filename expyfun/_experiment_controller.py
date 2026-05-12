@@ -796,13 +796,13 @@ class ExperimentController:
         gl.glClearColor(*[c / 255.0 for c in self._bgcolor])
 
     def set_vpixx_color(self, bits=()):
-        """Calculate color for vpixx "pixel mode" triggering, from the desired channels.
+        """Calculate color for vpixx "pixel mode" triggering, from the desired bits.
 
         Parameters
         ----------
         bits: array-like of int
             The bits to be set high (0-indexed). Values between 0 and 23 are valid.
-            Note that these are the RGB bits *not the DSUB channels*; pins 1-4 and 14-17
+            Note that these are the RGB bits *not the DSUB pins*; pins 1-4 and 14-17
             control the red value, pins 5-8 and 18-21 control the green value, and pins
             9-12 and 22-25 control the blue value (13 is ground). See
             https://docs.vpixx.com/vocal/sending-triggers-with-pixel-mode for details.
