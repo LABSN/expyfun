@@ -40,6 +40,7 @@ import expyfun.analyze as ea
 from expyfun import ExperimentController, building_doc
 from expyfun.visual import Circle, Rectangle
 
+USE_VPIXX = False
 n_channels = 2
 click_idx = [0]
 with ExperimentController(
@@ -65,10 +66,11 @@ with ExperimentController(
     # Make a rectangle that is the standard credit card size
     rect = Rectangle(ec, [0, 0, 8.56, 5.398], "cm", None, "#AA3377")
     # set the vpixx trigger pixel
-    ec.set_vpixx_color([0, 1, 2, 3, 4, 5, 6, 7])  # full red
+    if USE_VPIXX:
+        ec.set_vpixx_color([0, 1, 2, 3, 4, 5, 6, 7])  # full red
     while pressed != "8":  # enable a clean quit if required
         ec.set_background_color("white")
-        t1 = ec.start_stimulus(start_of_trial=False, vpixx=True)  # skip checks
+        t1 = ec.start_stimulus(start_of_trial=False, vpixx=USE_VPIXX)  # skip checks
         ec.set_background_color("black")
         t2 = ec.flip()
         diff = round(1000 * (t2 - t1), 2)

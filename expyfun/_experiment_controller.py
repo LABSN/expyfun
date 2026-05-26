@@ -807,6 +807,9 @@ class ExperimentController:
             9-12 and 22-25 control the blue value (13 is ground). See
             https://docs.vpixx.com/vocal/sending-triggers-with-pixel-mode for details.
         """
+        if not len(bits):
+            self.vpixx_color = ()
+            return
         bits = np.array(bits, dtype=int)
         assert bits.min() >= 0 and bits.max() < 24, (
             "Vpixx color bits must be between 0 and 23"
