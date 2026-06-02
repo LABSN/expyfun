@@ -42,8 +42,6 @@ from expyfun.visual import Circle, Rectangle
 SCREEN = 0
 FULL = False
 WIN_SIZE = (1000, 1000)  # or None for full screen if size matches config
-USE_VPIXX = True
-VPIXX_COLOR = [0, 1, 2, 3, 4, 5, 6, 7]  # full red
 
 n_channels = 2
 click_idx = [0]
@@ -60,6 +58,7 @@ with ExperimentController(
     window_size=WIN_SIZE,
     n_channels=n_channels,
     version="dev",
+    use_vpixx=50,  # 50x50 pixel square, so it's obvious
 ) as ec:
     click = np.r_[0.1, np.zeros(99)]  # RMS = 0.01
     data = np.zeros((n_channels, len(click)))
@@ -71,12 +70,14 @@ with ExperimentController(
     circle = Circle(ec, 1, units="deg", fill_color="k", line_color="w")
     # Make a rectangle that is the standard credit card size
     rect = Rectangle(ec, [0, 0, 8.56, 5.398], "cm", None, "#AA3377")
-    # set the vpixx trigger pixel
-    if USE_VPIXX:
-        ec.set_vpixx_color(VPIXX_COLOR)
     while pressed != "8":  # enable a clean quit if required
+        ec.identify_trial(
+            ec_id=1,  # dummy
+            ttl_id=[1],  # dummy
+            vpixx_id=(255, 0, 0),  # just the lowest red bit
+        )
         ec.set_background_color("white")
-        t1 = ec.start_stimulus(start_of_trial=False, vpixx=USE_VPIXX)  # skip checks
+        t1 = ec.start_stimulus()
         ec.set_background_color("black")
         t2 = ec.flip()
         diff = round(1000 * (t2 - t1), 2)
@@ -89,3 +90,4 @@ with ExperimentController(
         ec.refocus()
         pressed = ec.wait_one_press(0.5)[0] if not building_doc else "8"
         ec.stop()
+        ec.trial_ok()

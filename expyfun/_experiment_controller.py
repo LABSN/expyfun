@@ -1255,7 +1255,7 @@ class ExperimentController:
                     self._vpixx_size,
                 ),
                 units="pix",
-                fill_color=vpixx_id,
+                fill_color=np.array(vpixx_id) / 255,
                 line_color=None,
                 line_width=0.0,
             )
