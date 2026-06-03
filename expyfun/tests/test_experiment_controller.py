@@ -544,6 +544,22 @@ def test_screen_monitor(screen_num, monitor, hide_window):
         ExperimentController(*std_args, monitor={}, **std_kwargs)
 
 
+def test_vpixx(hide_window):
+    """Test VPixx support."""
+    with ExperimentController(*std_args, **std_kwargs, use_vpixx=2) as ec:
+        assert hasattr(ec, "_vpixx_rect")
+        assert ec._vpixx_size == 2
+        assert ec._id_call_dict["vpixx_id"] == ec._stamp_vpixx_id
+        # we can't test the VPixx trigger pixel using `ec.screenshot()`: screenshot
+        # captures the back buffer (must be called before flipping) but the trigger
+        # pixel is drawn within the call to `flip()`. Instead, we just check that after
+        # flipping, the size, color, & position of the rectangle is what we expect.
+        ec.flip(vpixx_id=(255, 0, 0))
+        assert ec._vpixx_rect._colors["fill"] == (1.0, 0.0, 0.0, 1.0)
+        # screen is 8x8, so 2x2 rect in top-left corner will have center at (1, 7)
+        np.testing.assert_array_equal(ec._vpixx_rect._pos, [1, 7, 2, 2])
+
+
 def test_tdtpy_failure(hide_window):
     """Test that failed TDTpy import raises ImportError."""
     try:

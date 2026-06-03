@@ -39,8 +39,6 @@ import numpy as np
 from expyfun import ExperimentController, building_doc
 from expyfun.visual import Circle, Rectangle
 
-print(__doc__)
-
 SCREEN = 0
 FULL = False
 WIN_SIZE = (1000, 1000)  # or None for full screen if size matches config
@@ -60,6 +58,7 @@ with ExperimentController(
     window_size=WIN_SIZE,
     n_channels=n_channels,
     version="dev",
+    use_vpixx=50,  # 50x50 pixel square, so it's obvious
 ) as ec:
     click = np.r_[0.1, np.zeros(99)]  # RMS = 0.01
     data = np.zeros((n_channels, len(click)))
@@ -72,8 +71,13 @@ with ExperimentController(
     # Make a rectangle that is the standard credit card size
     rect = Rectangle(ec, [0, 0, 8.56, 5.398], "cm", None, "#AA3377")
     while pressed != "8":  # enable a clean quit if required
+        ec.identify_trial(
+            ec_id=1,  # dummy
+            ttl_id=[1],  # dummy
+            vpixx_id=(255, 0, 0),  # full red, so it's obvious
+        )
         ec.set_background_color("white")
-        t1 = ec.start_stimulus(start_of_trial=False)  # skip checks
+        t1 = ec.start_stimulus()
         ec.set_background_color("black")
         t2 = ec.flip()
         diff = round(1000 * (t2 - t1), 2)
@@ -86,5 +90,4 @@ with ExperimentController(
         ec.refocus()
         pressed = ec.wait_one_press(0.5)[0] if not building_doc else "8"
         ec.stop()
-
-# ea.plot_screen(screenshot)
+        ec.trial_ok()

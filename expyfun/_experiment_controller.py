@@ -125,6 +125,14 @@ class ExperimentController:
         By default the mode is 'dummy', since setting up the parallel port
         can be a pain. Can also be a dict with entries 'TYPE' ('parallel'),
         and 'TRIGGER_ADDRESS' (None).
+    use_vpixx: int | bool | None
+        Whether or not to use VPixx/DATAPixx projectors in "pixel mode" for sending
+        triggers. If None, the value of ``SCREEN_VPIXX`` will be read from the machine
+        configuration file, and default to False if not set. If :class:`int`, also
+        controls the size of the VPixx trigger pixel (useful for visual debugging). If
+        True or a non-zero integer, the trigger pixel's color is determined by passing
+        ``vpixx_id`` to :meth:`~expyfun.ExperimentController.identify_trial` or
+        :meth:`~expyfun.ExperimentController.flip`.
     session : str | None
         If ``None``, a GUI will be used to acquire this information.
     check_rms : str | None
@@ -194,6 +202,7 @@ class ExperimentController:
         participant=None,
         monitor=None,
         trigger_controller=None,
+        use_vpixx=None,
         session=None,
         check_rms="windowed",
         suppress_resamp=False,
@@ -575,12 +584,34 @@ class ExperimentController:
                 )
             self._id_call_dict["ttl_id"] = self._stamp_binary_id
 
+            # VPixx
+            self._vpixx_id = ()
+            if use_vpixx is None:
+                use_vpixx = get_config("SCREEN_VPIXX", "false").lower() == "true"
+            self._vpixx_size = int(use_vpixx)
+            if self._vpixx_size:
+                self._id_call_dict["vpixx_id"] = self._stamp_vpixx_id
+                self._vpixx_rect = Rectangle(
+                    ec=self,
+                    pos=(
+                        self._vpixx_size / 2,
+                        self.window_size_pix[1] - self._vpixx_size / 2,
+                        self._vpixx_size,
+                        self._vpixx_size,
+                    ),
+                    units="pix",
+                    fill_color=None,
+                    line_color=None,
+                    line_width=0.0,
+                )
+
             # other basic components
             self._mouse_handler = Mouse(self)
             t = np.arange(44100 // 3) / 44100.0
             car = sum([np.sin(2 * np.pi * f * t) for f in [800, 1000, 1200]])
             self._beep = None
             self._beep_data = np.tile(car * np.exp(-t * 10) / 4, (2, 3))
+            self.vpixx_color = ()
 
             # finish initialization
             logger.info("Expyfun: Initialization complete")
@@ -794,6 +825,30 @@ class ExperimentController:
         self._bgcolor = _convert_color(color)
         gl.glClearColor(*[c / 255.0 for c in self._bgcolor])
 
+    def set_vpixx_color(self, bits=()):
+        """Calculate color for vpixx "pixel mode" triggering, from the desired bits.
+
+        Parameters
+        ----------
+        bits: array-like of int
+            The bits to be set high (0-indexed). Values between 0 and 23 are valid.
+            Note that these are the RGB bits *not the DSUB pins*; pins 1-4 and 14-17
+            control the red value, pins 5-8 and 18-21 control the green value, and pins
+            9-12 and 22-25 control the blue value (13 is ground). See
+            https://docs.vpixx.com/vocal/sending-triggers-with-pixel-mode for details.
+        """
+        if not len(bits):
+            self.vpixx_color = ()
+            return
+        bits = np.array(bits, dtype=int)
+        assert bits.min() >= 0 and bits.max() < 24, (
+            "Vpixx color bits must be between 0 and 23"
+        )
+        trig_out = np.exp2(bits).sum(dtype=int).item()
+        col = (trig_out % 256, (trig_out >> 8) % 256, (trig_out >> 16) % 256)
+        # this gets (unavoidably) passed to _convert_color later; must be in range [0,1]
+        self.vpixx_color = np.array(col) / 255
+
     def start_stimulus(self, start_of_trial=True, flip=True, when=None):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
 
@@ -844,8 +899,13 @@ class ExperimentController:
             self._on_next_flip = (
                 [self._play] + self._ofp_critical_funs + self._on_next_flip
             )
-            stimulus_time = self.flip(when)
+            stimulus_time = self.flip(when, vpixx_id=self._vpixx_id)
         else:
+            if len(self._vpixx_id):
+                raise ValueError(
+                    "A VPixx ID was set in identify_trial(), but cannot be sent "
+                    "because start_stimulus() was called with flip=False."
+                )
             if when is not None:
                 self.wait_until(when)
             funs = [self._play] + self._ofp_critical_funs
@@ -1150,7 +1210,7 @@ class ExperimentController:
             % (window_size, screen, self.dpi)
         )
 
-    def flip(self, when=None):
+    def flip(self, when=None, vpixx_id=()):
         """Flip screen, then run any "on-flip" functions.
 
         Parameters
@@ -1161,6 +1221,13 @@ class ExperimentController:
             absolute) wait time before the flip completes. As a result, in
             some cases `when` should be set to a value smaller than your
             true intended flip time.
+        vpixx_id : tuple (length 3)
+            The RGB value for the VPixx trigger pixel. Useful only with
+            VPixx/DATAPixx projectors set in "pixel mode". See
+            https://docs.vpixx.com/vocal/sending-triggers-with-pixel-mode for details
+            on how to compute the RGB values to yield the desired triggers. An empty
+            tuple skips drawing the trigger pixel (meaning its color is determined by
+            the background color or any drawn elements overlapping the trigger pixel).
 
         Returns
         -------
@@ -1191,6 +1258,9 @@ class ExperimentController:
         if self.safe_flipping:
             # On NVIDIA Linux these calls cause a 2x delay (33ms instead of 16)
             gl.glFinish()
+        if len(vpixx_id) and self._vpixx_size:
+            self._vpixx_rect.set_fill_color(np.array(vpixx_id) / 255)
+            self._vpixx_rect.draw()
         self._win.flip()
         # this waits until everything is called, including last draw
         self._clear_rect.draw()
@@ -2308,6 +2378,10 @@ class ExperimentController:
     def _stamp_ec_id(self, id_):
         """Stamp id -- currently anything allowed"""
         self.write_data_line("trial_id", id_)
+
+    def _stamp_vpixx_id(self, id_):
+        """Store vpixx_id (called during identify_trial) to be used during flip."""
+        self._vpixx_id = id_
 
     def _stamp_binary_id(self, id_, wait_for_last=True):
         """Helper for ec to stamp a set of IDs using binary controller

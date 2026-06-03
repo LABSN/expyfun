@@ -534,6 +534,7 @@ known_config_types = (
     "SCREEN_WIDTH",
     "SCREEN_DISTANCE",
     "SCREEN_SIZE_PIX",
+    "SCREEN_VPIXX",
     "EXPYFUN_LOGGING_LEVEL",
 )
 
