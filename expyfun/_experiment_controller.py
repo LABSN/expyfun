@@ -591,6 +591,19 @@ class ExperimentController:
             self._vpixx_size = int(use_vpixx)
             if self._vpixx_size:
                 self._id_call_dict["vpixx_id"] = self._stamp_vpixx_id
+                self.vpixx_rect = Rectangle(
+                    ec=self,
+                    pos=(
+                        self._vpixx_size / 2,
+                        self.window_size_pix[1] - self._vpixx_size / 2,
+                        self._vpixx_size,
+                        self._vpixx_size,
+                    ),
+                    units="pix",
+                    fill_color=None,
+                    line_color=None,
+                    line_width=0.0,
+                )
 
             # other basic components
             self._mouse_handler = Mouse(self)
@@ -1246,20 +1259,8 @@ class ExperimentController:
             # On NVIDIA Linux these calls cause a 2x delay (33ms instead of 16)
             gl.glFinish()
         if len(vpixx_id) and self._vpixx_size:
-            rect = Rectangle(
-                ec=self,
-                pos=(
-                    self._vpixx_size / 2,
-                    self.window_size_pix[1] - self._vpixx_size / 2,
-                    self._vpixx_size,
-                    self._vpixx_size,
-                ),
-                units="pix",
-                fill_color=np.array(vpixx_id) / 255,
-                line_color=None,
-                line_width=0.0,
-            )
-            rect.draw()
+            self.vpixx_rect.set_fill_color(np.array(vpixx_id) / 255)
+            self.vpixx_rect.draw()
         self._win.flip()
         # this waits until everything is called, including last draw
         self._clear_rect.draw()
