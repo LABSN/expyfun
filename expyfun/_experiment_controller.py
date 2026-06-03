@@ -591,7 +591,7 @@ class ExperimentController:
             self._vpixx_size = int(use_vpixx)
             if self._vpixx_size:
                 self._id_call_dict["vpixx_id"] = self._stamp_vpixx_id
-                self.vpixx_rect = Rectangle(
+                self._vpixx_rect = Rectangle(
                     ec=self,
                     pos=(
                         self._vpixx_size / 2,
@@ -1259,8 +1259,8 @@ class ExperimentController:
             # On NVIDIA Linux these calls cause a 2x delay (33ms instead of 16)
             gl.glFinish()
         if len(vpixx_id) and self._vpixx_size:
-            self.vpixx_rect.set_fill_color(np.array(vpixx_id) / 255)
-            self.vpixx_rect.draw()
+            self._vpixx_rect.set_fill_color(np.array(vpixx_id) / 255)
+            self._vpixx_rect.draw()
         self._win.flip()
         # this waits until everything is called, including last draw
         self._clear_rect.draw()
