@@ -74,7 +74,7 @@ with ExperimentController(
         ec.identify_trial(
             ec_id=1,  # dummy
             ttl_id=[1],  # dummy
-            vpixx_id=(255, 0, 0),  # just the lowest red bit
+            vpixx_id=(255, 0, 0),  # full red, so it's obvious
         )
         ec.set_background_color("white")
         t1 = ec.start_stimulus()
