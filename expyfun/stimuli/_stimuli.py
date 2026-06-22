@@ -7,7 +7,7 @@ import numpy as np
 from scipy import signal
 
 from .._sound_controllers import SoundPlayer
-from .._utils import _wait_secs
+from .._utils import _reshape_kwargs, _wait_secs
 from ..io import read_wav
 
 
@@ -64,7 +64,7 @@ def window_edges(sig, fs, dur=0.01, axis=-1, window="hann", edges="both"):
         flattop[:win_len] *= win
     shape = np.ones_like(sig.shape)
     shape[axis] = sig.shape[axis]
-    flattop.shape = shape
+    flattop = np.reshape(flattop, shape, **_reshape_kwargs)
     sig *= flattop
     return sig
 

@@ -905,3 +905,9 @@ def _compare_version(version_a, operator, version_b):
     from packaging.version import parse  # noqa
 
     return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
+
+
+# Can be removed once NumPy 2.1 is the minimum supported version
+_reshape_kwargs = dict()
+if _compare_version(np.__version__, ">=", "2.1"):
+    _reshape_kwargs["copy"] = False

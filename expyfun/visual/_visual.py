@@ -16,7 +16,7 @@ from ctypes import POINTER, c_char, c_float, c_int, cast, create_string_buffer, 
 
 import numpy as np
 
-from .._utils import check_units, logger
+from .._utils import _reshape_kwargs, check_units, logger
 
 # TODO: Should eventually follow
 # https://pyglet.readthedocs.io/en/latest/programming_guide/rendering.html
@@ -332,7 +332,7 @@ class _Triangular:
             assert tris is not None
             tris = np.asarray(tris, dtype=np.uint32, order="C")
             assert tris.ndim == 1 and tris.size % 3 == 0
-            tris.shape = (-1, 3)
+            tris = np.reshape(tris, (-1, 3), **_reshape_kwargs)
             assert (tris < len(points)).all()
             self._tris[kind] = tris
             del tris
