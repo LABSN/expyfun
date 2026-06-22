@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from scipy.signal import butter, filtfilt, lfilter
 
-from .._utils import verbose_dec
+from .._utils import _reshape_kwargs, verbose_dec
 
 
 def _freq_to_erbn(f):
@@ -198,7 +198,7 @@ def get_carriers(data, fs, edges, order=2, axis=-1, mode="tone", rate=None, seed
             carrier *= np.sqrt(2)  # rms of 1
             shape = np.ones_like(data.shape)
             shape[axis] = n_samp
-            carrier.shape = shape
+            carrier = np.reshape(carrier, shape, **_reshape_kwargs)
         else:
             if mode == "noise":
                 carrier = rng.rand(*data.shape)

@@ -7,6 +7,8 @@ from collections import OrderedDict
 
 import numpy as np
 
+from .._utils import _reshape_kwargs
+
 
 def read_tab_raw(fname, return_params=False):
     """Read .tab file from expyfun output without segmenting into trials.
@@ -255,7 +257,9 @@ def reconstruct_dealer(fname):
         log_tracker_history = dealer_stop_log["tracker_history"]
 
         dealer[-1]._shape = shape
-        dealer[-1]._trackers.shape = shape
+        dealer[-1]._trackers = np.reshape(
+            dealer[-1]._trackers, shape, **_reshape_kwargs
+        )
         dealer[-1]._response_history = log_response_history
         dealer[-1]._x_history = log_x_history
         dealer[-1]._tracker_history = log_tracker_history
