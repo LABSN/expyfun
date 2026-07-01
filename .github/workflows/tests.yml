@@ -35,7 +35,7 @@ jobs:
             kind: 'old'
             python: '3.10'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: LABSN/sound-ci-helpers@v1
       - uses: pyvista/setup-headless-display-action@main
         with:
@@ -96,7 +96,7 @@ jobs:
       - run: python -c "import expyfun; expyfun._utils._has_video(raise_error=True)"
         if: matrix.kind != 'old' && matrix.os != 'macos-latest'
       - run: pytest expyfun --cov-report=xml --cov=expyfun
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()
