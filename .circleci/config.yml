@@ -1,62 +1,83 @@
-version: 2
+version: 2.1
+
+_check_skip: &check_skip
+  name: Check-skip
+  command: |
+    set -e
+    export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+    if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
+      echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+      circleci-agent step halt;
+    fi
+
+# gen3 resource classes are Linux VM only and are valid only with the `current`
+# image tag; medium.gen3 has 2 vCPUs and 8 GiB at 7 credits/min
+executors:
+  linux:
+    machine:
+      image: ubuntu-2604:current
+    resource_class: medium.gen3
+
 jobs:
   build_docs:
-    docker:
-      - image: cimg/base:current-22.04
+    executor: linux
     steps:
-      # Get our data and merge with upstream
       - checkout
       - run:
-          name: Merge
+          <<: *check_skip
+      - run:
+          name: Merge with upstream
           command: |
             set -eo pipefail
-            echo $(git log -1 --pretty=%B) | tee gitlog.txt
-            echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-            if [[ $(cat merge.txt) != "" ]]; then
-              echo "Merging $(cat merge.txt)";
-              git pull --ff-only origin "refs/pull/$(cat merge.txt)/merge";
+            if [[ -v CIRCLE_PULL_REQUEST ]]; then
+              PR_NUM=${CIRCLE_PULL_REQUEST##*/}
+              echo "Merging ${PR_NUM}"
+              git pull --ff-only origin "refs/pull/${PR_NUM}/merge"
             fi
+      - restore_cache:
+          keys:
+            - pip-cache-0-{{ checksum "./pyproject.toml" }}
+            - pip-cache-0-
       - run:
           name: Prep env
           command: |
             set -eo pipefail
-            echo "set -eo pipefail" >> $BASH_ENV
-            sudo apt update
-            sudo apt install libglu1-mesa python3.10-venv python3-venv libxft2 ffmpeg xvfb
+            sudo apt-get update
+            sudo apt-get install -y libglu1-mesa libxft2 ffmpeg xvfb
             /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-            python3.10 -m venv ~/python_env
-            echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV
-            echo "export SOUND_CARD_BACKEND=pyglet >> $BASH_ENV"  # rtmixer needs pulse, which is a huge pain to get running on CircleCI
-            echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+            python3 -m venv ~/python_env
+            echo "set -eo pipefail" >> $BASH_ENV
+            echo "source ~/python_env/bin/activate" >> $BASH_ENV
+            echo "export SOUND_CARD_BACKEND=pyglet" >> $BASH_ENV  # rtmixer needs pulse, which is a huge pain to get running on CircleCI
+            echo "export OPENBLAS_NUM_THREADS=2" >> $BASH_ENV
             echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
-            echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
             echo "export DISPLAY=:99" >> $BASH_ENV
             echo "export _EXPYFUN_SILENT=true" >> $BASH_ENV
-            echo "source ~/python_env/bin/activate" >> $BASH_ENV
-            mkdir -p ~/.local/bin
-            ln -s ~/python_env/bin/python ~/.local/bin/python
-            echo "BASH_ENV:"
-            cat $BASH_ENV
-      - run: pip install --quiet --upgrade pip setuptools wheel
-      - run: pip install --quiet --upgrade numpy scipy matplotlib sphinx pandas h5py mne "pyglet!=2.1.10" psutil pydata-sphinx-theme numpydoc sphinx-gallery
-      - run: python -m pip install --group docs -ve .[all]
+      - run:
+          name: Install Python packages
+          command: |
+            python -m pip install --upgrade --progress-bar off pip
+            python -m pip install --upgrade --progress-bar off --group docs -ve .[all] h5py psutil
       - run: python -c "import mne; mne.sys_info()"
       - run: python -c "import pyglet; print(pyglet.version)"
-      - run: cd doc && make html
-
+      - run:
+          name: Build the documentation
+          command: make -C doc html
       - store_artifacts:
           path: doc/_build/html/
           destination: html
-
       - persist_to_workspace:
           root: doc/_build
+          paths: [html]
+      - save_cache:
+          key: pip-cache-0-{{ checksum "./pyproject.toml" }}
+          when: always
           paths:
-            - html
-
+            - ~/.cache/pip
 
   deploy:
     docker:
-      - image: circleci/python:3.8.5-buster
+      - image: cimg/base:current
     steps:
       - add_ssh_keys:
           fingerprints:
@@ -64,16 +85,16 @@ jobs:
       - attach_workspace:
           at: /tmp/_build
       - run:
-          name: upload
+          name: Upload
           command: |
+            set -eo pipefail
             echo "Deploying docs."
+            mkdir -p ~/.ssh
             ssh-keyscan github.com >> ~/.ssh/known_hosts
-            git clone git@github.com:/LABSN/labsn.github.io.git ~/labsn.github.io --depth=1
+            git clone git@github.com:LABSN/labsn.github.io.git ~/labsn.github.io --depth=1 --branch main
             git config --global user.email "circle@labsn.github.io"
             git config --global user.name "Circle CI"
             cd ~/labsn.github.io
-            git checkout main
-            git pull origin main
             rm -Rf ~/labsn.github.io/expyfun
             cp -a /tmp/_build/html ~/labsn.github.io/expyfun
             git add -A
@@ -81,7 +102,6 @@ jobs:
             git push origin main
 
 workflows:
-  version: 2
   build_and_deploy:
     jobs:
       - build_docs
