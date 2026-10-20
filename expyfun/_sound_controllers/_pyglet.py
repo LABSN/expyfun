@@ -101,10 +101,8 @@ def _as_static(data, fs):
         raise ValueError("Data must have one or two dimensions")
     n_ch = data.shape[0] if data.ndim == 2 else 1
     audio_format = AudioFormat(channels=n_ch, sample_size=16, sample_rate=fs)
-    data = data.T.ravel("C")
-    data[data < -1] = -1
-    data[data > 1] = 1
-    data = (data * (2**15)).astype("int16").tobytes()
+    data = np.clip(data.T.ravel("C"), -1, 1)  # new array, input untouched
+    data = (data * (2**15 - 1)).astype("int16").tobytes()
     return StaticMemorySourceFixed(data, audio_format)
 
 

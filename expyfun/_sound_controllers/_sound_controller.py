@@ -213,9 +213,6 @@ class SoundCardController:
 
             # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
             noise /= np.sqrt(np.mean(noise * noise))
-            noise = np.concatenate(
-                (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
-            )
             self.noise_array = noise
         else:
             self.noise_array = ec._noise_array
@@ -244,6 +241,10 @@ class SoundCardController:
                     raise RuntimeError(
                         f"Sample too long {self.noise_array.shape[-1]} > {max_samples}"
                     )
+        # add (silent) trigger channels in the same order as load_buffer
+        noise = self.noise_array
+        stim = np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype)
+        self.noise_array = np.concatenate((stim, noise)[self._stim_sl])
 
         self.noise_level = 0.01
         self.noise = None
@@ -446,6 +447,18 @@ class SoundCardController:
         if self.audio is not None:
             self.audio.play()
         self.playing = True
+
+    def _check_block(self, block):
+        """Resolve block (see ExperimentController.play)."""
+        if block == "auto":
+            block = self.backend_name == "sounddevice"
+        if block and self.backend_name == "pyglet":
+            raise ValueError("block=True is not supported by the pyglet backend")
+        return block
+
+    def _wait_play(self):
+        while self.audio is not None and self.audio._pending:
+            self.ec.wait_secs(0.001)  # dispatches events, checks force quit
 
     def stop(self, wait=False):
         """Stop.

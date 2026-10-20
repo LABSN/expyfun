@@ -54,7 +54,7 @@ all = [
 
 [dependency-groups]
 docs = ["numpydoc", "pydata-sphinx-theme", "sphinx-gallery", "sphinx"]
-test = ["flaky", "pytest-cov", "pytest-timeout", "pytest"]
+test = ["pytest-cov", "pytest-rerunfailures", "pytest-timeout", "pytest"]
 dev = [
   "build",
   "pre-commit",

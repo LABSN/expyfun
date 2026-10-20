@@ -623,11 +623,11 @@ class ExperimentController:
             self._on_trial_ok.append(ok_log)
             self._on_trial_ok.append(self.flush)
             self._trial_progress = "stopped"
+            # hack to prevent extra flips on first screen_prompt / screen_text
+            self.flip()
         except Exception:
             self.close()
             raise
-        # hack to prevent extra flips on first screen_prompt / screen_text
-        self.flip()
 
     def __repr__(self):
         """Return a useful string representation of the experiment"""
@@ -849,7 +849,7 @@ class ExperimentController:
         # this gets (unavoidably) passed to _convert_color later; must be in range [0,1]
         self.vpixx_color = np.array(col) / 255
 
-    def start_stimulus(self, start_of_trial=True, flip=True, when=None):
+    def start_stimulus(self, start_of_trial=True, flip=True, when=None, block="auto"):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
 
         Parameters
@@ -867,6 +867,12 @@ class ExperimentController:
             flip completes (if `flip` is ``True``). As a result, in some
             cases `when` should be set to a value smaller than your true
             intended flip time.
+        block : bool | "auto"
+            If True, return once (nearly) all of the audio has been handed to the
+            sound card, leaving about one audio block still to be played (so a
+            subsequent ``play`` remains gapless). "auto" (default) is True for the
+            ``sounddevice`` sound card backend and False otherwise. Only the
+            ``rtmixer`` and ``sounddevice`` backends support True.
 
         Returns
         -------
@@ -887,6 +893,7 @@ class ExperimentController:
         (only if ``flip=True``) additional functions added with
         `call_on_next_flip` and `call_on_every_flip`.
         """
+        block = self._check_block(block)
         if start_of_trial:
             if self._trial_progress != "identified":
                 raise RuntimeError("Trial ID must be stamped before starting the trial")
@@ -913,6 +920,8 @@ class ExperimentController:
             stimulus_time = self.get_time()
             for fun in funs:
                 fun()
+        if block:  # only after the onset triggers etc. have been stamped
+            self._ac._wait_play()
         return stimulus_time
 
     def call_on_next_flip(self, function):
@@ -1980,8 +1989,17 @@ class ExperimentController:
         logger.exp(f"Expyfun: Loading {samples.size} samples to buffer")
         self._ac.load_buffer(samples)
 
-    def play(self):
+    def play(self, block="auto"):
         """Start audio playback
+
+        Parameters
+        ----------
+        block : bool | "auto"
+            If True, return once (nearly) all of the audio has been handed to the
+            sound card, leaving about one audio block still to be played (so a
+            subsequent ``play`` remains gapless). "auto" (default) is True for the
+            ``sounddevice`` sound card backend and False otherwise. Only the
+            ``rtmixer`` and ``sounddevice`` backends support True.
 
         Returns
         -------
@@ -1996,9 +2014,18 @@ class ExperimentController:
         ExperimentController.stop
         """
         logger.exp("Expyfun: Playing audio")
+        block = self._check_block(block)
         # ensure self._play comes first in list:
         self._play()
-        return self.get_time()
+        play_time = self.get_time()
+        if block:
+            self._ac._wait_play()
+        return play_time
+
+    def _check_block(self, block):
+        if block not in ("auto", True, False):
+            raise ValueError(f'block must be "auto", True, or False, got {block!r}')
+        return self._ac._check_block(block)
 
     def _play(self):
         """Play the audio buffer."""
@@ -2465,7 +2492,7 @@ class ExperimentController:
         # do external cleanups
         cleanup_actions = []
         if hasattr(self, "_win"):
-            cleanup_actions.append(self._win.close)
+            cleanup_actions.append(self._close_win)
         cleanup_actions.extend([self.stop_noise, self.stop])
         cleanup_actions.extend(self._extra_cleanup_fun)
         cleanup_actions.append(self.flush)  # probably shouldn't be necessary
@@ -2477,6 +2504,14 @@ class ExperimentController:
         if any([x is not None for x in (err_type, value, traceback)]):
             return False
         return True
+
+    def _close_win(self):
+        screen = self._win.screen
+        self._win.close()
+        # TODO VERSION: pyglet Window.close() does not release a captured
+        # display on macOS (<= 2.1.14)
+        if sys.platform == "darwin" and self._full_screen:
+            screen.release_display()
 
     def refocus(self):
         """Attempt to grab operating system window manager / keyboard focus.

@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import sys
+import threading
 
 import numpy as np
 from rtmixer import Mixer, RingBuffer
@@ -109,14 +110,10 @@ class SoundPlayer:
         self._mixer = _mixer_registry._get_mixer(
             fs, self._n_channels, api, name, api_options
         )
-        if loop:
-            self._ring = RingBuffer(
-                self._data.itemsize * self._n_channels, self._data.size
-            )
-            self._ring.write(self._data)
         self._fs = float(self._mixer.samplerate)
         self._ec_duration = self._n_samples / self._fs
         self._action = None
+        self._stop_event = None
         self._fixed_delay = fixed_delay
         if fixed_delay is not None:
             logger.info(
@@ -134,6 +131,10 @@ class SoundPlayer:
         return self._action is not None and self._mixer is not None
 
     @property
+    def _pending(self):  # used by play(block=True)
+        return self._mixer is not None and self._action in self._mixer.actions
+
+    @property
     def _start_time(self):
         if self._fixed_delay is not None:
             return self._mixer.time + self._fixed_delay
@@ -144,9 +145,18 @@ class SoundPlayer:
         """Play."""
         if not self.playing and self._mixer is not None:
             if self.loop:
-                self._action = self._mixer.play_ringbuffer(
-                    self._ring, start=self._start_time
-                )
+                # play_ringbuffer finishes once the ring runs empty, so keep
+                # it topped up (cyclically) from a thread; ring holds ~1 s
+                n_ring = 2 ** int(np.ceil(np.log2(self._fs)))
+                ring = RingBuffer(self._data.itemsize * self._n_channels, n_ring)
+                pos = _write_cyclic(ring, self._data, 0)
+                self._stop_event = threading.Event()
+                threading.Thread(
+                    target=_refill_ring,
+                    args=(ring, self._data, pos, self._stop_event),
+                    daemon=True,
+                ).start()
+                self._action = self._mixer.play_ringbuffer(ring, start=self._start_time)
             else:
                 self._action = self._mixer.play_buffer(
                     self._data, self._data.shape[1], start=self._start_time
@@ -156,10 +166,12 @@ class SoundPlayer:
         """Stop."""
         if self.playing:
             action, self._action = self._action, None
+            if self._stop_event is not None:
+                self._stop_event.set()
+                self._stop_event = None
             # Impose the same delay here that we imposed on the stim start
-            cancel_action = self._mixer.cancel(
-                action, time=self._start_time + extra_delay
-            )
+            delay = (self._fixed_delay or 0.0) + extra_delay
+            cancel_action = self._mixer.cancel(action, time=self._mixer.time + delay)
             if wait:
                 self._mixer.wait(cancel_action)
             else:
@@ -169,22 +181,31 @@ class SoundPlayer:
         """Delete."""
         if getattr(self, "_mixer", None) is not None:
             self.stop(wait=False)
-            mixer, self._mixer = self._mixer, None
-            try:
-                stats = mixer.fetch_and_reset_stats().stats
-            except RuntimeError as exc:  # action queue is full
-                logger.exp(f"Could not fetch mixer stats ({exc})")
-            else:
-                logger.exp(
-                    f"{stats.output_underflows} underflows {stats.blocks} blocks"
-                )
+            self._mixer = None
 
     def __del__(self):  # noqa
         self.delete()
 
 
+def _write_cyclic(ring, data, pos):
+    while ring.write_available:
+        n = min(ring.write_available, len(data) - pos)
+        pos = (pos + ring.write(data[pos : pos + n])) % len(data)
+    return pos
+
+
+def _refill_ring(ring, data, pos, stop_event):
+    while not stop_event.wait(0.02):
+        pos = _write_cyclic(ring, data, pos)
+
+
 def _abort_all_queues():
     for mixer in _mixer_registry.values():
+        if mixer.active:  # stats are only filled in once the callback runs
+            stats_action = mixer.fetch_and_reset_stats()
+            mixer.wait(stats_action)
+            stats = stats_action.stats
+            logger.exp(f"{stats.output_underflows} underflows {stats.blocks} blocks")
         if len(mixer.actions) == 0:
             continue
         do_start_stop = mixer.stopped

@@ -6,6 +6,8 @@
 # License: BSD (3-clause)
 
 import sys
+import threading
+from collections import deque
 
 import numpy as np
 import sounddevice as sd
@@ -50,17 +52,42 @@ class _StreamRegistry(dict):
 _stream_registry = _StreamRegistry()
 
 
+class _Stream(sd.OutputStream):
+    """Output stream that plays queued buffers back to back (gapless)."""
+
+    def __init__(self, **kwargs):
+        self._queue = deque()  # entries are [player, data, position]
+        self._lock = threading.Lock()
+        self._underflows = 0
+        self._frames = 0  # size of the most recent callback block
+        super().__init__(callback=self._callback, **kwargs)
+
+    def _callback(self, outdata, frames, time, status):
+        outdata.fill(0)
+        offset = 0
+        with self._lock:
+            self._underflows += bool(status.output_underflow)
+            self._frames = frames
+            while self._queue and offset < frames:
+                entry = self._queue[0]
+                n = min(frames - offset, len(entry[1]) - entry[2])
+                outdata[offset : offset + n] = entry[1][entry[2] : entry[2] + n]
+                offset += n
+                entry[2] += n
+                if entry[2] >= len(entry[1]):
+                    self._queue.popleft()
+
+
 def _init_stream(fs, n_channels, api, name, api_options=None):
     device, param_str, extra_settings, all_devices = _find_device(
         n_channels, api, name, api_options
     )
     del api, name, api_options
-    blocksize = None
     if fs is not None:
         param_str += " @ %d Hz" % (fs,)
-        blocksize = int(fs / 5)
+    blocksize = int((fs or device["default_samplerate"]) / 5)
     try:
-        stream = sd.OutputStream(
+        stream = _Stream(
             samplerate=fs,
             blocksize=blocksize,
             device=device["index"],
@@ -123,7 +150,6 @@ class SoundPlayer:
         )
         self._fs = float(self._stream.samplerate)
         self._ec_duration = self._n_samples / self._fs
-        self._action = None
         self._fixed_delay = fixed_delay
 
     @property
@@ -132,23 +158,45 @@ class SoundPlayer:
 
     @property
     def playing(self):
-        return self._action is not None and self._stream is not None
+        if self._stream is None:
+            return False
+        with self._stream._lock:
+            return any(
+                player is self and pos < len(data)
+                for player, data, pos in self._stream._queue
+            )
+
+    @property
+    def _pending(self):  # more than one block left to hand off (keeps gapless)
+        with self._stream._lock:
+            return any(
+                player is self and len(data) - pos > self._stream._frames
+                for player, data, pos in self._stream._queue
+            )
 
     @property
     def _start_time(self):
         return 0.0
 
     def play(self):
-        """Play."""
+        """Play (queued after any audio already playing on this stream)."""
         if self._stream is not None:
+            with self._stream._lock:
+                self._stream._queue.append([self, self._data, 0])
+                underflows, self._stream._underflows = self._stream._underflows, 0
+            if underflows:
+                logger.exp(f"Expyfun: {underflows} sound card underflow(s)")
             if not self._stream.active:
                 self._stream.start()
-            self._action = self._stream.write(self._data)
 
-    def stop(self, wait=False):
-        """Stop."""
-        if self.playing:
-            self._stream.abort(ignore_errors=True)
+    def stop(self, wait=False, extra_delay=0.0):
+        """Stop this player's audio after extra_delay sec (wait is ignored)."""
+        if self._stream is not None:
+            n_keep = int(round(extra_delay * self._fs))
+            with self._stream._lock:
+                for entry in self._stream._queue:
+                    if entry[0] is self:  # the callback drops finished entries
+                        entry[1] = entry[1][: entry[2] + n_keep]
 
     def delete(self):
         if getattr(self, "_stream", None) is not None:
