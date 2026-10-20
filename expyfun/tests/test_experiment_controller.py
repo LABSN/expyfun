@@ -877,7 +877,7 @@ def test_gapless(ac):
         backend = ac if isinstance(ac, str) else ac["SOUND_CARD_BACKEND"]
         pytest.skip(f"Gapless not supported for {backend=}")
     stim_fs = 48000
-    dur = 0.5
+    dur = 2.0  # long enough that some devices priming their buffer can't take it all
     stim = np.zeros((2, int(round(dur * stim_fs))))
     kwargs = std_kwargs.copy()
     kwargs.update(

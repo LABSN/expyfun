@@ -457,7 +457,12 @@ class SoundCardController:
         return block
 
     def _wait_play(self):
-        while self.audio is not None and self.audio._pending:
+        if self.audio is None:
+            return
+        # never wait longer than the sound itself, even if the device stalls
+        t_end = self.ec.get_time() + self.audio._ec_duration
+        t_end += self.audio._fixed_delay or 0
+        while self.audio._pending and self.ec.get_time() < t_end:
             self.ec.wait_secs(0.001)  # dispatches events, checks force quit
 
     def stop(self, wait=False):
