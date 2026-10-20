@@ -255,7 +255,7 @@ def test_ec(ac, hide_window, monkeypatch):
         _check_skip_backend(ac)
         rd, tc, fs = "keyboard", "dummy", 44100
         if ac["SOUND_CARD_BACKEND"] in ("sounddevice", "pyglet"):
-            skip_noise = True
+            skip_noise = ac["SOUND_CARD_BACKEND"] == "pyglet"
             kwargs["gapless"] = ac["SOUND_CARD_BACKEND"] == "sounddevice"
     for suppress in (True, False):
         with warnings.catch_warnings(record=True) as w:
@@ -466,8 +466,8 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.wait_secs(SAFE_DELAY)
         assert ec._playing is True
         ec.call_on_every_flip(None)
-        if not skip_noise:  # doesn't work w/ sounddevice backend
-            ec.call_on_next_flip(ec.start_noise())
+        if not skip_noise:  # doesn't work w/ pyglet backend
+            ec.call_on_next_flip(ec.start_noise)
         ec.flip()
         ec.wait_secs(SAFE_DELAY)
         ec.stop_noise()

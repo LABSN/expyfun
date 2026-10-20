@@ -165,7 +165,7 @@ def test_play_sound(backend, hide_window):  # only works if windowing works
         snds[1].delete()
         assert not snds[1].playing
         # queued buffers abut sample-exactly
-        stream = SimpleNamespace(_lock=threading.Lock(), _underflows=0)
+        stream = SimpleNamespace(_lock=threading.Lock(), _underflows=0, _loops=[])
         stream._queue = deque(
             [[None, np.ones((3, 1)), 1], [None, 2 * np.ones((4, 1)), 0]]
         )
@@ -173,6 +173,11 @@ def test_play_sound(backend, hide_window):  # only works if windowing works
         _Stream._callback(stream, out, 5, None, SimpleNamespace(output_underflow=True))
         assert_array_equal(out[:, 0], [1, 1, 2, 2, 2])
         assert stream._underflows == 1 and len(stream._queue) == 1
+        # looped buffers wrap around and are mixed on top
+        stream._loops.append([None, np.array([[10.0], [20.0]]), 1])
+        _Stream._callback(stream, out, 5, None, SimpleNamespace(output_underflow=0))
+        assert_array_equal(out[:, 0], [22, 10, 20, 10, 20])
+        assert stream._loops[0][2] == 0
 
 
 def test_window_edges():

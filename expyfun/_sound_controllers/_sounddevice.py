@@ -53,10 +53,14 @@ _stream_registry = _StreamRegistry()
 
 
 class _Stream(sd.OutputStream):
-    """Output stream that plays queued buffers back to back (gapless)."""
+    """Output stream that plays queued buffers back to back (gapless).
+
+    Looped buffers (e.g., noise) are mixed on top of the queue.
+    """
 
     def __init__(self, **kwargs):
         self._queue = deque()  # entries are [player, data, position]
+        self._loops = []  # same entry format
         self._lock = threading.Lock()
         self._underflows = 0
         self._frames = 0  # size of the most recent callback block
@@ -76,6 +80,10 @@ class _Stream(sd.OutputStream):
                 entry[2] += n
                 if entry[2] >= len(entry[1]):
                     self._queue.popleft()
+            for entry in self._loops:
+                idx = np.arange(entry[2], entry[2] + frames)
+                outdata += np.take(entry[1], idx, axis=0, mode="wrap")
+                entry[2] = (entry[2] + frames) % len(entry[1])
 
 
 def _init_stream(fs, n_channels, api, name, api_options=None):
@@ -129,8 +137,7 @@ class SoundPlayer:
         data = np.atleast_2d(data).T
         data = np.asarray(data, np.float32, "C")
         self._data = data
-        if loop:
-            raise NotImplementedError("Not implemented for sounddevice backend.")
+        self._loop = bool(loop)
         if fixed_delay is not None:
             if isinstance(fixed_delay, str):
                 try:
@@ -161,7 +168,7 @@ class SoundPlayer:
         if self._stream is None:
             return False
         with self._stream._lock:
-            return any(
+            return any(player is self for player, _, _ in self._stream._loops) or any(
                 player is self and pos < len(data)
                 for player, data, pos in self._stream._queue
             )
@@ -182,7 +189,8 @@ class SoundPlayer:
         """Play (queued after any audio already playing on this stream)."""
         if self._stream is not None:
             with self._stream._lock:
-                self._stream._queue.append([self, self._data, 0])
+                entries = self._stream._loops if self._loop else self._stream._queue
+                entries.append([self, self._data, 0])
                 underflows, self._stream._underflows = self._stream._underflows, 0
             if underflows:
                 logger.exp(f"Expyfun: {underflows} sound card underflow(s)")
@@ -194,6 +202,9 @@ class SoundPlayer:
         if self._stream is not None:
             n_keep = int(round(extra_delay * self._fs))
             with self._stream._lock:
+                self._stream._loops[:] = [
+                    entry for entry in self._stream._loops if entry[0] is not self
+                ]
                 for entry in self._stream._queue:
                     if entry[0] is self:  # the callback drops finished entries
                         entry[1] = entry[1][: entry[2] + n_keep]
