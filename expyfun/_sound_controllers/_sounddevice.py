@@ -178,12 +178,10 @@ class SoundPlayer:
             )
 
     @property
-    def _pending(self):  # more than one block left to hand off (keeps gapless)
+    def _queued_secs(self):  # queued audio beyond one block (gapless wait)
         with self._stream._lock:
-            return any(
-                player is self and len(data) - pos > self._stream._frames
-                for player, data, pos in self._stream._queue
-            )
+            n = sum(len(data) - pos for _, data, pos in self._stream._queue)
+            return (n - self._stream._frames) / self._fs
 
     @property
     def _start_time(self):

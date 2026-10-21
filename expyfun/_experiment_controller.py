@@ -849,7 +849,7 @@ class ExperimentController:
         # this gets (unavoidably) passed to _convert_color later; must be in range [0,1]
         self.vpixx_color = np.array(col) / 255
 
-    def start_stimulus(self, start_of_trial=True, flip=True, when=None, block="auto"):
+    def start_stimulus(self, start_of_trial=True, flip=True, when=None):
         """Play audio, (optionally) flip screen, run any "on_flip" functions.
 
         Parameters
@@ -867,12 +867,6 @@ class ExperimentController:
             flip completes (if `flip` is ``True``). As a result, in some
             cases `when` should be set to a value smaller than your true
             intended flip time.
-        block : bool | "auto"
-            If True, return once (nearly) all of the audio has been handed to the
-            sound card, leaving about one audio block still to be played (so a
-            subsequent ``play`` remains gapless). "auto" (default) is True for the
-            ``sounddevice`` sound card backend and False otherwise. Only the
-            ``rtmixer`` and ``sounddevice`` backends support True.
 
         Returns
         -------
@@ -892,13 +886,18 @@ class ExperimentController:
         Order of operations is: screen flip (optional), audio start, then
         (only if ``flip=True``) additional functions added with
         `call_on_next_flip` and `call_on_every_flip`.
+
+        With ``gapless=True``, this first waits until any previously started
+        audio has about one audio block left to play, so the new audio starts
+        on the sample right after it ends.
         """
-        block = self._check_block(block)
         if start_of_trial:
             if self._trial_progress != "identified":
                 raise RuntimeError("Trial ID must be stamped before starting the trial")
             self._trial_progress = "started"
         extra = "flipping screen and " if flip else ""
+        if self._gapless:
+            self._ac._wait_gapless()
         logger.exp(f"Expyfun: Starting stimuli: {extra}playing audio")
         # ensure self._play comes first in list, followed by other critical
         # private functions (e.g., EL stamping), then user functions:
@@ -920,8 +919,6 @@ class ExperimentController:
             stimulus_time = self.get_time()
             for fun in funs:
                 fun()
-        if block:  # only after the onset triggers etc. have been stamped
-            self._ac._wait_play()
         return stimulus_time
 
     def call_on_next_flip(self, function):
@@ -1989,17 +1986,8 @@ class ExperimentController:
         logger.exp(f"Expyfun: Loading {samples.size} samples to buffer")
         self._ac.load_buffer(samples)
 
-    def play(self, block="auto"):
+    def play(self):
         """Start audio playback
-
-        Parameters
-        ----------
-        block : bool | "auto"
-            If True, return once (nearly) all of the audio has been handed to the
-            sound card, leaving about one audio block still to be played (so a
-            subsequent ``play`` remains gapless). "auto" (default) is True for the
-            ``sounddevice`` sound card backend and False otherwise. Only the
-            ``rtmixer`` and ``sounddevice`` backends support True.
 
         Returns
         -------
@@ -2012,20 +2000,19 @@ class ExperimentController:
         ExperimentController.set_stim_db
         ExperimentController.start_stimulus
         ExperimentController.stop
+
+        Notes
+        -----
+        With ``gapless=True``, this first waits until any previously started
+        audio has about one audio block left to play, so the new audio starts
+        on the sample right after it ends.
         """
+        if self._gapless:
+            self._ac._wait_gapless()
         logger.exp("Expyfun: Playing audio")
-        block = self._check_block(block)
         # ensure self._play comes first in list:
         self._play()
-        play_time = self.get_time()
-        if block:
-            self._ac._wait_play()
-        return play_time
-
-    def _check_block(self, block):
-        if block not in ("auto", True, False):
-            raise ValueError(f'block must be "auto", True, or False, got {block!r}')
-        return self._ac._check_block(block)
+        return self.get_time()
 
     def _play(self):
         """Play the audio buffer."""
@@ -2395,7 +2382,7 @@ class ExperimentController:
                 "trial cannot be okay unless it was started, "
                 "did you call ec.start_stimulus?"
             )
-        if self._playing:
+        if self._playing and not self._gapless:  # gapless keeps playing
             logger.warning("ec.trial_ok called before stimulus had stopped")
         for func in self._on_trial_ok:
             func()

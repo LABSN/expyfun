@@ -459,9 +459,6 @@ def test_ec(ac, hide_window, monkeypatch):
         assert ec._playing is False
         ec.estimate_screen_fs()
         assert ec._playing is False
-        pytest.raises(ValueError, ec.play, block="foo")
-        if ac == "tdt" or ac["SOUND_CARD_BACKEND"] == "pyglet":
-            pytest.raises(ValueError, ec.play, block=True)
         ec.play()
         ec.wait_secs(SAFE_DELAY)
         assert ec._playing is True
@@ -887,23 +884,19 @@ def test_gapless(ac):
         audio_controller=ac,
     )
     with ExperimentController(*std_args, **kwargs) as ec:
-        for ii, block in enumerate(("auto", False)):
+        dts = list()
+        for ii in range(2):
             ec.identify_trial(ttl_id=[ii], ec_id=f"{ii}")
-            ec.load_buffer(stim)
+            ec.load_buffer(stim)  # allowed while the previous sound plays
             times = []
             ec.call_on_next_flip(lambda: times.append(ec.get_time()))
             t0 = ec.get_time()
-            ec.start_stimulus(block=block)  # "auto" blocks for sounddevice
-            dt = ec.get_time() - t0
-            assert times[0] - t0 < 0.1  # flip callbacks ran before any blocking
+            ec.start_stimulus()
+            dts.append(ec.get_time() - t0)
+            assert times[0] - t0 > dts[-1] - 0.1  # flip came after any waiting
             assert ec._playing is True
-            if block:  # returns late, but with audio left so the next play abuts
-                assert dt > 0.1
-                assert ec._ac.audio.playing
-            else:
-                assert dt < 0.1
-            # TODO: Maybe these should emit an error if they're not supposed to be used?
-            ec.wait_secs(0.01)
-            ec.stop()
-            assert ec._playing is False
             ec.trial_ok()
+        assert dts[0] < 0.1  # nothing queued, so no waiting
+        assert 0.1 < dts[1] < dur  # waited until the first sound had ~1 block left
+        ec.stop()
+        assert ec._playing is False

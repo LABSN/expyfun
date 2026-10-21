@@ -448,21 +448,13 @@ class SoundCardController:
             self.audio.play()
         self.playing = True
 
-    def _check_block(self, block):
-        """Resolve block (see ExperimentController.play)."""
-        if block == "auto":
-            block = self.backend_name == "sounddevice"
-        if block and self.backend_name == "pyglet":
-            raise ValueError("block=True is not supported by the pyglet backend")
-        return block
-
-    def _wait_play(self):
+    def _wait_gapless(self):
+        """Wait until queued audio is nearly done, so new audio abuts it."""
         if self.audio is None:
             return
-        # never wait longer than the sound itself, even if the device stalls
-        t_end = self.ec.get_time() + self.audio._ec_duration
-        t_end += self.audio._fixed_delay or 0
-        while self.audio._pending and self.ec.get_time() < t_end:
+        # never wait longer than the audio queued now, even if the device stalls
+        t_end = self.ec.get_time() + self.audio._queued_secs
+        while self.audio._queued_secs > 0 and self.ec.get_time() < t_end:
             self.ec.wait_secs(0.001)  # dispatches events, checks force quit
 
     def stop(self, wait=False):

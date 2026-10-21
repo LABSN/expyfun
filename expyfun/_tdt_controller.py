@@ -249,11 +249,6 @@ class TDTController(Keyboard):  # lgtm [py/missing-call-to-init]
         self.rpcox.WriteTagVEX("datainright", 1, "F32", data[:, 1])
         self.rpcox.SetTagVal("nsamples", max(data.shape[0] + 1, 1))
 
-    def _check_block(self, block):
-        if block is True:
-            raise ValueError("block=True is not supported by the TDT")
-        return False
-
     def play(self):
         """Send the soft trigger to start the ring buffer playback."""
         self.rpcox.SetTagVal("trgname", 1)

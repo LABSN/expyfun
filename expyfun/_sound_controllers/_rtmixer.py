@@ -131,10 +131,6 @@ class SoundPlayer:
         return self._action is not None and self._mixer is not None
 
     @property
-    def _pending(self):  # used by play(block=True)
-        return self._mixer is not None and self._action in self._mixer.actions
-
-    @property
     def _start_time(self):
         if self._fixed_delay is not None:
             return self._mixer.time + self._fixed_delay
