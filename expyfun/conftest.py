@@ -4,6 +4,7 @@
 
 import os
 import platform
+import time
 
 import pytest
 
@@ -41,6 +42,42 @@ def hide_window():
         _get_display()
     except Exception as exp:
         pytest.skip("Windowing unavailable (%s)" % exp)
+
+
+@pytest.fixture(autouse=True)
+def _reset_macos_audio_buffer(monkeypatch):
+    """Undo our 200 ms sounddevice blocks on macOS after a test uses them.
+
+    The device I/O buffer size is per process on macOS, and while it is large,
+    Apple's OpenAL (pyglet backend) can't reuse buffers after a stop/seek
+    ("Failed to add data to buffer"). This only matters when both backends are
+    used in one process, so briefly run a default-size stream to reset it.
+    """
+    if platform.system() != "Darwin":
+        yield
+        return
+    try:
+        from expyfun._sound_controllers import _sounddevice
+    except Exception:  # sounddevice not installed
+        yield
+        return
+    used = list()
+    orig = _sounddevice._init_stream
+    monkeypatch.setattr(
+        _sounddevice, "_init_stream", lambda *a, **k: used.append(1) or orig(*a, **k)
+    )
+    yield
+    if used:
+        _sounddevice._abort_all_queues()
+        stream = _sounddevice.sd.RawOutputStream(
+            channels=1, dtype="float32", latency="low", callback=_silence
+        )
+        with stream:
+            time.sleep(0.1)
+
+
+def _silence(outdata, frames, t, status):
+    outdata[:] = bytes(len(outdata))
 
 
 _SOUND_CARD_ACS = tuple(

@@ -7,7 +7,6 @@ from functools import partial
 
 import numpy as np
 import pytest
-from flaky import flaky
 from numpy.testing import assert_allclose, assert_equal
 
 import expyfun
@@ -237,7 +236,7 @@ def test_degenerate():
     )
 
 
-@flaky
+@pytest.mark.flaky(reruns=1)
 @pytest.mark.timeout(120)
 def test_ec(ac, hide_window, monkeypatch):
     """Test EC methods."""
@@ -256,7 +255,7 @@ def test_ec(ac, hide_window, monkeypatch):
         _check_skip_backend(ac)
         rd, tc, fs = "keyboard", "dummy", 44100
         if ac["SOUND_CARD_BACKEND"] in ("sounddevice", "pyglet"):
-            skip_noise = True
+            skip_noise = ac["SOUND_CARD_BACKEND"] == "pyglet"
             kwargs["gapless"] = ac["SOUND_CARD_BACKEND"] == "sounddevice"
     for suppress in (True, False):
         with warnings.catch_warnings(record=True) as w:
@@ -464,11 +463,8 @@ def test_ec(ac, hide_window, monkeypatch):
         ec.wait_secs(SAFE_DELAY)
         assert ec._playing is True
         ec.call_on_every_flip(None)
-        # something funny with the ring buffer in testing on OSX
-        if (
-            platform.system() != "Darwin" and not skip_noise
-        ):  # doesn't work w/ sounddevice backend
-            ec.call_on_next_flip(ec.start_noise())
+        if not skip_noise:  # doesn't work w/ pyglet backend
+            ec.call_on_next_flip(ec.start_noise)
         ec.flip()
         ec.wait_secs(SAFE_DELAY)
         ec.stop_noise()
@@ -556,8 +552,10 @@ def test_vpixx(hide_window):
         # flipping, the size, color, & position of the rectangle is what we expect.
         ec.flip(vpixx_id=(255, 0, 0))
         assert ec._vpixx_rect._colors["fill"] == (1.0, 0.0, 0.0, 1.0)
-        # screen is 8x8, so 2x2 rect in top-left corner will have center at (1, 7)
-        np.testing.assert_array_equal(ec._vpixx_rect._pos, [1, 7, 2, 2])
+        # 2x2 rect in top-left corner has center at (1, height - 1), where the
+        # height is 8 (or 16 on HiDPI displays, which have 2 pixels per point)
+        height = ec.window_size_pix[1]
+        np.testing.assert_array_equal(ec._vpixx_rect._pos, [1, height - 1, 2, 2])
 
 
 def test_tdtpy_failure(hide_window):
@@ -801,6 +799,17 @@ def test_sound_card_triggering(hide_window):
         ec.load_buffer(np.zeros(ec.stim_fs * 2))
         ec.start_stimulus()
         ec.stop()
+    # noise gets silent trigger channels, in the configured order
+    audio_controller.update(SOUND_CARD_TRIGGER_INSERTION="append")
+    for noise_array in (None, np.ones(2**10)):
+        with ExperimentController(
+            *std_args, n_channels=1, noise_array=noise_array, **kwargs
+        ) as ec:
+            assert ec._ac.noise_array.shape[0] == 2
+            assert np.all(ec._ac.noise_array[0] != 0)
+            assert np.all(ec._ac.noise_array[1] == 0)
+            ec.start_noise()
+            ec.stop_noise()
 
 
 class _FakeJoystick:
@@ -865,7 +874,7 @@ def test_gapless(ac):
         backend = ac if isinstance(ac, str) else ac["SOUND_CARD_BACKEND"]
         pytest.skip(f"Gapless not supported for {backend=}")
     stim_fs = 48000
-    dur = 0.25
+    dur = 2.0  # long enough that some devices priming their buffer can't take it all
     stim = np.zeros((2, int(round(dur * stim_fs))))
     kwargs = std_kwargs.copy()
     kwargs.update(
@@ -875,13 +884,19 @@ def test_gapless(ac):
         audio_controller=ac,
     )
     with ExperimentController(*std_args, **kwargs) as ec:
+        dts = list()
         for ii in range(2):
             ec.identify_trial(ttl_id=[ii], ec_id=f"{ii}")
-            ec.load_buffer(stim)
-            ec.start_stimulus()  # should be blocking?
+            ec.load_buffer(stim)  # allowed while the previous sound plays
+            times = []
+            ec.call_on_next_flip(lambda: times.append(ec.get_time()))
+            t0 = ec.get_time()
+            ec.start_stimulus()
+            dts.append(ec.get_time() - t0)
+            assert times[0] - t0 > dts[-1] - 0.1  # flip came after any waiting
             assert ec._playing is True
-            # TODO: Maybe these should emit an error if they're not supposed to be used?
-            ec.wait_secs(0.01)
-            ec.stop()
-            assert ec._playing is False
             ec.trial_ok()
+        assert dts[0] < 0.1  # nothing queued, so no waiting
+        assert 0.1 < dts[1] < dur  # waited until the first sound had ~1 block left
+        ec.stop()
+        assert ec._playing is False

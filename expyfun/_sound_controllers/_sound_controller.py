@@ -213,9 +213,6 @@ class SoundCardController:
 
             # ensure true RMS of 1.0 (DFT method also lowers RMS, compensate here)
             noise /= np.sqrt(np.mean(noise * noise))
-            noise = np.concatenate(
-                (np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype), noise)
-            )
             self.noise_array = noise
         else:
             self.noise_array = ec._noise_array
@@ -244,6 +241,10 @@ class SoundCardController:
                     raise RuntimeError(
                         f"Sample too long {self.noise_array.shape[-1]} > {max_samples}"
                     )
+        # add (silent) trigger channels in the same order as load_buffer
+        noise = self.noise_array
+        stim = np.zeros((self._n_channels_stim, noise.shape[1]), noise.dtype)
+        self.noise_array = np.concatenate((stim, noise)[self._stim_sl])
 
         self.noise_level = 0.01
         self.noise = None
@@ -446,6 +447,15 @@ class SoundCardController:
         if self.audio is not None:
             self.audio.play()
         self.playing = True
+
+    def _wait_gapless(self):
+        """Wait until queued audio is nearly done, so new audio abuts it."""
+        if self.audio is None:
+            return
+        # never wait longer than the audio queued now, even if the device stalls
+        t_end = self.ec.get_time() + self.audio._queued_secs
+        while self.audio._queued_secs > 0 and self.ec.get_time() < t_end:
+            self.ec.wait_secs(0.001)  # dispatches events, checks force quit
 
     def stop(self, wait=False):
         """Stop.

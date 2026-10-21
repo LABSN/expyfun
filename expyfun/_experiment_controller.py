@@ -623,11 +623,11 @@ class ExperimentController:
             self._on_trial_ok.append(ok_log)
             self._on_trial_ok.append(self.flush)
             self._trial_progress = "stopped"
+            # hack to prevent extra flips on first screen_prompt / screen_text
+            self.flip()
         except Exception:
             self.close()
             raise
-        # hack to prevent extra flips on first screen_prompt / screen_text
-        self.flip()
 
     def __repr__(self):
         """Return a useful string representation of the experiment"""
@@ -886,12 +886,18 @@ class ExperimentController:
         Order of operations is: screen flip (optional), audio start, then
         (only if ``flip=True``) additional functions added with
         `call_on_next_flip` and `call_on_every_flip`.
+
+        With ``gapless=True``, this first waits until any previously started
+        audio has about one audio block left to play, so the new audio starts
+        on the sample right after it ends.
         """
         if start_of_trial:
             if self._trial_progress != "identified":
                 raise RuntimeError("Trial ID must be stamped before starting the trial")
             self._trial_progress = "started"
         extra = "flipping screen and " if flip else ""
+        if self._gapless:
+            self._ac._wait_gapless()
         logger.exp(f"Expyfun: Starting stimuli: {extra}playing audio")
         # ensure self._play comes first in list, followed by other critical
         # private functions (e.g., EL stamping), then user functions:
@@ -1994,7 +2000,15 @@ class ExperimentController:
         ExperimentController.set_stim_db
         ExperimentController.start_stimulus
         ExperimentController.stop
+
+        Notes
+        -----
+        With ``gapless=True``, this first waits until any previously started
+        audio has about one audio block left to play, so the new audio starts
+        on the sample right after it ends.
         """
+        if self._gapless:
+            self._ac._wait_gapless()
         logger.exp("Expyfun: Playing audio")
         # ensure self._play comes first in list:
         self._play()
@@ -2368,7 +2382,7 @@ class ExperimentController:
                 "trial cannot be okay unless it was started, "
                 "did you call ec.start_stimulus?"
             )
-        if self._playing:
+        if self._playing and not self._gapless:  # gapless keeps playing
             logger.warning("ec.trial_ok called before stimulus had stopped")
         for func in self._on_trial_ok:
             func()
@@ -2465,7 +2479,7 @@ class ExperimentController:
         # do external cleanups
         cleanup_actions = []
         if hasattr(self, "_win"):
-            cleanup_actions.append(self._win.close)
+            cleanup_actions.append(self._close_win)
         cleanup_actions.extend([self.stop_noise, self.stop])
         cleanup_actions.extend(self._extra_cleanup_fun)
         cleanup_actions.append(self.flush)  # probably shouldn't be necessary
@@ -2477,6 +2491,14 @@ class ExperimentController:
         if any([x is not None for x in (err_type, value, traceback)]):
             return False
         return True
+
+    def _close_win(self):
+        screen = self._win.screen
+        self._win.close()
+        # TODO VERSION: pyglet Window.close() does not release a captured
+        # display on macOS (<= 2.1.14)
+        if sys.platform == "darwin" and self._full_screen:
+            screen.release_display()
 
     def refocus(self):
         """Attempt to grab operating system window manager / keyboard focus.

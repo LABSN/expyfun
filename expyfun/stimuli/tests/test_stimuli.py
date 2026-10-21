@@ -1,4 +1,8 @@
 import os
+import threading
+import time
+from collections import deque
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -11,8 +15,8 @@ from numpy.testing import (
 from scipy.signal import butter, lfilter
 
 from expyfun import ExperimentController
-from expyfun._sound_controllers import _BACKENDS
-from expyfun._utils import _check_skip_backend, get_config, requires_lib
+from expyfun._sound_controllers import _BACKENDS, SoundPlayer
+from expyfun._utils import _check_skip_backend, _wait_secs, get_config, requires_lib
 from expyfun.stimuli import (
     CRMPreload,
     add_pad,
@@ -125,6 +129,61 @@ def test_play_sound(backend, hide_window):  # only works if windowing works
         # than once is okay (it is).
         snd.stop()
         snd.delete()
+    play_sound(data, fs=fs).stop(wait=False, extra_delay=0.0)  # same signature
+    if backend == "pyglet":  # full scale must not wrap, input must not change
+        from expyfun._sound_controllers._pyglet import _as_static
+
+        orig = np.array([1.0, -1.0, 2.0])
+        sms = _as_static(orig, fs)
+        assert_array_equal(orig, [1.0, -1.0, 2.0])
+        assert_array_equal(np.frombuffer(sms._data, np.int16), [32767, -32767, 32767])
+    elif backend == "rtmixer":  # loop past the ring buffer, delayed stop
+        snd = SoundPlayer(np.zeros((2, 100)), fs=fs, loop=True, backend=backend)
+        snd.play()
+        action = snd._action
+        _wait_secs(2.0)  # longer than the ~1 s ring buffer
+        assert action in snd._mixer.actions
+        snd.stop(wait=False, extra_delay=0.5)
+        _wait_secs(0.1)
+        assert action in snd._mixer.actions
+        _wait_secs(1.0)
+        assert action not in snd._mixer.actions
+        snd.delete()
+    elif backend == "sounddevice":  # non-blocking, gapless, independent stop
+        from expyfun._sound_controllers._sounddevice import _Stream
+
+        snds = [
+            SoundPlayer(np.zeros((2, int(fs))), fs=fs, backend=backend) for _ in "ab"
+        ]
+        t0 = time.monotonic()
+        for snd in snds:
+            snd.play()
+        assert time.monotonic() - t0 < 0.5
+        assert snds[0].playing and snds[1].playing
+        snds[0].stop()
+        assert not snds[0].playing and snds[1].playing
+        snds[1].delete()
+        assert not snds[1].playing
+        stream = snds[0]._stream
+        assert stream.active  # gapless use keeps the stream running
+        snd = play_sound(np.zeros((2, int(fs))), fs=fs, backend=backend)
+        snd.stop()
+        snd.delete()
+        assert not stream.active  # play_sound releases the device
+        # queued buffers abut sample-exactly
+        stream = SimpleNamespace(_lock=threading.Lock(), _underflows=0, _loops=[])
+        stream._queue = deque(
+            [[None, np.ones((3, 1)), 1], [None, 2 * np.ones((4, 1)), 0]]
+        )
+        out = np.empty((5, 1), np.float32)
+        _Stream._callback(stream, out, 5, None, SimpleNamespace(output_underflow=True))
+        assert_array_equal(out[:, 0], [1, 1, 2, 2, 2])
+        assert stream._underflows == 1 and len(stream._queue) == 1
+        # looped buffers wrap around and are mixed on top
+        stream._loops.append([None, np.array([[10.0], [20.0]]), 1])
+        _Stream._callback(stream, out, 5, None, SimpleNamespace(output_underflow=0))
+        assert_array_equal(out[:, 0], [22, 10, 20, 10, 20])
+        assert stream._loops[0][2] == 0
 
 
 def test_window_edges():
