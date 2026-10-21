@@ -221,7 +221,7 @@ class SoundPlayer:
                     idle = not self._stream._loops and all(
                         pos >= len(data) for _, data, pos in self._stream._queue
                     )
-                if idle:
+                if idle and not self._stream.closed:
                     self._stream.abort(ignore_errors=True)
             self._stream = None
 
