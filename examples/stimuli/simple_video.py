@@ -4,7 +4,7 @@ Video playing made simple
 =========================
 
 This shows how to play a video file in expyfun. It requires that FFmpeg
-(for Pyglet >= 1.4) or AVBin (otherwise) has already been installed.
+has already been installed.
 
 @author: drmccloy
 """

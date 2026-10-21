@@ -1,3 +1,6 @@
+import gc
+import sys
+
 import numpy as np
 import pytest
 from numpy.testing import assert_equal
@@ -18,7 +21,7 @@ std_kwargs = dict(
 )
 
 
-def test_visuals_basic(hide_window, capsys):
+def test_visuals_basic(hide_window, capsys, monkeypatch):
     """Test EC visual methods."""
     with ExperimentController("test", **std_kwargs) as ec:
         pytest.raises(TypeError, visual.Circle, ec, n_edges=3.5)
@@ -97,6 +100,43 @@ def test_visuals_basic(hide_window, capsys):
         text.draw()
         text.set_color("red")
         text.draw()
+        # one program is shared, even by the temporary set_background_color rect
+        assert circ._program is rect._program is ec._clear_rect._program
+        ec.set_background_color("black")
+        assert visual.Rectangle(ec, [0, 0, 1, 1])._program is rect._program
+        # drawing and flipping does not query or allocate GL resources
+        gl = sys.modules["pyglet.gl"]  # pyglet.gl itself is a lazy proxy
+        prefixes = ("glGet", "glCreate", "glGen", "glCompileShader", "glBufferData")
+        calls = list()
+        with monkeypatch.context() as m:
+            for name in dir(gl):
+                if name.startswith(prefixes) and name != "glGetError":
+                    func = getattr(gl, name)
+                    m.setattr(
+                        gl, name, lambda *a, n=name, f=func: calls.append(n) or f(*a)
+                    )
+            for obj in (circ, tri, rect, diamond, line, fix, img, text):
+                obj.draw()
+            ec.flip()
+        assert calls == []
+        # constant index buffers are not re-uploaded
+        keys = list()
+        set_buffer_data = circ._set_buffer_data
+        monkeypatch.setattr(
+            circ,
+            "_set_buffer_data",
+            lambda *a: keys.append(a[:2]) or set_buffer_data(*a),
+        )
+        circ.set_pos([0.1, 0.1])
+        assert keys == [("fill", "array"), ("line", "array")]
+        # GL objects are deleted when garbage collected
+        temp = visual.Rectangle(ec, [0, 0, 1, 1])
+        vao, buf = temp._vaos["fill"].id, temp._buffers["fill"]["index"].id
+        assert gl.glIsVertexArray(vao) and gl.glIsBuffer(buf)
+        del temp
+        gc.collect()
+        ec.flip()
+        assert not gl.glIsVertexArray(vao) and not gl.glIsBuffer(buf)
         bar = visual.ProgressBar(ec, [0, 0, 1, 0.2])
         bar = visual.ProgressBar(ec, [0, 0, 1, 1], units="pix")
         bar.update_bar(0.5)

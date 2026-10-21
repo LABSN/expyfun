@@ -25,19 +25,8 @@ pyglet.options["audio"] = _driver
 
 # these must follow the above option setting, so PEP8 complains
 try:
-    try:
-        from pyglet.media.codecs import AudioFormat
-    except ImportError:
-        from pyglet.media import AudioFormat
     from pyglet.media import Player, SourceGroup  # noqa
-
-    try:
-        from pyglet.media.codecs import StaticMemorySource
-    except ImportError:
-        try:
-            from pyglet.media import StaticMemorySource
-        except ImportError:
-            from pyglet.media.sources.base import StaticMemorySource  # noqa
+    from pyglet.media.codecs import AudioFormat, StaticMemorySource
 except Exception as exp:
     warnings.warn("Pyglet could not be imported:\n%s" % exp)
     Player = AudioFormat = SourceGroup = StaticMemorySource = object
@@ -107,11 +96,8 @@ def _as_static(data, fs):
 
 
 class StaticMemorySourceFixed(StaticMemorySource):
-    """Stupid class to fix old Pyglet bug."""
+    """Fix pyglet bug where get_queue_source needs a _data attribute."""
 
     def __init__(self, data, audio_format):
         self._data = data
         StaticMemorySource.__init__(self, data, audio_format)
-
-    def _get_queue_source(self):
-        return self

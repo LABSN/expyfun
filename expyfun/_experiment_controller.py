@@ -25,7 +25,6 @@ from ._tdt_controller import TDTController
 from ._trigger_controllers import ParallelTrigger
 from ._utils import (
     ZeroClock,
-    _check_pyglet_version,
     _fix_audio_dims,
     _get_display,
     _sanitize,
@@ -242,8 +241,6 @@ class ExperimentController:
         try:
             self._setup_event_loop()
             self.set_rms_checking(check_rms)
-            # Check Pyglet version for safety
-            _check_pyglet_version(raise_error=True)
             # assure proper formatting for force-quit keys
             if force_quit is None:
                 force_quit = ["lctrl", "rctrl"]
@@ -1095,16 +1092,14 @@ class ExperimentController:
         center : bool
             If True, center the video.
         """
-        try:
-            from pyglet.media.exceptions import MediaFormatException
-        except ImportError:  # < 1.4
-            from pyglet.media import MediaFormatException
+        from pyglet.media.exceptions import MediaFormatException
+
         try:
             self.video = Video(self, file_name, pos=pos, units=units)
         except MediaFormatException as exp:
             raise RuntimeError(
                 "Something is wrong; probably you tried to load a "
-                "compressed video file but you do not have FFmpeg/Avbin "
+                "compressed video file but you do not have FFmpeg "
                 "installed. Download and install it; if you are on Windows, "
                 "you may also need to manually copy the .dll file(s) "
                 "from C:\\Windows\\system32 to C:\\Windows\\SysWOW64.:\n%s" % (exp,)
@@ -1151,18 +1146,14 @@ class ExperimentController:
         import pyglet
         from pyglet import gl
 
-        # Use 16x sampling here
         config_kwargs = dict(
-            depth_size=8,
+            depth_size=0,
             double_buffer=True,
             stereo=False,
             stencil_size=0,
             samples=0,
             sample_buffers=0,
         )
-        # Travis can't handle multi-sampling, but our production machines must
-        if os.getenv("TRAVIS") == "true":
-            del config_kwargs["samples"], config_kwargs["sample_buffers"]
         self._full_screen = full_screen
         win_kwargs = dict(
             width=int(window_size[0]),
@@ -1190,7 +1181,6 @@ class ExperimentController:
             win.set_location(x, y)
         self._win = win
         # with the context set up, do basic GL initialization
-        gl.glClearDepth(1.0)  # clear value for the depth buffer
         # disable depth testing
         gl.glDisable(gl.GL_DEPTH_TEST)
         # enable blending
@@ -1288,6 +1278,8 @@ class ExperimentController:
                 pos=[0, 0, 2.1, 2.1],
                 fill_color=(0.0, 0.0, 0.0, 0.0),
             )
+            # draw even though it is transparent, see flip()
+            self._clear_rect_._draw_transparent = True
         return self._clear_rect_
 
     def estimate_screen_fs(self, n_rep=10):
