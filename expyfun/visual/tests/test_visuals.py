@@ -18,7 +18,7 @@ std_kwargs = dict(
 )
 
 
-def test_visuals_basic(hide_window):
+def test_visuals_basic(hide_window, capsys):
     """Test EC visual methods."""
     with ExperimentController("test", **std_kwargs) as ec:
         pytest.raises(TypeError, visual.Circle, ec, n_edges=3.5)
@@ -72,7 +72,9 @@ def test_visuals_basic(hide_window):
             )
             img.draw()
         line = visual.Line(ec, [[0, 1], [1, 0]])
-        line.draw()
+        capsys.readouterr()
+        line.draw()  # has no fill
+        assert capsys.readouterr().out == ""  # nothing printed when drawing
         pytest.raises(ValueError, line.set_line_width, 100)
         line.set_line_width(2)
         line.draw()
@@ -116,7 +118,15 @@ def test_video(hide_window, monkeypatch):
         pytest.raises(ValueError, ec.video.set_scale, "foo")
         pytest.raises(ValueError, ec.video.set_scale, -1)
         ec.wait_secs(0.1)
+        flips = list()
+        flip = ec.flip
+        monkeypatch.setattr(
+            ec, "flip", lambda *a, **k: flips.append(1) or flip(*a, **k)
+        )
         ec.video.set_visible(False)
+        assert len(flips) == 0  # only flips when asked
+        ec.video.set_visible(False, flip=True)
+        assert len(flips) == 1
         ec.wait_secs(0.1)
         ec.video.set_visible(True)
         ec.video.set_scale("fill")

@@ -62,6 +62,9 @@ class _Stream(sd.RawOutputStream):
         self._queue = deque()  # entries are [player, data, position]
         self._loops = []  # same entry format
         self._lock = threading.Lock()
+        # PortAudio start/abort/close aren't thread safe (play_sound deletes
+        # from a Timer thread), and must not hold _lock (the callback needs it)
+        self._control = threading.Lock()
         self._underflows = 0
         self._frames = 0  # size of the most recent callback block
         super().__init__(callback=self._callback, **kwargs)
@@ -190,14 +193,15 @@ class SoundPlayer:
     def play(self):
         """Play (queued after any audio already playing on this stream)."""
         if self._stream is not None:
-            with self._stream._lock:
-                entries = self._stream._loops if self._loop else self._stream._queue
-                entries.append([self, self._data, 0])
-                underflows, self._stream._underflows = self._stream._underflows, 0
+            with self._stream._control:
+                with self._stream._lock:
+                    entries = self._stream._loops if self._loop else self._stream._queue
+                    entries.append([self, self._data, 0])
+                    underflows, self._stream._underflows = self._stream._underflows, 0
+                if not self._stream.active:
+                    self._stream.start()
             if underflows:
                 logger.exp(f"Expyfun: {underflows} sound card underflow(s)")
-            if not self._stream.active:
-                self._stream.start()
 
     def stop(self, wait=False, extra_delay=0.0):
         """Stop this player's audio after extra_delay sec (wait is ignored)."""
@@ -215,21 +219,22 @@ class SoundPlayer:
         if getattr(self, "_stream", None) is not None:
             self.stop()
             if self._auto_stop:
-                with self._stream._lock:
-                    idle = not self._stream._loops and all(
-                        pos >= len(data) for _, data, pos in self._stream._queue
-                    )
-                if idle and not self._stream.closed:
-                    self._stream.abort(ignore_errors=True)
+                with self._stream._control:
+                    with self._stream._lock:
+                        idle = not self._stream._loops and all(
+                            pos >= len(data) for _, data, pos in self._stream._queue
+                        )
+                    if idle and not self._stream.closed:
+                        self._stream.abort(ignore_errors=True)
             self._stream = None
 
 
 def _abort_all_queues():
     for key, stream in list(_stream_registry.items()):
-        if getattr(stream, "closed", False):
-            continue
-        stream.abort(ignore_errors=True)
-        stream.close(ignore_errors=True)
+        with stream._control:
+            if not stream.closed:
+                stream.abort(ignore_errors=True)
+                stream.close(ignore_errors=True)
         del _stream_registry[key]
 
 

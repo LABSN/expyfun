@@ -323,8 +323,6 @@ class _Triangular:
         """Set fill and line points."""
         from pyglet import gl
 
-        if points is None:
-            self._counts[kind] = 0
         points = np.asarray(points, dtype=np.float32, order="C")
         assert points.ndim == 2 and points.shape[1] == 2
         array_count = points.size // 2 if kind == "line" else points.size
@@ -406,7 +404,6 @@ class _Triangular:
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         for kind in ("fill", "line"):
             if self._counts[kind] == 0:
-                print(f"Skipping {kind} for {self}")
                 continue
             with (
                 _use_program(self._program),
@@ -1493,7 +1490,6 @@ class Video:
             self._draw()
         else:
             self._visible = False
-            self._ec.flip()
         if flip:
             self._ec.flip()
 
