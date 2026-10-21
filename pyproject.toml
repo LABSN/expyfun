@@ -113,6 +113,8 @@ usefixtures = "matplotlib_config"
 # Once SciPy updates not to have non-integer and non-tuple errors (1.2.0) we
 # should remove them from here.
 # This list should also be considered alongside reset_warnings in doc/conf.py
+# TODO VERSION: drop the NumPy "Setting the shape" filter once sounddevice > 0.5.6
+# is required (fixed in spatialaudio/python-sounddevice#641)
 filterwarnings = '''
     error::
     ignore::ImportWarning
@@ -141,6 +143,7 @@ filterwarnings = '''
     ignore:'.*' deprecated - use '.*'.*:DeprecationWarning
     always:Exception in thread .*:pytest.PytestUnhandledThreadExceptionWarning
     always:.*Exception ignored in.*__del__.*:
+    ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
 '''
 
 [tool.rstcheck]
