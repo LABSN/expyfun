@@ -128,6 +128,7 @@ def play_sound(sound, fs=None, norm=True, wait=False, backend="auto"):
     # resampling isn't built in to the backend; when we hit this we can
     # try/except here and do the resampling ourselves.
     snd = SoundPlayer(sound, fs=fs, backend=backend)
+    snd._auto_stop = True  # sounddevice: release the device when done
     dur = sound.shape[1] / float(fs)
     snd.play()  # will clip as necessary
     del_wait = 0.5

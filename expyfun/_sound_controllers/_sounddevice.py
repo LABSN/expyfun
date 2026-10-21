@@ -52,7 +52,7 @@ class _StreamRegistry(dict):
 _stream_registry = _StreamRegistry()
 
 
-class _Stream(sd.OutputStream):
+class _Stream(sd.RawOutputStream):
     """Output stream that plays queued buffers back to back (gapless).
 
     Looped buffers (e.g., noise) are mixed on top of the queue.
@@ -67,6 +67,8 @@ class _Stream(sd.OutputStream):
         super().__init__(callback=self._callback, **kwargs)
 
     def _callback(self, outdata, frames, time, status):
+        # raw buffer avoids sounddevice's NumPy-2.5-deprecated .shape assignment
+        outdata = np.frombuffer(outdata, np.float32).reshape(frames, -1)
         outdata.fill(0)
         offset = 0
         with self._lock:
@@ -123,6 +125,8 @@ def _init_stream(fs, n_channels, api, name, api_options=None):
 
 class SoundPlayer:
     """SoundPlayer based on sounddevice."""
+
+    _auto_stop = False  # stop the stream on delete if nothing else is queued
 
     def __init__(
         self,
@@ -212,6 +216,13 @@ class SoundPlayer:
     def delete(self):
         if getattr(self, "_stream", None) is not None:
             self.stop()
+            if self._auto_stop:
+                with self._stream._lock:
+                    idle = not self._stream._loops and all(
+                        pos >= len(data) for _, data, pos in self._stream._queue
+                    )
+                if idle:
+                    self._stream.abort(ignore_errors=True)
             self._stream = None
 
 

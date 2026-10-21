@@ -164,12 +164,18 @@ def test_play_sound(backend, hide_window):  # only works if windowing works
         assert not snds[0].playing and snds[1].playing
         snds[1].delete()
         assert not snds[1].playing
+        stream = snds[0]._stream
+        assert stream.active  # gapless use keeps the stream running
+        snd = play_sound(np.zeros((2, int(fs))), fs=fs, backend=backend)
+        snd.stop()
+        snd.delete()
+        assert not stream.active  # play_sound releases the device
         # queued buffers abut sample-exactly
         stream = SimpleNamespace(_lock=threading.Lock(), _underflows=0, _loops=[])
         stream._queue = deque(
             [[None, np.ones((3, 1)), 1], [None, 2 * np.ones((4, 1)), 0]]
         )
-        out = np.empty((5, 1))
+        out = np.empty((5, 1), np.float32)
         _Stream._callback(stream, out, 5, None, SimpleNamespace(output_underflow=True))
         assert_array_equal(out[:, 0], [1, 1, 2, 2, 2])
         assert stream._underflows == 1 and len(stream._queue) == 1
