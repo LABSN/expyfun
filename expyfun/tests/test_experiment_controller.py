@@ -488,13 +488,6 @@ def test_ec(ac, hide_window, monkeypatch):
         print(ec.on_next_flip_functions)
         print(ec.on_every_flip_functions)
         print(ec.window)
-        # we need to monkey-patch for old Pyglet
-        try:
-            from PIL import Image
-
-            Image.fromstring
-        except AttributeError:
-            Image.fromstring = None
         data = ec.screenshot()
         # HiDPI
         sizes = [
@@ -692,11 +685,21 @@ def test_background_color(hide_window):
         ec.set_background_color("0.5")
         visual.Rectangle(ec, [0, 0, 1, 1], fill_color="black").draw()
         ss = ec.screenshot()[:, :, :3]
-        gray_mask = (ss == [127] * 3).all(axis=-1) | (ss == [128] * 3).all(axis=-1)
+        gray_mask = (ss == [128] * 3).all(axis=-1)  # 0.5 rounds to 128
         assert gray_mask.any()
         black_mask = (ss == [0] * 3).all(axis=-1)
         assert black_mask.any()
         assert np.logical_or(gray_mask, black_mask).all()
+        # a blended outline drawn after pyglet objects (which change GL state)
+        ec.flip()
+        visual.RawImage(ec, np.ones((2, 2, 3))).draw()
+        visual.Text(ec, " ").draw()
+        visual.Rectangle(
+            ec, [0, 0, 1, 1], fill_color=None, line_color=(1.0, 0.0, 0.0, 0.5)
+        ).draw()
+        ss = ec.screenshot()[:, :, :3].astype(int)
+        line_mask = (np.abs(ss - [192, 64, 64]) <= 1).all(axis=-1)
+        assert line_mask.any()
 
 
 def test_tdt_delay(hide_window):

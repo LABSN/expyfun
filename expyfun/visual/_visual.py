@@ -9,10 +9,7 @@ Tools for drawing shapes and text on the screen.
 #
 # License: BSD (3-clause)
 
-import re
 import warnings
-from contextlib import contextmanager
-from ctypes import POINTER, c_char, c_float, c_int, cast, create_string_buffer, pointer
 
 import numpy as np
 
@@ -32,52 +29,13 @@ def _convert_color(color, byte=True):
     from matplotlib.colors import colorConverter
 
     color = (0.0, 0.0, 0.0, 0.0) if color is None else color
-    color = 255 * np.array(colorConverter.to_rgba(color))
+    color = np.round(255 * np.array(colorConverter.to_rgba(color)))
     color = color.astype(np.uint8)
     if not byte:
         color = tuple((color / 255.0).astype(np.float32))
     else:
         color = tuple(int(c) for c in color)
     return color
-
-
-@contextmanager
-def _element_array_buffer(buffer_id):
-    from pyglet import gl
-
-    old = (gl.GLint * 1)()
-    gl.glGetIntegerv(gl.GL_ELEMENT_ARRAY_BUFFER_BINDING, old)
-    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, buffer_id)
-    try:
-        yield
-    finally:
-        gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, list(old)[0])
-
-
-@contextmanager
-def _array_buffer(buffer_id):
-    from pyglet import gl
-
-    old = (gl.GLint * 1)()
-    gl.glGetIntegerv(gl.GL_ARRAY_BUFFER_BINDING, old)
-    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, buffer_id)
-    try:
-        yield
-    finally:
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, list(old)[0])
-
-
-@contextmanager
-def _use_program(program):
-    from pyglet import gl
-
-    old = (gl.GLint * 1)()
-    gl.glGetIntegerv(gl.GL_CURRENT_PROGRAM, old)
-    gl.glUseProgram(program)
-    try:
-        yield
-    finally:
-        gl.glUseProgram(list(old)[0])
 
 
 ##############################################################################
@@ -150,7 +108,6 @@ class Text:
     ):
         import pyglet
 
-        pyglet_2 = hasattr(pyglet, "__version__")
         pos = np.array(pos)[:, np.newaxis]
         pos = ec._convert_units(pos, units, "pix")[:, 0]
         if width == "auto":
@@ -158,13 +115,18 @@ class Text:
         elif isinstance(width, str):
             raise ValueError('"width", if str, must be "auto"')
         self._attr = attr
-        kwargs = dict(width=width, height=height, multiline=wrap, dpi=int(ec.dpi))
-        if pyglet_2:
-            # Really needed to work around
-            # https://github.com/pyglet/pyglet/issues/1359
-            kwargs.update(anchor_x=anchor_x, anchor_y=anchor_y, x=pos[0], y=pos[1])
-        elif wrap:
-            text = text + "\n "  # weird Pyglet bug
+        # Passing position and anchors here works around
+        # https://github.com/pyglet/pyglet/issues/1359
+        kwargs = dict(
+            width=width,
+            height=height,
+            multiline=wrap,
+            dpi=int(ec.dpi),
+            anchor_x=anchor_x,
+            anchor_y=anchor_y,
+            x=pos[0],
+            y=pos[1],
+        )
         if self._attr:
             preamble = (
                 f"{{font_name '{font_name}'}}"
@@ -178,11 +140,6 @@ class Text:
             self._text.color = _convert_color(color)
             self._text.font_name = font_name
             self._text.font_size = font_size
-        if not pyglet_2:
-            self._text.x = pos[0]
-            self._text.y = pos[1]
-            self._text.anchor_x = anchor_x
-            self._text.anchor_y = anchor_y
 
     def set_color(self, color):
         """Set the text color
@@ -232,128 +189,87 @@ void main()
 """
 
 
-def _check_log(obj, func):
-    log = create_string_buffer(4096)
-    ptr = cast(pointer(log), POINTER(c_char))
-    func(obj, 4096, pointer(c_int()), ptr)
-    message = log.value
-    message = message.decode()
-    if (
-        message.startswith("No errors")
-        or re.match(".*shader was successfully compiled.*", message)
-        or message == "Vertex shader(s) linked, fragment shader(s) linked.\n"
-    ):
-        pass
-    elif message:
-        raise RuntimeError(message)
+def _get_program(ec, vert, frag):
+    """Get the shader program for the EC window, setting its view matrix."""
+    # pyglet caches the program per context, so this is only compiled once per
+    # window as long as some object holds a reference to it
+    program = ec._win.context.create_program((vert, "vertex"), (frag, "fragment"))
+    view = ec.window_size_pix
+    view = np.diag([2.0 / view[0], 2.0 / view[1], 1.0, 1.0])
+    view[-1, :2] = -1
+    program["u_view"] = view.ravel().tolist()
+    return program
 
 
-def _create_program(ec, vert, frag):
+def _set_attrib_pointer(program, name):
+    """Point an attribute of the bound VAO to the bound array buffer."""
     from pyglet import gl
 
-    program = gl.glCreateProgram()
-
-    vertex = gl.glCreateShader(gl.GL_VERTEX_SHADER)
-    buf = create_string_buffer(vert.encode("ASCII"))
-    ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
-    gl.glShaderSource(vertex, 1, ptr, None)
-    gl.glCompileShader(vertex)
-    _check_log(vertex, gl.glGetShaderInfoLog)
-
-    fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
-    buf = create_string_buffer(frag.encode("ASCII"))
-    ptr = cast(pointer(pointer(buf)), POINTER(POINTER(c_char)))
-    gl.glShaderSource(fragment, 1, ptr, None)
-    gl.glCompileShader(fragment)
-    _check_log(fragment, gl.glGetShaderInfoLog)
-
-    gl.glAttachShader(program, vertex)
-    gl.glAttachShader(program, fragment)
-    gl.glLinkProgram(program)
-    _check_log(program, gl.glGetProgramInfoLog)
-
-    gl.glDetachShader(program, vertex)
-    gl.glDetachShader(program, fragment)
-
-    # Set the view matrix
-    with _use_program(program):
-        loc = gl.glGetUniformLocation(program, b"u_view")
-        view = ec.window_size_pix
-        view = np.diag([2.0 / view[0], 2.0 / view[1], 1.0, 1.0])
-        view[-1, :2] = -1
-        view = view.astype(np.float32).ravel()
-        gl.glUniformMatrix4fv(loc, 1, False, (c_float * 16)(*view))
-    return program
+    loc = program.attributes[name]["location"]
+    gl.glEnableVertexAttribArray(loc)
+    gl.glVertexAttribPointer(loc, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
 
 
 class _Triangular:
     """Super class for objects that use triangulations and/or lines"""
 
+    # Whether to draw kinds (fill or line) whose color is fully transparent. Only
+    # used by ExperimentController._clear_rect, whose draw is used for flip timing.
+    _draw_transparent = False
+
     def __init__(self, ec, fill_color, line_color, line_width, line_loop):
-        from pyglet import gl
+        from pyglet.graphics.vertexarray import VertexArray
 
         self._ec = ec
         self._line_width = line_width
         self._line_loop = line_loop  # whether or not lines drawn are looped
 
-        # initialize program and shaders
-        self._program = _create_program(ec, tri_vert, tri_frag)
-
-        self._counts = dict()
+        # The program is shared by all objects drawn in the window. The VAOs and
+        # buffers are owned by this object, and pyglet deletes them when they are
+        # garbage collected.
+        self._program = _get_program(ec, tri_vert, tri_frag)
+        self._counts = dict(fill=0, line=0)
         self._colors = dict()
-        self._buffers = dict()
+        self._vaos = dict(fill=VertexArray(), line=VertexArray())
+        self._buffers = dict(fill=dict(), line=dict())
         self._points = dict()
         self._tris = dict()
-        with _use_program(self._program):
-            for kind in ("line", "fill"):
-                self._counts[kind] = 0
-                self._colors[kind] = (0.0, 0.0, 0.0, 0.0)
-                self._buffers[kind] = dict(array=gl.GLuint())
-                gl.glGenBuffers(1, pointer(self._buffers[kind]["array"]))
-                if kind == "fill":
-                    self._buffers[kind]["index"] = gl.GLuint()
-                    gl.glGenBuffers(1, pointer(self._buffers[kind]["index"]))
-
         self.set_fill_color(fill_color)
         self.set_line_color(line_color)
-        self._vao = gl.GLuint()
-        gl.glGenVertexArrays(1, pointer(self._vao))
+
+    def _set_buffer_data(self, kind, key, data):
+        """Upload data to a buffer, (re)creating it if necessary."""
+        from pyglet.graphics.vertexbuffer import BufferObject
+
+        buffer = self._buffers[kind].get(key)
+        if buffer is None or buffer.size != data.nbytes:
+            buffer = self._buffers[kind][key] = BufferObject(data.nbytes)
+        buffer.set_data(data.tobytes())
+        return buffer
 
     def _set_points(self, points, kind, tris):
         """Set fill and line points."""
-        from pyglet import gl
-
         points = np.asarray(points, dtype=np.float32, order="C")
         assert points.ndim == 2 and points.shape[1] == 2
-        array_count = points.size // 2 if kind == "line" else points.size
         if kind == "fill":
             assert tris is not None
             tris = np.asarray(tris, dtype=np.uint32, order="C")
             assert tris.ndim == 1 and tris.size % 3 == 0
             tris = np.reshape(tris, (-1, 3), **_reshape_kwargs)
             assert (tris < len(points)).all()
-            self._tris[kind] = tris
-            del tris
         self._points[kind] = points
-        del points
-        with _use_program(self._program), _array_buffer(self._buffers[kind]["array"]):
-            gl.glBufferData(
-                gl.GL_ARRAY_BUFFER,
-                self._points[kind].size * 4,
-                self._points[kind].tobytes(),
-                gl.GL_DYNAMIC_DRAW,
-            )
+        # The VAO stores the attribute pointer and index buffer binding, so they only
+        # need to be set here rather than on each draw
+        with self._vaos[kind]:
+            self._set_buffer_data(kind, "array", points)
+            _set_attrib_pointer(self._program, "a_position")
             if kind == "line":
-                self._counts[kind] = array_count
-            if kind == "fill":
+                self._counts[kind] = len(points)
+            else:
+                if kind not in self._tris or not np.array_equal(tris, self._tris[kind]):
+                    self._set_buffer_data(kind, "index", tris).bind_to_index_buffer()
+                    self._tris[kind] = tris
                 self._counts[kind] = self._tris[kind].size
-                with _element_array_buffer(self._buffers[kind]["index"]):
-                    gl.glBufferData(
-                        gl.GL_ELEMENT_ARRAY_BUFFER,
-                        self._tris[kind].size * 4,
-                        self._tris[kind].tobytes(),
-                        gl.GL_STATIC_DRAW,
-                    )
 
     def _set_fill_points(self, points, tris):
         self._set_points(points, "fill", tris)
@@ -399,24 +315,20 @@ class _Triangular:
         """Draw the object to the display buffer."""
         from pyglet import gl
 
-        gl.glBindVertexArray(self._vao)
+        # pyglet disables blending after drawing sprites, so we always enable it
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        self._program.use()
         for kind in ("fill", "line"):
             if self._counts[kind] == 0:
                 continue
-            with (
-                _use_program(self._program),
-                _array_buffer(self._buffers[kind]["array"]),
-            ):
-                loc_pos = gl.glGetAttribLocation(self._program, b"a_position")
-                gl.glEnableVertexAttribArray(loc_pos)
-                gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-                loc_col = gl.glGetUniformLocation(self._program, b"u_color")
-                gl.glUniform4f(loc_col, *self._colors[kind])
+            if self._colors[kind][3] == 0 and not self._draw_transparent:
+                continue
+            if kind == "line" and self._line_width <= 0.0:
+                continue
+            with self._vaos[kind]:
+                self._program["u_color"] = self._colors[kind]
                 if kind == "line":
-                    if self._line_width <= 0.0:
-                        continue
                     try:
                         gl.glLineWidth(self._line_width)
                     except gl.lib.GLException:  # on macOS for example only 1 works
@@ -427,15 +339,13 @@ class _Triangular:
                         mode = gl.GL_LINE_STRIP
                     gl.glDrawArrays(mode, 0, self._counts[kind])
                 else:
-                    with _element_array_buffer(self._buffers[kind]["index"]):
-                        gl.glDrawElements(
-                            gl.GL_TRIANGLES,
-                            self._counts[kind],
-                            gl.GL_UNSIGNED_INT,
-                            0,
-                        )
-                gl.glDisableVertexAttribArray(loc_pos)
-        gl.glBindVertexArray(0)
+                    gl.glDrawElements(
+                        gl.GL_TRIANGLES,
+                        self._counts[kind],
+                        gl.GL_UNSIGNED_INT,
+                        0,
+                    )
+        self._program.stop()
 
 
 class Line(_Triangular):
@@ -1072,6 +982,8 @@ class RawImage:
     def __init__(self, ec, image_buffer, pos=(0, 0), scale=1.0, units="norm"):
         self._ec = ec
         self._img = None
+        self._pos = np.zeros(2)
+        self._scale = 1.0
         self.set_image(image_buffer)
         self.set_pos(pos, units)
         self.set_scale(scale)
@@ -1094,7 +1006,7 @@ class RawImage:
         if image_buffer.dtype == np.float64:
             if image_buffer.max() > 1 or image_buffer.min() < 0:
                 raise ValueError("all float values must be between 0 and 1")
-            image_buffer = (image_buffer * 255).astype("uint8")
+            image_buffer = np.round(image_buffer * 255).astype("uint8")
         assert image_buffer.dtype == np.uint8
         if image_buffer.ndim == 2:  # grayscale
             image_buffer = np.tile(image_buffer[..., np.newaxis], (1, 1, 3))
@@ -1107,6 +1019,7 @@ class RawImage:
                 dims[1], dims[0], fmt, image_buffer.tobytes(), -dims[1] * dims[2]
             )
         )
+        self._update_sprite()
 
     def set_pos(self, pos, units="norm"):
         """Set image position.
@@ -1123,6 +1036,7 @@ class RawImage:
             raise ValueError("pos must be a 2-element array")
         pos = np.reshape(pos, (2, 1))
         self._pos = self._ec._convert_units(pos, units, "pix").ravel()
+        self._update_sprite()
 
     @property
     def bounds(self):
@@ -1147,16 +1061,16 @@ class RawImage:
         """
         scale = float(scale)
         self._scale = scale
+        self._update_sprite()
+
+    def _update_sprite(self):
+        # Setting these updates the sprite vertices, so do it here rather than in draw
         self._sprite.scale = self._scale
+        pos = self._pos - [self._sprite.width / 2.0, self._sprite.height / 2.0]
+        self._sprite.position = (*pos, self._sprite.z)
 
     def draw(self):
         """Draw the image to the buffer"""
-        self._sprite.scale = self._scale
-        pos = self._pos - [self._sprite.width / 2.0, self._sprite.height / 2.0]
-        if hasattr(self._sprite, "z"):  # Pyglet 2+
-            self._sprite.position = (*pos, self._sprite.z)
-        else:
-            self._sprite.position = pos
         self._sprite.draw()
 
     def get_rect(self, units="norm"):
@@ -1258,7 +1172,8 @@ class Video:
         center=True,
         visible=True,
     ):
-        from pyglet import gl
+        from pyglet.graphics.vertexarray import VertexArray
+        from pyglet.graphics.vertexbuffer import BufferObject
         from pyglet.media import Player, load
 
         self._ec = ec
@@ -1284,27 +1199,26 @@ class Video:
         self._dt = 1.0 / frame_rate
         self._playing = False
         self._finished = False
+        # The program is shared, the VAO and buffers are owned by this object (and
+        # deleted by pyglet when garbage collected). The position buffer is filled
+        # by set_pos.
+        self._program = _get_program(ec, tex_vert, tex_frag)
+        self._vao = VertexArray()
+        self._buffers = dict()
+        a, b, c, d = [(0, 1), (1, 1), (1, 0), (0, 0)]
+        tex = np.array([a, b, c, a, c, d], np.float32)
+        with self._vao:
+            for key in ("position", "texcoord"):
+                self._buffers[key] = BufferObject(tex.nbytes)
+                if key == "texcoord":
+                    self._buffers[key].set_data(tex.tobytes())
+                self._buffers[key].bind()
+                _set_attrib_pointer(self._program, f"a_{key}")
         self._pos = pos
         self._units = units
         self._center = center
         self.set_scale(scale)  # also calls set_pos
         self._visible = visible
-
-        self._program = _create_program(ec, tex_vert, tex_frag)
-        gl.glUseProgram(self._program)
-        self._buffers = dict()
-        for key in ("position", "texcoord"):
-            self._buffers[key] = gl.GLuint(0)
-            gl.glGenBuffers(1, pointer(self._buffers[key]))
-        a, b, c, d = [(0, 1), (1, 1), (1, 0), (0, 0)]
-        tex = np.array([a, b, c, a, c, d], np.float32)
-        with _array_buffer(self._buffers["texcoord"]):
-            gl.glBufferData(
-                gl.GL_ARRAY_BUFFER, tex.nbytes, tex.tobytes(), gl.GL_DYNAMIC_DRAW
-            )
-        gl.glUseProgram(0)
-        self._vao = gl.GLuint()
-        gl.glGenVertexArrays(1, pointer(self._vao))
 
     def play(self, auto_draw=True, audio=False):
         """Play video from current position.
@@ -1426,37 +1340,23 @@ class Video:
         self._actual_pos = pix - offset
         self._pos_unit = units
         self._pos_centered = center
+        x, y = self._actual_pos
+        w, h = self.width, self.height
+        a, b, c, d = [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+        pos = np.array([a, b, c, a, c, d], np.float32)
+        self._buffers["position"].set_data(pos.tobytes())
 
     def _draw(self):
         from pyglet import gl
 
         tex = self._player.texture
-        gl.glUseProgram(self._program)
+        self._program.use()
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(tex.target, tex.id)
-        gl.glBindVertexArray(self._vao)
-        x, y = self._actual_pos
-        w = self.source_width * self._scale
-        h = self.source_height * self._scale
-        a, b, c, d = [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
-        pos = np.array([a, b, c, a, c, d], np.float32)
-        with _array_buffer(self._buffers["position"]):
-            gl.glBufferData(
-                gl.GL_ARRAY_BUFFER, pos.nbytes, pos.tobytes(), gl.GL_DYNAMIC_DRAW
-            )
-            loc_pos = gl.glGetAttribLocation(self._program, b"a_position")
-            gl.glEnableVertexAttribArray(loc_pos)
-            gl.glVertexAttribPointer(loc_pos, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._buffers["texcoord"])
-            loc_tex = gl.glGetAttribLocation(self._program, b"a_texcoord")
-            gl.glEnableVertexAttribArray(loc_tex)
-            gl.glVertexAttribPointer(loc_tex, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+        with self._vao:
             gl.glDrawArrays(gl.GL_TRIANGLES, 0, 6)
-            gl.glDisableVertexAttribArray(loc_pos)
-            gl.glDisableVertexAttribArray(loc_tex)
         gl.glBindTexture(tex.target, 0)
-        gl.glBindVertexArray(0)
-        gl.glUseProgram(0)
+        self._program.stop()
 
     def draw(self):
         """Draw the video texture to the screen buffer."""

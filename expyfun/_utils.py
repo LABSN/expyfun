@@ -411,10 +411,10 @@ def _has_video(raise_error=False):
 
 
 def requires_video():
-    """Require FFmpeg/AVbin."""
+    """Require FFmpeg."""
     import pytest
 
-    return pytest.mark.skipif(not _has_video(), reason="Requires FFmpeg/AVbin")
+    return pytest.mark.skipif(not _has_video(), reason="Requires FFmpeg")
 
 
 def requires_lib(lib):
@@ -673,20 +673,6 @@ def fake_mouse_click(ec, pos, button="left", delay=0.0):
     Timer(delay, send).start() if delay > 0.0 else send()
 
 
-def _check_pyglet_version(raise_error=False):
-    """Check pyglet version, return True if usable."""
-    import pyglet
-
-    is_usable = _compare_version(pyglet.version, ">=", "1.2")
-    if raise_error is True and is_usable is False:
-        raise ImportError(
-            "On Linux, you must run at least Pyglet "
-            "version 1.2, and you are running "
-            f"{pyglet.version}"
-        )
-    return is_usable
-
-
 def _wait_secs(secs, ec=None):
     """Wait a specified number of seconds.
 
@@ -894,10 +880,7 @@ def _check_params(params, keys, defaults, name):
 def _get_display():
     import pyglet
 
-    try:  # pyglet 2+
-        return pyglet.display.get_display()
-    except AttributeError:  # pyglet 1.4+
-        return pyglet.canvas.get_display()
+    return pyglet.display.get_display()
 
 
 # Adapted from MNE-Python
