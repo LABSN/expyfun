@@ -1,3 +1,4 @@
+import importlib
 import os
 import platform
 import warnings
@@ -824,10 +825,10 @@ class _FakeJoystick:
 
 def test_joystick(hide_window, monkeypatch):
     """Test joystick support."""
-    import pyglet
-
+    # Patch the real module, not pyglet's lazy _ModuleProxy (no __delattr__)
+    pyglet_input = importlib.import_module("pyglet.input")
     fake = _FakeJoystick()
-    monkeypatch.setattr(pyglet.input, "get_joysticks", lambda: [fake])
+    monkeypatch.setattr(pyglet_input, "get_joysticks", lambda: [fake])
     with ExperimentController(*std_args, joystick=True, **std_kwargs) as ec:
         ec.listen_joystick_button_presses()
         fake.on_joybutton_press(fake, 1)
